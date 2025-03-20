@@ -18,11 +18,11 @@ For more information on Graphql, please refer [here](https://graphql.org/)
 
 3. Click on the Import Specs button and select GraphQL as the spec type.
 
-![click graphql](../../../import-screenshots/graphql/1.png)
+![click graphql](../../images/graphql/1.png)
 
 4. Browse to the location of your GraphQL schema file (e.g., StarWarsSchema.graphql) and import it into your application.
 
-![import spec](../../../import-screenshots/graphql/2.png)
+![import spec](../../images/graphql/2.png)
 
 5. Navigate to the Flows Tab in your Flogo application.
 
@@ -34,7 +34,7 @@ For more information on Graphql, please refer [here](https://graphql.org/)
 	* Path: Set the GraphQL path (e.g., /graphql).
 	* GraphQL Schema File: Click on the toggle button to Use App Level Spec. This will enable the selection of the imported spec file.
 	
-	![import spec](../../../import-screenshots/graphql/3.png)
+	![import spec](../../images/graphql/3.png)
 	
 	* GraphQL Operation: Select the operation type (e.g., Query or Mutation).
 	* Resolver For: Set the resolver (e.g., hero) to resolve GraphQL queries.
@@ -61,25 +61,25 @@ For example, if your GraphQL query takes a heroId, you can access this value in 
 
 2. There are 4 flows which are attached to Graphql trigger which acts as the Graphql Server.
 
-	![Flow](../../../import-screenshots/graphql/flow.png)
+	![Flow](../../images/graphql/flow.png)
 
 3. The flows are generated upon successful upload of the spec file .gql file based upon the no. of *queries* and *mutation* in the .gql file. Each flow acts as a resolver function. Since, in the given *StarWarsSchema.gql* file, there were three *queries* and one *mutation*, so 1 flow for each *query* and *mutation* has been generated.
 
 	* The 1st flow name is *Query_hero*. It is returning the hero details upon providing the arguments from the trigger via flow parameter.
 
-	![Hero](../../../import-screenshots/graphql/hero.png)
+	![Hero](../../images/graphql/hero.png)
 
 	* The 2nd flow name is *Query_human*. It is returning the human details upon providing the id  from the trigger via flow parameter.
 
-	![Human](../../../import-screenshots/graphql/human.png)
+	![Human](../../images/graphql/human.png)
 
 	* The 3rd flow name is *Query_droid*. it is returning the droid details with specific id provided from the trigger via flow parameter.
 
-	![Droid](../../../import-screenshots/graphql/droid.png)
+	![Droid](../../images/graphql/droid.png)
 
 	* The 4th flow name is *Mutation_createReview*. it is updating the user's review based upon the details with the values *id*,*rating* and *comment* provided from the trigger via flow parameter.
 
-	![Mutation](../../../import-screenshots/graphql/mutation.png)
+	![Mutation](../../images/graphql/mutation.png)
 
 
 ### Run the application
@@ -98,17 +98,17 @@ For example, if your GraphQL query takes a heroId, you can access this value in 
 
 1. When we hit the endpoints;
 
-![Sample hero Response](../../../import-screenshots/graphql/hero_response.png)
+![Sample hero Response](../../images/graphql/hero_response.png)
 
-![Sample human Response](../../../import-screenshots/graphql/human_response.png)
+![Sample human Response](../../images/graphql/human_response.png)
 
-![Sample droid Response](../../../import-screenshots/graphql/droid_response.png)
+![Sample droid Response](../../images/graphql/droid_response.png)
 
-![Sample mutation Response](../../../import-screenshots/graphql/mutation_response.png)
+![Sample mutation Response](../../images/graphql/mutation_response.png)
 
 2. Verify the logs in the integrated terminal;
 
-![Logs Response](../../../import-screenshots/graphql/logs.png)
+![Logs Response](../../images/graphql/logs.png)
 
 
 ## Notes & Conclusion
