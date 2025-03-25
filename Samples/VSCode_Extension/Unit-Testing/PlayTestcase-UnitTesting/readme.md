@@ -2,7 +2,7 @@
 
 ## Description
 
-With Unit Testing, you can monitor the health of your application and detect errors in individual flows or activity levels. After you design a flow, you can test it by playing it once.You provide the input to the flow in playing a test case once. It executes the flow on demand without using a trigger. Each activity executes independently and displays its logs. It can help detect errors in the flow upfront without actually building the app. The play feature in VSCode plays the same role as the flow tester of TCI
+With Unit Testing, you can monitor the health of your application and detect errors in individual flows or activity levels. After you design a flow, you can test it by playing it once.You provide the input to the flow in playing a test case once. It executes the flow on demand without using a trigger. Each activity executes independently and displays its logs. It can help detect errors in the flow upfront without actually building the app. The play feature in VSCode plays the same role as the flow tester in TCI.
 
 ## Prerequisites
 
@@ -66,5 +66,5 @@ With Unit Testing, you can monitor the health of your application and detect err
 
 5. When a test is running, the Play Testcase icon changes to the Stop Testcase icon. You must stop an ongoing test case to run a different one.
 
-6. The play feature in VSCode is an same as that of flow tester of TCI
+6. The play feature in VSCode is as same as that of flow tester in TCI.
 
