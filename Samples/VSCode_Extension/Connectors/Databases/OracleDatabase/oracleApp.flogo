@@ -1,0 +1,662 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-oracledb/src/app/OracleDatabase/activity/query",
+    "github.com/tibco/wi-oracledb/src/app/OracleDatabase/activity/insert",
+    "github.com/tibco/wi-oracledb/src/app/OracleDatabase/activity/update",
+    "github.com/tibco/wi-oracledb/src/app/OracleDatabase/activity/delete",
+    "github.com/tibco/wi-oracledb/src/app/OracleDatabase/activity/callprocedure",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/tibco/wi-oracledb/src/app/OracleDatabase/connector/oracledb"
+  ],
+  "name": "oracleApp",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/orcl",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:New_flow"
+            },
+            "input": {
+              "headers": "=$.headers"
+            },
+            "output": {
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"output\":\"\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "New_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:New_flow",
+      "data": {
+        "name": "New_flow",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "OracleDatabaseQuery",
+            "type": "label",
+            "label": "StartActivity to OracleDatabaseQuery"
+          },
+          {
+            "id": 2,
+            "from": "OracleDatabaseQuery",
+            "to": "OracleDatabaseInsert",
+            "type": "label",
+            "label": "OracleDatabaseQuery to OracleDatabaseInsert"
+          },
+          {
+            "id": 3,
+            "from": "OracleDatabaseInsert",
+            "to": "OracleDatabaseUpdate",
+            "type": "label",
+            "label": "OracleDatabaseInsert to OracleDatabaseUpdate"
+          },
+          {
+            "id": 4,
+            "from": "OracleDatabaseUpdate",
+            "to": "OracleDatabaseDelete",
+            "type": "label",
+            "label": "OracleDatabaseUpdate to OracleDatabaseDelete"
+          },
+          {
+            "id": 5,
+            "from": "OracleDatabaseDelete",
+            "to": "OracleDatabaseCallProcedure",
+            "type": "label",
+            "label": "OracleDatabaseDelete to OracleDatabaseCallProcedure"
+          },
+          {
+            "id": 6,
+            "from": "OracleDatabaseCallProcedure",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "OracleDatabaseCallProcedure to LogMessage"
+          },
+          {
+            "id": 7,
+            "from": "LogMessage",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "OracleDatabaseQuery",
+            "name": "OracleDatabaseQuery",
+            "description": "This activity executes query statement on Oracle Database",
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Oracle Database Connection": "conn://1d87a068-6f03-48d9-8d85-258a2df790f2",
+                "Schema": "SYSTEM",
+                "Query": "SELECT * FROM SYSTEM.EMPLOYEE;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "EMP_ID",
+                    "Type": "DECIMAL",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "EMP_NAME",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "HIRE_DATE",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "State": "8ac9fe1a-4887-47ed-944b-ae44a027200dSELECT * FROM SYSTEM.EMPLOYEE;"
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"EMP_ID\":{\"type\":\"string\"},\"EMP_NAME\":{\"type\":\"string\"},\"HIRE_DATE\":{\"type\":\"string\",\"format\":\"date-time\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"EMP_ID\":{\"type\":\"string\"},\"EMP_NAME\":{\"type\":\"string\"},\"HIRE_DATE\":{\"type\":\"string\",\"format\":\"date-time\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "OracleDatabaseInsert",
+            "name": "OracleDatabaseInsert",
+            "description": "This activity executes insert statement on Oracle Database",
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Oracle Database Connection": "conn://1d87a068-6f03-48d9-8d85-258a2df790f2",
+                "Schema": "SYSTEM",
+                "Query": "INSERT INTO SYSTEM.EMPLOYEE(EMP_ID, EMP_NAME, HIRE_DATE) VALUES(?EMP_ID, ?EMP_NAME, ?HIRE_DATE);",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "EMP_ID",
+                    "Type": "DECIMAL",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "EMP_NAME",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "HIRE_DATE",
+                    "Type": "TIMESTAMP",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  }
+                ],
+                "State": "3204ef8b-d933-4e05-a06c-9ebef1d9d2cfINSERT INTO SYSTEM.EMPLOYEE(EMP_ID, EMP_NAME, HIRE_DATE) VALUES(?EMP_ID, ?EMP_NAME, ?HIRE_DATE);",
+                "input": {
+                  "mapping": {
+                    "values": [
+                      {
+                        "EMP_ID": 1,
+                        "EMP_NAME": "khushali",
+                        "HIRE_DATE": "10-FEB-2019 9:26:50.123456789"
+                      }
+                    ]
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"EMP_ID\":{\"type\":\"string\"},\"EMP_NAME\":{\"type\":\"string\"},\"HIRE_DATE\":{\"type\":\"string\",\"format\":\"date-time\"}}}},\"parameters\":{\"type\":\"object\",\"properties\":{}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"EMP_ID\":{\"type\":\"string\"},\"EMP_NAME\":{\"type\":\"string\"},\"HIRE_DATE\":{\"type\":\"string\",\"format\":\"date-time\"}}}},\"parameters\":{\"type\":\"object\",\"properties\":{}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"rowsAffected\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"rowsAffected\":{\"type\":\"number\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "OracleDatabaseUpdate",
+            "name": "OracleDatabaseUpdate",
+            "description": "This activity executes update statement on Oracle Database",
+            "activity": {
+              "ref": "#update",
+              "input": {
+                "Oracle Database Connection": "conn://1d87a068-6f03-48d9-8d85-258a2df790f2",
+                "Schema": "SYSTEM",
+                "Query": "UPDATE SYSTEM.EMPLOYEE SET EMP_NAME=?EMP_NAME WHERE EMP_ID=?EMP_ID;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "EMP_NAME",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "EMP_ID",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "State": "4017cb94-f6d7-4b48-829d-b27c608f1acaUPDATE SYSTEM.EMPLOYEE SET EMP_NAME=?EMP_NAME WHERE EMP_ID=?EMP_ID;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "EMP_ID": 1,
+                      "EMP_NAME": "khushaliupdated"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"EMP_NAME\":{\"type\":\"string\"},\"EMP_ID\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"EMP_NAME\":{\"type\":\"string\"},\"EMP_ID\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"rowsAffected\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"rowsAffected\":{\"type\":\"number\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "OracleDatabaseDelete",
+            "name": "OracleDatabaseDelete",
+            "description": "This activity executes delete statement on Oracle Database",
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "Oracle Database Connection": "conn://1d87a068-6f03-48d9-8d85-258a2df790f2",
+                "Schema": "SYSTEM",
+                "Query": "DELETE FROM SYSTEM.EMPLOYEE WHERE EMP_NAME=?EMP_NAME;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "EMP_NAME",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  }
+                ],
+                "State": "376d2831-8071-4e25-8ca3-7105ceb97ed6DELETE FROM SYSTEM.EMPLOYEE WHERE EMP_NAME=?EMP_NAME;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "EMP_NAME": "khushaliupdated"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"EMP_NAME\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"EMP_NAME\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"rowsAffected\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"rowsAffected\":{\"type\":\"number\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "OracleDatabaseCallProcedure",
+            "name": "OracleDatabaseCallProcedure",
+            "description": "This activity executes call procedure statement on Oracle Database",
+            "activity": {
+              "ref": "#callprocedure",
+              "input": {
+                "Oracle Database Connection": "conn://1d87a068-6f03-48d9-8d85-258a2df790f2",
+                "CallProcedure": "call multipleCursorsQA(?E_ID, ?EMP_NAME, ?p_recordset1, ?p_recordset2);",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "E_ID",
+                    "Type": "NUMBER",
+                    "Direction": "IN",
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "EMP_NAME",
+                    "Type": "VARCHAR",
+                    "Direction": "OUT",
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "p_recordset1",
+                    "Type": "REFCURSOUR",
+                    "Direction": "OUT",
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "p_recordset2",
+                    "Type": "REFCURSOUR",
+                    "Direction": "OUT",
+                    "isEditable": true
+                  }
+                ],
+                "FieldsInfo": {
+                  "ok": true,
+                  "query": "",
+                  "fields": [
+                    {
+                      "FieldName": "E_ID",
+                      "Type": "NUMBER",
+                      "Direction": "IN",
+                      "isEditable": true
+                    },
+                    {
+                      "FieldName": "EMP_NAME",
+                      "Type": "VARCHAR",
+                      "Direction": "OUT",
+                      "isEditable": true
+                    },
+                    {
+                      "FieldName": "p_recordset1",
+                      "Type": "REFCURSOUR",
+                      "Direction": "OUT",
+                      "isEditable": true
+                    },
+                    {
+                      "FieldName": "p_recordset2",
+                      "Type": "REFCURSOUR",
+                      "Direction": "OUT",
+                      "isEditable": true
+                    }
+                  ]
+                },
+                "State": "a82b76f0-38f0-447f-b86a-c4bbe35a25becall multipleCursorsQA(?E_ID, ?EMP_NAME, ?p_recordset1, ?p_recordset2);"
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"E_ID\":{\"type\":\"integer\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"E_ID\":{\"type\":\"integer\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"EMP_NAME\":{\"type\":\"string\"},\"p_recordset1\":{\"type\":\"string\"},\"p_recordset2\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"EMP_NAME\":{\"type\":\"string\"},\"p_recordset1\":{\"type\":\"string\"},\"p_recordset2\":{\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(string.tostring($activity[OracleDatabaseCallProcedure].Output), string.tostring($activity[OracleDatabaseDelete].Output), string.tostring($activity[OracleDatabaseQuery].Output), string.tostring($activity[OracleDatabaseUpdate].Output),string.tostring($activity[OracleDatabaseInsert].Output))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "data": {
+                    "mapping": {
+                      "output": "=string.concat(string.tostring($activity[OracleDatabaseCallProcedure].Output), string.tostring($activity[OracleDatabaseDelete].Output), string.tostring($activity[OracleDatabaseQuery].Output), string.tostring($activity[OracleDatabaseUpdate].Output),string.tostring($activity[OracleDatabaseInsert].Output))"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjI1LCJ5IjoyN30sIk9yYWNsZURhdGFiYXNlUXVlcnkiOnsieCI6MTAwLCJ5IjoxOH0sIk9yYWNsZURhdGFiYXNlSW5zZXJ0Ijp7IngiOjI5MCwieSI6MjR9LCJPcmFjbGVEYXRhYmFzZVVwZGF0ZSI6eyJ4Ijo0NDEsInkiOjE1fSwiT3JhY2xlRGF0YWJhc2VEZWxldGUiOnsieCI6NjA1LCJ5IjoxMH0sIk9yYWNsZURhdGFiYXNlQ2FsbFByb2NlZHVyZSI6eyJ4Ijo3NzIsInkiOjI0fSwiTG9nTWVzc2FnZSI6eyJ4Ijo5NTIsInkiOjE5fSwiUmV0dXJuIjp7IngiOjExMjQsInkiOjI5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"output\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "OracleDatabase.oracleconn.Host",
+      "type": "string",
+      "value": "10.233.80.11"
+    },
+    {
+      "name": "OracleDatabase.oracleconn.Port",
+      "type": "float64",
+      "value": 1521
+    },
+    {
+      "name": "OracleDatabase.oracleconn.User",
+      "type": "string",
+      "value": "system"
+    },
+    {
+      "name": "OracleDatabase.oracleconn.Password",
+      "type": "string",
+      "value": "SECRET:h42wk49Ohgvc1BN7LWFKekcZaItG3mEfzLPf"
+    },
+    {
+      "name": "OracleDatabase.oracleconn.Database_Instance_value",
+      "type": "string",
+      "value": "orcl"
+    },
+    {
+      "name": "OracleDatabase.oracleconn.Max_Open_Connections",
+      "type": "float64",
+      "value": 50
+    },
+    {
+      "name": "OracleDatabase.oracleconn.Max_Idle_Connections",
+      "type": "float64",
+      "value": 10
+    },
+    {
+      "name": "OracleDatabase.oracleconn.Connection_Max_Lifetime",
+      "type": "string",
+      "value": "180s"
+    }
+  ],
+  "connections": {
+    "1d87a068-6f03-48d9-8d85-258a2df790f2": {
+      "id": "1d87a068-6f03-48d9-8d85-258a2df790f2",
+      "name": "oracleconn",
+      "ref": "#oracledb",
+      "isGlobal": false,
+      "settings": {
+        "name": "oracleconn",
+        "description": "",
+        "host": "=$property[\"OracleDatabase.oracleconn.Host\"]",
+        "port": "=$property[\"OracleDatabase.oracleconn.Port\"]",
+        "user": "=$property[\"OracleDatabase.oracleconn.User\"]",
+        "password": "=$property[\"OracleDatabase.oracleconn.Password\"]",
+        "database": "SID",
+        "SID": "=$property[\"OracleDatabase.oracleconn.Database_Instance_value\"]",
+        "SetMaxOpenConns": "=$property[\"OracleDatabase.oracleconn.Max_Open_Connections\"]",
+        "SetMaxIdleConns": "=$property[\"OracleDatabase.oracleconn.Max_Idle_Connections\"]",
+        "SetConnMaxLifetime": "=$property[\"OracleDatabase.oracleconn.Connection_Max_Lifetime\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuNCIsInRhZyI6IjEuNi40LWIwMiIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vd2ktb3JhY2xlZGIvc3JjL2FwcC9PcmFjbGVEYXRhYmFzZSIsImlkIjoiT3JhY2xlRGF0YWJhc2UiLCJ2ZXJzaW9uIjoiMS4yLjIiLCJ0YWciOiIxLjIuMi1iMDMiLCJuYW1lIjoiT3JhY2xlIERhdGFiYXNlIiwiczNsb2NhdGlvbiI6IlRpYmNvL09yYWNsZURhdGFiYXNlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "oracleApp",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "oracleApp",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/orcl": {
+              "get": {
+                "summary": "New_flow",
+                "operationId": "get_orcl",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "output": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.25.3"
+  }
+}
