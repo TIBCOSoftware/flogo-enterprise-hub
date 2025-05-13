@@ -1,0 +1,793 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/insert",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/update",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/delete",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "postgresql-ssl",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/postgres/ssl",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:CRUD_Flow"
+            },
+            "input": {
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"output\":\"\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "CRUD_Flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:CRUD_Flow",
+      "data": {
+        "name": "CRUD_Flow",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "PostgreSQLInsert",
+            "type": "label",
+            "label": "StartActivity to PostgreSQLInsert"
+          },
+          {
+            "id": 2,
+            "from": "PostgreSQLInsert",
+            "to": "PostgreSQLUpdate",
+            "type": "label",
+            "label": "PostgreSQLInsert to PostgreSQLUpdate"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLUpdate",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "PostgreSQLUpdate to PostgreSQLQuery"
+          },
+          {
+            "id": 4,
+            "from": "PostgreSQLQuery",
+            "to": "PostgreSQLDelete",
+            "type": "label",
+            "label": "PostgreSQLQuery to PostgreSQLDelete"
+          },
+          {
+            "id": 5,
+            "from": "PostgreSQLDelete",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "PostgreSQLDelete to LogMessage"
+          },
+          {
+            "id": 6,
+            "from": "LogMessage",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "PostgreSQLInsert",
+            "name": "PostgreSQLInsert",
+            "description": "This activity executes insert on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://370c508d-b3bd-494e-951b-769569e3a7b8",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO public.company(id,name,age,address,salary,join_date,notes) VALUES(?id1,?name1,?age1,?address1,?salary1,?join_date1,?notes1)\nRETURNING *;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "id1",
+                    "Type": "INTEGER",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "name1",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "age1",
+                    "Type": "INTEGER",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "address1",
+                    "Type": "CHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "salary1",
+                    "Type": "REAL",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "join_date1",
+                    "Type": "DATE",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "notes1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "id",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "age",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "address",
+                    "Type": "CHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "salary",
+                    "Type": "REAL",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "join_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "notes",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "31c7b946-1f66-4c53-895b-d391c75f64d0INSERT INTO public.company(id,name,age,address,salary,join_date,notes) VALUES(?id1,?name1,?age1,?address1,?salary1,?join_date1,?notes1)\nRETURNING *;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "id1": 503,
+                      "name1": "Test Name",
+                      "age1": 29,
+                      "address1": "Test Address",
+                      "salary1": 50000,
+                      "join_date1": "03-03-2003",
+                      "notes1": "Test Notes"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"id1\":{\"type\":\"integer\"},\"name1\":{\"type\":\"string\"},\"age1\":{\"type\":\"integer\"},\"address1\":{\"type\":\"string\"},\"salary1\":{\"type\":\"number\"},\"join_date1\":{\"type\":\"string\",\"format\":\"date\"},\"notes1\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"id1\":{\"type\":\"integer\"},\"name1\":{\"type\":\"string\"},\"age1\":{\"type\":\"integer\"},\"address1\":{\"type\":\"string\"},\"salary1\":{\"type\":\"number\"},\"join_date1\":{\"type\":\"string\",\"format\":\"date\"},\"notes1\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"},\"address\":{\"type\":\"string\"},\"salary\":{\"type\":\"number\"},\"join_date\":{\"type\":\"string\",\"format\":\"date\"},\"notes\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"},\"address\":{\"type\":\"string\"},\"salary\":{\"type\":\"number\"},\"join_date\":{\"type\":\"string\",\"format\":\"date\"},\"notes\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "PostgreSQLUpdate",
+            "name": "PostgreSQLUpdate",
+            "description": "This activity executes update on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#update",
+              "input": {
+                "Connection": "conn://370c508d-b3bd-494e-951b-769569e3a7b8",
+                "UpdateName": "",
+                "Schema": "public",
+                "Query": "UPDATE public.company SET salary = ?salary1, notes = ?notes1 WHERE public.company.id = ?id1 returning id;",
+                "manualmode": false,
+                "RuntimeQuery": "",
+                "Fields": [
+                  {
+                    "FieldName": "salary1",
+                    "Type": "REAL",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "notes1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "id1",
+                    "Type": "INTEGER",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "id",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "State": "0b38bd67-8584-4dde-950f-73447442c306UPDATE public.company SET salary = ?salary1, notes = ?notes1 WHERE public.company.id = ?id1 returning id;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "salary1": 60000,
+                      "notes1": "Test Notes4101",
+                      "id1": 503
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"salary1\":{\"type\":\"number\"},\"notes1\":{\"type\":\"string\"},\"id1\":{\"type\":\"integer\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"salary1\":{\"type\":\"number\"},\"notes1\":{\"type\":\"string\"},\"id1\":{\"type\":\"integer\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://370c508d-b3bd-494e-951b-769569e3a7b8",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM public.company WHERE public.company.id = ?id1;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "id1",
+                    "Type": "INTEGER",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "id",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "age",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "address",
+                    "Type": "CHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "salary",
+                    "Type": "REAL",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "join_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "notes",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "3b19f396-dde2-47e5-841b-a77d0aa29365SELECT * FROM public.company WHERE public.company.id = ?id1;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "id1": 503
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"id1\":{\"type\":\"integer\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"id1\":{\"type\":\"integer\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"},\"address\":{\"type\":\"string\"},\"salary\":{\"type\":\"number\"},\"join_date\":{\"type\":\"string\",\"format\":\"date\"},\"notes\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"},\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"},\"address\":{\"type\":\"string\"},\"salary\":{\"type\":\"number\"},\"join_date\":{\"type\":\"string\",\"format\":\"date\"},\"notes\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "PostgreSQLDelete",
+            "name": "PostgreSQLDelete",
+            "description": "This activity executes delete on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "Connection": "conn://370c508d-b3bd-494e-951b-769569e3a7b8",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "DELETE FROM public.company WHERE public.company.id = ?id1;",
+                "manualmode": false,
+                "RuntimeQuery": "",
+                "Fields": [
+                  {
+                    "FieldName": "id1",
+                    "Type": "INTEGER",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  }
+                ],
+                "State": "ca02e4d7-03df-429c-b2b6-f80255d50945DELETE FROM public.company WHERE public.company.id = ?id1;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "id1": 503
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"id1\":{\"type\":\"integer\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"id1\":{\"type\":\"integer\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"rowsAffected\":{\"type\":\"int\"}}}",
+                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"rowsAffected\":{\"type\":\"int\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.tostring($activity[PostgreSQLQuery].Output)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "output": "=string.tostring($activity[PostgreSQLDelete].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUG9zdGdyZVNRTEluc2VydCI6eyJ4Ijo2NiwieSI6MjE3fSwiUG9zdGdyZVNRTFVwZGF0ZSI6eyJ4IjoyMzksInkiOjk4fSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjI4OCwieSI6MjQ4fSwiUG9zdGdyZVNRTERlbGV0ZSI6eyJ4Ijo0NTksInkiOjExNn0sIkxvZ01lc3NhZ2UiOnsieCI6NTEyLCJ5IjoyNDh9LCJSZXR1cm4iOnsieCI6NjgzLCJ5IjoxMjN9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"output\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Host",
+      "type": "string",
+      "value": "gasdflgflogo301.dev.tibco.com"
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Port",
+      "type": "float64",
+      "value": 5435
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Database_Name",
+      "type": "string",
+      "value": "sampledb"
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Password",
+      "type": "string",
+      "value": "SECRET:X7PTgXI2upBSVDAKkvzYamuJNms="
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.CA_Certificate",
+      "type": "string",
+      "value": {
+        "filename": "rootCA.crt.pem",
+        "content": "data:application/octet-stream;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVSVENDQXkyZ0F3SUJBZ0lVWmNHVWswcWJHWUFjVUtTNGtzSlQ0U2JYb2VRd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2diRXhDekFKQmdOVkJBWVRBa2xPTVFzd0NRWURWUVFJREFKTlNERU5NQXNHQTFVRUJ3d0VVSFZ1WlRFTwpNQXdHQTFVRUNnd0ZWRWxDUTA4eEV6QVJCZ05WQkFzTUNrTnZibTVsWTNSdmNuTXhKakFrQmdOVkJBTU1IV2RoCmMyUm1iR2RtYkc5bmJ6TXdNUzVrWlhZdWRHbGlZMjh1WTI5dE1Ua3dOd1lKS29aSWh2Y05BUWtCRmlwaFpHMXAKYmtCeWIyOTBZMkV1WjJGelpHWnNaMlpzYjJkdk16QXhMbVJsZGk1MGFXSmpieTVqYjIwd0hoY05NalV3TWpBegpNRGd3TnpNM1doY05NamN4TVRJME1EZ3dOek0zV2pDQnNURUxNQWtHQTFVRUJoTUNTVTR4Q3pBSkJnTlZCQWdNCkFrMUlNUTB3Q3dZRFZRUUhEQVJRZFc1bE1RNHdEQVlEVlFRS0RBVlVTVUpEVHpFVE1CRUdBMVVFQ3d3S1EyOXUKYm1WamRHOXljekVtTUNRR0ExVUVBd3dkWjJGelpHWnNaMlpzYjJkdk16QXhMbVJsZGk1MGFXSmpieTVqYjIweApPVEEzQmdrcWhraUc5dzBCQ1FFV0ttRmtiV2x1UUhKdmIzUmpZUzVuWVhOa1pteG5abXh2WjI4ek1ERXVaR1YyCkxuUnBZbU52TG1OdmJUQ0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCQUx0NXorN1kKbm50YVM1WFVNMnlZQXZ5OHBFUU1ybmtlbzRrYXFCWTAxb2xCeEZWVUZGbXJPdWtwbFRtNDNncExwZVlRcnZSUgpoekpFOHl3eGMrc3ZhUVBSdWVKOVhoZE84QlplL25MVGc5ZER3RkF3TnF3cmRFYlNqcEFJbW9WVUpuTXllSWxMCkhlNXhWYTNseHJycE9PQ2p6UjFSbGpJTWlJbktwWmYyaVZpcmN2SDkybVA3QmpZYXhRRllJQm81dTE4enZtdUgKOFp1Rk1MY3R4amdwRE9rSVhLeVpXTkpvQnJ0bTI3Y09IakpxQnNibGFSRS9QQ2N0WTdURndma1JuejRIRnZuYgp2SlQzQURibWpQL3RGWUlQcWQzRjhFd2gzOHAyTDFud2t5ZXlBYm5zMjBmeEIyOWZhVnFuTzV1UXRwN2NEWUozCjUrT0lmVTBKZUpVTDByY0NBd0VBQWFOVE1GRXdIUVlEVlIwT0JCWUVGRy9YOHRHRE5obDVGRGlkeHhLUFowZVMKMGZzWU1COEdBMVVkSXdRWU1CYUFGRy9YOHRHRE5obDVGRGlkeHhLUFowZVMwZnNZTUE4R0ExVWRFd0VCL3dRRgpNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFBQU9VaEc2bUw3ZkZLNjVmdDZHZS8yN0VXV0F3V2kzCk1yL01TdmNGbWg1eFZPVy92azc4cG5hZU53OFNwd1ViM0grbitsQWxNZnFhdGpyYWt3V2x0UDVkOUcweVpPbDYKdG91Nk4yeElIaHJtSkhyMmNuWjRPZHNCVUl0UUNmMnVvNUh4MlE4L0d4VHp1YnA1dHFxakN0ZWtwS0poa2Z3OApVSkEvZlJoQWpSS1oxUlRjMXNCMnFKRnVBVHJrY1pzMzZ2N1Z2Zk9ubDZxQW41SUJ2MWNQaHFPYXA1YTBaN3psCldhZjBMajUvS3dveWdZS241ZDY1b3RnKzFxS1JEQytJSTRTTHdXYWFmNlZSR3B1OU1kcFVmQ201Y2hUdDVwUE0KUnNYQWxOai9sVFBWLzhPSURjb1FBeURnQUcyeDBQZFhTaGYwdld0cDhmMGRxSGR3Sm16bzRJMD0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+      }
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Client_Certificate",
+      "type": "string",
+      "value": {
+        "filename": "client.crt.pem",
+        "content": "data:application/octet-stream;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQwRENDQXJnQ0ZGUkZvWGlhQWo2d0ZZUHA4cUM3aXdpNmlQRjVNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1JR3gKTVFzd0NRWURWUVFHRXdKSlRqRUxNQWtHQTFVRUNBd0NUVWd4RFRBTEJnTlZCQWNNQkZCMWJtVXhEakFNQmdOVgpCQW9NQlZSSlFrTlBNUk13RVFZRFZRUUxEQXBEYjI1dVpXTjBiM0p6TVNZd0pBWURWUVFEREIxbllYTmtabXhuClpteHZaMjh6TURFdVpHVjJMblJwWW1OdkxtTnZiVEU1TURjR0NTcUdTSWIzRFFFSkFSWXFZV1J0YVc1QWNtOXYKZEdOaExtZGhjMlJtYkdkbWJHOW5iek13TVM1a1pYWXVkR2xpWTI4dVkyOXRNQjRYRFRJMU1ESXdNekE0TURjegpPRm9YRFRJM01URXlOREE0TURjek9Gb3dnWll4Q3pBSkJnTlZCQVlUQWtsT01Rc3dDUVlEVlFRSURBSk5TREVOCk1Bc0dBMVVFQnd3RVVIVnVaVEVPTUF3R0ExVUVDZ3dGVkVsQ1EwOHhFekFSQmdOVkJBc01Da052Ym01bFkzUnYKY25NeE16QXhCZ2txaGtpRzl3MEJDUUVXSkdOc2FXVnVkRUJuWVhOa1pteG5abXh2WjI4ek1ERXVaR1YyTG5ScApZbU52TG1OdmJURVJNQThHQTFVRUF3d0ljRzl6ZEdkeVpYTXdnZ0VpTUEwR0NTcUdTSWIzRFFFQkFRVUFBNElCCkR3QXdnZ0VLQW9JQkFRREdZa2pZYkhHR2J1ejdpSTFoRzUxZHFkV0dpS1o5dVZUY1Y4R1NOTVYvaDNZMjNaZWMKNkdvOCtIV04vaTBuTy9DR1o0Y0Y4Z1NKQ3MyTlUvVWlvRkx5SUtZaEVlQ1hOaGo2TDJzNTJMeVlBRkI1RVBzNApLcjErV2tCT21uNVZnQk4yOUxIWkd6S0JFM0paL01YZDJjMVpJWDQ0bVNKRzBPMzBMb0wrVUk3WHBNOWlEMzNhCllycy9TdTA1Sm1zYmwwT1JRQ3k4cjlXYk5zbHp6aW4rZlVQSXFqcDFxajdwZzF0TjhmR01WVnJsRWZ4d01NRXkKRGttc0JBYkJoNjQ4UnFwNXNQT0U5amJ3OVdNUCtKek1PUDB5eDFDUjI0VWFjY3lUV1VBRklZRmRwOXhqNlJjawpvUWYvWmp3dUJMSzh6S1o0QWk4dEIxV21TWGVFMytXZUxENS9BZ01CQUFFd0RRWUpLb1pJaHZjTkFRRUxCUUFECmdnRUJBQ3VPb3hzZ3NlaXZOOWJRaXNITmZodHZJek9KMmpZZll3QTBVK2E0ZWlONDczZVN2MUE1cW9MOTNIcHQKeXlGdjN2UC9BaXJsYkdYVWhLbmlJOHBnb3ZqUFY3ZjJVK1djOGtDZ2Y4eTk3QzZUVDAyMVcxN08zaXlYZlFrQgpSL2FRNVBMNkRsSklrRm1VMmpqOHZaMXJ5UjIwTWQyc0lrU2RMK3IrMllBcThCZGlPK1owQVBtQ2tVSnlYQUJBCktJWDhNY2VoS0lrekVyeG9sSVRKQnRkeitFUXdITDZPQkp6dmkrNm92S1lGbGEwazJsWTYzWDd6TWczdnFiVlEKdi9HSkRwN3VadlBiVkdLTHlONlVBNFhFcnBUaFk0Q0d6QU9YeHY4SThlY2t5bVNqeVJETHliZldOQnZOa2dJbwpWeWdjZjFPK0R0ek50dG9sUWJUbUJBazBhUkk9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+      }
+    },
+    {
+      "name": "PostgreSQL.PostgreSQL-SSL-Conn.Client_Key",
+      "type": "string",
+      "value": {
+        "filename": "client.key.pem",
+        "content": "data:application/octet-stream;base64,LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRREdZa2pZYkhHR2J1ejcKaUkxaEc1MWRxZFdHaUtaOXVWVGNWOEdTTk1WL2gzWTIzWmVjNkdvOCtIV04vaTBuTy9DR1o0Y0Y4Z1NKQ3MyTgpVL1Vpb0ZMeUlLWWhFZUNYTmhqNkwyczUyTHlZQUZCNUVQczRLcjErV2tCT21uNVZnQk4yOUxIWkd6S0JFM0paCi9NWGQyYzFaSVg0NG1TSkcwTzMwTG9MK1VJN1hwTTlpRDMzYVlycy9TdTA1Sm1zYmwwT1JRQ3k4cjlXYk5zbHoKemluK2ZVUElxanAxcWo3cGcxdE44ZkdNVlZybEVmeHdNTUV5RGttc0JBYkJoNjQ4UnFwNXNQT0U5amJ3OVdNUAorSnpNT1AweXgxQ1IyNFVhY2N5VFdVQUZJWUZkcDl4ajZSY2tvUWYvWmp3dUJMSzh6S1o0QWk4dEIxV21TWGVFCjMrV2VMRDUvQWdNQkFBRUNnZ0VBSUNLYm1qTTIwSWYzYTJkYlAzZXhyaEpzdkRZMmdmY2JmL1hYTFUvUERqRnIKUE1mNFh6cG11eW1rSVRRakxFL1JUblJHc3ZmWk5EbkR3amp2WklTRDZ5VE94RnlZL09XT2RqaG9MaDZscmhtZQo3MzJJdERoNEtaZUZBemFUY0ZZbTBRWWlLUUQyMVdISkREcWQ4cW50VVpyVFQyZSszYW5LWWR1RzdKc3dDRTRwCkp2TVRETENrYisrK2U5ckxHbElhc2dtT2twOURZSUtMZktWczVhbTE3K0ZBL1AxMVZ2ZmlrRzMveEU5cDFETmQKaVVMdU9ocGZiaVlMTFVST3Y3Nnd1Uk1rWHZuSjJjVm0vL0x2ZEVGNnh2TkVsZGExQzhCUEg3bXQrZUFOYXNVTgpXMmZicHJ2cjNZdGE5bjZRVXMzWWNaVkJ2ZXZYS1ZvRDErcFN1c1dHd1FLQmdRRGlUMkFYaW9ldEQySXhhUmtrCkZTeE05UnRZbzBOSWIxQldiY1oxbTVBS1hxdTJ5MmUyS081Z0t2NzlyeWZpT3dvNE1XY0Qxb0Z1YTZZcFJxWmUKdFJSZFAzTVRZMmpjSXduZFRsYjF2NWdMOTh2eUJpa0tia2ZjQVRIQ0FWZUlBTHdaTTZTak54bFU1V0k0dTRDdgo1RjhKWjBRbU5qN1RkNFJlMDREbEEzMm5nd0tCZ1FEZ2FRSi9sdlBxR1F0TnczdEQwS2xZNWJ4QXphajdobTJXCldNVHJHYWJxZVErcHRrSVhtTGNYR2creFFJeWZ2VEpiOVhmMG1tMHVZc1JGa3pNMENVaXJMdldYN2VVY21YYjcKZjh6aFZGNzgvT2owL21jc0dLV0huNk9YeDZXSHFzeXpLbHFwTk90ZjYxbEZMK3cyNWx6QVlnUDd4T0JPdmVLdQpLQThTT3N2Z1ZRS0JnRjUyKzRsWURlSXpOYTJpVFJnK3JrdEJWTFRmRVVxL0RDM0hqTHV5djZGVWV5REdMdmhlCmhZSW04R0U4SjgzTER5ejlraDZMLzJMMEZGdk9YY3ZTa2ptS0xxSzlNQndUbEI2SWdNdjd1Wi9sUTRBM0NoS00KamZwTGxWV0I4ZU9YU3V6S0hjTHpVT09iREREYU01RTRKbU5xYzR2dndMSE1oYmgvV0tJL25zZTVBb0dCQUxFRwp4WnpIQlFWUDJsWHU5bWRKekwyL0JTR04yMWNIOVowYnk4TzJpYkQvN1RZdys3UkhtVzlVOUxvY05KS3ltbTVtCmxzbFRwUHRwbUhGV0xKZEpGNVZLeHh5aDR4SUxrZ3ZXQmxaZXkwd0JhdmdSVkd3NXlTTFM4U2VEcS9YNDYrQU8KY2xSMjFaTG1RcGJNdGllYzArQkRzZWJEcVRzVW1pUk9uNHorNnVPOUFvR0FEak05Rm14b0t0MFJHSmNxV0ZNUQpRaXJJdDNKdWFLVUtTZzhjbDR6TXo4TEVUZHFtazJtUDdhL3ErUWFCNXVaSU9lb0JBY0VsVE9YTzNMczRoNm1NCnE2SnZVVDRWd1Q4cFJXdFQ2MHFJOGc3RTNybzdZcjF1S1I1cEpCbkxyUkV3ZmZCcE1YeEZpVEM5SzQ1a2xCcFkKeHEyZGRYSHNDKzRkV2VEc21mZGo0ajQ9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K"
+      }
+    }
+  ],
+  "connections": {
+    "370c508d-b3bd-494e-951b-769569e3a7b8": {
+      "id": "370c508d-b3bd-494e-951b-769569e3a7b8",
+      "name": "PostgreSQL-SSL-Conn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgreSQL-SSL-Conn",
+        "description": "",
+        "host": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": true,
+        "tlsparam": "VerifyFull",
+        "cacert": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.CA_Certificate\"]",
+        "clientcert": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Client_Certificate\"]",
+        "clientkey": "=$property[\"PostgreSQL.PostgreSQL-SSL-Conn.Client_Key\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuNSIsInRhZyI6IjEuNi41LWIwNCIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vd2ktcG9zdGdyZXMvc3JjL2FwcC9Qb3N0Z3JlU1FMIiwiaWQiOiJQb3N0Z3JlU1FMIiwidmVyc2lvbiI6IjIuNy4xIiwidGFnIjoiMi43LjEtYjAxIiwibmFtZSI6IlBvc3RncmVTUUwiLCJzM2xvY2F0aW9uIjoiVGliY28vUG9zdGdyZVNRTCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "postgresql-ssl",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "postgresql-ssl",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/postgres/ssl": {
+              "get": {
+                "summary": "CRUD_Flow",
+                "operationId": "get_postgres_ssl",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "output": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.25.5"
+  }
+}

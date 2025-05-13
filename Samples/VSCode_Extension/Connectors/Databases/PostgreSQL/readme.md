@@ -2,7 +2,7 @@
 
 ## Description
 
-This example demonstrate how we can create and use PostgreSQL CRUD activities.
+This example demonstrate how we can create and use PostgreSQL CRUD activities with TLS/SSL Authentication.
 PostgreSQL CRUD app bascially contains 4 activities. The main purpose of these activities are to insert data, update the data, delete the data and then finally perform query to fetch data from PostgreSQL database.
 
 ## Prerequisites
