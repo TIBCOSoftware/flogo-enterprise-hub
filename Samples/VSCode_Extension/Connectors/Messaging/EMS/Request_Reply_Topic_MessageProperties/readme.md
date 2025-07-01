@@ -25,7 +25,7 @@ The configuration includes setting up triggers to subscribe to messages publishe
 2. Follow platform-specific setup instructions in the Visual Studio Code documentation under Prerequisites for Connectors > Setting up EMS for Local Runtime.
 Note: TIBCO EMS Client version 10.3.0 or higher is required.
 
-![Setting up EMS for Local Runtime](../../../images/EMS/Request_Reply_Topic_MessageProperties/1.png) 
+![Setting up EMS for Local Runtime](../../../images/EMS/RequestReply/1.png) 
   
 
 ## Import sample into VSCode Workspace
@@ -38,7 +38,7 @@ Note: TIBCO EMS Client version 10.3.0 or higher is required.
 
 ### The Connection
 
-![The Connection](../../../images/EMS/Request_Reply_Topic_MessageProperties/2.png)
+![The Connection](../../../images/EMS/RequestReply/2.png)
 
 In the connection, note that:
 
@@ -65,21 +65,21 @@ tibco premies.
 * EMS-ReplyFlow has the Receiver trigger which is listening to the mentioned destination and recieves the message whenever it is sent. Further, the EMSAcknowledge activity acknowledges the EMS message received by the EMS trigger. EMS Send Message activity is used to send the reply back to the Request flow.
 
 
-![The Flow](../../../images/EMS/Request_Reply_Topic_MessageProperties/3.png)
+![The Flow](../../../images/EMS/RequestReply/3.png)
 
-![The Flow](../../../images/EMS/Request_Reply_Topic_MessageProperties/4.png)
+![The Flow](../../../images/EMS/RequestReply/4.png)
 
-![The Flow](../../../images/EMS/Request_Reply_Topic_MessageProperties/5.png)
+![The Flow](../../../images/EMS/RequestReply/5.png)
 
-![The Flow](../../../images/EMS/Request_Reply_Topic_MessageProperties/6.png)
+![The Flow](../../../images/EMS/RequestReply/6.png)
 
-![The Flow](../../../images/EMS/Request_Reply_Topic_MessageProperties/7.png)
+![The Flow](../../../images/EMS/RequestReply/7.png)
 
-![The Flow](../../../images/EMS/Request_Reply_Topic_MessageProperties/8.png)
+![The Flow](../../../images/EMS/RequestReply/8.png)
 
-![The Flow](../../../images/EMS/Request_Reply_Topic_MessageProperties/9.png)
+![The Flow](../../../images/EMS/RequestReply/9.png)
 
-![The Flow](../../../images/EMS/Request_Reply_Topic_MessageProperties/10.png)
+![The Flow](../../../images/EMS/RequestReply/10.png)
 
 
 ### Run the application
@@ -87,29 +87,29 @@ tibco premies.
 For running the application, 
 1. Start by adding a local runtime in Visual Studio Code. Assign a name to the runtime and click the "Save" button.
 
-![Add local runtime option](../../../images/EMS/Request_Reply_Topic_MessageProperties/11.png)
+![Add local runtime option](../../../images/EMS/RequestReply/11.png)
 
 2. Select the local runtime you added for your Flogo EMS app. To do this, click on the FLOGO APP in the explorer, then click "Actions" and select the added Local Runtime.
 
-![Add local runtime option](../../../images/EMS/Request_Reply_Topic_MessageProperties/12.png)
+![Add local runtime option](../../../images/EMS/RequestReply/12.png)
 
-![Add local runtime option](../../../images/EMS/Request_Reply_Topic_MessageProperties/13.png)
+![Add local runtime option](../../../images/EMS/RequestReply/13.png)
 
 3. Now Build your Flogo EMS app. In the FLOGO APP section, click on "Build,".
 
-![Build app with local runtime](../../../images/EMS/Request_Reply_Topic_MessageProperties/14.png)
+![Build app with local runtime](../../../images/EMS/RequestReply/14.png)
 
 4. Once build is successfull you can see the binary in bin folder.
 
-![Build app with local runtime](../../../images/EMS/Request_Reply_Topic_MessageProperties/15.png)
+![Build app with local runtime](../../../images/EMS/RequestReply/15.png)
 
-![Build successful for app](../../../images/EMS/Request_Reply_Topic_MessageProperties/16.png)
+![Build successful for app](../../../images/EMS/RequestReply/16.png)
 
 5. Now Run the EMS app. 
 
-![Run the app](../../../images/EMS/Request_Reply_Topic_MessageProperties/17.png)
+![Run the app](../../../images/EMS/RequestReply/17.png)
 
-![Run the app](../../../images/EMS/Request_Reply_Topic_MessageProperties/18.png)
+![Run the app](../../../images/EMS/RequestReply/18.png)
 
 6. After running app hit the endpoint and see the results.
 
@@ -120,11 +120,11 @@ For running the application,
 
 1. Verify output by hiting the endpoint
 
-![Verify output in endpoint](../../../images/EMS/Request_Reply_Topic_MessageProperties/19.png)
+![Verify output in endpoint](../../../images/EMS/RequestReply/19.png)
 
 2. Verify output in VS code terminal
 
-![Verify output in VS code terminal](../../../images/EMS/Request_Reply_Topic_MessageProperties/20.png)
+![Verify output in VS code terminal](../../../images/EMS/RequestReply/20.png)
 
 
 ## Troubleshooting
