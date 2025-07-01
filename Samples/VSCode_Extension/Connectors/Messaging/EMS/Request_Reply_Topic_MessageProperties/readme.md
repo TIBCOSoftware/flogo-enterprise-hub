@@ -25,7 +25,7 @@ The configuration includes setting up triggers to subscribe to messages publishe
 2. Follow platform-specific setup instructions in the Visual Studio Code documentation under Prerequisites for Connectors > Setting up EMS for Local Runtime.
 Note: TIBCO EMS Client version 10.3.0 or higher is required.
 
-![Setting up EMS for Local Runtime](../../../images/EMS/RequestReply/1.png) 
+![Setting up EMS for Local Runtime](../../../../images/EMS/RequestReply/1.png) 
   
 
 ## Import sample into VSCode Workspace
