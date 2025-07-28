@@ -1,6 +1,19 @@
 # **TIBCO Flogo® Extensions**
 
 This folder contains custom extensions developed for FLOGO.
+
+## Activities, Triggers, and Connections
+
+* [SSH](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/SSH/README.md)
+
+----------
+
+## Version History
+
+| Extension Name | Version | Last Change |
+|----------------|---------|-------------|
+| ssh            | 1.0.0   | 24th July 2025, New
+
 ----------
 ## Feedback ##
 
