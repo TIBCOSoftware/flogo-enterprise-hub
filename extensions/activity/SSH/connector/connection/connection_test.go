@@ -14,10 +14,12 @@ var connectionLog = log.ChildLogger(log.RootLogger(), "SFTP-connection")
 var sshUserPasswordConnectionJSON = []byte(`{
 	"name": "sshUserPassword",
 	"description": "",
-	"host": "192.168.0.214",
+	"host": "localhost",
 	"port": 22,
 	"user": "tibco",
 	"password": "tibco123",
+	"retryCount": 1,
+	"retryInterval": 5,
 	"publicKeyFlag": false,
 	"hostKeyFlag": false
 }`)
@@ -25,10 +27,12 @@ var sshUserPasswordConnectionJSON = []byte(`{
 var sshUserPasswordHostKeyConnectionJSON = []byte(`{
 	"name": "sshUserPasswordHostKey",
 	"description": "",
-	"host": "192.168.0.214",
+	"host": "localhost",
 	"port": 22,
 	"user": "tibco",
 	"password": "tibco123",
+	"retryCount": 1,
+	"retryInterval": 5,
 	"publicKeyFlag": false,
 	"hostKeyFlag": true,
 	"knownHostFile": {
@@ -40,9 +44,11 @@ var sshUserPasswordHostKeyConnectionJSON = []byte(`{
 var sshPrivateKeyConnectionJSON = []byte(`{
 	"name": "sftpPrivateKey",
 	"description": "",
-	"host": "192.168.0.214",
+	"host": "localhost",
 	"port": 22,
 	"user": "tibco",
+	"retryCount": 1,
+	"retryInterval": 5,
 	"publicKeyFlag": true,
 	"privateKey": {
 		"filename": "id_rsa",
@@ -55,9 +61,11 @@ var sshPrivateKeyConnectionJSON = []byte(`{
 var sshPrivateKeyWithoutPasswordConnectionJSON = []byte(`{
 	"name": "sftpPrivateKeyWithoutPassword",
 	"description": "",
-	"host": "192.168.0.214",
+	"host": "localhost",
 	"port": 22,
 	"user": "tibco",
+	"retryCount": 1,
+	"retryInterval": 5,
 	"publicKeyFlag": true,
 	"privateKey": {
 		"filename": "id_rsa_withoutpassword",
@@ -69,10 +77,12 @@ var sshPrivateKeyWithoutPasswordConnectionJSON = []byte(`{
 var sshPrivateKeyHostKeyConnectionJSON = []byte(`{
 	"name": "sshPrivateKeyHostKey",
 	"description": "",
-	"host": "192.168.0.214",
+	"host": "localhost",
 	"port": 22,
 	"user": "tibco",
 	"publicKeyFlag": true,
+	"retryCount": 1,
+	"retryInterval": 5,
 	"privateKey": {
 		"filename": "id_rsa",
 		"content": "data:application/octet-stream;base64,LS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0KYjNCbGJuTnphQzFyWlhrdGRqRUFBQUFBQ21GbGN6STFOaTFqZEhJQUFBQUdZbU55ZVhCMEFBQUFHQUFBQUJCbUdzRGM0cgpTYnRiZnE2S1lYMEpQZ0FBQUFFQUFBQUFFQUFBR1hBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCZ1FDMnRscVFiOEpjCnprQjFhY1RIS3htb0xkdjFhb0diRkZ3MXVkdzVGVmNCem42dTE4MWFMQWYxQXBLdVBiU0creGZVMHA4VXVRYWxXU2xLcjMKK3lQQi9iTFU4TGtwZk5ZVklZdXRvOUJ5NlV4cTBjTndrc2tKTkxQelRzSU1XTWdHUUpBbVRzeUtXWGIxVnVMWkNjVVk4Swo3dTdZMDZyeStRR0lVazY5dDRHaHJJeXNSRFNveVozRWN1RlRQZjIyU3Qra1hIMUJKZktKZ2cremhlTERIR2puRmNXZ2l1Cno3cmozZWN2ZUZscmJwZHNheFkxN3hwcVlXWUpKcVJPUmUwZ0JrRUhUNlh3SGRnRFJwNHR1amhoQ2duUFJTSkhpN2IwZ3MKT1JzSERiMWZSTGZiYU9QWDE2L1QxWUhrejlSRlAwZ1Mxc0hyMmdMRzdXSEpBcGhtWThvbkpPRmROL0VwTTVlb0FFSWlTQQpZOCtNSUxNdW9PU1YyVVpwQWI5dHVZSE9iQy9IRzhnR1NWcmRSZWpVMTR1VllpUDBzNzAxbGZIclBQcHVXaFowMkM4em9qCmpmbXZzS2krd2xqNmFwMkhrVWlIYUlBdDJ2aUdxaUpxQ1cyRGR2MVJxREdReDJBTUwwNXV6YkNZdnl2OHlCRGd3b0Q0M1gKbmw0Z3MvRWoxb0ZLOEFBQVdRRTdENXF1UTJqaGx2K1UxZ1FUejNsVnZIUXFxUTNyZERiYWhvd3Q0ZStxdkhsMkxlN0ZkMQpYbDZjMHhkbTVZejZ0K1hLei8xSkN1NCt2NjNxdDIzZ2VRMzBuUXEzeVh5UmdlYXNmeC84UUNkZ1M2NGJaUFcrUnUvVlpXCjYyYmVSMk5qNzhkMkViUG5VQkJVMnFSUGUvQzJabW1QRUZZYUh4bWhDRVZGYmFhaWFxdHYzNUlTaXhMR3crS1k2bVpjSW0KTGhhendIZk8ycUhLUFc5N3JvNTN6SCtuaEl1Mm5LdmE4SlpHODJZdmhISGdLZXN6c2hJck44bGVBVnNyWGJsWGVRNTVMMgo3d2J3bzd5blJpdWZnbGRIb2VrOXVwMktqcGJ4cE96OExMZXAwM0NDMEVpcEx2VUlGRENDa1dpRi9BRThDbFVRMGdZVldlCkFFdlV2UzMrRnMza2NEYlRUYndTT1lvaWVERzh5MXgrSENLWS94ZlhteWtoUUo5L2ZXVGk3Z0V4QWdVYm5PU3NQcENXV3IKWlUzUFFlY0FmZmxXMUxUcEYvWW50OTMzT1ovcy9MTmEzWmtFa3NHZzMxT2YzeUFRM1orNGZBOXpwUjRYK1BITzYxNGVUYgpQSFFQUi9nRVEvR0pUdzVldm5YZ0lNdnhTaGtUWGI1ZEhYY2IvaWtoV3c2TklVYk5vZG9LUy9QamtRd2NYTTNhY1A0YzZ0Cm11M3NoSlJFNXdTam1maWQ4NmlpZ2trcUxreUhEYkkvYjRCeHIwYUFXSk9ybHFCdnExYms1NWRicCtKQ0t5U3dPMElGeGQKYWYyZFZScURhMHRoRzRzdUNKdzFxZlY3cGFCcnhucW5jRGVCNXFTdnVxa0FGZVRYVCtCaGh5aHpLU0Z3L1I4Vmg1dFFoego1U3pBNFFTRmtldTBXOVM5RXVjNjMzbzdDSTZJM1VlREpnR3lraHEwRThuaFFnd1RoSHJKc1ZSWTdyY3gwVTZydW4vdkVhCjZOeXlUMnVtMkJOZ2s4UXhXWTdEOGpTdHdsd1BSME95SXRQSk1JSEEwdVdIc3BZZEJIdUZ6QTErZkxvTjAwd0w0a0lBVjkKNDR5OGJFaFJ0UTBuaTVHbTVOK1lzQ0xnNzBqUVRReERvRDh1M2xSSVBiUWVHRzU1cVk5Nld2SEFTZXJXOXNGQWVqSjZ2MAozdkx6Y2wwM2VqaFIyb2w5djU1YkRoRGE4dFpqTjk2NnVmL2R5cHlRNFhRbUUwbnN3MTJiU2JKRzd5TzZsQ0oya05WOEltCnNvNExZVWpkMUw0bUp0a2hIT1N6My9LeW5zNG5QTnhnVVVybUJlSm5GVEpNeGNjdmpaa2Z5K1dZY0luWEhsdy80MStmYWwKRG1senpLOXU5Z2ZDWVFOU2ErY0JKK25tdlBhSndTQm1YUHJkbHNDbjNvdHd0ZXFHMHpqVktkS3FxdVlxczNiQUVoMGx0SApsaFNUSkhQb3lJbXF3YkUwK0FRTk1sU2hDaEFGQUN1Mm5TZ3FBZFBlZ2N2bUVqcDFlVUQxT1REUDlJalBDemlUUjlzcWtrCmdMSDJTSVdmTW1iV2FaMEIvejZtTDEzUUtENFd1WGVIV3dpQ2lPbitXWVpEQ1kvcXhXdUM2THlEQTVtTjFaT2ZmU2hNY1oKNEFKd3lnUVhqT0FCZmxSRmZsQ2xsRFpWQmZhWSs2MnlOclYwcXBubGQwUTR3ZWhIMU5NYU8rekpUTFkwSUJkM1F4bS9aeQovYTh6a1hxVDV4K2hnai9rdzFoYi9JejR2Yk04TkV6ZllQUlJiWFREbmxLRkFnM2M2S0lsR09XVFBEMW1kU2UwQUE1K2NuCnc0c2pNbWhpalFUZUNieThucFNqN2lSSzhCVHFuMlZUdC8xZTRXSGkwZ1lJY1UxSEovU3NlNExWV2h5VXhNOWU4Y3NBMkwKNlJZSVhmejRaRG1wTnNWdndGNG4xSzFkcUNTU2JwNTJSQ3dGTG1WNGxyYkdIOTQ2UEJYcDZoaW43c081SFcrS1RQeXZQbgpVbVZ5b3JIMGI1NnhZTENxUTBNK1hrN2hMbkVvZjhuQ0NLZkthWU1qbzVXdUViZEIzaytDRHRKcG95UzJtK0dRbEVmU3hDCmsxK0hRWmlXajZSWUlaN0VZbk1BMVpqRHNKYWRxNzJKbXo0OERTUm9MN2xFSVh6OHprNFgvVGI1YjlvNjAyamdtNVVoS1EKenpGcGRWa0xwTzlxK2VvT3E2ZTRhMkUxRTNqbU1UUmFBaFV5TXFOSURLdk0zdUJMZ0lzREdQSnV0VUJEekhJOCtjRElDUgpDSWlwWTlacjRjRVArMVNhNlJBMXJNRGtHcUZDcWJjMjcwOUp1VUE5NWxYY0cwV3dsdmYzVjI1QjY1bzhrVjVIM04vcFE2CktnSWxaN3djeFJvaTBVaUtubUFvamE4UDJEbFNya0JETWp3eGJYL3RWaGJITEprK0IzM1lYTVRMdE9zWWk1czVqM1Y3R04Ka3NhZHV3ZEFUbjUxZktFU3BLcHFRVGZGWCtnPQotLS0tLUVORCBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0K"

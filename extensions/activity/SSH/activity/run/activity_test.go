@@ -17,10 +17,12 @@ import (
 var sshUserPasswordConnectionJSON = []byte(`{
 	"name": "sshUserPassword",
 	"description": "",
-	"host": "192.168.0.10",
+	"host": "localhost",
 	"port": 22,
-	"user": "mmussett",
-	"password": "bakeDP0tat0!",
+	"user": "tibco",
+	"retryCount": 1,
+	"retryInterval": 5,
+	"password": "tibco123",
 	"publicKeyFlag": false,
 	"hostKeyFlag": false
 }`)
@@ -36,9 +38,6 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	os.Exit(code)
 }
-
-
-
 
 func TestRunOperation(t *testing.T) {
 	getActivity := &MyActivity{logger: log.ChildLogger(log.RootLogger(), "SSH-run"), activityName: "run"}

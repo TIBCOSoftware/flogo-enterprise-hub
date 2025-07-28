@@ -2,11 +2,15 @@
 
 This folder contains custom extensions developed for FLOGO.
 
-## Activities, Triggers, and Connections
+## Activities
 
-* [SSH](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/SSH/README.md)
-* [GCP](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/gcp/README.md)
-----------
+* [SSH](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/SSH/README.md): Execute commands over SSH connection
+* [GCP](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/gcp/README.md): Generates ID Tokens from GCP OIDC API
+
+## Triggers
+
+
+## Functions
 
 ## Version History
 
@@ -15,7 +19,6 @@ This folder contains custom extensions developed for FLOGO.
 | ssh            | 1.0.0   | 24th July 2025, New
 | gcp            | 1.0.0   | 24th July 2025, New
 
-----------
 ## Feedback ##
 
 Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback or comments.
