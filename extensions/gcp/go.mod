@@ -1,4 +1,4 @@
-module github.com/mmussett/extensions/gcp
+module github.com/tibco/extensions/gcp
 
 go 1.23.0
 
