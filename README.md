@@ -1,27 +1,53 @@
-# **TIBCO Flogo® Enterprise**
-TIBCO Flogo® Enterprise is the commercially supported enterprise offering for ultra-light microservices based on [Project Flogo®](http://www.flogo.io/). 
+# **TIBCO Flogo® Enterprise Hub**
 
-TIBCO Flogo® Enterprise allows customers and users to leverage the capabilities provided to build microservices and APIs - for all kinds of application development use-cases on-premise, in private/public clouds and devices.
+Welcome to the **TIBCO Flogo® Enterprise Hub** — your community-driven space for sharing FLOGO samples, demos, and custom contributions for TIBCO Flogo® Enterprise.
 
-The licensed TIBCO Flogo® Enterprise code currently is the same code as Project Flogo®. Accordingly, please obtain the code from the [Project Flogo repository](https://github.com/tibcosoftware/flogo). If you have contracted with TIBCO for commercial support of TIBCO Flogo Enterprise and need Support, please create a Service Request for TIBCO Flogo Enterprise by using your TIBCO Support credentials on https://support.tibco.com/.
+TIBCO Flogo® Enterprise is a commercially supported offering that helps you build ultralight microservices for any application development use case — whether on-premises, in private or public clouds (including services like AWS Lambda), or on edge devices.
 
-----------
+If you have purchased commercial support for TIBCO Flogo® Enterprise, please create a Service Request using your TIBCO Support credentials at [https://support.tibco.com/](https://support.tibco.com/).
 
+---
 
-## TIBCO Flogo® Enterprise vs Project Flogo ##
+## **TIBCO Flogo® Extension for Visual Studio Code**
 
-Project Flogo is the [Open Source Framework](https://github.com/TIBCOSoftware/flogo) for IoT Edge Apps and Integration and is available under a BSD-style license. This project is supported by the Community and users can create GitHub Issues on the relevant Flogo repositories.
+The TIBCO Flogo® Extension for Visual Studio Code helps you design, build, and test Flogo® applications locally within VS Code. Take advantage of the full Visual Studio Code ecosystem, then deploy your apps anywhere — on-premises, in private or public clouds, or on edge devices.
 
-TIBCO Flogo® Enterprise is the commercially supported counterpart of Project Flogo wherein customers can create Service Requests using the [TIBCO Support website](https://support.tibco.com/). TIBCO Flogo® Enterprise is subject to the [End User License Agreement (EULA)](https://github.com/TIBCOSoftware/flogo-enterprise/blob/master/LICENSE) associated with TIBCO Flogo® Enterprise.
+---
 
+## **About this Repository**
 
-----------
-## Feedback ##
+This repository contains docs, samples, and tools to help you build Flogo® applications and extensions for Visual Studio Code. Here’s how you can help:
 
-Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback or comments.
+- Try out the [samples](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/Samples/VSCode_Extension) provided here.
+- Contribute new samples,activities, demos, or projects to help the community.
 
+---
 
-----------
+## **Contributing**
 
+We welcome contributions! To contribute:
+- Fork this repository.
+- Make your changes.
+- Submit a pull request (PR).
+
+Our maintainers will review your PR and may request changes before merging. For any questions, please reach out to [integration-pm@tibco.com](mailto:integration-pm@tibco.com).
+
+---
+
+## **Feedback**
+
+Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback, or comments.
+
+---
+
+## **License**
+
+This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full license text.
+
+---
 
 ![Powered by Flogo™](https://github.com/TIBCOSoftware/flogo/blob/master/branding/flogo_badge_white.png)
+
+---
+
+Thank you for being part of the Flogo® community!
