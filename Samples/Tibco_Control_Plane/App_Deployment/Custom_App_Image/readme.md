@@ -36,13 +36,13 @@ The main purpose of this sample is:
     
     > **Note:** There is a dot (.) at the end of the command that represents the current directory, which contains the Dockerfile and other files used during the build.
 
-    ![Build Flogo Oracle DB app in docker](../../images/Custom_App_Image/1.png)
+    ![Build Flogo Oracle DB app in docker](../images/Custom_App_Image/1.png)
 
 4. Check for oracle-custom-app image is created or not using below command:
     
     `docker images`
 
-    ![Verify image created](../../images/Custom_App_Image/2.png)
+    ![Verify image created](../../../images/Custom_App_Image/2.png)
 
 5. Run oracle-custom-app docker image using below command:
     
