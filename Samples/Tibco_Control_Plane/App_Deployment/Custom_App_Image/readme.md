@@ -290,23 +290,7 @@ Custom App Image run for Oracle Database
 * If you see error like: `Failed to import build with error: failed to retrieve buildtypes catalog json: stat /data/d24a8ji3ndns73da7pf0/tibco/flogo/base/catalog.json: no such file or directory` then make sure you have provisioned Flogo build.
 
 
-## Contributing
-If you want to build your own activities for Flogo please read the docs here.
-
-If you want to showcase your project, check out [tci-awesome]
-
-You can also send an email to `tci@tibco.com`
-
-## Feedback
-If you have feedback, don't hesitate to talk to us!
-
-* Submit feature requests on our [TCI Ideas](https://ideas.tibco.com/?project=TCI) or [FE Ideas](https://ideas.tibco.com/?project=FE) portal
-* Ask questions on the [TIBCO Community](https://community.tibco.com/answers/product/344006)
-* Send us a note at `tci@tibco.com`
-
 ## Help
-Please visit our [TIBCO Cloud<sup>&trade;</sup> Integration documentation](https://integration.cloud.tibco.com/docs/) and TIBCO Flogo® Enterprise documentation on [docs.tibco.com](https://docs.tibco.com/) for additional information.
 
-## License
-This TCI Flogo SDK and Samples project is licensed under a BSD-type license. See [license.txt](license.txt).
+Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/products/tibco-flogo-extension-for-visual-studio-code-latest) and [App Build on TIBCO Control Plane documentation](https://docs.tibco.com/pub/platform-cp/latest/doc/html/Subsystems/flogo-capability/flogo-capability.htm#flogo-user-guide/app-builds.htm) for additional information.
 
