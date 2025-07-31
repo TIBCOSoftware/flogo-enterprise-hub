@@ -30,8 +30,8 @@ This repository contains docs, samples, and tools to help you build Flogo® appl
 
 Try out the Flogo application samples that help you build and deploy Flogo® applications for Visual Studio Code and Tibco Control Plane.  
 
-- Samples for [TIBCO Flogo® Extension for Visual Studio Code](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension)
-    - API Development
+- **Samples for [TIBCO Flogo® Extension for Visual Studio Code](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension)**
+    - **API Development**
        - REST 
            - [Rest Basic](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/API-Development/REST/Basic) :  This sample demonstrates some of the REST features present in the FLOGO ReceiveHTTPMessage trigger and InvokeRestService activity
        - gRPC
@@ -39,17 +39,17 @@ Try out the Flogo application samples that help you build and deploy Flogo® app
        - graphQL
            - [Basic](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/API-Development/graphQL/Basic) : This sample demonstrates how to build a GraphQL server in Flogo using the GraphQL Trigger, with the schema defined via App-Level Spec support. It enables handling GraphQL queries effortlessly through a REST-like endpoint.
 
-    - TIBCO Flogo® Connectors
-       - Database Connectors
+    - **TIBCO Flogo® Connectors**
+       - **Database Connectors**
             - [Oracle Database CRUD](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDB_clusterDeployment) : This sample demonstrates how to create and use Oracle Database Call stored procedure and CRUD activities.
             - [Oracle DB Container Deployment](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDatabase) : This sample demonstrates how to deploy and run Flogo Oracle DB app in Docker container and local kubernetes cluster using minikube. Flogo Oracle DB app need runtime oracle client libraries to run app. In the attached Docker file, we are installing the runtime dependencies for Flogo Oracle DB app.
             - [PostgreSQL Basic CRUD](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/PostgreSQL-CRUD) : This sample demonstrate how to create and use PostgreSQL CRUD activities with TLS/SSL Authentication. PostgreSQL CRUD app bascially contains 4 activities. The main purpose of these activities are to insert data, update the data, delete the data and then finally perform query to fetch data from PostgreSQL database.
-        - Messaging Connectors
-            - Enterprise Messaging Service
+        - **Messaging Connectors**
+            - **Enterprise Messaging Service**
                 - [Request-Reply](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Messaging/EMS/RequestReply): This sample illustrates a basic workflow demonstrating how EMS (Enterprise Message Service) provides activities and triggers for sending and receiving messages. You can establish a connection to your EMS broker using Transport Layer Security (TLS). The configuration includes setting up triggers to subscribe to messages published to queues and topics.
 
-- Samples for [Flogo Capability on TIBCO® Control Plane](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane)
-    - Application Deployment
+- **Samples for [Flogo Capability on TIBCO® Control Plane](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane)**
+    - **Application Deployment**
         - [Deploy and Run Custom App Image for Flogo Oracle DB Application](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane/App_Deployment/Custom_App_Image) : This sample demonstrates how to create Flogo application build with all dependencies preinstalled outside TIBCO Platform by using custom Docker images.
  
 
