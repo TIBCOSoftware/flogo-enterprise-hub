@@ -22,7 +22,6 @@ The main purpose of this sample is:
 
 1. Ensure that docker is up and running. Here will be using Docker for creating application image.
 2. In order to create Dokcer image locally make sure Docker file, start.sh file and Flogo Oracle DB app linux binary should be present at same location.
-3. Create a context by using TIBCO Flogo® Extension for Visual Studio Code version 1.3.2 or higher.
 
 ## Build a Docker image with all required dependencies
 
@@ -87,7 +86,7 @@ The main purpose of this sample is:
     ![Tag image](../../images/Custom_App_Image/6.png)
     ![Push the image on GitHub](../../images/Custom_App_Image/7.png)
 
-3. Obtain the fully qualified image name from your image registry. 
+3. Obtain the fully qualified image name from your image. 
       > **eg:** ghcr.io/kramawat-tibco/oracle-custom-app:v1.0.1
 
 4. Create a Docker registry secret for GHCR.
@@ -114,9 +113,9 @@ The main purpose of this sample is:
 
     ![Create build.zipt](../../images/Custom_App_Image/9.png)
 
-## Import, Deploy build.zip and Run the Application on TIBCO Platfrom
+## Import, Deploy build.zip and Run the Application on Tibco Control Plane
 
-1. Import the generated build.zip file to TIBCO Platform. Deploy your custom app image build using either the Flogo provisioner or Helm chart.
+1. Import the generated build.zip file in your Data plane on Tibco Control Plane using Import App Build option on Flogo capability page.
 
       ![Import build.zip on TP](../../images/Custom_App_Image/10.png)
       ![build.zip get imported on TP successfully](../../images/Custom_App_Image/11.png)
