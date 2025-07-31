@@ -1,8 +1,10 @@
-# **TIBCO Flogo® Enterprise Hub**
+# **Hub for TIBCO Flogo® Enterprise**
 
-Welcome to the **TIBCO Flogo® Enterprise Hub** — your community-driven space for sharing FLOGO samples, demos, and custom contributions for TIBCO Flogo® Enterprise.
+Welcome to the **Hub for TIBCO Flogo® Enterprise** — your community-driven space for sharing FLOGO samples, demos, and custom contributions for TIBCO Flogo® Enterprise.
 
 TIBCO Flogo® Enterprise is a commercially supported offering that helps you build ultralight microservices for any application development use case — whether on-premises, in private or public clouds (including services like AWS Lambda), or on edge devices.
+
+For more information, please refer [documentation](https://docs.tibco.com/products/tibco-flogo-enterprise-latest)
 
 If you have purchased commercial support for TIBCO Flogo® Enterprise, please create a Service Request using your TIBCO Support credentials at [https://support.tibco.com/](https://support.tibco.com/).
 
@@ -11,6 +13,7 @@ If you have purchased commercial support for TIBCO Flogo® Enterprise, please cr
 ## **TIBCO Flogo® Extension for Visual Studio Code**
 
 The TIBCO Flogo® Extension for Visual Studio Code helps you design, build, and test Flogo® applications locally within VS Code. Take advantage of the full Visual Studio Code ecosystem, then deploy your apps anywhere — on-premises, in private or public clouds, or on edge devices.
+For more information, please refer [documentation](https://docs.tibco.com/products/tibco-flogo-extension-for-visual-studio-code-latest)
 
 ---
 
@@ -42,11 +45,8 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ## **License**
 
-This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full license text.
-
----
-
-![Powered by Flogo™](https://github.com/TIBCOSoftware/flogo/blob/master/branding/flogo_badge_white.png)
+Copyright 2025 Cloud Software Group, Inc.
+This project is Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
 ---
 
