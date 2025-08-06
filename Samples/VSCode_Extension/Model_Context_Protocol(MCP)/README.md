@@ -44,10 +44,11 @@ Developer Preview** to expose **Customer 360 data** — including **customers**,
 
 ## Run the application
   - Run CustProdSaleAPI.flogo app which will start the API server and you can access these endpoints - http://localhost:18080/products, http://localhost:18080/customers, http://localhost:18080/sales
-
+  - Make sure to check and update the app property CustInvokeRESTServiceURL, ProdInvokeRESTServiceURL, SaleInvokeRESTServiceURL in Customer360MCPServer app to point to url where your CustProdSaleAPI flogo app is running.
   - Run Customer360MCPServer.flogo app which start FLOGO MCP Server at http://localhost:9091/mcp.
   - You can configure this MCP Server url with Claude Desktop or GitHub Copilot in VS Code and send querries in natural language and get the response as shown below.
-  - As you can see, you dont need to write any specific business logic to query data which spans across different tools.
+  - You can send a query like "Show me sales for Q1 2025" or "List customer names who have purchased more than 2 products and their details" and you will get the result in AI Agent as shown below.
+  - As you can see, you dont need to write any specific business logic to query data which spans across different tools like customer, product, sales
 
 <img width="1663" height="846" alt="Screenshot 2025-08-01 at 12 43 04 AM" src="https://github.com/user-attachments/assets/7b3d6c5b-8956-4dfb-bb31-f3df865c300a" />
 
