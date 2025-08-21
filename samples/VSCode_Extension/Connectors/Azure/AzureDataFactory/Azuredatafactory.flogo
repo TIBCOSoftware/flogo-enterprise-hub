@@ -1,0 +1,288 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-azdatafactory/src/app/AzureDataFactory/activity/dfpipeline",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/wi-azadconnection/src/app/AzureAD/connector/connection"
+  ],
+  "name": "AzureDataFactory",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/azdf",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:RUN_Query"
+            },
+            "input": {
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"output\":\"\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "RUN_Query"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:RUN_Query",
+      "data": {
+        "name": "RUN_Query",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "MicrosoftAzureDataFactoryPipeline",
+            "type": "label",
+            "label": "StartActivity to MicrosoftAzureDataFactoryPipeline"
+          },
+          {
+            "id": 2,
+            "from": "MicrosoftAzureDataFactoryPipeline",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "MicrosoftAzureDataFactoryPipeline to LogMessage"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "MicrosoftAzureDataFactoryPipeline",
+            "name": "MicrosoftAzureDataFactoryPipeline",
+            "description": "AzureDataFactory Publish Activity",
+            "activity": {
+              "ref": "#dfpipeline",
+              "input": {
+                "Connection": "conn://62d97fce-8b13-4ed8-81b4-917c9e0cabea",
+                "operation": "Run Once",
+                "subscriptionId": "3d9f846f-9849-4329-a35e-91fa5ea16488",
+                "resourceGroup": "ADFTesting",
+                "dataFactories": "tibcoazdf-1",
+                "dfPipeline": "Copy_Data_0",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "pipelineParameters": {
+                        "filename": "movies.csv"
+                      }
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"$id\":\"http://example.com/example.json\",\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"subscriptionId\":{\"type\":\"string\",\"required\":false},\"resourceGroupName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"factoryName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineParameters\":{\"description\":\"\",\"required\":false,\"type\":\"object\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"$id\":\"http://example.com/example.json\",\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"subscriptionId\":{\"type\":\"string\",\"required\":false},\"resourceGroupName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"factoryName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineParameters\":{\"description\":\"\",\"required\":false,\"type\":\"object\"}}}}}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"factoryName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineRunId\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"statusCode\":{\"description\":\"output message\",\"required\":false,\"type\":\"integer\"},\"statusMessage\":{\"description\":\"output message\",\"required\":false,\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"factoryName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineRunId\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"statusCode\":{\"description\":\"output message\",\"required\":false,\"type\":\"integer\"},\"statusMessage\":{\"description\":\"output message\",\"required\":false,\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[MicrosoftAzureDataFactoryPipeline].output)",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjIsInkiOjc1fSwiTWljcm9zb2Z0QXp1cmVEYXRhRmFjdG9yeVBpcGVsaW5lIjp7IngiOjE2MSwieSI6NzV9LCJMb2dNZXNzYWdlIjp7IngiOjQwOCwieSI6NzR9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"output\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [],
+  "connections": {
+    "62d97fce-8b13-4ed8-81b4-917c9e0cabea": {
+      "id": "62d97fce-8b13-4ed8-81b4-917c9e0cabea",
+      "name": "AzureDataFactory-conn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "name": "AzureDataFactory-conn",
+        "description": "",
+        "tenantId": "SECRET:JshcwIpEx7gjrIcH07xUaUqiiMD52QfeN9tfF6n5LIgonofJBkOoUyV57VWvHy5m5ZNbkw==",
+        "clientID": "SECRET:yBZGoQ8PP8iZhw7kJZ9wAZBJ/Hx2cjDLs0fXiYbLmx8wPo1H83SDHQxkC9scmZiwVWRwWA==",
+        "userName": "azr-connectors-qa@tibcosw.onmicrosoft.com",
+        "password": "SECRET:kxoXUaQ0DnhLcKL6202Q1axc/tm1rXP2mFIFvKwjAVPdEeKj",
+        "resourceURL": "https://management.azure.com",
+        "grantType": "password",
+        "WI_STUDIO_OAUTH_CONNECTOR_INFO": "SECRET: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",
+        "configProperties": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuOCIsInRhZyI6IjEuNi44LWIwMSIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vd2ktYXpkYXRhZmFjdG9yeS9zcmMvYXBwL0F6dXJlRGF0YUZhY3RvcnkiLCJpZCI6IkF6dXJlRGF0YUZhY3RvcnkiLCJ2ZXJzaW9uIjoiMS4xLjEiLCJ0YWciOiIxLjEuMS1iMDMiLCJuYW1lIjoiTWljcm9zb2Z0IEF6dXJlIERhdGEgRmFjdG9yeSIsInMzbG9jYXRpb24iOiJUaWJjby9BenVyZURhdGFGYWN0b3J5IiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL3dpLWF6YWRjb25uZWN0aW9uL3NyYy9hcHAvQXp1cmVBRCIsImlkIjoiQXp1cmVBRCIsInZlcnNpb24iOiIxLjAuMSIsInRhZyI6IjEuMC4xLWIwMyIsIm5hbWUiOiJNaWNyb3NvZnQgQXp1cmUgQ29ubmVjdGlvbiIsInMzbG9jYXRpb24iOiJUaWJjby9BenVyZUFEIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "AzureDataFactory",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "AzureDataFactory",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/azdf": {
+              "get": {
+                "summary": "RUN_Query",
+                "operationId": "get_azdf",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "output": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.25.8"
+  }
+}
