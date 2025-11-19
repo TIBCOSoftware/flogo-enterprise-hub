@@ -1,14 +1,11 @@
 module github.com/flogo-enterprise-hub/extensions/XSLT
 
-go 1.25.4
+go 1.24.3
 
 require (
-	github.com/jbowtie/gokogiri v0.0.0-20250107075044-de0f9d4877a5
-	github.com/jbowtie/ratago v0.0.0-20200401224626-3140c0a9b186
 	github.com/project-flogo/core v1.6.16
+	github.com/wamuir/go-xslt v0.1.5
 )
-
-require golang.org/x/tools v0.1.0 // indirect
 
 require (
 	github.com/araddon/dateparse v0.0.0-20190622164848-0fb0a474d195 // indirect

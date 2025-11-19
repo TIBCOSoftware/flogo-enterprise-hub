@@ -3,8 +3,7 @@ package transform
 import (
 	"fmt"
 
-	"github.com/jbowtie/gokogiri"
-	"github.com/jbowtie/ratago/xslt"
+	"github.com/wamuir/go-xslt"
 
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data/metadata"
@@ -79,35 +78,23 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	ctx.Logger().Debugf("xmldocument: %v", input.Xmldocument)
 	ctx.Logger().Debugf("xsltstylesheet: %v", input.Xsltstylesheet)
 
-	xmlDoc, err := gokogiri.ParseXml([]byte(input.Xmldocument))
+	ss, err := xslt.NewStylesheet([]byte(input.Xsltstylesheet))
 	if err != nil {
 		ctx.Logger().Error(err)
-		return false, activity.NewActivityError("Failed to parse Xml data", "XSLT-001", activity.ConfigError, nil)
+		return false, activity.NewActivityError("Failed to read Xslt", "XSLT-001", activity.ConfigError, nil)
 	}
 
-	styleDoc, err := gokogiri.ParseXml([]byte(input.Xsltstylesheet))
+	defer ss.Close()
+
+	res, err := ss.Transform([]byte(input.Xmldocument))
 	if err != nil {
 		ctx.Logger().Error(err)
-		return false, activity.NewActivityError("Failed to read Xslt file", "XSLT-002", activity.ConfigError, nil)
-	}
-
-	stylesheet, err := xslt.ParseStylesheet(styleDoc, input.Xsltstylesheet)
-	if err != nil {
-		ctx.Logger().Error(err)
-		return false, activity.NewActivityError("Failed to parse Xslt stylesheet", "XSLT-003", activity.ConfigError, nil)
-	}
-
-	options := xslt.StylesheetOptions{IndentOutput: false, Parameters: nil}
-
-	result, err := stylesheet.Process(xmlDoc, options)
-	if err != nil {
-		ctx.Logger().Error(err)
-		return false, activity.NewActivityError("error while processing xslt", "XSLT-004", activity.ConfigError, nil)
+		return false, activity.NewActivityError("Failed to read Xml", "XSLT-002", activity.ConfigError, nil)
 	}
 
 	output := &Output{}
 
-	output.Outputstring = string(result)
+	output.Outputstring = string(res)
 
 	ctx.Logger().Debugf("outputString: %v", output.Outputstring)
 

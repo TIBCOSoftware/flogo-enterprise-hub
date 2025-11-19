@@ -3,7 +3,7 @@
     "github.com/project-flogo/flow",
     "github.com/project-flogo/contrib/activity/noop",
     "github.com/mmussett/flogo-enterprise-hub/extensions/XSLT/src/activity/transform",
-    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook"
+    "github.com/tibco/flogo-general/src/app/General/trigger/timer"
   ],
   "name": "xslt-transform",
   "description": "",
@@ -13,14 +13,23 @@
   "tags": [],
   "triggers": [
     {
-      "ref": "#startuphook",
-      "name": "tibco-appstartup",
-      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "ref": "#timer",
+      "name": "tibco-wi-timer",
+      "description": "Simple Timer trigger",
       "settings": {},
-      "id": "AppStartupTrigger",
+      "id": "TimerTrigger",
       "handlers": [
         {
           "description": "",
+          "settings": {
+            "Scheduler Options": "Timer",
+            "Start Time": "",
+            "Repeating": true,
+            "Delayed Start": false,
+            "Time Interval": 10,
+            "Interval Unit": "Second",
+            "Cron Expression": "CRON_TZ=Europe/London * * * * *"
+          },
           "action": {
             "ref": "github.com/project-flogo/flow",
             "settings": {
@@ -69,8 +78,8 @@
             "activity": {
               "ref": "#transform",
               "input": {
-                "xmlDocument": "<fruits><apple/><pair/></fruits>",
-                "xsltStylesheet": "./test.xsl"
+                "xmlDocument": "<fruits><apple/><pear/></fruits>",
+                "xsltStylesheet": "<xsl:stylesheet version=\"2.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:xs=\"http://www.w3.org/1999/XSL/Transform\"><xsl:template match=\"/fruits\"><apples-and-friends><xsl:for-each select=\"*\"><xsl:choose><xsl:when test=\"name() = 'pear'\"><apple-like-fruit/></xsl:when><xsl:otherwise><xsl:copy-of select=\".\"/></xsl:otherwise></xsl:choose></xsl:for-each></apples-and-friends></xsl:template></xsl:stylesheet>"
               }
             }
           }
