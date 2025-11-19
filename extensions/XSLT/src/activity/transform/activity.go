@@ -79,24 +79,30 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	ctx.Logger().Debugf("xmldocument: %v", input.Xmldocument)
 	ctx.Logger().Debugf("xsltstylesheet: %v", input.Xsltstylesheet)
 
-	res, err := gokogiri.ParseXml([]byte(input.Xmldocument))
+	xmlDoc, err := gokogiri.ParseXml([]byte(input.Xmldocument))
 	if err != nil {
 		ctx.Logger().Error(err)
-		return false, activity.NewActivityError("Failed to parse Xml data", "XSLT-003", activity.ConfigError, nil)
+		return false, activity.NewActivityError("Failed to parse Xml data", "XSLT-001", activity.ConfigError, nil)
 	}
 
-	stylesheet, err := xslt.ParseStylesheet([]byte(input.Xsltstylesheet), "")
+	styleDoc, err := gokogiri.ParseXml([]byte(input.Xsltstylesheet))
 	if err != nil {
 		ctx.Logger().Error(err)
-		return false, activity.NewActivityError("Failed to parse Xslt data", "XSLT-004", activity.ConfigError, nil)
+		return false, activity.NewActivityError("Failed to read Xslt file", "XSLT-002", activity.ConfigError, nil)
+	}
+
+	stylesheet, err := xslt.ParseStylesheet(styleDoc, input.Xsltstylesheet)
+	if err != nil {
+		ctx.Logger().Error(err)
+		return false, activity.NewActivityError("Failed to parse Xslt stylesheet", "XSLT-003", activity.ConfigError, nil)
 	}
 
 	options := xslt.StylesheetOptions{IndentOutput: false, Parameters: nil}
 
-	result, err := stylesheet.Process(res, options)
+	result, err := stylesheet.Process(xmlDoc, options)
 	if err != nil {
 		ctx.Logger().Error(err)
-		return false, activity.NewActivityError("error while processing xslt", "XSLT-005", activity.ConfigError, nil)
+		return false, activity.NewActivityError("error while processing xslt", "XSLT-004", activity.ConfigError, nil)
 	}
 
 	output := &Output{}
@@ -108,7 +114,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	err = ctx.SetOutputObject(output)
 	if err != nil {
 		ctx.Logger().Error(err)
-		return false, activity.NewActivityError("error while setting output object", "XSLT-006", activity.ConfigError, nil)
+		return false, activity.NewActivityError("error while setting output object", "XSLT-005", activity.ConfigError, nil)
 	}
 
 	activityLog.Info("XSLT Transform activity complete")
