@@ -59,7 +59,7 @@ func (a *Activity) Cleanup() error {
 // Eval implements api.Activity.Eval - Logs the Message
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
-	ctx.Logger().Info("Executing XSLT Transform activity")
+	activityLog.Debug("Executing XSLT Transform activity")
 
 	input := &Input{}
 	err = ctx.GetInputObject(input)
@@ -75,8 +75,8 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 		return false, fmt.Errorf("no XSLT Stylesheet provided")
 	}
 
-	ctx.Logger().Debugf("xmldocument: %v", input.Xmldocument)
-	ctx.Logger().Debugf("xsltstylesheet: %v", input.Xsltstylesheet)
+	activityLog.Debugf("xmldocument: %v", input.Xmldocument)
+	activityLog.Debugf("xsltstylesheet: %v", input.Xsltstylesheet)
 
 	ss, err := xslt.NewStylesheet([]byte(input.Xsltstylesheet))
 	if err != nil {
@@ -96,7 +96,7 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
 	output.Outputstring = string(res)
 
-	ctx.Logger().Debugf("outputString: %v", output.Outputstring)
+	activityLog.Debugf("outputString: %v", output.Outputstring)
 
 	err = ctx.SetOutputObject(output)
 	if err != nil {
