@@ -3,7 +3,8 @@ package transform
 import (
 	"fmt"
 
-	"github.com/chrisdutz/gosaxon/library/pkg/gosaxon"
+	"github.com/jbowtie/gokogiri"
+	"github.com/jbowtie/ratago/xslt"
 
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data/metadata"
@@ -66,13 +67,34 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	if err != nil {
 		return false, fmt.Errorf("error while getting input object: %s", err.Error())
 	}
+
+	if len(input.Xmldocument) == 0 {
+		return false, fmt.NewError("no XML Document provided")
+	}
+
+	if len(input.Xsltstylesheet) == 0 {
+		return false, fmt.NewError("no XSLT Stylesheet provided")
+	}
+
 	ctx.Logger().Debugf("xmldocument: %v", input.Xmldocument)
 	ctx.Logger().Debugf("xsltstylesheet: %v", input.Xsltstylesheet)
 
-	result, err := gosaxon.Transform([]byte(input.Xmldocument), []byte(input.Xsltstylesheet))
-
+	res, err := gokogiri.ParseXml([]byte(input.XMLString))
 	if err != nil {
 		return false, fmt.Errorf("error while parsing xml: %s", err.Error())
+	}
+
+	stylesheet,err := xslt.ParseStylesheet([]byte(input.Xsltstylesheet))
+	if err != nil {
+		return false, fmt.Errorf("error while parsing xslt: %s", err.Error())
+	}
+
+
+	options := xslt.StylesheetOptions{IndentOutput: false, Parameters: nil}
+
+	result, err := stylesheet.Process(res, options)
+	if err != nil {
+		return false, fmt.Errorf("error while processing xslt: %s", err.Error())
 	}
 
 	output := &Output{}
