@@ -60,7 +60,7 @@ func (a *Activity) Cleanup() error {
 // Eval implements api.Activity.Eval - Logs the Message
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
-	activityLog.Debugf("Executing Activity [%s] ", ctx.Name())
+	ctx.Logger().Info("Executing XSLT Transform activity")
 
 	input := &Input{}
 	err = ctx.GetInputObject(input)
@@ -81,19 +81,22 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
 	res, err := gokogiri.ParseXml([]byte(input.Xmldocument))
 	if err != nil {
-		return false, fmt.Errorf("error while parsing xml: %s", err.Error())
+		ctx.Logger().Error(err)
+		return false, activity.NewActivityError("Failed to parse Xml data", "XSLT-003", activity.ConfigError, nil)
 	}
 
-	stylesheet, err := xslt.ParseStylesheet([]byte(input.Xsltstylesheet))
+	stylesheet, err := xslt.ParseStylesheet([]byte(input.Xsltstylesheet), "")
 	if err != nil {
-		return false, fmt.Errorf("error while parsing xslt: %s", err.Error())
+		ctx.Logger().Error(err)
+		return false, activity.NewActivityError("Failed to parse Xslt data", "XSLT-004", activity.ConfigError, nil)
 	}
 
 	options := xslt.StylesheetOptions{IndentOutput: false, Parameters: nil}
 
 	result, err := stylesheet.Process(res, options)
 	if err != nil {
-		return false, fmt.Errorf("error while processing xslt: %s", err.Error())
+		ctx.Logger().Error(err)
+		return false, activity.NewActivityError("error while processing xslt", "XSLT-005", activity.ConfigError, nil)
 	}
 
 	output := &Output{}
@@ -104,10 +107,11 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
 	err = ctx.SetOutputObject(output)
 	if err != nil {
-		return false, fmt.Errorf("error while setting output object: %s", err.Error())
+		ctx.Logger().Error(err)
+		return false, activity.NewActivityError("error while setting output object", "XSLT-006", activity.ConfigError, nil)
 	}
 
-	activityLog.Infof("Completed Activity [%s] ", ctx.Name())
+	activityLog.Info("XSLT Transform activity complete")
 
 	return true, nil
 }
