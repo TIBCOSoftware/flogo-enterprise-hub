@@ -69,26 +69,25 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	}
 
 	if len(input.Xmldocument) == 0 {
-		return false, fmt.NewError("no XML Document provided")
+		return false, fmt.Errorf("no XML Document provided")
 	}
 
 	if len(input.Xsltstylesheet) == 0 {
-		return false, fmt.NewError("no XSLT Stylesheet provided")
+		return false, fmt.Errorf("no XSLT Stylesheet provided")
 	}
 
 	ctx.Logger().Debugf("xmldocument: %v", input.Xmldocument)
 	ctx.Logger().Debugf("xsltstylesheet: %v", input.Xsltstylesheet)
 
-	res, err := gokogiri.ParseXml([]byte(input.XMLString))
+	res, err := gokogiri.ParseXml([]byte(input.Xmldocument))
 	if err != nil {
 		return false, fmt.Errorf("error while parsing xml: %s", err.Error())
 	}
 
-	stylesheet,err := xslt.ParseStylesheet([]byte(input.Xsltstylesheet))
+	stylesheet, err := xslt.ParseStylesheet([]byte(input.Xsltstylesheet))
 	if err != nil {
 		return false, fmt.Errorf("error while parsing xslt: %s", err.Error())
 	}
-
 
 	options := xslt.StylesheetOptions{IndentOutput: false, Parameters: nil}
 
