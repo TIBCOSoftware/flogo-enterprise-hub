@@ -15,7 +15,7 @@ This is Shared Data activity sample.The SharedData activity enables sharing of r
 
 ## Understanding the configuration
 
-In the attached sample *GetUsersInfo.flogo*, there are 3 flows *Set_Get_User1_Set_User2*, *Get_User2* and *Get_User1_User2_Delete_User2*.
+In the GetUsersInfo.flogo sample, there are 3 flows: *Set_Get_User1_Set_User2*, *Get_User2*, and *Get_User1_User2_Delete_User2*.
 
 ![AllThreeFlows](../../images/flow-design-concepts/shared-data/AllThreeFlows.png)
 
@@ -47,18 +47,18 @@ The flow *Get_User2* is another flow which gets the User2 information set in flo
 
 The flow *Get_User1_User2_Delete_User2* is a subflow to the main flow *Set_Get_User1_Set_User2* and gets the User1 information as well as User2 information based upon the input provided to the subflow. The input to the subflow is the same key which was set for user1 and user2 information.
 
-![Branch Condtition Of Get User1](../../images/flow-design-concepts/shared-data/BranchConditionGetUser1.png)
+![Branch Condition Of Get User1](../../images/flow-design-concepts/shared-data/BranchConditionGetUser1.png)
 
 ![Get User1 Info](../../images/flow-design-concepts/shared-data/GetUser1Info.png)
 
-![Branch Condtition Of  Get User2](../../images/flow-design-concepts/shared-data/BranchConditionGetUser2.png)
+![Branch Condition Of  Get User2](../../images/flow-design-concepts/shared-data/BranchConditionGetUser2.png)
 
 ![Get User1 Info](../../images/flow-design-concepts/shared-data/GetUser2Info.png)
  
 The flow also includes *Delete* operation for the User2 information which is  set at the *application* level scope. Based upon the *keyInput* and *isDelete* parameters from user, the respective user's information and operation will be performed.
 For example, If user gives *keyInput* as "user2" and *isDelete* as true. The operation Delete will be performed on the User2 information. The same will be returned by the subflow *Get_User1_User2_Delete_User2* to the main flow *Set_Get_User1_Set_User2*.
 
-![Branch Condition Of Delete User](../../images/flow-design-concepts/shared-data/BranchConditionOfDeleteUser2.png)
+[Branch Condition Of Delete User2](../../images/flow-design-concepts/shared-data/BranchConditionOfDeleteUser2.png)
 
 ![Info Of Delete User2](../../images/flow-design-concepts/shared-data/InfoOfDeleteUser2.png)
 

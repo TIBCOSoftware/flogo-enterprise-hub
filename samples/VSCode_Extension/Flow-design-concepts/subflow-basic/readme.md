@@ -2,7 +2,7 @@
 
 ## Understanding the configuration
 
-The App have two flows & one subflow. Both flows contains a invokeRestService activity, Subflow Activity & return Activity with Rest trigger to get Book & gets Books By ISBN. But subflow subflowLogging without trigger. The REST trigger listens on port 9999. Based on incoming request path, it invokes either getBooks  or getBookByISBN flow.
+The App has two flows & one subflow. Both flows contain a invokeRestService activity, Subflow Activity & return Activity with Rest trigger to get Book & gets Books By ISBN. But subflow subflowLogging without trigger. The REST trigger listens on port 9999. Based on incoming request path, it invokes either getBooks  or getBookByISBN flow.
 
 * getBooks Flow : The flow calls a REST backend using an InvokeRESTService activity to fetch all books. Then it calls the subflow SubFlowLogging via a Start a SubFlow activity. Finally the flow returns the JSON result to the REST caller using a Return activity. 
 
@@ -34,34 +34,34 @@ When you run this sample locally using TIBCO Flogo® Enterprise, the workflow be
 
 1. Copy the flogo.sample.rest_with_subflows.flogo and flogo.sample.subflows_detachedInvocation.flogo apps into your workspace.
 
-![Copy App](../../images/flow-design-concepts/flogo.sample.rest_with_subflows/CopyApps.png)
+![Copy App](../../images/flow-design-concepts/subflow-basic/flogo.sample.rest_with_subflows/CopyApps.png)
 
 
 2. Click on flogo.sample.rest_with_subflows.flogo app. On the app-details page of flogo.sample.rest_with_subflows.flogo, you can see the getBooks, getBooksByISBN, and SubFlowLogging flows. Click the getBooks flow. You’ll see the REST trigger connected to an InvokeRestActivity; the InvokeRestActivity is connected to a StartSubFlowActivity; and the StartSubFlowActivity is connected to a Return Activity. Then click the StartSubFlowActivity — you will see a Configuration tab. Inside the Configuration tab, you will see Settings, Input, Output, Loop, and Retry on Error options displayed.
 
-![Get Books](../../images/flow-design-concepts/flogo.sample.rest_with_subflows/GetBooks.png)
+![Get Books](../../images/flow-design-concepts/subflow-basic/flogo.sample.rest_with_subflows/GetBooks.png)
 
-![Trigger & Activity](../../images/flow-design-concepts/flogo.sample.rest_with_subflows/Trigger&Activity.png)
+![Trigger & Activity](../../images/flow-design-concepts/subflow-basic/flogo.sample.rest_with_subflows/Trigger&Activity.png)
 
-![Subflow Activity Configuration](../../images/flow-design-concepts/flogo.sample.rest_with_subflows/SubFlowActivityConfiguration.png)
+![Subflow Activity Configuration](../../images/flow-design-concepts/subflow-basic/flogo.sample.rest_with_subflows/SubFlowActivityConfiguration.png)
 
 
 3. Subflow configuration. On opening the StartASubFlow activity, in the Settings tab, you can see the list of available subflows, the Open Subflow button, and an option to set detached invocation to true/false.
 
-![Subflow Configuration](../../images/flow-design-concepts/flogo.sample.rest_with_subflows/ListOFSubFlow.png)
+![Subflow Configuration](../../images/flow-design-concepts/subflow-basic/flogo.sample.rest_with_subflows/ListOFSubFlow.png)
 
 
 4. Opening a subflow. After selecting a subflow and saving it, clicking on the Open Subflow button appends the selected subflow to the right of the current flow.
 
-![Open Subflow 1](../../images/flow-design-concepts/flogo.sample.rest_with_subflows/OpenSubFlow1.png)
+![Open Subflow 1](../../images/flow-design-concepts/subflow-basic/flogo.sample.rest_with_subflows/OpenSubFlow1.png)
 
-![Open Subflow 2](../../images/flow-design-concepts/flogo.sample.rest_with_subflows/OpenSubFlow2.png)
+![Open Subflow 2](../../images/flow-design-concepts/subflow-basic/flogo.sample.rest_with_subflows/OpenSubFlow2.png)
 
 
 5. Set Detached Invocation. Refer to app "flogo.sample.subflows_detachedInvocation.flogo"
 Setting detached invocation to True, the subflow is invoked in fire-and-forget mode; in such a case, the main flow will not wait for the subflow to complete. Since the main flow is independent of the subflow output, the Output tab is hidden upon setting detached invocation. Detached invocation is set to False by default.
 
-![Detached Invocation](../../images/flow-design-concepts/flogo.sample.subflows_detachedInvocation/Detached.png)
+![Detached Invocation](../../images/flow-design-concepts/subflow-basic/flogo.sample.subflows_detachedInvocation/Detached.png)
 
 
 In this case, subflow1 is invoked in detached invocation True mode from the main flow. So, the main flow will not wait for completion of subflow1 and will execute the activities ahead. Since subflow1 is invoked in detached True mode, we will have 'Starting SubFlow 'res://flow:subflow1' in detached mode' printed in logs.
@@ -69,7 +69,7 @@ In this case, subflow1 is invoked in detached invocation True mode from the main
 Upon encountering subflow1 in detached mode, the execution moves to completion of the main flow, and 'main flow execution' is printed followed by 'subflow2 execution' and 'subflow1 execution'.
 The same can be understood by the timestamp difference in logs.
 
-![Detached Mode Logs](../../images/flow-design-concepts/flogo.sample.subflows_detachedInvocation/DetachedLogs.png)
+![Detached Mode Logs](../../images/flow-design-concepts/subflow-basic/flogo.sample.subflows_detachedInvocation/DetachedLogs.png)
 
 
 ## Help
