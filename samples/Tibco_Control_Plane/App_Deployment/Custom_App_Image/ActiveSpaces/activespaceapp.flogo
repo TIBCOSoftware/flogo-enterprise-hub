@@ -1,0 +1,174 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/activity/sqldirect",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/trigger/timer",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/connector/as"
+  ],
+  "name": "activespaceapp",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#timer",
+      "name": "tibco-wi-timer",
+      "description": "Simple Timer trigger",
+      "settings": {},
+      "id": "TimerTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Scheduler Options": "Timer",
+            "Repeating": false,
+            "Delayed Start": false,
+            "Time Interval": 1,
+            "Interval Unit": "Second",
+            "Cron Expression": "CRON_TZ=UTC * * * * *"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:New_flow"
+            }
+          },
+          "name": "New_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:New_flow",
+      "data": {
+        "name": "New_flow",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ActiveSpacesSQLDirect",
+            "type": "label",
+            "label": "StartActivity to ActiveSpacesSQLDirect"
+          },
+          {
+            "id": 2,
+            "from": "ActiveSpacesSQLDirect",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "ActiveSpacesSQLDirect to LogMessage"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ActiveSpacesSQLDirect",
+            "name": "ActiveSpacesSQLDirect",
+            "description": "This activity runs SQL queries on TIBCO ActiveSpaces Grid data",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sqldirect",
+              "settings": {
+                "asConnection": "conn://fe1f7d6c-5191-4124-b90f-e1983697c568"
+              },
+              "input": {
+                "query": "SELECT * FROM t1"
+              }
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[ActiveSpacesSQLDirect])",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiQWN0aXZlU3BhY2VzU1FMRGlyZWN0Ijp7IngiOjI0OSwieSI6MTMyfSwiTG9nTWVzc2FnZSI6eyJ4Ijo0NTksInkiOjExNn19",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "ActiveSpaces.test.Grid_URL",
+      "type": "string",
+      "value": "https://gasdflgflogo301.dev.tibco.com:8443"
+    },
+    {
+      "name": "ActiveSpaces.test.FTL_Trust_File",
+      "type": "string",
+      "value": {
+        "content": "",
+        "filename": ""
+      }
+    },
+    {
+      "name": "ActiveSpaces.test.Grid_Name",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "ActiveSpaces.test.Username",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "ActiveSpaces.test.Password",
+      "type": "string",
+      "value": ""
+    }
+  ],
+  "connections": {
+    "fe1f7d6c-5191-4124-b90f-e1983697c568": {
+      "id": "fe1f7d6c-5191-4124-b90f-e1983697c568",
+      "name": "test",
+      "ref": "#as",
+      "isGlobal": false,
+      "settings": {
+        "name": "test",
+        "description": "",
+        "gridUrl": "=$property[\"ActiveSpaces.test.Grid_URL\"]",
+        "useTrustFile": true,
+        "trustFile": "=$property[\"ActiveSpaces.test.FTL_Trust_File\"]",
+        "gridName": "=$property[\"ActiveSpaces.test.Grid_Name\"]",
+        "username": "=$property[\"ActiveSpaces.test.Username\"]",
+        "password": "=$property[\"ActiveSpaces.test.Password\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1hY3RpdmVzcGFjZXMvc3JjL2FwcC9BY3RpdmVTcGFjZXMiLCJpZCI6IkFjdGl2ZVNwYWNlcyIsInZlcnNpb24iOiIxLjAuMCIsInRhZyI6IjEuMC4wLWIwNCIsIm5hbWUiOiJUSUJDTyBBY3RpdmVTcGFjZXMiLCJzM2xvY2F0aW9uIjoiVGliY28vQWN0aXZlU3BhY2VzIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.25.11"
+  }
+}
