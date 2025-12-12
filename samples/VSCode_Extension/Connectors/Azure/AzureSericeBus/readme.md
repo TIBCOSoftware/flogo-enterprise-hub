@@ -9,45 +9,39 @@ The flow in the AzureServicebusSample app basically publish different types of m
 
 ## Prerequisites
 
-* 1. Ensure that you have access of Azure portal.
-2. To Create and execute the AzureServiceBus app we require 
-  a.Authentication type 'OAut2' - 'ServiceBusNameSpace,TenantId,ClientId,ClientSecret'.
-  b.Authentication type as'SAS Toke'-'ServiceBusNameSpace,Authorization Rule Name, SharedAccessKey' from the Azure portal.
+ 1. Ensure that you have access of Azure portal.
+ 2. To Create and execute the AzureServiceBus app we require any one of the following  authentication type    
+  a.Authentication type 'OAuth2' -  'ServiceBusNameSpace,TenantId,ClientId,ClientSecret'.
+  b.Authentication type as'SAS Token'-'ServiceBusNameSpace,Authorization Rule Name, SharedAccessKey' from the Azure portal.
 
-## Import the sample
+## Import sample into VSCode Workspace
 
-1. Download the sample's .json file 'AzureServicebusSample.json'
-
-2. Create a new empty app.
-![Create an app](../../../images/Azure/AzureServiceBus/Create_app.png)
-
-3. On the app details page, select Import app.
-![Select import](../../../images/Azure/AzureServiceBus/import_app.png)
-
-4. Browse on your machine or drag and drop the .json file for the app that you want to import.
-![Import your sample](../../../images/Azure/AzureServiceBus/importasureservicebusapp.png)
-
-5. Click Upload. The Import app dialog displays some generic errors and warnings as well as any specific errors or warnings pertaining to the app you are importing. It validates whether all the activities and triggers used in the app are available in the Extensions tab.
-![The Import app dialog](../../../images/Azure/AzureServiceBus/importazureservicebus.png)
+1. Download the sample flogo file i.e 'AzureServicebusSample.flogo'
+2. Place the downloaded file into your Visual Studio Code workspace.
+3. Open the file by clicking on it in VSCode.
 
 
 ## Understanding the configuration
 
 ### The Connection
-When you import this app, you need to configure the 'AzureServiceBus' connection in the Connections page. It has pre-filled values for some paramaters. But if you have an app with AzureServiceBus connection having Namespace, AuthorizationRule and SharedAccessKey required to authenticate the broker then after import such apps, SharedAccessKey field will be empty as shown in below screenshot.
 
-![The UsernamePasswordconnection](../../../images/Azure/AzureServiceBus/connectiondetails.png)
+![The Connection](../../../images/Azure/AzureServiceBus/connectiondetails.png)
 
-Note: After imported an app, in the imported connection under Connection tab,
-* Namespace has prefilled value which is the Name of Azure Service Bus Namespace (get it from Azure Portal ).
-* Authorization Rule has prefiled value which is policy (get it from the Azure Portal under Shared Access Policies).
-* Shared Access Key has blank value which is Primary or Secondary key under respective policy(get it from Azure Portal under policy which you have selected). 
+In the connection, note that:
+
+1.Connection Name- In this field we give the connection name.  
+2.Auth Mode- Select either 'SAS Token' or 'OAuth2'.  
+3.Service Bus Namespace-In this field, we need to provide the Service Bus Namespace.   
+4.Authorization Rule Name -In this field, we need to provide the Authorization Rule Name.  
+5.SharedAccessKey-In this field, we need to provide the SharedAccessKey.  
+6.Retry Count-The maximum number of times to retries to establish a connection.  
+7.Retry Interval - The time interval in(ms) between each retry attempt.
 
 ### The Flow and InvokeRestService activity
 If you open the app, you will see there are three flows, one is Publisher for Queues and Topics and other two is like consumer i.e QueueReceiver and TopicSubscriber
 ![The Flows](../../../images/Azure/AzureServiceBus/flows.png)
 
-The 'Publisher' flow in the AzureServicebusSample app basically sends a messages over Queues and Topics. It has two publish activites for Queue and Topic respetively.All these operation will be done when execute the REST trigger with valid input schema provided in ReceiveHTTPMessage trigger. REST trigger have method POST.
+The 'Publisher' flow in the AzureServicebusSample app basically sends a messages over Queues and Topics. It has two publish activities for Queue and Topic respectively.All these operation will be done when execute the REST trigger with valid input schema provided in ReceiveHTTPMessage trigger. REST trigger have method POST.
 ![The AzureServicebusSample Flows](../../../images/Azure/AzureServiceBus/publisherflow.png)
 
 When 'Publisher' flow sends a message through a Queue, then the Queue Receiver trigger receives the message from the respective queue. To see how Will Queue Receivers work, see Azure Service Bus documentation.
@@ -87,16 +81,11 @@ For running the application,
 
 1. Sample Response when click on 'Send' button
 
-![Sample Response](../../../images/Azure/AzureServiceBus/Respose_in_Postman.png)
+![Sample Response](../../../images/Azure/AzureServiceBus/Response_in_Postman.png)
 
 2. Sample Logs in VS Code
 ![Sample Logs](../../../images/Azure/AzureServiceBus/Output_in_VScode.png)
 
-
-
-## Troubleshooting
-
-* If you see 401 Unauthorized error or token refresh error, re-configure the connection.
 
 
 
