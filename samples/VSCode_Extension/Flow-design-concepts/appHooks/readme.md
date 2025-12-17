@@ -47,7 +47,7 @@ Once you are ready to run the application, use the Run option to start the app.
 
 ![Logs](../../images/flow-design-concepts/appHooks/Logs.png)
 
-## Outputs
+## Unit Test
 
 1. Flow Tester 	
 
@@ -66,4 +66,6 @@ Once you are ready to run the application, use the Run option to start the app.
 
 ## Help
 
-Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/1.3.4/doc/html/Default.htm#flogo-vscode-user-guide/app-development/general-triggers/app_startup_trigger.htm?TocPath=User%2520Guide%257CApp%2520Development%257CGeneral%2520Category%2520Triggers%252C%2520Activities%252C%2520and%2520Connections%257CTriggers%257C_____6) for additional information.
+Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#flogo-all-vsc/app_startup_trigger.htm?TocPath=User%2520Guide%257CApp%2520Development%257CGeneral%2520Category%2520Triggers%252C%2520Activities%252C%2520and%2520Connections%257CTriggers%257C_____6) for additional information.
+
+Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#flogo-all-vsc/app_shutdown_trigger.htm?TocPath=User%2520Guide%257CApp%2520Development%257CGeneral%2520Category%2520Triggers%252C%2520Activities%252C%2520and%2520Connections%257CTriggers%257C_____7) for additional information.
