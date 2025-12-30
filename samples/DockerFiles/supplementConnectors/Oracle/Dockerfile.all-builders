@@ -1,0 +1,312 @@
+# ============================================================================================
+# Combined Builder Stages - Oracle Database Connector
+# ============================================================================================
+# This Dockerfile contains all builder variants for Oracle-enabled Flogo applications.
+# Use the BUILDER_BASE build argument to select your builder environment.
+#
+# Available builder options:
+#   - debian (default)    : Debian Bookworm with Go 1.25.3
+#   - centos             : CentOS Stream 9 with Go 1.25.3
+#   - fedora             : Fedora latest with Go 1.25.3
+#   - amazonlinux2023    : Amazon Linux 2023 with Go 1.25.3
+#   - rhel-ubi           : Red Hat UBI 9 with Go 1.25.3
+#
+# Build examples:
+#   docker build --target builder-debian -t flogo-oracle-builder:debian -f Dockerfile.all-builders .
+#   docker build --target builder-centos -t flogo-oracle-builder:centos -f Dockerfile.all-builders .
+#
+# Required files in build context:
+#   - flogobuild
+#   - flogo-vscode-linux-x64-2.26.0-1788.vsix
+#   - flogo-oracle.flogo
+# Note: Oracle Instant Client will be downloaded during build
+# ============================================================================================
+
+# ============================================================================================
+# Builder Stage: Debian Bookworm
+# ============================================================================================
+FROM golang:1.25.3-bookworm AS builder-debian
+WORKDIR /build
+
+# Install necessary packages for building
+RUN apt-get update && \
+    apt-get install -y \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    g++ \
+    make \
+    git \
+    curl \
+    unzip \
+    libaio-dev \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV GO_VERSION=1.25.3
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+# Set environment variables for Oracle Instant Client
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+# Download and install Oracle Instant Client
+WORKDIR /opt/oracle
+RUN curl -O https://download.oracle.com/otn_software/linux/instantclient/2113000/instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    unzip instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    rm instantclient-basic-linux.x64-21.13.0.0.0dbru.zip
+
+# Build Flogo application
+WORKDIR /build
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+COPY flogo-oracle.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f flogo-oracle.flogo
+RUN chmod +x flogo-oracle
+
+# ============================================================================================
+# Builder Stage: CentOS Stream 9
+# ============================================================================================
+FROM quay.io/centos/centos:stream9 AS builder-centos
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    git \
+    curl \
+    unzip \
+    libaio-devel \
+    && dnf clean all
+
+# Download and install Go 1.25.3 manually
+RUN wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz && \
+    rm go1.25.3.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.3
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+# Set environment variables for Oracle Instant Client
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+# Download and install Oracle Instant Client
+WORKDIR /opt/oracle
+RUN curl -O https://download.oracle.com/otn_software/linux/instantclient/2113000/instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    unzip instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    rm instantclient-basic-linux.x64-21.13.0.0.0dbru.zip
+
+# Build Flogo application
+WORKDIR /build
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+COPY flogo-oracle.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f flogo-oracle.flogo
+RUN chmod +x flogo-oracle
+
+# ============================================================================================
+# Builder Stage: Fedora Latest
+# ============================================================================================
+FROM fedora:latest AS builder-fedora
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    git \
+    curl \
+    unzip \
+    libaio-devel \
+    && dnf clean all
+
+# Download and install Go 1.25.3 manually
+RUN wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz && \
+    rm go1.25.3.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.3
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+# Set environment variables for Oracle Instant Client
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+# Download and install Oracle Instant Client
+WORKDIR /opt/oracle
+RUN curl -O https://download.oracle.com/otn_software/linux/instantclient/2113000/instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    unzip instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    rm instantclient-basic-linux.x64-21.13.0.0.0dbru.zip
+
+# Build Flogo application
+WORKDIR /build
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+COPY flogo-oracle.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f flogo-oracle.flogo
+RUN chmod +x flogo-oracle
+
+# ============================================================================================
+# Builder Stage: Amazon Linux 2023
+# ============================================================================================
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS builder-amazonlinux2023
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    git \
+    curl \
+    unzip \
+    libaio-devel \
+    && dnf clean all
+
+# Download and install Go 1.25.3 manually
+RUN wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz && \
+    rm go1.25.3.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.3
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+# Set environment variables for Oracle Instant Client
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+# Download and install Oracle Instant Client
+WORKDIR /opt/oracle
+RUN curl -O https://download.oracle.com/otn_software/linux/instantclient/2113000/instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    unzip instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    rm instantclient-basic-linux.x64-21.13.0.0.0dbru.zip
+
+# Build Flogo application
+WORKDIR /build
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+COPY flogo-oracle.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f flogo-oracle.flogo
+RUN chmod +x flogo-oracle
+
+# ============================================================================================
+# Builder Stage: Red Hat UBI 9
+# ============================================================================================
+FROM registry.access.redhat.com/ubi9/ubi:latest AS builder-rhel-ubi
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    git \
+    curl \
+    unzip \
+    libaio-devel \
+    && dnf clean all
+
+# Download and install Go 1.25.3 manually
+RUN wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz && \
+    rm go1.25.3.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.3
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+# Set environment variables for Oracle Instant Client
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+# Download and install Oracle Instant Client
+WORKDIR /opt/oracle
+RUN curl -O https://download.oracle.com/otn_software/linux/instantclient/2113000/instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    unzip instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    rm instantclient-basic-linux.x64-21.13.0.0.0dbru.zip
+
+# Build Flogo application
+WORKDIR /build
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+COPY flogo-oracle.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f flogo-oracle.flogo
+RUN chmod +x flogo-oracle
+
+# ============================================================================================
+# Default Builder Selection
+# ============================================================================================
+ARG BUILDER_BASE=debian
+FROM builder-${BUILDER_BASE} AS builder
