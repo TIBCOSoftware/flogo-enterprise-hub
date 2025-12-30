@@ -1,0 +1,635 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/mapper",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/flow/activity/subflow",
+    "github.com/tibco/flogo-general/src/app/General/activity/shareddata",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/timer",
+    "github.com/project-flogo/contrib/function/datetime",
+    "github.com/project-flogo/contrib/function/number",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "MachineTemperature",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#timer",
+      "name": "tibco-wi-timer",
+      "description": "Simple Timer trigger",
+      "settings": {},
+      "id": "TimerTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Scheduler Options": "Timer",
+            "Start Time": "",
+            "Repeating": true,
+            "Delayed Start": false,
+            "Time Interval": "=$property[\"MachineMonitoring.EventFrequency_sec\"]",
+            "Interval Unit": "Second",
+            "Cron Expression": "CRON_TZ=America/New_York * * * * *"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:MachineMonitoring"
+            }
+          },
+          "name": "MachineMonitoring"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:MachineMonitoring",
+      "data": {
+        "name": "MachineMonitoring",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Mapper",
+            "type": "label",
+            "label": "StartActivity to Mapper"
+          },
+          {
+            "id": 2,
+            "from": "Mapper",
+            "to": "LogEvent",
+            "type": "label",
+            "label": "Mapper to LogMessage1"
+          },
+          {
+            "id": 3,
+            "from": "LogEvent",
+            "to": "StartaSubFlow",
+            "type": "label",
+            "label": "LogMessage1 to StartaSubFlow"
+          },
+          {
+            "id": 4,
+            "from": "StartaSubFlow",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartaSubFlow to LogMessage1"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Mapper",
+            "name": "Mapper",
+            "description": "Mapper Activity",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": {
+                  "mapping": {
+                    "timestamp": "=datetime.currentDatetime()",
+                    "machine_id": "production_line_A_machine_01",
+                    "status": "operational",
+                    "error_count": 0,
+                    "servo_temperature_celsius": {
+                      "@conditional": [
+                        {
+                          "number.random(100) < $property[\"MachineMonitoring.Percent_Abnormal\"]": "=80+number.random(10)"
+                        },
+                        {
+                          "@otherwise": "=70+number.random(10)"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"timestamp\":{\"type\":\"string\"},\"machine_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"servo_temperature_celsius\":{\"type\":\"number\"},\"error_count\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\r\n  \"timestamp\": \"2025-09-09T13:38:00Z\",\r\n  \"machine_id\": \"production_line_A_machine_01\",\r\n  \"status\": \"operational\",\r\n  \"servo_temperature_celsius\": 55.3,\r\n  \"error_count\": 3\r\n}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"timestamp\":{\"type\":\"string\"},\"machine_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"servo_temperature_celsius\":{\"type\":\"number\"},\"error_count\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\n  \"timestamp\": \"2025-09-09T13:38:00Z\",\n  \"machine_id\": \"production_line_A_machine_01\",\n  \"status\": \"operational\",\n  \"servo_temperature_celsius\": 55.3,\n  \"error_count\": 3\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogEvent",
+            "name": "LogEvent",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[Mapper].output)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "StartaSubFlow",
+            "name": "StartaSubFlow",
+            "description": "Simple SubFlow Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#subflow",
+              "settings": {
+                "flowURI": "res://flow:IsAbnormal",
+                "detached": false
+              },
+              "input": {
+                "value": "=$activity[Mapper].output.servo_temperature_celsius"
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\n    \"value\": 2.5\n}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"AbnormalFlag\":{\"type\":\"boolean\"},\"TrainingFlag\":{\"type\":\"boolean\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"AbnormalFlag\":{\"type\":\"boolean\"},\"TrainingFlag\":{\"type\":\"boolean\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Machine servo temperature: \", coerce.toString($activity[Mapper].output.servo_temperature_celsius), \" - Training: \", coerce.toString($activity[StartaSubFlow].TrainingFlag), \" - Abnormal: \", coerce.toString($activity[StartaSubFlow].AbnormalFlag))",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTWFwcGVyIjp7IngiOjIxMSwieSI6OTF9LCJMb2dFdmVudCI6eyJ4IjozOTYsInkiOjkwfSwiU3RhcnRhU3ViRmxvdyI6eyJ4Ijo1ODIsInkiOjkxfSwiTG9nTWVzc2FnZSI6eyJ4Ijo3OTcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    },
+    {
+      "id": "flow:IsAbnormal",
+      "data": {
+        "name": "IsAbnormal",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "GetConfigured",
+            "type": "label",
+            "label": "LogMessage to GetConfigured"
+          },
+          {
+            "id": 3,
+            "from": "GetConfigured",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "GetConfigured to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "Configure",
+            "type": "label",
+            "label": "LogMessage1 to Configure"
+          },
+          {
+            "id": 5,
+            "from": "Configure",
+            "to": "SetConfigured",
+            "type": "label",
+            "label": "Configure to SetConfigured"
+          },
+          {
+            "id": 6,
+            "from": "SetConfigured",
+            "to": "IsAbnormal",
+            "type": "label",
+            "label": "SetConfigured to IsAbnormal"
+          },
+          {
+            "id": 7,
+            "from": "IsAbnormal",
+            "to": "LogMessage5",
+            "type": "label",
+            "label": "IsAbnormal to LogMessage5"
+          },
+          {
+            "id": 8,
+            "from": "LogMessage5",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage5 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "DEBUG",
+                "flowInfo": false,
+                "message": "Start IsAbnormal",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "GetConfigured",
+            "name": "GetConfigured",
+            "description": "Enable sharing of data within or across flows in the application",
+            "activity": {
+              "ref": "#shareddata",
+              "settings": {
+                "scope": "Application",
+                "operation": "GET",
+                "type": "string"
+              },
+              "input": {
+                "key": "IsAbnormalConfigured"
+              },
+              "schemas": {
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"exist\":{\"type\":\"boolean\"},\"data\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"exist\":{\"type\":\"boolean\"},\"data\":{\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "DEBUG",
+                "flowInfo": false,
+                "message": "=string.concat(\"Configured: \", coerce.toString($activity[GetConfigured].output.exist))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Configure",
+            "name": "Configure",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"IsAbnormal.URL_Config\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "queryParams": {
+                  "mapping": {
+                    "in_training_abnormal_value_threshold": "=$property[\"IsAbnormal.TrainingAbnormalValueThreshold\"]",
+                    "in_training_size": "=$property[\"IsAbnormal.TrainingSize\"]"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "queryParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"in_training_abnormal_value_threshold\":{\"type\":\"number\"},\"in_training_size\":{\"type\":\"number\"}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"in_training_abnormal_value_threshold\",\"type\":\"number\",\"repeating\":\"\",\"required\":\"\"},{\"parameterName\":\"in_training_size\",\"type\":\"number\",\"repeating\":\"\",\"required\":\"\"}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                },
+                "output": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "SetConfigured",
+            "name": "SetConfigured",
+            "description": "Enable sharing of data within or across flows in the application",
+            "activity": {
+              "ref": "#shareddata",
+              "settings": {
+                "scope": "Application",
+                "operation": "SET",
+                "type": "string"
+              },
+              "input": {
+                "key": "IsAbnormalConfigured",
+                "input": {
+                  "mapping": {
+                    "data": "true"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"exist\":{\"type\":\"boolean\"},\"data\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"exist\":{\"type\":\"boolean\"},\"data\":{\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "IsAbnormal",
+            "name": "IsAbnormal",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"IsAbnormal.URL_IsAbnormal\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "pathParams": {
+                  "mapping": {
+                    "value": "=coerce.toString($flow.value)"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "pathParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"value\":{\"type\":\"string\"}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"value\",\"type\":\"string\"}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"abnormal_flag\":{\"type\":\"boolean\"},\"training_flag\":{\"type\":\"boolean\"}}}",
+                    "fe_metadata": "{\"abnormal_flag\": false, \"training_flag\": true}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage5",
+            "name": "LogMessage5",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "DEBUG",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[IsAbnormal].responseBody.abnormal_flag)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "AbnormalFlag": "=$activity[IsAbnormal].responseBody.abnormal_flag",
+                  "TrainingFlag": "=$activity[IsAbnormal].responseBody.training_flag"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMsInkiOjk5fSwiTG9nTWVzc2FnZSI6eyJ4IjoxMDYsInkiOjkwfSwiR2V0Q29uZmlndXJlZCI6eyJ4IjozMTAsInkiOjM0fSwiTG9nTWVzc2FnZTEiOnsieCI6MzEzLCJ5IjoxNDh9LCJDb25maWd1cmUiOnsieCI6MzE0LCJ5IjoyNjZ9LCJTZXRDb25maWd1cmVkIjp7IngiOjU0MiwieSI6MjY5fSwiSXNBYm5vcm1hbCI6eyJ4Ijo1MzYsInkiOjM3fSwiTG9nTWVzc2FnZTUiOnsieCI6NzM1LCJ5IjozN30sIlJldHVybiI6eyJ4Ijo5MzEsInkiOjQxfX0=",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "LogMessage4",
+              "name": "LogMessage4",
+              "description": "Simple Log Message Activity",
+              "activity": {
+                "ref": "#log",
+                "input": {
+                  "Log Level": "INFO",
+                  "flowInfo": false,
+                  "message": "=string.concat(\"ERROR\", $error.activity, $error.message)",
+                  "logLevel": ""
+                }
+              }
+            }
+          ],
+          "links": [],
+          "fe_metadata": "eyJMb2dNZXNzYWdlNCI6eyJ4IjozMzYsInkiOjkwfX0="
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "value",
+              "type": "float64"
+            }
+          ],
+          "output": [
+            {
+              "name": "AbnormalFlag",
+              "type": "boolean"
+            },
+            {
+              "name": "TrainingFlag",
+              "type": "boolean"
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\n    \"value\": 2.5\n}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"AbnormalFlag\":{\"type\":\"boolean\"},\"TrainingFlag\":{\"type\":\"boolean\"}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "IsAbnormal.TrainingSize",
+      "type": "float64",
+      "value": 10
+    },
+    {
+      "name": "IsAbnormal.TrainingAbnormalValueThreshold",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "IsAbnormal.URL_IsAbnormal",
+      "type": "string",
+      "value": "http://localhost:8000/isabnormal/{value}"
+    },
+    {
+      "name": "IsAbnormal.URL_Config",
+      "type": "string",
+      "value": "http://localhost:8000/config"
+    },
+    {
+      "name": "MachineMonitoring.EventFrequency_sec",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "MachineMonitoring.Percent_Abnormal",
+      "type": "float64",
+      "value": 10
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuNSIsInRhZyI6IjEuNi41LWIwNCIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.25.5"
+  }
+}
