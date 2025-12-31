@@ -40,54 +40,54 @@ https://my-json-server.typicode.com/tibcosoftware/tci-flogo/Book
 
 1. Copy the flogo.sample.rest_branching_error_handling.flogo app into your workspace.
 
-![Copy App](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Copy_App.png)
+![Copy App](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Copy_App.png)
 
 2. Click on the flogo.sample.rest_branching_error_handling.flogo app.On the app details page, you can see the getBooks and getBooksByISBN flows.Click the getBooks flow. You will see the REST trigger connected to an InvokeRestActivity, and the InvokeRestActivity connected to a Return activity.
 
 Then click the InvokeRestActivity. You will see a Configuration tab. Inside the Configuration tab, the following options are displayed: Settings, InputSettings, Input, OutputSettings, Output, Loop, and Retry on Error.Configure all the required details in the InvokeRestActivity.
 
-![Get Books](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Flow.png)
+![Get Books](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Flow.png)
 
-![Trigger & Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Trigger&Activity.png)
+![Trigger & Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Trigger&Activity.png)
 
-![InvokeRest Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/InvokeRestActivity1.png)
+![InvokeRest Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/InvokeRestActivity1.png)
 
 3. Next, click the Return activity.You will see a Configuration tab. Inside the Configuration tab, the Map Outputs option is displayed. Configure all the required details in the Return activity.
 
-![Return Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity1.png)
+![Return Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity1.png)
 
 4. Click again on the flogo.sample.rest_branching_error_handling.flogo app.On the app details page, click the getBooksByISBN flow.You will see the REST trigger connected to an InvokeRestActivity. The InvokeRestActivity has three branches.
 
-![Get Book By ISBN](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/GetBookByISBN1.png)
+![Get Book By ISBN](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/GetBookByISBN1.png)
 
-![Trigger & Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/InvokeRestActivity1.png)
+![Trigger & Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Trigger&Activity2.png)
 
 i. success branch : This branch is connected to a Return1 activity.Click the Return activity. You will see a Configuration tab. Inside the Configuration tab, the Map Outputs option is displayed.
 Configure all the required details in the Return activity.
 
-![Success Branch](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/SuccessBranch.png)
+![Success Branch](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/SuccessBranch.png)
 
-![Return Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity2.png)
+![Return Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity2.png)
 
 ii. This branch is connected to a Log Message activity.Click the Log Message activity. You will see a Configuration tab. Inside the Configuration tab, the Settings, Input, and Loop options are displayed.Configure all the required details in the Log Message activity.
 
 The Log Message activity is connected to a Return2 activity.Click the Return activity and configure the required details in the Map Outputs section.
 
-![Success with condition Branch 1](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/SuccessWithCondition1.png)
+![Success with condition Branch 1](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/SuccessWithCondition1.png)
 
-![Log Message 1 Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/LogMessage1.png)
+![Log Message 1 Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/LogMessage1.png)
 
-![Return Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity3.png)
+![Return Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity3.png)
 
 iii. success with condition branch : This branch is connected to a Log Message1 activity.Click the Log Message1 activity. You will see a Configuration tab. Inside the Configuration tab, the Settings, Input, and Loop options are displayed.Configure all the required details in the Log Message1 activity.
 
 The Log Message activity is connected to a Throw Error activity.Click the Throw Error activity. You will see a Configuration tab. Inside the Configuration tab, the Input and Loop options are displayed.Configure all the required details in the Throw Error activity.
 
-![Success with condition Branch 2](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/SuccessWithCondition2.png)
+![Success with condition Branch 2](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/SuccessWithCondition2.png)
 
-![Log Message 2 Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/LogMessage2.png)
+![Log Message 2 Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/LogMessage2.png)
 
-![Throw Error Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ThrowError.png)
+![Throw Error Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ThrowError.png)
 
 In this flow, errors are handled in two ways:
 
@@ -100,15 +100,12 @@ Click on the Error Handler. In the Error Handler flow, a Log Message activity is
 
 In the Return activity, the response is passed as: string.concat($error.activity, " ", $error.message).
 
-![Error Handler Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ErrorHandlerFlow.png)
+![Error Handler Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ErrorHandlerFlow.png)
 
-![Log Message 3 Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/logMessage3.png)
+![Log Message 3 Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/logMessage3.png)
 
-![Return 4 Activity](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity4.png)
+![Return 4 Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity4.png)
 
 ## Help
 
 Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/latest/doc/html/Default.htm#flogo-vscode-user-guide/app-development/creating-flows-triggers/flows/catching-errors.htm?TocPath=User%2520Guide%257CApp%2520Development%257CCreating%2520Flows%2520and%2520Triggers%257CFlows%257CCatching%2520Errors%257C_____0) for additional information.
-
-
-

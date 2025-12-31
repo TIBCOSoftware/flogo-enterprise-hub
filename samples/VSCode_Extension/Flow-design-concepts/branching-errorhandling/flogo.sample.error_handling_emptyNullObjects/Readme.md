@@ -1,8 +1,5 @@
 # Error Handling of Null or Empty JSON Objects Within Condition Paths
 
-## Prerequisites
-TIBCO Cloud™ Integration - latest version. 
-
 ## Overview
 
 HowTo_Handle_NullEmptyJSON_ObjArray is a sample TIBCO Flogo® application that demonstrates how to handle null and empty JSON objects and JSON arrays while evaluating conditions in a flow.
@@ -27,39 +24,39 @@ The application uses a Timer trigger to execute multiple flows automatically. Ea
 
 1. Copy the HowTo_Handle_NullEmptyJSON_ObjArray.flogo app into your workspace.
 
-![Copy App](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/CopyApp.png)
+![Copy App](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/CopyApp.png)
 
 2. Click on the HowTo_Handle_NullEmptyJSON_ObjArray.flogo app. On the app details page, the three flows should appear as shown in the screenshot below.
 
-![Three Flows](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/ThreeFlows.png)
+![Three Flows](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/ThreeFlows.png)
 
 3. Each flow represents a way to check for null or empty JSON objects in the condition path:
 
 i. Handle_EmptyNull_In_JSONArrayObject flow :
 
-![Handle_EmptyNull_In_JSONArrayObject condition 1](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow1Condition1.png)
+![Handle_EmptyNull_In_JSONArrayObject condition 1](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow1Condition1.png)
 
-![Handle_EmptyNull_In_JSONArrayObject condition 2](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow1Condition2.png)
+![Handle_EmptyNull_In_JSONArrayObject condition 2](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow1Condition2.png)
 
 ii. Handle_EmptyNull_In_JSONObject_1 flow :
 
-![Handle_EmptyNull_In_JSONObject_1 condition 1](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow2Condition1.png)
+![Handle_EmptyNull_In_JSONObject_1 condition 1](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow2Condition1.png)
 
-![Handle_EmptyNull_In_JSONObject_1 condition 2](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow2Condition2.png)
+![Handle_EmptyNull_In_JSONObject_1 condition 2](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow2Condition2.png)
 
 iii. Handle_EmptyNull_In_JSONObject_2 flow :
 
-![Handle_EmptyNull_In_JSONObject_2 condition 1](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow3Condition1.png)
+![Handle_EmptyNull_In_JSONObject_2 condition 1](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow3Condition1.png)
 
-![Handle_EmptyNull_In_JSONObject_2 condition 2](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow3Condition2.png)
+![Handle_EmptyNull_In_JSONObject_2 condition 2](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/Flow3Condition2.png)
 
 4. As shown in the screenshots below, you can improve the handling of null and empty objects by using error messages in unit tests:
 
-![Handle_EmptyNull_In_JSONArrayObject Unit Test](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/UnitTest1.png)
+![Handle_EmptyNull_In_JSONArrayObject Unit Test](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/UnitTest1.png)
 
-![Handle_EmptyNull_In_JSONObject_1 Unit Test](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/UnitTest2.png)
+![Handle_EmptyNull_In_JSONObject_1 Unit Test](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/UnitTest2.png)
 
-![Handle_EmptyNull_In_JSONObject_2 Unit Test](/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/UnitTest3.png)
+![Handle_EmptyNull_In_JSONObject_2 Unit Test](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.error_handling_emptyNullObjects/UnitTest3.png)
 
 
 ## Help
