@@ -62,4 +62,3 @@ iii. Handle_EmptyNull_In_JSONObject_2 flow :
 ## Help
 
 Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/latest/doc/html/Default.htm#flogo-vscode-user-guide/app-development/creating-flows-triggers/flows/catching-errors.htm?TocPath=User%2520Guide%257CApp%2520Development%257CCreating%2520Flows%2520and%2520Triggers%257CFlows%257CCatching%2520Errors%257C_____0) for additional information.
-
