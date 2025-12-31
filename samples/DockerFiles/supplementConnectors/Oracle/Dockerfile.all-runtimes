@@ -1,0 +1,163 @@
+# ============================================================================================
+# Combined Runtime Stages - Oracle Database Connector
+# ============================================================================================
+# This Dockerfile contains all runtime variants for Oracle-enabled Flogo applications.
+# Use the RUNTIME_BASE build argument to select your runtime environment.
+#
+# Available runtime options:
+#   - debian (default)    : Debian Bookworm
+#   - centos             : CentOS Stream 9
+#   - fedora             : Fedora latest
+#   - amazonlinux2023    : Amazon Linux 2023
+#   - rhel-ubi           : Red Hat UBI 9
+#   - alpine             : Alpine Linux 3.21
+#   - distroless         : Google Distroless
+#
+# Build examples:
+#   docker build --build-arg RUNTIME_BASE=debian -t flogo-oracle:debian -f Dockerfile.all-runtimes .
+#   docker build --build-arg RUNTIME_BASE=centos -t flogo-oracle:centos -f Dockerfile.all-runtimes .
+# ============================================================================================
+
+# ============================================================================================
+# Runtime Stage: Debian Bookworm
+# ============================================================================================
+FROM debian:bookworm AS runtime-debian
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y bash ca-certificates libaio1 libcurl4 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY flogo-oracle .
+COPY instantclient_21_13 /opt/oracle/instantclient_21_13
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+RUN chmod +x ./flogo-oracle
+CMD ["./flogo-oracle"]
+
+# ============================================================================================
+# Runtime Stage: CentOS Stream 9
+# ============================================================================================
+FROM quay.io/centos/centos:stream9 AS runtime-centos
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash libaio libcurl && dnf clean all
+
+COPY flogo-oracle .
+COPY instantclient_21_13 /opt/oracle/instantclient_21_13
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+RUN chmod +x ./flogo-oracle
+CMD ["./flogo-oracle"]
+
+# ============================================================================================
+# Runtime Stage: Fedora Latest
+# ============================================================================================
+FROM fedora:latest AS runtime-fedora
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash libaio libcurl && dnf clean all
+
+COPY flogo-oracle .
+COPY instantclient_21_13 /opt/oracle/instantclient_21_13
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+RUN chmod +x ./flogo-oracle
+CMD ["./flogo-oracle"]
+
+# ============================================================================================
+# Runtime Stage: Amazon Linux 2023
+# ============================================================================================
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS runtime-amazonlinux2023
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash libaio libcurl && dnf clean all
+
+COPY flogo-oracle .
+COPY instantclient_21_13 /opt/oracle/instantclient_21_13
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+RUN chmod +x ./flogo-oracle
+CMD ["./flogo-oracle"]
+
+# ============================================================================================
+# Runtime Stage: Red Hat UBI 9
+# ============================================================================================
+FROM registry.access.redhat.com/ubi9/ubi:latest AS runtime-rhel-ubi
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash libaio libcurl && dnf clean all
+
+COPY flogo-oracle .
+COPY instantclient_21_13 /opt/oracle/instantclient_21_13
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+RUN chmod +x ./flogo-oracle
+CMD ["./flogo-oracle"]
+
+# ============================================================================================
+# Runtime Stage: Alpine Linux 3.21
+# ============================================================================================
+FROM alpine:3.21 AS runtime-alpine
+WORKDIR /app
+
+RUN apk add --no-cache \
+    bash \
+    libc6-compat \
+    ca-certificates \
+    libaio \
+    curl
+
+COPY flogo-oracle .
+COPY instantclient_21_13 /opt/oracle/instantclient_21_13
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+RUN chmod +x ./flogo-oracle
+CMD ["./flogo-oracle"]
+
+# ============================================================================================
+# Runtime Stage: Distroless
+# ============================================================================================
+FROM gcr.io/distroless/cc AS runtime-distroless
+WORKDIR /app
+
+COPY flogo-oracle .
+COPY instantclient_21_13 /opt/oracle/instantclient_21_13
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_21_13 \
+    PATH=/opt/oracle/instantclient_21_13:$PATH
+
+CMD ["./flogo-oracle"]
+
+# ============================================================================================
+# Default Runtime Selection
+# ============================================================================================
+ARG RUNTIME_BASE=debian
+FROM runtime-${RUNTIME_BASE} AS runtime
