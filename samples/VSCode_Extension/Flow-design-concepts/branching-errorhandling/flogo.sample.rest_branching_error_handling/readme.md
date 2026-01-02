@@ -19,30 +19,30 @@ Success with Condition : If the ISBN is invalid (string.regex("[^0-9]", $flow.is
 
 Every flow ends with a Return activity to ensure correct termination and that a response is sent back to the REST trigger.
 
-This sample application is based on the BookStore example. It uses a backend REST API that returns sample JSON data. The backend REST API is hosted at:
+**This sample application is based on the BookStore example. It uses a backend REST API that returns sample JSON data. The backend REST API is hosted at:**
 (https://my-json-server.typicode.com/tibcosoftware/tci-flogo/Book)
 
-First, you need to upload the Throw Error Extension from:(https://github.com/TIBCOSoftware/flogo-contrib/tree/master/activity/error)
+**First, you need to upload the Throw Error Extension from:** (https://github.com/TIBCOSoftware/flogo-contrib/tree/master/activity/error)
 
-If you run any of these samples locally using TIBCO Flogo® Enterprise:
+**If you run any of these samples locally using TIBCO Flogo® Enterprise:**
 
-1. To get all books, hit the URL: http://localhost:9999/books
+**1. To get all books, hit the URL:** http://localhost:9999/books
 
-2. To get a book by ISBN, hit the URL: http://localhost:9999/books/1451648537
+**2. To get a book by ISBN, hit the URL:** http://localhost:9999/books/1451648537
 
-3. To test the error handler, hit the above URL with an invalid ISBN number, for example:
+**3. To test the error handler, hit the above URL with an invalid ISBN number, for example:**
 http://localhost:9999/books/999
 
-4. You can check the sample JSON data for valid ISBNs to use while testing the samples at:
+**4. You can check the sample JSON data for valid ISBNs to use while testing the samples at:**
 https://my-json-server.typicode.com/tibcosoftware/tci-flogo/Book
 
 ## Copy App 
 
-1. Copy the flogo.sample.rest_branching_error_handling.flogo app into your workspace.
+**1.** Copy the flogo.sample.rest_branching_error_handling.flogo app into your workspace.
 
 ![Copy App](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Copy_App.png)
 
-2. Click on the flogo.sample.rest_branching_error_handling.flogo app.On the app details page, you can see the getBooks and getBooksByISBN flows.Click the getBooks flow. You will see the REST trigger connected to an InvokeRestActivity, and the InvokeRestActivity connected to a Return activity.
+**2.** Click on the flogo.sample.rest_branching_error_handling.flogo app.On the app details page, you can see the getBooks and getBooksByISBN flows.Click the getBooks flow. You will see the REST trigger connected to an InvokeRestActivity, and the InvokeRestActivity connected to a Return activity.
 
 Then click the InvokeRestActivity. You will see a Configuration tab. Inside the Configuration tab, the following options are displayed: Settings, InputSettings, Input, OutputSettings, Output, Loop, and Retry on Error.Configure all the required details in the InvokeRestActivity.
 
@@ -52,24 +52,24 @@ Then click the InvokeRestActivity. You will see a Configuration tab. Inside the 
 
 ![InvokeRest Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/InvokeRestActivity1.png)
 
-3. Next, click the Return activity.You will see a Configuration tab. Inside the Configuration tab, the Map Outputs option is displayed. Configure all the required details in the Return activity.
+**3.** Next, click the Return activity.You will see a Configuration tab. Inside the Configuration tab, the Map Outputs option is displayed. Configure all the required details in the Return activity.
 
 ![Return Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity1.png)
 
-4. Click again on the flogo.sample.rest_branching_error_handling.flogo app.On the app details page, click the getBooksByISBN flow.You will see the REST trigger connected to an InvokeRestActivity. The InvokeRestActivity has three branches.
+**4.** Click again on the flogo.sample.rest_branching_error_handling.flogo app.On the app details page, click the getBooksByISBN flow.You will see the REST trigger connected to an InvokeRestActivity. The InvokeRestActivity has three branches.
 
 ![Get Book By ISBN](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/GetBookByISBN1.png)
 
 ![Trigger & Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/Trigger&Activity2.png)
 
-i. success branch : This branch is connected to a Return1 activity.Click the Return activity. You will see a Configuration tab. Inside the Configuration tab, the Map Outputs option is displayed.
+**i.** success branch : This branch is connected to a Return1 activity.Click the Return activity. You will see a Configuration tab. Inside the Configuration tab, the Map Outputs option is displayed.
 Configure all the required details in the Return activity.
 
 ![Success Branch](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/SuccessBranch.png)
 
 ![Return Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity2.png)
 
-ii. This branch is connected to a Log Message activity.Click the Log Message activity. You will see a Configuration tab. Inside the Configuration tab, the Settings, Input, and Loop options are displayed.Configure all the required details in the Log Message activity.
+**ii.** This branch is connected to a Log Message activity.Click the Log Message activity. You will see a Configuration tab. Inside the Configuration tab, the Settings, Input, and Loop options are displayed.Configure all the required details in the Log Message activity.
 
 The Log Message activity is connected to a Return2 activity.Click the Return activity and configure the required details in the Map Outputs section.
 
@@ -79,7 +79,7 @@ The Log Message activity is connected to a Return2 activity.Click the Return act
 
 ![Return Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ReturnActivity3.png)
 
-iii. success with condition branch : This branch is connected to a Log Message1 activity.Click the Log Message1 activity. You will see a Configuration tab. Inside the Configuration tab, the Settings, Input, and Loop options are displayed.Configure all the required details in the Log Message1 activity.
+**iii.** success with condition branch : This branch is connected to a Log Message1 activity.Click the Log Message1 activity. You will see a Configuration tab. Inside the Configuration tab, the Settings, Input, and Loop options are displayed.Configure all the required details in the Log Message1 activity.
 
 The Log Message activity is connected to a Throw Error activity.Click the Throw Error activity. You will see a Configuration tab. Inside the Configuration tab, the Input and Loop options are displayed.Configure all the required details in the Throw Error activity.
 
@@ -89,13 +89,13 @@ The Log Message activity is connected to a Throw Error activity.Click the Throw 
 
 ![Throw Error Activity](/samples/VSCode_Extension/images/flow-design-concepts/Branching-errorhandling/flogo.sample.rest_branching_error_handling/ThrowError.png)
 
-In this flow, errors are handled in two ways:
+**In this flow, errors are handled in two ways:**
 
-1. Using the Throw Error Activity in the getBooksByISBN flow
+**1.** Using the Throw Error Activity in the getBooksByISBN flow
 By using the Throw Error activity, we get the "********** Invalid ISBN Number ********" message.
 Refer to the image above for details.
 
-2. Using the Error Handler flow in the getBooksByISBN flow
+**2.** Using the Error Handler flow in the getBooksByISBN flow
 Click on the Error Handler. In the Error Handler flow, a Log Message activity is used. The error message is set to "******** In Error Handler ********". 
 
 In the Return activity, the response is passed as: string.concat($error.activity, " ", $error.message).
