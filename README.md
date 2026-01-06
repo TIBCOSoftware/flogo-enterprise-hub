@@ -72,14 +72,13 @@ Try out the Flogo application samples that help you build and deploy Flogo® app
    - **Unit-Testing**
        - **Play Testcase - flow debugger** 
            - [Play Testcase flow debugger](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Unit-Testing/PlayTestcase-flowDebugger) :  This sample demonstrates unit testing in Flogo, where you can run flows on demand, monitor execution logs, and detect errors at the flow or activity level without building the app.
-
        - **Unit Testing**
            - [Unit Testing basic](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Unit-Testing/UnitTesting-basic) : This sample demonstrates that unit testing is a technique where individual components or flows of an application are tested in isolation to verify they work as intended and catch issues early.
 
 - **Samples for [Flogo Capability on TIBCO® Control Plane](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane)**
     - **Application Deployment**
         - [Deploy and Run Custom App Image for Flogo Oracle DB Application](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane/App_Deployment/Custom_App_Image) : This sample demonstrates how to create Flogo application build with all dependencies preinstalled outside TIBCO Platform by using custom Docker images
-        
+
 ---
 
 ## **Contributing**
