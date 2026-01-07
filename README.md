@@ -41,25 +41,23 @@ Try out the Flogo application samples that help you build and deploy Flogo® app
        - **Azure**
            - [AzureDataFactory](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Azure/AzureDataFactory) :  This sample demonstrates how to create and use the AzureDataFactory activity in Azure Data Factory (ADF), a cloud-based data integration and orchestration service.
        - **Database Connectors**
-           - **OracleDB cluster Deployment**
-               - [OracleDB cluster Deployment](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDB_clusterDeployment) : This sample demonstrates how to create and use Oracle Database Call stored procedure and CRUD activities.
-           - **Oracle Database**
-               - [Oracle Database](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDatabase) : This sample demonstrates how to deploy and run Flogo Oracle DB app in Docker container and local kubernetes cluster using minikube. Flogo Oracle DB app need runtime oracle client libraries to run app. In the attached Docker file, we are installing the runtime dependencies for Flogo Oracle DB app.
-           - **PostgreSQL-CRUD**
-               - [PostgreSQL-CRUD](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/PostgreSQL-CRUD) : This sample demonstrate how to create and use PostgreSQL CRUD activities with TLS/SSL Authentication. PostgreSQL CRUD app bascially contains 4 activities. The main purpose of these activities are to insert data, update the data, delete the data and then finally perform query to fetch data from PostgreSQL database.
+            - **Database Connectors**
+            - [Oracle Database CRUD](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDB_clusterDeployment) : This sample demonstrates how to create and use Oracle Database Call stored procedure and CRUD activities.
+            - [Oracle DB Container Deployment](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDatabase) : This sample demonstrates how to deploy and run Flogo Oracle DB app in Docker container and local kubernetes cluster using minikube. Flogo Oracle DB app need runtime oracle client libraries to run app. In the attached Docker file, we are installing the runtime dependencies for Flogo Oracle DB app.
+            - [PostgreSQL Basic CRUD](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/PostgreSQL-CRUD) : This sample demonstrate how to create and use PostgreSQL CRUD activities with TLS/SSL Authentication. PostgreSQL CRUD app bascially contains 4 activities. The main purpose of these activities are to insert data, update the data, delete the data and then finally perform query to fetch data from PostgreSQL database.
         - **Messaging Connectors**
            - **Enterprise Messaging Service**
                 - [Request-Reply](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Messaging/EMS/RequestReply): This sample illustrates a basic workflow demonstrating how EMS (Enterprise Message Service) provides activities and triggers for sending and receiving messages. You can establish a connection to your EMS broker using Transport Layer Security (TLS). The configuration includes setting up triggers to subscribe to messages published to queues and topics.
         - **SAP_Connectors**
-           - [SAPS4HANA](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/SAP_Connectors/SAPS4HANA) : This sample demonstrates how SAP S/4HANA (SAP Business Suite 4 SAP HANA), a next-generation ERP system developed by SAP SE, runs exclusively on the SAP HANA in-memory database to enable real-time data processing and analytics.
+           - [SAPS4HANA](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/SAP_Connectors/SAPS4HANA) : This sample demonstrates about the configuring and using the CRUD activities in the SAP S/4HANA connector.
 
     - **Flow design concepts**
+       - **hello-world**
+           - [hello-world](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/hello-world) : This sample demonstrates a simple Flogo app that prints and returns a greeting based on the input you provide.
        - **appHooks**
            - [appHooks](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/appHooks) :  This sample demonstrates the features present in the Flogo application used before and after the ReceiveHTTPMessage trigger.
        - **branching-errorhandling**
            - [branching-errorhandling](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/branching-errorhandling) : This sample demonstrates how to handle branch-level error handling of null, empty, and invalid JSON objects within condition paths.
-       - **hello-world**
-           - [hello-world](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/hello-world) : This sample demonstrates a simple Flogo app that prints and returns a greeting based on the input you provide.
         - **shared-data**
            - [shared-data](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/shared-data) : This sample demonstrates the SharedData activity, which enables sharing runtime data within a flow or across flows in a Flogo app.
         - **subflow-basic**
@@ -71,7 +69,7 @@ Try out the Flogo application samples that help you build and deploy Flogo® app
 
    - **Unit-Testing**
        - **Play Testcase - flow debugger** 
-           - [Play Testcase flow debugger](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Unit-Testing/PlayTestcase-flowDebugger) :  This sample demonstrates unit testing in Flogo, where you can run flows on demand, monitor execution logs, and detect errors at the flow or activity level without building the app.
+           - [Play Testcase flow debugger](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Unit-Testing/PlayTestcase-flowDebugger) :  This sample demonstrates unit testing for Flogo app flows using play mode feature, where you can test/debug the activities inside the each flow looking at its input and output data , and detect errors at the flow or activity level without building the app.
        - **Unit Testing**
            - [Unit Testing basic](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Unit-Testing/UnitTesting-basic) : This sample demonstrates that unit testing is a technique where individual components or flows of an application are tested in isolation to verify they work as intended and catch issues early.
 
