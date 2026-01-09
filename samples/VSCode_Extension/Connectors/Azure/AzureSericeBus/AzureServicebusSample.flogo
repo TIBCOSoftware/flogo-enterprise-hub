@@ -1,0 +1,584 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/tibco/wi-azservicebus/src/app/AzureServiceBus/activity/publish",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/wi-azservicebus/src/app/AzureServiceBus/trigger/queuereceiver",
+    "github.com/tibco/wi-azservicebus/src/app/AzureServiceBus/trigger/topicsubscriber",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/tibco/wi-azservicebus/src/app/AzureServiceBus/connector/connection"
+  ],
+  "name": "AzureServicebusSample",
+  "description": "AZSB app with AZSB pub activity,Queue Receiver & Topic Subscriber",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#queuereceiver",
+      "name": "azservicebus-queuereceiver-trigger",
+      "description": "",
+      "settings": {
+        "azservicebusConnection": "conn://2c7b8ee0-04a6-11ec-8a2c-15399fb5e75c"
+      },
+      "id": "AzureServiceBusQueueReceiver",
+      "handlers": [
+        {
+          "description": "This flow describes how Queue receiver are receiving a message from QueueÂ  using Queue Receiver Trigger",
+          "settings": {
+            "queue": "testazure",
+            "deadletter": false,
+            "sessionId": "",
+            "receiveMode": "ReceiveAndDelete",
+            "Timeout": 0,
+            "Count": 0,
+            "Interval": 0,
+            "valueType": "String"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:QueueReceiver"
+            },
+            "input": {
+              "output": {
+                "mapping": {
+                  "messageString": "=$.output.messageString"
+                }
+              }
+            }
+          },
+          "schemas": {
+            "output": {
+              "output": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\"},\"To\":{\"type\":\"string\"},\"DeliveryCount\":{\"type\":\"integer\"}}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\"},\"To\":{\"type\":\"string\"},\"DeliveryCount\":{\"type\":\"integer\"}}}}}"
+              }
+            }
+          },
+          "name": "QueueReceiver"
+        }
+      ]
+    },
+    {
+      "ref": "#topicsubscriber",
+      "name": "azservicebus-topicsubscriber-trigger",
+      "description": "",
+      "settings": {
+        "azservicebusConnection": "conn://2c7b8ee0-04a6-11ec-8a2c-15399fb5e75c"
+      },
+      "id": "AzureServiceBusTopicSubscriber",
+      "handlers": [
+        {
+          "description": "This Flow describes how Topics subscriber are subscribed a message in specific subscriber using Topic Subscriber Trigger",
+          "settings": {
+            "topic": "azuretopic",
+            "deadletter": false,
+            "subscriptionName": "test1",
+            "sessionId": "",
+            "receiveMode": "ModePeekLock",
+            "Timeout": 0,
+            "Count": 0,
+            "Interval": 0,
+            "valueType": "String"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:TopicSubscriber"
+            },
+            "input": {
+              "output": {
+                "mapping": {
+                  "messageString": "=$.output.messageString"
+                }
+              }
+            }
+          },
+          "schemas": {
+            "output": {
+              "output": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\"},\"To\":{\"type\":\"string\"},\"DeliveryCount\":{\"type\":\"integer\"}}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\"},\"To\":{\"type\":\"string\"},\"DeliveryCount\":{\"type\":\"integer\"}}}}}"
+              }
+            }
+          },
+          "name": "TopicSubscriber"
+        }
+      ]
+    },
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "This flow describes how message are getting published through Queue and Topic entity using Azure Service Bus Publish Activity",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/publisher",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Publisher"
+            },
+            "input": {
+              "body": {
+                "mapping": {
+                  "QueueMessage": "=$.body.QueueMessage",
+                  "TopicMessage": "=$.body.TopicMessage"
+                }
+              }
+            },
+            "output": {
+              "data": {
+                "mapping": {
+                  "Output": "=$.data.Output"
+                }
+              }
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Output\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"Output\":\"\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"QueueMessage\":{\"type\":\"string\"},\"TopicMessage\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"QueueMessage\":\" \",\n    \"TopicMessage\":\" \"\n}"
+              }
+            }
+          },
+          "name": "Publisher"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:Publisher",
+      "data": {
+        "name": "Publisher",
+        "description": "This flow describes how message are getting published through Queue and Topic entity using Azure Service Bus Publish Activity",
+        "links": [
+          {
+            "id": 1,
+            "from": "AzureServiceBusPublish",
+            "to": "AzureServiceBusPublish1",
+            "type": "label",
+            "label": "AzureServiceBusPublish to AzureServiceBusPublish1"
+          },
+          {
+            "id": 2,
+            "from": "AzureServiceBusPublish1",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "AzureServiceBusPublish1 to LogMessage"
+          },
+          {
+            "id": 3,
+            "from": "LogMessage",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "AzureServiceBusPublish",
+            "name": "AzureServiceBusPublish",
+            "description": "AzureServiceBus Publish Activity",
+            "activity": {
+              "ref": "#publish",
+              "input": {
+                "Connection": "conn://2c7b8ee0-04a6-11ec-8a2c-15399fb5e75c",
+                "entityType": "Queue",
+                "Timeout": 0,
+                "entityName": "",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "queueName": "testazure",
+                      "messageString": "=$flow.body.QueueMessage"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"$id\":\"http://example.com/example.json\",\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"queueName\":{\"type\":\"string\"},\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\",\"minimum\":0},\"ScheduledEnqueueTimeUtc\":{\"type\":\"string\"},\"To\":{\"type\":\"string\"}}}},\"required\":[\"queueName\",\"messageString\"]}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"$id\":\"http://example.com/example.json\",\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"queueName\":{\"type\":\"string\"},\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\",\"minimum\":0},\"ScheduledEnqueueTimeUtc\":{\"type\":\"string\"},\"To\":{\"type\":\"string\"}}}},\"required\":[\"queueName\",\"messageString\"]}}}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"responseMessage\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"responseMessage\":{\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "AzureServiceBusPublish1",
+            "name": "AzureServiceBusPublish1",
+            "description": "AzureServiceBus Publish Activity",
+            "activity": {
+              "ref": "#publish",
+              "input": {
+                "Connection": "conn://2c7b8ee0-04a6-11ec-8a2c-15399fb5e75c",
+                "entityType": "Topic",
+                "Timeout": 0,
+                "entityName": "",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "topicName": "azuretopic",
+                      "messageString": "=$flow.body.TopicMessage"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"$id\":\"http://example.com/example.json\",\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"topicName\":{\"type\":\"string\"},\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\",\"minimum\":0},\"ScheduledEnqueueTimeUtc\":{\"type\":\"string\"},\"To\":{\"type\":\"string\"}}}},\"required\":[\"topicName\",\"messageString\"]}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"$id\":\"http://example.com/example.json\",\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"topicName\":{\"type\":\"string\"},\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\",\"minimum\":0},\"ScheduledEnqueueTimeUtc\":{\"type\":\"string\"},\"To\":{\"type\":\"string\"}}}},\"required\":[\"topicName\",\"messageString\"]}}}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"responseMessage\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"responseMessage\":{\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"The published entities are \", $activity[AzureServiceBusPublish].output.responseMessage, $activity[AzureServiceBusPublish1].output.responseMessage)"
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "data": {
+                    "mapping": {
+                      "Output": "The messages are published successfully!!!!!!"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJBenVyZVNlcnZpY2VCdXNQdWJsaXNoIjp7IngiOjUwLCJ5Ijo1MH0sIkF6dXJlU2VydmljZUJ1c1B1Ymxpc2gxIjp7IngiOjI1MCwieSI6NTB9LCJMb2dNZXNzYWdlIjp7IngiOjQ1MCwieSI6NTB9LCJSZXR1cm4iOnsieCI6NjUwLCJ5Ijo1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"QueueMessage\":{\"type\":\"string\"},\"TopicMessage\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Output\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"QueueMessage\":{\"type\":\"string\"},\"TopicMessage\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Output\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:QueueReceiver",
+      "data": {
+        "name": "QueueReceiver",
+        "description": "This flow describes how Queue receiver are receiving a message from QueueÂ  using Queue Receiver Trigger",
+        "links": [],
+        "tasks": [
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$flow.output.messageString",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJMb2dNZXNzYWdlIjp7IngiOjUwLCJ5Ijo1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "output",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\"},\"To\":{\"type\":\"string\"},\"DeliveryCount\":{\"type\":\"integer\"}}}}"
+              }
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"AzureServiceBusQueueReceiver\",\"properties\":{\"output\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\"},\"To\":{\"type\":\"string\"},\"DeliveryCount\":{\"type\":\"integer\"}}}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:TopicSubscriber",
+      "data": {
+        "name": "TopicSubscriber",
+        "description": "This Flow describes how Topics subscriber are subscribed a message in specific subscriber using Topic Subscriber Trigger",
+        "links": [],
+        "tasks": [
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$flow.output.messageString"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJMb2dNZXNzYWdlIjp7IngiOjUwLCJ5Ijo1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "output",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\"},\"To\":{\"type\":\"string\"},\"DeliveryCount\":{\"type\":\"integer\"}}}}"
+              }
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"AzureServiceBusTopicSubscriber\",\"properties\":{\"output\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"messageString\":{\"type\":\"string\"},\"brokerProperties\":{\"type\":\"object\",\"properties\":{\"ContentType\":{\"type\":\"string\"},\"CorrelationId\":{\"type\":\"string\"},\"Label\":{\"type\":\"string\"},\"PartitionKey\":{\"type\":\"string\"},\"ReplyTo\":{\"type\":\"string\"},\"SessionId\":{\"type\":\"string\"},\"TimeToLive\":{\"type\":\"integer\"},\"To\":{\"type\":\"string\"},\"DeliveryCount\":{\"type\":\"integer\"}}}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AzureServiceBus.AzureServiceBus.Service_Bus_Namespace",
+      "type": "string",
+      "value": "johnssubscription"
+    },
+    {
+      "name": "AzureServiceBus.AzureServiceBus.Authorization_Rule_Name",
+      "type": "string",
+      "value": "DevTestPolicy"
+    },
+    {
+      "name": "AzureServiceBus.AzureServiceBus.Retry_Count",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "AzureServiceBus.AzureServiceBus.Retry_Interval",
+      "type": "float64",
+      "value": 4000
+    },
+    {
+      "name": "AzureServiceBus.AzureServiceBus.SharedAccessKey",
+      "type": "string",
+      "value": ""
+    }
+  ],
+  "connections": {
+    "2c7b8ee0-04a6-11ec-8a2c-15399fb5e75c": {
+      "id": "2c7b8ee0-04a6-11ec-8a2c-15399fb5e75c",
+      "name": "AzureServiceBus",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "name": "AzureServiceBus",
+        "description": "",
+        "authMode": "SAS Token",
+        "resourceURI": "=$property[\"AzureServiceBus.AzureServiceBus.Service_Bus_Namespace\"]",
+        "authorizationRuleName": "=$property[\"AzureServiceBus.AzureServiceBus.Authorization_Rule_Name\"]",
+        "primarysecondaryKey": "=$property[\"AzureServiceBus.AzureServiceBus.SharedAccessKey\"]",
+        "tenantID": "",
+        "clientID": "",
+        "clientSecret": "",
+        "count": "=$property[\"AzureServiceBus.AzureServiceBus.Retry_Count\"]",
+        "interval": "=$property[\"AzureServiceBus.AzureServiceBus.Retry_Interval\"]",
+        "configProperties": "",
+        "DocsMetadata": "{\n      \"entityTypes\":[\"Queue\",\"Topic\"],\n      \"paths\": {\n        \"QueueReceive\":{\n          \"summary\": \"Queue Receiver\",\n          \"action\": \"QueueReceive\",\n          \"output\": {\n                \"$id\": \"http://example.com/example.json\",\n                \"type\": \"object\",\n                \"definitions\": {},\n                \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n                \"additionalProperties\": false,\n                \"properties\": {\n                  \"messageString\": {\"type\": \"string\"},\n                  \"brokerProperties\": {\n                    \"type\": \"object\",\n                    \"properties\": {\n                        \"ContentType\": { \"type\" : \"string\"},\n                        \"CorrelationId\": {\"type\" : \"string\"},\n                        \"Label\": {\"type\" : \"string\"},\n                        \"PartitionKey\": {\"type\" : \"string\"},\n                        \"ReplyTo\": {\"type\" : \"string\"},\n                        \"SessionId\": {\"type\" : \"string\"},\n                        \"TimeToLive\": { \"type\" : \"integer\"},\n                        \"To\": {\"type\" : \"string\"},\n                        \"DeliveryCount\": {\"type\" : \"integer\"}\n                    }\n                  }\n                }\n            }\n        },\n        \"TopicSubscribe\":{\n          \"summary\": \"Topic Subscriber\",\n          \"action\": \"TopicSubscribe\",\n          \"output\": {\n                \"$id\": \"http://example.com/example.json\",\n                \"type\": \"object\",\n                \"definitions\": {},\n                \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n                \"additionalProperties\": false,\n                \"properties\": {\n                  \"messageString\": {\"type\": \"string\"},\n                  \"brokerProperties\": {\n                    \"type\": \"object\",\n                    \"properties\": {\n                        \"ContentType\": { \"type\" : \"string\"},\n                        \"CorrelationId\": {\"type\" : \"string\"},\n                        \"Label\": {\"type\" : \"string\"},\n                        \"PartitionKey\": {\"type\" : \"string\"},\n                        \"ReplyTo\": {\"type\" : \"string\"},\n                        \"SessionId\": {\"type\" : \"string\"},\n                        \"TimeToLive\": { \"type\" : \"integer\"},\n                        \"To\": {\"type\" : \"string\"},\n                        \"DeliveryCount\": {\"type\" : \"integer\"}\n                    }\n                  }\n                }\n            }\n        },\n        \"Queue\": {\n          \"post\": {\n            \"summary\": \"Publish Message to Queue\",\n            \"action\": \"Queue\",\n            \"schema\": {\n              \"parameters\": {\n                \"$id\": \"http://example.com/example.json\",\n                \"type\": \"object\",\n                \"definitions\": {},\n                \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n                \"additionalProperties\": false,\n                \"properties\": {\n                  \"queueName\": { \"type\": \"string\" },\n                  \"messageString\": {\"type\": \"string\"},\n                  \"brokerProperties\": {\"type\": \"object\", \"properties\": {\n                      \"ContentType\": { \"type\" : \"string\"},\n                      \"CorrelationId\": {\"type\" : \"string\"},\n                      \"Label\": {\"type\" : \"string\"},\n                      \"PartitionKey\": {\"type\" : \"string\"},\n                      \"ReplyTo\": {\"type\" : \"string\"},\n                      \"SessionId\": {\"type\" : \"string\"},\n                      \"TimeToLive\": { \"type\" : \"integer\", \"minimum\": 0},\n                      \"ScheduledEnqueueTimeUtc\": { \"type\" : \"string\"},\n                      \"To\": {\"type\" : \"string\"}\n                    }\n                  }\n                },\n                \"required\": [\n                  \"queueName\",\n                  \"messageString\"\n                ]\n              },\n              \"output\": {\n                \"$id\": \"http://example.com/example.json\",\n                \"type\": \"object\",\n                \"definitions\": {},\n                \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n                \"additionalProperties\": false,\n                \"properties\": {\n                  \"responseMessage\": {\"type\": \"string\" }\n                }\n              }\n            }\n          }\n        },\n        \"Topic\": {\n          \"post\": {\n            \"summary\": \"Publish Message to Topic\",\n            \"action\": \"Topic\",\n            \"schema\": {\n              \"parameters\": {\n                \"$id\": \"http://example.com/example.json\",\n                \"type\": \"object\",\n                \"definitions\": {},\n                \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n                \"additionalProperties\": false,\n                \"properties\": {\n                  \"topicName\": { \"type\": \"string\" },\n                  \"messageString\": {\"type\": \"string\"},\n                  \"brokerProperties\": {\"type\": \"object\", \"properties\": {\n                      \"ContentType\": { \"type\" : \"string\"},\n                      \"CorrelationId\": {\"type\" : \"string\"},\n                      \"Label\": {\"type\" : \"string\"},\n                      \"PartitionKey\": {\"type\" : \"string\"},\n                      \"ReplyTo\": {\"type\" : \"string\"},\n                      \"SessionId\": {\"type\" : \"string\"},\n                      \"TimeToLive\": { \"type\" : \"integer\", \"minimum\": 0},\n                      \"ScheduledEnqueueTimeUtc\": { \"type\" : \"string\"},\n                      \"To\": {\"type\" : \"string\"}\n                    }\n                  }\n                },\n                \"required\": [\n                  \"topicName\",\n                  \"messageString\"\n                ]\n              },\n              \"output\": {\n                \"$id\": \"http://example.com/example.json\",\n                \"type\": \"object\",\n                \"definitions\": {},\n                \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n                \"additionalProperties\": false,\n                \"properties\": {\n                  \"responseMessage\": {\"type\": \"string\" }\n          }\n              }\n            }\n          }\n        }\n      }\n    }"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1henNlcnZpY2VidXMvc3JjL2FwcC9BenVyZVNlcnZpY2VCdXMiLCJpZCI6IkF6dXJlU2VydmljZUJ1cyIsInZlcnNpb24iOiIxLjQuMyIsInRhZyI6IjEuNC4zLWIwMiIsIm5hbWUiOiJNaWNyb3NvZnQgQXp1cmUgU2VydmljZSBCdXMiLCJzM2xvY2F0aW9uIjoiVGliY28vQXp1cmVTZXJ2aWNlQnVzIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "AzureServicebusSample",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "AzureServicebusSample",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/publisher": {
+              "post": {
+                "summary": "Publisher",
+                "operationId": "post_publisher",
+                "parameters": [
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema2"
+                    }
+                  }
+                },
+                "description": "This flow describes how message are getting published through Queue and Topic entity using Azure Service Bus Publish Activity",
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "QueueMessage": {
+                  "type": "string"
+                },
+                "TopicMessage": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema2": {
+              "type": "object",
+              "properties": {
+                "Output": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.25.11"
+  }
+}
