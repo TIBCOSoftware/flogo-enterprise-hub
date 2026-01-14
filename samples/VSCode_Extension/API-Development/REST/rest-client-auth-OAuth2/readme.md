@@ -5,7 +5,7 @@
 
 This example demonstrate how we can create and use HTTP Client Authorization connection in flogo apps to enable authorization and authentication for the Google Tasks API using Auth type OAuth 2.0.
 
-The app basically creates new google task list and inserts a task into it. Then it updates the status of the task. Finally deletes the task list. All these operation will be done using restInvokeService activities which are configured using a HTTP Client Authorization connection named 'google-tasks'.
+The app basically creates new google task list and inserts a task into it. Then it updates the status of the task. Finally deletes the task list. All these operations will be done using restInvokeService activities which are configured using a HTTP Client Authorization connection named 'google-tasks'.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ In the connection, note that,
 * Grant type is set to 'Authorization Code' as supported by Google APIs.
 * There are additional Auth URL query parameters for google service as below
 'access_type=offline&prompt=consent'
-This is used to refresh your access token and to prompt user content screen.
+This is used to refresh your access token and to prompt user consent screen.
 * There is a scope added to Create, edit, organize, and delete all your tasks which is 'https://www.googleapis.com/auth/tasks' for Google Tasks API.
 * Client Authentication as 'Body' (Client id and secret will be sent in POST body request as supported by Google)
 
