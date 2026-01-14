@@ -11,8 +11,8 @@ The app basically creates new google task list and inserts a task into it. Then 
 
 * You must ensure that Google Task API is enabled in your google account.
 * You will need a connected web app in your google account under Credentials page from which you can get the Client Id and Client Secret. For more info, you can refer to google OAuth 2.0 usage documentation- https://developers.google.com/identity/protocols/oauth2/web-server
-* You also need to make sure that your connected web application has Tibco Cloud Integration redirect URL added and in case for Flogo Enterprise, it should have localhost redirect URL. The URL can be obtained from the flogo HTTP client authorization connection itself.
-
+* You also need to make sure that your connected web application has https://accounts.google.com/o/oauth2/v2/auth?response_type=code&scope=https://www.googleapis.com/auth/tasks&client_id=133839210164-vgps9hd6rbbmjg5oq7vt5il2g3cuit3j.apps.googleusercontent.com&redirect_uri=https://vscode.dev/redirect&audience=&access_type=offline&prompt=consent&state=vscode://tibco.flogo/contribution/auth%3Fstate%3DrequestId%253D%253D210ac5d9-b53e-4473-abe1-f1934a1dce7f%252CconnectionId%253D%253Dca7b4030-6b9b-11eb-a4f3-297aef167cae%26windowId%3D4 and that it includes a localhost redirect URL. This URL can be obtained from the Flogo HTTP client authorization connection itself.
+  
 ## Copy App 
 
 1. Copy the OAuth2_GoogleTask_Sample.flogo app into your workspace.
@@ -74,6 +74,4 @@ We recommend you to create connections which are capable to refresh the access t
 ![Sample Logs](/samples/VSCode_Extension/images/REST/OAuth2_GoogleTask_Sample/SampleLogs.png)
 
 ## Help
-Please visit our [TIBCO Cloud<sup>&trade;</sup> Integration documentation](https://integration.cloud.tibco.com/docs/) and TIBCO Flogo® Enterprise documentation on [docs.tibco.com](https://docs.tibco.com/) for additional information.
-
-
+Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/1.3.4/doc/html/Default.htm#connectors/gsheets/overview.htm?TocPath=Supported%2520Flogo%2520Connectors%257CGoogle%2520Sheets%257C_____0) for additional information.
