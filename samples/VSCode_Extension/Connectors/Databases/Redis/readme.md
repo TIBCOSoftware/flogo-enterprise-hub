@@ -3,14 +3,13 @@
 
 ## Description
 
-This example demonstrates how we can create a Redis SSL connection and perform various commands of the Redis Sets group.
+This example demonstrates how we can create a Redis connection and perform various commands of the Redis Sets group.
 The Flogo Redis app contains a single activity: Redis Command. In this activity, we have five groups (Hashes, Lists, Sets, SortedSets, and Strings) and their respective commands which perform operations on the Redis database. 
 
 ## Prerequisites
 
-1. TIBCO Flogo Connector for Redis must be installed.
-2. Make sure Redis database is up and running on AWS EC2 isntance/ local machine.
-3. You need to make sure that your public ip is whitelisted (If you are using database hosted on AWS EC2 instance).
+1. Make sure Redis database is up and running on AWS EC2 instance/ local machine.
+2. You need to make sure that your public ip is whitelisted (If you are using database hosted on AWS EC2 instance).
  
 ## Copy App
 
@@ -22,8 +21,6 @@ The Flogo Redis app contains a single activity: Redis Command. In this activity,
 
 ### The Connection
 
-When you copy the app you need to re-enter the password and establish the connection.
-
 ![The connection 1](/samples/VSCode_Extension/images/Redis/Connection1.png)
 
 ![The connection 2](/samples/VSCode_Extension/images/Redis/Connection2.png)
@@ -32,12 +29,11 @@ In the connection, note that,
 1. Host - In this field we give public DNS of EC2 instance on which database is hosted.
 2. Port - Port number on which redis server is running.
 3. Default Database Index - It is the default index at which database is stored.
-4. Secure Connection - When set to True it establish a secure connection. 
-Also it is mandatory to pass PEM encoded file of Client Certificate, Client Key for Client authentication and PEM encoded file of CA or Server Certifcate for server authentication.
+4. Secure Connection – If Secure connection is true, then it is mandatory to provide the PEM-encoded file of the client certificate and client key for client authentication, and the PEM-encoded file of the CA certificate or server certificate for server authentication.
 
 ### The Flow
 
-If you go inside the app, you can see in flow we have created multiple activities which indicate different commands of Redis Group Sets that perform some operations.Below is the description of each activity having different commands:
+If you go inside the app, you can see in flow we have created multiple activities which indicate different commands of Redis Group Sets that perform some operations. Below is the description of each activity having different commands:
 
 1. Activity having Command "SADD" - This is used to add single/multiple members to set stored at key.
 
@@ -49,7 +45,7 @@ If you go inside the app, you can see in flow we have created multiple activitie
 
 5. Activity having command "SREM" - Remove the specified member(s) from the set stored at key.
 
-6. Activity having command "SPOP" - Removes and returns one or more random members from the set  store at key.
+6. Activity having command "SPOP" - Removes and returns one or more random members from the set stored at key.
 
 7. Activity having command "SMOVE" - Move member from the set at source to the set at destination.
 
@@ -76,38 +72,19 @@ Once you are ready to run the application, use the Run option to start the app.
 
 ![Sample Response 5](/samples/VSCode_Extension/images/Redis/SampleResponse5.png)
 
-Once it reaches the Running state, go to the API tester and select the GET method.
-You will need to enter the URL/endpoint and then click Try Out to run the request.
+Once you run this app using the VS Code extension, open the Postman app and select the GET method. Enter the URL/endpoint and then click the Send button to run the request.
 
 ![Sample Response 6](/samples/VSCode_Extension/images/Redis/SampleResponse6.png)
 
-Another option, If you want to test the sample in the Flow tester then follow below instructions:
- 
-in flow, click on Run & Debug option -> Flogo App Execution -> Select your sample -> click on Flow ID
-
-![sample Response 7](/samples/VSCode_Extension/images/Redis/SampleResponse7.png)
-
-![Sample Response 8](/samples/VSCode_Extension/images/Redis/SampleResponse8.png)
-
-![Sample Response 9](/samples/VSCode_Extension/images/Redis/SampleResponse9.png)
-
 ## Outputs
 
-1. Flow Tester
+1. Output of Redis-Sets-App.flogo app:
 
 ![Output 1](/samples/VSCode_Extension/images/Redis/Output1.png)
 
-2. When hit endpoints
+2. Logs of Redis-Sets-App.flogo app:
 
 ![Output 2](/samples/VSCode_Extension/images/Redis/Output2.png)
-
-![Output 3](/samples/VSCode_Extension/images/Redis/Output3.png)
-
-![Output 4](/samples/VSCode_Extension/images/Redis/Output4.png)
-
-![Output 5](/samples/VSCode_Extension/images/Redis/Output5.png)
-
-![Output 6](/samples/VSCode_Extension/images/Redis/Output6.png)
 
 ## Help
 
