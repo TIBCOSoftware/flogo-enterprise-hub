@@ -11,7 +11,7 @@ The app basically creates new google task list and inserts a task into it. Then 
 
 * You must ensure that Google Task API is enabled in your google account.
 * You will need a connected web app in your google account under Credentials page from which you can get the Client Id and Client Secret. For more info, you can refer to google OAuth 2.0 usage documentation- https://developers.google.com/identity/protocols/oauth2/web-server
-* You also need to make sure that your connected web application has https://vscode.dev/redirect and that it includes a localhost redirect URL. This URL can be obtained from the Flogo HTTP client authorization connection itself.
+* Please make sure that your connected web application is configured with VS Code callback URL https://vscode.dev/redirect
 
 ## Copy App 
 
