@@ -88,4 +88,4 @@ Once you run this app using the VS Code extension, open the Postman app and sele
 
 ## Help
 
-Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/1.3.4/doc/html/Default.htm#connectors/redis/overview.htm?TocPath=Supported%2520Flogo%2520Connectors%257CRedis%257C_____0) for additional information.
+Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/redis/overview.htm?TocPath=Connectors%2520User%2520Guide%257CSupported%2520Flogo%2520Connectors%257CRedis%257C_____0) for additional information.
