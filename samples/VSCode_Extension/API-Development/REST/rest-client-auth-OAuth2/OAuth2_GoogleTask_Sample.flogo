@@ -214,6 +214,8 @@
                                 "requestType": "application/json",
                                 "Use certificate for verification": false,
                                 "mutualAuth": false,
+                                "Client Certificate": "",
+                                "Client Key": "",
                                 "Server Certificate": "",
                                 "disableSSLVerification": false,
                                 "disableKeepAlives": false,
@@ -547,7 +549,7 @@
                                 "mappings": {
                                     "data": {
                                         "mapping": {
-                                              "output": "=string.concat(\"Flow execution completed. Tasklist '\", $activity[POST_tasklist].responseBody.id, \"' has been deleted.\")"
+                                            "output": "=string.concat(\"Flow execution completed. Tasklist '\", $activity[POST_tasklist].responseBody.id, \"' has been deleted.\")"
                                         }
                                     }
                                 }
@@ -694,6 +696,14 @@
                                 "type": "json",
                                 "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
                             }
+                        },
+                        {
+                            "name": "requestURI",
+                            "type": "string"
+                        },
+                        {
+                            "name": "method",
+                            "type": "string"
                         }
                     ],
                     "output": [
@@ -711,7 +721,7 @@
                         }
                     ],
                     "fe_metadata": {
-                        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"queryParams\":{\"type\":\"object\",\"properties\":{\"tasklist_path\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}}}",
+                        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"queryParams\":{\"type\":\"object\",\"properties\":{\"tasklist_path\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
                         "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}},\"required\":[]}"
                     }
                 },
@@ -720,21 +730,6 @@
         }
     ],
     "properties": [
-        {
-            "name": "General.google-tasks.Client_Id",
-            "type": "string",
-            "value": "801118563277-j6daa8sl2kqco3ghbmmla3mtqeukfujk.apps.googleusercontent.com"
-        },
-        {
-            "name": "General.google-tasks.Client_Secret",
-            "type": "string",
-            "value": "SECRET:+sLHQcjTcPtPrbXdBB5UjCyyyVrGGZyMALvsvNENh6dscJ7NqgVRng=="
-        },
-        {
-            "name": "General.google-tasks.Token",
-            "type": "string",
-            "value": "eyJjbGllbnRfaWQiOiI4MDExMTg1NjMyNzctajZkYWE4c2wya3FjbzNnaGJtbWxhM210cWV1a2Z1amsuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhY2Nlc3NfdG9rZW4iOiJ5YTI5LkEwQWZINlNNQjFseDRVc0c2NEEySjhzNmhtTTFZaE5FZEVSXzVfZU9ha0xxZFd4aE9XX004MEJ3eWtQVjlhbkNTYThacjJadE9MaDdNUUkyRDkwMDBCRndBOURJN0lNVmw2WnFNUlJ1Q0FzM3FkRVFmYmlMNHRvZWt6RW11dVZINm9OMDdCcjFhRkVQOEVuVE1SbDBJdW11ZERYUFQxIiwiZXhwaXJlc19pbiI6MzU5OSwicmVmcmVzaF90b2tlbiI6IjEvLzBnc3lmTVdqQklmcDhDZ1lJQVJBQUdCQVNOd0YtTDlJcktZcUtrdGJMT3ZHT1pqR2dnc0diS0QtekNKbDEtaDBFMHhXbmZJQ2VTbFp3YWdDYlFOOUNRUUhPdlRoNGZPT280Sm8iLCJzY29wZSI6Imh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL2F1dGgvdGFza3MiLCJ0b2tlbl90eXBlIjoiQmVhcmVyIn0="
-        },
         {
             "name": "General.google-tasks.Auth_URL",
             "type": "string",
@@ -746,13 +741,29 @@
             "value": "https://oauth2.googleapis.com/token"
         },
         {
+            "name": "General.google-tasks.Client_Id",
+            "type": "string",
+            "value": "801118563277-j6daa8sl2kqco3ghbmmla3mtqeukfujk.apps.googleusercontent.com"
+        },
+        {
+            "name": "General.google-tasks.Client_Secret",
+            "type": "string",
+            "value": "SECRET:bTWTcCRXz5v+BeokziN9OVPGJ3CR2gi/g/UUYNc3R08vVrn21t8bWg=="
+        },
+        {
             "name": "General.google-tasks.Scope",
             "type": "string",
             "value": "https://www.googleapis.com/auth/tasks"
         },
         {
             "name": "General.google-tasks.Audience",
-            "type": "string"
+            "type": "string",
+            "value": ""
+        },
+        {
+            "name": "General.google-tasks.Token",
+            "type": "string",
+            "value": "eyJjbGllbnRfaWQiOiI4MDExMTg1NjMyNzctajZkYWE4c2wya3FjbzNnaGJtbWxhM210cWV1a2Z1amsuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhY2Nlc3NfdG9rZW4iOiJ5YTI5LkEwQWZINlNNQjFseDRVc0c2NEEySjhzNmhtTTFZaE5FZEVSXzVfZU9ha0xxZFd4aE9XX004MEJ3eWtQVjlhbkNTYThacjJadE9MaDdNUUkyRDkwMDBCRndBOURJN0lNVmw2WnFNUlJ1Q0FzM3FkRVFmYmlMNHRvZWt6RW11dVZINm9OMDdCcjFhRkVQOEVuVE1SbDBJdW11ZERYUFQxIiwiZXhwaXJlc19pbiI6MzU5OSwicmVmcmVzaF90b2tlbiI6IjEvLzBnc3lmTVdqQklmcDhDZ1lJQVJBQUdCQVNOd0YtTDlJcktZcUtrdGJMT3ZHT1pqR2dnc0diS0QtekNKbDEtaDBFMHhXbmZJQ2VTbFp3YWdDYlFOOUNRUUhPdlRoNGZPT280Sm8iLCJzY29wZSI6Imh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL2F1dGgvdGFza3MiLCJ0b2tlbl90eXBlIjoiQmVhcmVyIn0="
         }
     ],
     "connections": {
@@ -799,7 +810,7 @@
                     "info": {
                         "title": "OAuth2_GoogleTask_Sample",
                         "version": "1.0.0",
-                        "description": "Invoke google tasks API"
+                        "description": "Invoke ggogle tasks API"
                     },
                     "paths": {
                         "/tasks": {

@@ -11,8 +11,8 @@ The app basically creates new google task list and inserts a task into it. Then 
 
 * You must ensure that Google Task API is enabled in your google account.
 * You will need a connected web app in your google account under Credentials page from which you can get the Client Id and Client Secret. For more info, you can refer to google OAuth 2.0 usage documentation- https://developers.google.com/identity/protocols/oauth2/web-server
-* You also need to make sure that your connected web application has https://accounts.google.com/o/oauth2/v2/auth?response_type=code&scope=https://www.googleapis.com/auth/tasks&client_id=133839210164-vgps9hd6rbbmjg5oq7vt5il2g3cuit3j.apps.googleusercontent.com&redirect_uri=https://vscode.dev/redirect&audience=&access_type=offline&prompt=consent&state=vscode://tibco.flogo/contribution/auth%3Fstate%3DrequestId%253D%253D210ac5d9-b53e-4473-abe1-f1934a1dce7f%252CconnectionId%253D%253Dca7b4030-6b9b-11eb-a4f3-297aef167cae%26windowId%3D4 and that it includes a localhost redirect URL. This URL can be obtained from the Flogo HTTP client authorization connection itself.
-  
+* You also need to make sure that your connected web application has https://vscode.dev/redirect and that it includes a localhost redirect URL. This URL can be obtained from the Flogo HTTP client authorization connection itself.
+
 ## Copy App 
 
 1. Copy the OAuth2_GoogleTask_Sample.flogo app into your workspace.
@@ -22,7 +22,7 @@ The app basically creates new google task list and inserts a task into it. Then 
 ## Understanding the configuration
 
 ### The Connection
-When you copy this app, you need to configure the 'google-tasks' connection in Connections page. It has pre-filled values except Client Secret. You also need to change Client Id with yours.
+When you copy this app, you need to configure the Google Tasks connection on the Connections page. You also need to replace the Client ID with your own.
 
 ![The connection1](/samples/VSCode_Extension/images/REST/OAuth2_GoogleTask_Sample/Connection1.png)
 
@@ -32,7 +32,7 @@ In the connection, note that,
 * Authorization type is set to 'OAuth2'
 * Grant type is set to 'Authorization Code' as supported by Google APIs.
 * There are additional Auth URL query parameters for google service as below
-'access_type=offline&prompt=consent'
+'access_type=offline&prompt=consent' 
 This is used to refresh your access token and to prompt user consent screen.
 * There is a scope added to Create, edit, organize, and delete all your tasks which is 'https://www.googleapis.com/auth/tasks' for Google Tasks API.
 * Client Authentication as 'Body' (Client id and secret will be sent in POST body request as supported by Google)
@@ -51,7 +51,7 @@ If you enable the authentication, you will have to select one of the existing HT
 You can explore all activities in the flow. They are designed in a way to create task list, insert a task in the task list, update the title of this task using PATCH method and finally delete the task list. 
 
 ### Run the application
-Once you are ready to run the application, you can use run option and then run this app. Once it reaches to Running state, go to API tester and select GET method, You will have to pass the query parameter 'tasklist_path'. The value is 'users/@me/lists' and hit tryout the endpoints.
+Once you run this app using the VS Code extension, open the Postman app and select the GET method. Enter the URL/endpoint, then add the query parameter tasklist_path with the value users/@me/lists. Finally, click the Send button to run the request.
 
 If you want to test the sample in the Flow tester, either you can create a new launch configuration and give the above value for query parameter 'tasklist_path' in inputs or import the attached 'google_tasks_Launch_Configuration.flogo' with this sample and start testing.
 
@@ -74,4 +74,4 @@ We recommend you to create connections which are capable to refresh the access t
 ![Sample Logs](/samples/VSCode_Extension/images/REST/OAuth2_GoogleTask_Sample/SampleLogs.png)
 
 ## Help
-Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/1.3.4/doc/html/Default.htm#connectors/gsheets/overview.htm?TocPath=Supported%2520Flogo%2520Connectors%257CGoogle%2520Sheets%257C_____0) for additional information.
+Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#flogo-all-vsc/http-client-auth-connection.htm)for additional information.
