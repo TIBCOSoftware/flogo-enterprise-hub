@@ -1,4 +1,4 @@
-# Redis Sample on creating SSL connection and performing various commands of Group SETS
+# Redis Sample on creating connection and performing various commands of Group SETS
 
 
 ## Description
@@ -29,7 +29,9 @@ In the connection, note that,
 1. Host - In this field we give public DNS of EC2 instance on which database is hosted.
 2. Port - Port number on which redis server is running.
 3. Default Database Index - It is the default index at which database is stored.
-4. Secure Connection – If Secure connection is true, then it is mandatory to provide the PEM-encoded file of the client certificate and client key for client authentication, and the PEM-encoded file of the CA certificate or server certificate for server authentication.
+4. Username – Used to connect to the Redis database.
+5. Password – Password for authenticating the connection with the Redis server.
+6. Secure Connection – If Secure connection is true, then it is mandatory to provide the PEM-encoded file of the client certificate and client key for client authentication, and the PEM-encoded file of the CA certificate or server certificate for server authentication.
 
 ### The Flow
 
