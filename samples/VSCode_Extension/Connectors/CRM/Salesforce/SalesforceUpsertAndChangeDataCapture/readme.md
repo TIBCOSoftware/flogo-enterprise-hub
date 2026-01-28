@@ -1,21 +1,20 @@
 # Salesforce Upsert on Bulk records and Salesforce Trigger With Change Data Capture Example
 
-
+ 
 ## Description
 
-This example demonstrate how we can do the Upsert on multiple records in Salesforce using Salesforce Upsert activity in flogo. If the records in the collection have valid External Id Field Name values, the corresponding records in the database will be updated with the flow’s collection. If not, new records will be created and saved. In this example, records are fetched using query in MySQL database and those records are mapped to the Salesforce Upsert activity input and then those incoming records are either created or updated according to custom field called an external ID to determine whether to create a new record or update an existing record.
+This example demonstrates how we can do the Upsert on multiple records in Salesforce using Salesforce Upsert activity in flogo. If the records in the collection have valid External Id Field Name values, the corresponding records in the database will be updated with the flow’s collection. If not, new records will be created and saved. In this example, records are fetched using query in MySQL database and those records are mapped to the Salesforce Upsert activity input and then those incoming records are either created or updated according to custom field called an external ID to determine whether to create a new record or update an existing record.
 
-Then in the other flow, Salesforce trigger with the Subscriber type as Change data capture is getting executed once Upserted records in the Salesforce. Change Data Capture publishes change events in the flogo runtime logs, which represent changes to Salesforce records. In this example changes include creation of a new record and/or updates to an existing records. So in this case when SFUpsertWithMySQLDB flow executes, the salesforce trigger will start and provide respective output in the logs.
+Then in the other flow, Salesforce trigger with the Subscriber type as Change data capture is getting executed once records are upserted in Salesforce. Change Data Capture publishes change events in the flogo runtime logs, which represent changes to Salesforce records. In this example changes include creation of a new record and/or updates to an existing records. So in this case when SFUpsertWithMySQLDB flow executes, the salesforce trigger will start and provide respective output in the logs.
 
 
 ## Prerequisites 
  
-* Ensure that MySQL database must be install either on local computer or on AWS EC2 instance. 
+* Ensure that MySQL database must be installed either on local computer or on AWS EC2 instance. 
 * You need to make sure that your public ip is whitelisted (If you are using database hosted on AWS EC2 instance).
-* Ensure that Flogo Connector for Salesforce.com must be install.
 * Ensure that you have an active Salesforce.com account.
-* Ensure that you have set up the OAuth permissions in Salesforce.com before installing the connector which will be used in the Salesforce connection for Client ID and Client Secret parameters. To set up OAuth permissions, follow the steps mentioned in 'Creating a Salesforce.com Connection' topic in the TIBCO Flogo® Extension for Visual Studio Code documentation
-* Ensure that you have to add Change Data capture in Salesforce.com. To add Change Data capture in Salesforce.com, you can refer the Salesforce.com product documentation.
+* Ensure that you have set up the OAuth permissions in Salesforce.com which will be used in the Salesforce connection for Client ID and Client Secret parameters. To set up OAuth permissions, follow the steps mentioned in 'Creating a Salesforce.com Connection' topic in the TIBCO Flogo® Extension for Visual Studio Code documentation
+* Ensure that you have already added Change Data capture in Salesforce.com. To add Change Data capture in Salesforce.com, you can refer the Salesforce.com product documentation.
 
 ## Copy App 
 
@@ -40,7 +39,7 @@ Once you provide both the values then login to your salesforce account and allow
 
 ![The connectionAfterLogin](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/Connection2.png)
 
-### The Flow and InvokeRestService activity
+### The Flow and Salesforce Upsert activity
 If you open the app, you will see there are two flows in the SFSubscriberTypesWithUpsertActivity app. The flow 'SFUpsertWithMySQLDB' and second flow 'SFChangeDataCapture'.
 
 ![Main Flows](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/MainFlow.png)
@@ -58,7 +57,7 @@ Once you are ready to run the application, use the Run option to start the app.
 
 ![Run1](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/Run1.png)
 
-Once you run this app using the VS Code extension, open the Postman app and select the GET method. Enter the URL/endpoint and then click the Send button to run the request.
+Once you run this app using the VS Code extension, open the Postman app and select the GET method. Enter the URL/endpoint (http://localhost:9999/sfupsert/{Testupsert}). You will have to pass value for the path parameter 'upsert'. You can provide any string type value for 'upsert' parameter and then click the Send button to run the request.
 
 ![Run2](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/Run2.png)
 
@@ -77,4 +76,4 @@ Once you run this app using the VS Code extension, open the Postman app and sele
 ![Sample Logs 2](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/log2.png)
 
 ## Help
-Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/latest/doc/html/Default.htm#connectors/salesforce/salesforceupsert.htm?Highlight=upsert%20)for additional information.
+Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/latest/doc/html/Default.htm#connectors/salesforce/salesforceupsert.htm?Highlight=upsert%20) for additional information.
