@@ -4,7 +4,7 @@
 ## Description
 
 This example demonstrates how we can create and use Oracle Database Call stored procedure and CRUD activities.
-Oracle Database app bascially contain 5 activities. 
+Oracle Database app basically contain 5 activities. 
 
 The main purpose of these activities are:
 * To fetch data using Query activity.
