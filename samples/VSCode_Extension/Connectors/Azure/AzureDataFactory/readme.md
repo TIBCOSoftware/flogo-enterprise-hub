@@ -4,7 +4,7 @@
 ## Description
 Azure Data Factory (ADF) is a cloud-based data integration and orchestration service provided by Microsoft Azure. It allows you to create, schedule, and manage data pipelines that move and transform data from various sources to destinations, typically for analytics and big data scenarios.
 This examples shows how we can create and use the 'AzureDataFactory' activity.
-AzureDataFactory app bascially contain 2 activity (MicrosoftAzureDatafactoryPipeline,LogMessage)
+AzureDataFactory app basically contain 2 activity (MicrosoftAzureDatafactoryPipeline,LogMessage)
 
 The main purpose of the sample is:
 * To copy the data using 'MicrosoftAzureDatafactoryPipeline'.
