@@ -57,23 +57,23 @@ Once you are ready to run the application, use the Run option to start the app.
 
 ![Run1](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/Run1.png)
 
-Once you run this app using the VS Code extension, open the Postman app and select the GET method. Enter the URL/endpoint (http://localhost:9999/sfupsert/{Testupsert}). You will have to pass value for the path parameter 'upsert'. You can provide any string type value for 'upsert' parameter and then click the Send button to run the request.
+Once you run this app using the VS Code extension, open the Postman app and select the GET method. Enter the URL/endpoint (http://localhost:9999/sfupsert/testupsert). You will have to pass value for the path parameter 'upsert'. You can provide any string type value for 'upsert' parameter and then click the Send button to run the request.
 
-![Run2](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/Run2.png)
+![Run2](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/Run2.png)  
 
 ## Outputs
 
 1. Sample Response when hit the endpoints, first is the output when record is created and second is when record updated. 
 
-![Sample ResponseForRecordsCreated](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/SampleResponseForRecordsCreated.png)
+![Sample ResponseForRecordsCreated](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/SampleRecordsCreated.png) 
 
-![Sample ResponseForRecordsUpdated](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/SampleResponseForRecordsUpdated.png)
+![Sample ResponseForRecordsUpdated](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/SmpleRecordsUpdated.png) 
 
-2. Sample Logs
+2. Sample Logss
 
-![Sample Logs 1](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/log1.png)
+![Sample Logs 1](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/Log1.png) 
 
-![Sample Logs 2](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/log2.png)
+![Sample Logs 2](/samples/VSCode_Extension/images/CRM/Salesforce/SFSubscriberTypesWithUpsertActivity/Log2.png) 
 
 ## Help
 Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/pub/flogo-vscode/latest/doc/html/Default.htm#connectors/salesforce/salesforceupsert.htm?Highlight=upsert%20) for additional information.
