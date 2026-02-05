@@ -1,4 +1,4 @@
-# Salesforce activities for bulk operations Example
+# Salesforce activities sample for bulk operations
 
 
 ## Description
@@ -39,7 +39,7 @@ If you open the app, you will see that there are two flows in the Salesforce_Bul
 
 ![The Flows](/samples/VSCode_Extension/images/CRM/Salesforce/Salesforce_BulkAPISample/Flow.png)
 
-The flow MainFlowWithSFCreateCheckStatusJob basically creates a new job for a bulk query using the SalesforceCreateJob activity to efficiently query large data sets for the Account object in Salesforce. It then checks the status of the Job ID created by the preceding SalesforceCreateJob activity using the SalesforceCheckJobStatus activity.To retrieve the results of the bulk query job, the SalesforceGetQueryJobResult activity must be used inside a subflow, and the subflow must be placed inside a loop.To start this flow, use a REST trigger with the GET method and the path parameter bulk, in which you can pass any string-type value.
+The flow MainFlowWithSFCreateCheckStatusJob basically creates a new job for a bulk query using the SalesforceCreateJob activity to efficiently query large data sets for the Account object in Salesforce. It then checks the status of the Job ID created by the preceding SalesforceCreateJob activity using the SalesforceCheckJobStatus activity. To retrieve the results of the bulk query job, the SalesforceGetQueryJobResult activity must be used inside a subflow, and the subflow must be placed inside a loop. To start this flow, use a REST trigger with the GET method and the path parameter bulk, in which you can pass any string-type value.
 
 ![The Main Flow](/samples/VSCode_Extension/images/CRM/Salesforce/Salesforce_BulkAPISample/MainFlow.png)
 
