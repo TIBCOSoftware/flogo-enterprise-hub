@@ -42,7 +42,7 @@ Try out the Flogo application samples that help you build and deploy Flogo® app
            - [AzureDataFactory](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Azure/AzureDataFactory) :  This sample demonstrates how to create and use the AzureDataFactory activity in Azure Data Factory (ADF), a cloud-based data integration and orchestration service.
         - **CRM**
             - **Salesforce**
-                - [Salesforce Bulk](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/CRM/Salesforce/Salesforce_BulkAPISample) :  The sample demonstrates Salesforce bulk query operation and check the status of the Job ID created earlier in the flow.
+                - [Salesforce Bulk](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/CRM/Salesforce/Salesforce_BulkAPISample) :  The sample demonstrates Salesforce bulk query operation and checks the status of the Job ID created earlier in the flow.
                 - [Salesforce Upsert and Change Data Capture](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/CRM/Salesforce/SalesforceUpsertAndChangeDataCapture) : Sample for Salesforce Upsert on bulk records and Salesforce Trigger with Change Data Capture feature.
        - **Database Connectors**
             - [Oracle Database CRUD](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDB_clusterDeployment) : This sample demonstrates how to create and use Oracle Database Call stored procedure and CRUD activities.
