@@ -1,0 +1,274 @@
+# ============================================================================================
+# Combined Builder Stages - IBM MQ Connector
+# ============================================================================================
+# This Dockerfile contains all builder variants for IBM MQ-enabled Flogo applications.
+# Use the BUILDER_BASE build argument to select your builder environment.
+#
+# Available builder options:
+#   - debian (default)    : Debian Bookworm with Go 1.25.3
+#   - centos             : CentOS Stream 9 with Go 1.25.3
+#   - fedora             : Fedora latest with Go 1.25.3
+#   - amazonlinux2023    : Amazon Linux 2023 with Go 1.25.3
+#   - rhel-ubi           : Red Hat UBI 9 with Go 1.25.3
+#
+# Build examples:
+#   docker build --target builder-debian -t flogo-ibmmq-builder:debian -f Dockerfile.all-builders .
+#   docker build --target builder-centos -t flogo-ibmmq-builder:centos -f Dockerfile.all-builders .
+#
+# Required files in build context:
+#   - flogobuild
+#   - flogo-vscode-linux-x64-2.26.0-1788.vsix
+#   - ibm-mq.flogo
+#   - ibm-mq.tar.gz (IBM MQ client library)
+# ============================================================================================
+
+# ============================================================================================
+# Builder Stage: Debian Bookworm
+# ============================================================================================
+FROM golang:1.25.3-bookworm AS builder-debian
+WORKDIR /build
+
+# Install necessary packages for building
+RUN apt-get update && \
+    apt-get install -y \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    g++ \
+    make \
+    git \
+    curl \
+    unzip \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV GO_VERSION=1.25.3
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version    
+
+COPY flogobuild .
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+RUN chmod +x flogobuild
+COPY ibm-mq.tar.gz /tmp/
+RUN mkdir -p /opt/mqm && \
+    tar -xzf /tmp/ibm-mq.tar.gz -C /opt/mqm && \
+    rm /tmp/ibm-mq.tar.gz
+
+ENV MQ_INSTALLATION_PATH=/opt/mqm
+ENV LD_LIBRARY_PATH=/opt/mqm/lib64:/opt/mqm/lib:$LD_LIBRARY_PATH
+ENV PATH=/opt/mqm/bin:$PATH
+ENV IBM_MQ_HOME=/opt/mqm
+
+COPY ibm-mq.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f ibm-mq.flogo
+
+# ============================================================================================
+# Builder Stage: CentOS Stream 9
+# ============================================================================================
+FROM quay.io/centos/centos:stream9 AS builder-centos
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    git \
+    && dnf clean all
+
+# Download and install Go 1.25.3 manually
+RUN wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz && \
+    rm go1.25.3.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.3
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version    
+
+COPY flogobuild .
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+RUN chmod +x flogobuild
+COPY ibm-mq.tar.gz /tmp/
+RUN mkdir -p /opt/mqm && \
+    tar -xzf /tmp/ibm-mq.tar.gz -C /opt/mqm && \
+    rm /tmp/ibm-mq.tar.gz
+
+ENV MQ_INSTALLATION_PATH=/opt/mqm
+ENV LD_LIBRARY_PATH=/opt/mqm/lib64:/opt/mqm/lib:$LD_LIBRARY_PATH
+ENV PATH=/opt/mqm/bin:$PATH
+ENV IBM_MQ_HOME=/opt/mqm
+
+COPY ibm-mq.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f ibm-mq.flogo
+
+# ============================================================================================
+# Builder Stage: Fedora Latest
+# ============================================================================================
+FROM fedora:latest AS builder-fedora
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    git \
+    && dnf clean all
+
+# Download and install Go 1.25.3 manually
+RUN wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz && \
+    rm go1.25.3.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.3
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version    
+
+COPY flogobuild .
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+RUN chmod +x flogobuild
+COPY ibm-mq.tar.gz /tmp/
+RUN mkdir -p /opt/mqm && \
+    tar -xzf /tmp/ibm-mq.tar.gz -C /opt/mqm && \
+    rm /tmp/ibm-mq.tar.gz
+
+ENV MQ_INSTALLATION_PATH=/opt/mqm
+ENV LD_LIBRARY_PATH=/opt/mqm/lib64:/opt/mqm/lib:$LD_LIBRARY_PATH
+ENV PATH=/opt/mqm/bin:$PATH
+ENV IBM_MQ_HOME=/opt/mqm
+
+COPY ibm-mq.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f ibm-mq.flogo
+
+# ============================================================================================
+# Builder Stage: Amazon Linux 2023
+# ============================================================================================
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS builder-amazonlinux2023
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    git \
+    && dnf clean all
+
+# Download and install Go 1.25.3 manually
+RUN wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz && \
+    rm go1.25.3.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.3
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version    
+
+COPY flogobuild .
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+RUN chmod +x flogobuild
+COPY ibm-mq.tar.gz /tmp/
+RUN mkdir -p /opt/mqm && \
+    tar -xzf /tmp/ibm-mq.tar.gz -C /opt/mqm && \
+    rm /tmp/ibm-mq.tar.gz
+
+ENV MQ_INSTALLATION_PATH=/opt/mqm
+ENV LD_LIBRARY_PATH=/opt/mqm/lib64:/opt/mqm/lib:$LD_LIBRARY_PATH
+ENV PATH=/opt/mqm/bin:$PATH
+ENV IBM_MQ_HOME=/opt/mqm
+
+COPY ibm-mq.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f ibm-mq.flogo
+
+# ============================================================================================
+# Builder Stage: Red Hat UBI 9
+# ============================================================================================
+FROM registry.access.redhat.com/ubi9/ubi:latest AS builder-rhel-ubi
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    git \
+    && dnf clean all
+
+# Download and install Go 1.25.3 manually
+RUN wget https://go.dev/dl/go1.25.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.3.linux-amd64.tar.gz && \
+    rm go1.25.3.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.3
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version    
+
+COPY flogobuild .
+COPY flogo-vscode-linux-x64-2.26.0-1788.vsix .
+RUN chmod +x flogobuild
+COPY ibm-mq.tar.gz /tmp/
+RUN mkdir -p /opt/mqm && \
+    tar -xzf /tmp/ibm-mq.tar.gz -C /opt/mqm && \
+    rm /tmp/ibm-mq.tar.gz
+
+ENV MQ_INSTALLATION_PATH=/opt/mqm
+ENV LD_LIBRARY_PATH=/opt/mqm/lib64:/opt/mqm/lib:$LD_LIBRARY_PATH
+ENV PATH=/opt/mqm/bin:$PATH
+ENV IBM_MQ_HOME=/opt/mqm
+
+COPY ibm-mq.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-2.26.0-1788.vsix
+RUN ./flogobuild build-exe -c license -f ibm-mq.flogo
+
+# ============================================================================================
+# Default Builder Selection
+# ============================================================================================
+ARG BUILDER_BASE=debian
+FROM builder-${BUILDER_BASE} AS builder

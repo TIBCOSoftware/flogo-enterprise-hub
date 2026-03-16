@@ -1,0 +1,850 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "Customer360MCPServerTls",
+  "description": "FLOGO MCP Server app to expose customer, products, sales data as tools",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Flogo MCP server for Agentic AI",
+      "settings": {
+        "serverName": "CustomerMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"MCPServer.PORT\"]",
+        "serverEndpointPath": "/mcp",
+        "enableTLS": true,
+        "serverCertificate": "=$property[\"MCPServer.SERVER_CERT\"]",
+        "serverPrivateKey": "=$property[\"MCPServer.SERVER_PRIVATE_KEY\"]",
+        "authType": "=$property[\"MCPServer.AUTH_JWT_Token\"]",
+        "authToken": "=$property[\"MCPServer.SECRET\"]"
+      },
+      "id": "MCPServer",
+      "handlers": [
+        {
+          "description": "Get Customers Data",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetCustomers",
+            "handlerDescription": "Get a list of Customers"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Customers_Tool"
+            },
+            "input": {
+              "arguments": "=$.arguments",
+              "httpHeaders": "=$.httpHeaders",
+              "tokenInfo": "=$.tokenInfo"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              },
+              "tokenInfo": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": [\r\n        {\r\n          \"type\": \"string\"\r\n        }\r\n      ]\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": [\r\n        {\r\n          \"type\": \"string\"\r\n        }\r\n      ]\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    }\r\n  }\r\n}"
+              }
+            }
+          },
+          "name": "Get_Customers_Tool"
+        },
+        {
+          "description": "Get Products Data",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetProducts",
+            "handlerDescription": "Get List of Products"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Products_Tool"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              },
+              "tokenInfo": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": [\r\n        {\r\n          \"type\": \"string\"\r\n        }\r\n      ]\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": [\r\n        {\r\n          \"type\": \"string\"\r\n        }\r\n      ]\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    }\r\n  }\r\n}"
+              }
+            }
+          },
+          "name": "Get_Products_Tool"
+        },
+        {
+          "description": "Get Sales Data",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetSales",
+            "handlerDescription": "Get a list of Sales"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Sales_Tool"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              },
+              "tokenInfo": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": [\r\n        {\r\n          \"type\": \"string\"\r\n        }\r\n      ]\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": [\r\n        {\r\n          \"type\": \"string\"\r\n        }\r\n      ]\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    }\r\n  }\r\n}"
+              }
+            }
+          },
+          "name": "Get_Sales_Tool"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:Get_Customers_Tool",
+      "data": {
+        "name": "Get_Customers_Tool",
+        "description": "Get Customers Data",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "LogMessage to InvokeRESTService"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogResponse",
+            "type": "label",
+            "label": "InvokeRESTService to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogResponse",
+            "to": "Return",
+            "type": "label",
+            "label": "LogAPIResponse to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"CustInvokeRESTServiceURL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://CustomersSchema",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResponse",
+            "name": "LogResponse",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"API Response: \", coerce.toString($activity[InvokeRESTService].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[InvokeRESTService].responseBody.customer)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIkludm9rZVJFU1RTZXJ2aWNlIjp7IngiOjQyNiwieSI6ODl9LCJMb2dSZXNwb25zZSI6eyJ4Ijo2MjcsInkiOjkwfSwiUmV0dXJuIjp7IngiOjgzMywieSI6OTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            },
+            {
+              "name": "tokenInfo",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"scopes\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]},\"expiration\":{\"type\":\"number\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"},\"tokenInfo\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"scopes\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]},\"expiration\":{\"type\":\"number\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Get_Products_Tool",
+      "data": {
+        "name": "Get_Products_Tool",
+        "description": "Get Products Data",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "LogMessage to InvokeRESTService"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogResponse",
+            "type": "label",
+            "label": "InvokeRESTService to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogResponse",
+            "to": "Return",
+            "type": "label",
+            "label": "LogAPIResponse to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"ProdInvokeRESTServiceURL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://ProductsSchema",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResponse",
+            "name": "LogResponse",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"API Response: \", coerce.toString($activity[InvokeRESTService].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[InvokeRESTService].responseBody.product)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIkludm9rZVJFU1RTZXJ2aWNlIjp7IngiOjQyNiwieSI6ODl9LCJMb2dSZXNwb25zZSI6eyJ4Ijo2MjcsInkiOjkwfSwiUmV0dXJuIjp7IngiOjgzMywieSI6OTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "any"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"any\",\"required\":false},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Get_Sales_Tool",
+      "data": {
+        "name": "Get_Sales_Tool",
+        "description": "Get Sales Data",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "LogMessage to InvokeRESTService"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogResponse",
+            "type": "label",
+            "label": "InvokeRESTService to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogResponse",
+            "to": "Return",
+            "type": "label",
+            "label": "LogAPIResponse to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"SaleInvokeRESTServiceURL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://SalesSchema",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResponse",
+            "name": "LogResponse",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"API Response: \", coerce.toString($activity[InvokeRESTService].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[InvokeRESTService].responseBody.sale)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIkludm9rZVJFU1RTZXJ2aWNlIjp7IngiOjQyNiwieSI6ODl9LCJMb2dSZXNwb25zZSI6eyJ4Ijo2MjcsInkiOjkwfSwiUmV0dXJuIjp7IngiOjgzMywieSI6OTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "any"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"any\",\"required\":false},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "MCPServer.PORT",
+      "type": "string",
+      "value": "9091"
+    },
+    {
+      "name": "CustInvokeRESTServiceURL",
+      "type": "string",
+      "value": "http://localhost:18080/customers"
+    },
+    {
+      "name": "ProdInvokeRESTServiceURL",
+      "type": "string",
+      "value": "http://localhost:18080/products"
+    },
+    {
+      "name": "SaleInvokeRESTServiceURL",
+      "type": "string",
+      "value": "http://localhost:18080/sales"
+    },
+    {
+      "name": "MCPServer.SERVER_CERT",
+      "type": "string",
+      "value": "your_server_certificate"
+    },
+    {
+      "name": "MCPServer.SERVER_PRIVATE_KEY",
+      "type": "string",
+      "value": "your_server_private_key"
+    },
+    {
+      "name": "MCPServer.AUTH_JWT_Token",
+      "type": "string",
+      "value": "JWT Token"
+    },
+    {
+      "name": "MCPServer.SECRET",
+      "type": "string",
+      "value": "SECRET:iKB7jK5+x72UbX9NZHZf4D4ReNbaGw=="
+    }
+  ],
+  "schemas": {
+    "CustomersSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"customer\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"customer_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"customer_name\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_age\": {\n                        \"type\": \"number\"\n                    },\n                    \"customer_street\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_city\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_state\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_country\": {\n                        \"type\": \"string\"\n                    }\n                }\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"customer\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"customer_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"customer_name\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_age\": {\n                        \"type\": \"number\"\n                    },\n                    \"customer_street\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_city\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_state\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_country\": {\n                        \"type\": \"string\"\n                    }\n                }\n            }\n        }\n    }\n}"
+    },
+    "CustomerSchema": {
+      "type": "json",
+      "value": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"customer_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_age\": {\r\n            \"type\": \"number\"\r\n        },\r\n        \"customer_street\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_city\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_state\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_country\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n",
+      "fe_metadata": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"customer_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_age\": {\r\n            \"type\": \"number\"\r\n        },\r\n        \"customer_street\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_city\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_state\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_country\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n"
+    },
+    "MCPServerCustomerIDOnlySchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"customer_id\": {\n            \"type\": \"number\"\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"customer_id\": {\n            \"type\": \"number\"\n        }\n    }\n}"
+    },
+    "MCPServerCustomerSchema": {
+      "type": "json",
+      "value": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"customer_id\": {\r\n            \"type\": \"number\"\r\n        },        \r\n        \"customer_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_age\": {\r\n            \"type\": \"number\"\r\n        },\r\n        \"customer_street\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_city\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_state\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_country\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n",
+      "fe_metadata": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"customer_id\": {\r\n            \"type\": \"number\"\r\n        },        \r\n        \"customer_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_age\": {\r\n            \"type\": \"number\"\r\n        },\r\n        \"customer_street\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_city\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_state\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_country\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n"
+    },
+    "ProductsSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"product\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"product_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"product_name\": {\n                        \"type\": \"string\"\n                    },\n                    \"product_cost\": {\n                        \"type\": \"string\"\n                    },\n                    \"product_msrp\": {\n                        \"type\": \"string\"\n                    },\n                    \"product_quantity\": {\n                        \"type\": \"string\"\n                    }\n                }\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"product\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"product_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"product_name\": {\n                        \"type\": \"string\"\n                    },\n                    \"product_cost\": {\n                        \"type\": \"string\"\n                    },\n                    \"product_msrp\": {\n                        \"type\": \"string\"\n                    },\n                    \"product_quantity\": {\n                        \"type\": \"string\"\n                    }\n                }\n            }\n        }\n    }\n}"
+    },
+    "ProductSchema": {
+      "type": "json",
+      "value": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"product_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_cost\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_msrp\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_quantity\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n",
+      "fe_metadata": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"product_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_cost\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_msrp\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_quantity\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n"
+    },
+    "MCPServerProductIDOnlySchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"product_id\": {\n            \"type\": \"number\"\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"product_id\": {\n            \"type\": \"number\"\n        }\n    }\n}"
+    },
+    "MCPServerProductSchema": {
+      "type": "json",
+      "value": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"product_id\": {\r\n            \"type\": \"number\"\r\n        },        \r\n        \"product_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_cost\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_msrp\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_quantity\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n",
+      "fe_metadata": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"product_id\": {\r\n            \"type\": \"number\"\r\n        },        \r\n        \"product_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_cost\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_msrp\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_quantity\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n"
+    },
+    "SalesSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"sale\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"sale_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"sale_date\": {\n                        \"type\": \"string\"\n                    },\n                    \"sale_price\": {\n                        \"type\": \"string\"\n                    },\n                    \"product_name\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_name\": {\n                        \"type\": \"string\"\n                    }\n                }\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"sale\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"sale_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"sale_date\": {\n                        \"type\": \"string\"\n                    },\n                    \"sale_price\": {\n                        \"type\": \"string\"\n                    },\n                    \"product_name\": {\n                        \"type\": \"string\"\n                    },\n                    \"customer_name\": {\n                        \"type\": \"string\"\n                    }\n                }\n            }\n        }\n    }\n}"
+    },
+    "SaleSchema": {
+      "type": "json",
+      "value": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"sale_date\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"sale_price\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_name\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n",
+      "fe_metadata": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"sale_date\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"sale_price\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_name\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n"
+    },
+    "MCPServerSaleIDOnlySchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"sale_id\": {\n            \"type\": \"number\"\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"sale_id\": {\n            \"type\": \"number\"\n        }\n    }\n}"
+    },
+    "MCPServerSaleSchema": {
+      "type": "json",
+      "value": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"sale_id\": {\r\n            \"type\": \"number\"\r\n        },        \r\n        \"sale_date\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"sale_price\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_name\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n",
+      "fe_metadata": "{\r\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"sale_id\": {\r\n            \"type\": \"number\"\r\n        },        \r\n        \"sale_date\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"sale_price\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"product_name\": {\r\n            \"type\": \"string\"\r\n        },\r\n        \"customer_name\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n"
+    }
+  },
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMCIsInRhZyI6IjEuMC4wLWIxMSIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9091",
+        "title": "MCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.0"
+  }
+}

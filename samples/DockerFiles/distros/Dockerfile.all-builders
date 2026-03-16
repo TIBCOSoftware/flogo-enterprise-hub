@@ -1,0 +1,217 @@
+# ============================================================================================
+# Combined Builder Stages - All Distros
+# ============================================================================================
+# This Dockerfile contains all builder variants for different Linux distributions.
+# Use the BUILDER_BASE build argument to select your builder environment.
+#
+# Available builder options:
+#   - debian (default)    : Debian Bookworm with Go 1.25.1
+#   - centos             : CentOS Stream 9 with Go 1.25.1
+#   - fedora             : Fedora latest with Go 1.25.1
+#   - amazonlinux2023    : Amazon Linux 2023 with Go 1.25.1
+#   - rhel-ubi           : Red Hat UBI 9 with Go 1.25.1
+#
+# Build examples:
+#   docker build --target builder-debian -t flogo-builder:debian -f Dockerfile.all-builders .
+#   docker build --target builder-centos -t flogo-builder:centos -f Dockerfile.all-builders .
+#   docker build --target builder-fedora -t flogo-builder:fedora -f Dockerfile.all-builders .
+# ============================================================================================
+
+# ============================================================================================
+# Builder Stage: Debian Bookworm
+# ============================================================================================
+FROM golang:1.25.1-bookworm AS builder-debian
+WORKDIR /build
+
+# Install necessary packages for building
+RUN apt-get update && \
+    apt-get install -y \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    g++ \
+    make \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV GO_VERSION=1.25.1
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-1.3.5-1603.vsix .
+COPY rest.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-1.3.5-1603.vsix
+RUN ./flogobuild build-exe -c license -f rest.flogo
+RUN chmod +x rest
+
+# ============================================================================================
+# Builder Stage: CentOS Stream 9
+# ============================================================================================
+FROM quay.io/centos/centos:stream9 AS builder-centos
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    && dnf clean all
+
+# Download and install Go 1.25.1 manually
+RUN wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.1.linux-amd64.tar.gz && \
+    rm go1.25.1.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.1
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-1.3.5-1603.vsix .
+COPY rest.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-1.3.5-1603.vsix
+RUN ./flogobuild build-exe -c license -f rest.flogo
+RUN chmod +x rest
+
+# ============================================================================================
+# Builder Stage: Fedora Latest
+# ============================================================================================
+FROM fedora:latest AS builder-fedora
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    && dnf clean all
+
+# Download and install Go 1.25.1 manually
+RUN wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.1.linux-amd64.tar.gz && \
+    rm go1.25.1.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.1
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-1.3.5-1603.vsix .
+COPY rest.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-1.3.5-1603.vsix
+RUN ./flogobuild build-exe -c license -f rest.flogo
+RUN chmod +x rest
+
+# ============================================================================================
+# Builder Stage: Amazon Linux 2023
+# ============================================================================================
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS builder-amazonlinux2023
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    && dnf clean all
+
+# Download and install Go 1.25.1 manually
+RUN wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.1.linux-amd64.tar.gz && \
+    rm go1.25.1.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.1
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-1.3.5-1603.vsix .
+COPY rest.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-1.3.5-1603.vsix
+RUN ./flogobuild build-exe -c license -f rest.flogo
+RUN chmod +x rest
+
+# ============================================================================================
+# Builder Stage: Red Hat UBI 9
+# ============================================================================================
+FROM registry.access.redhat.com/ubi9/ubi:latest AS builder-rhel-ubi
+WORKDIR /build
+
+# Install necessary packages for building
+RUN dnf update -y && \
+    dnf install -y --allowerasing \
+    wget \
+    tar \
+    gzip \
+    gcc \
+    gcc-c++ \
+    make \
+    && dnf clean all
+
+# Download and install Go 1.25.1 manually
+RUN wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.1.linux-amd64.tar.gz && \
+    rm go1.25.1.linux-amd64.tar.gz
+
+ENV GO_VERSION=1.25.1
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+ENV CGO_ENABLED=1
+
+# Verify Go installation
+RUN go version
+
+COPY flogobuild .
+RUN chmod +x flogobuild
+COPY flogo-vscode-linux-x64-1.3.5-1603.vsix .
+COPY rest.flogo .
+
+RUN ./flogobuild create-context -n license -v flogo-vscode-linux-x64-1.3.5-1603.vsix
+RUN ./flogobuild build-exe -c license -f rest.flogo
+RUN chmod +x rest
+
+# ============================================================================================
+# Default Builder Selection (can be overridden with --target flag)
+# ============================================================================================
+ARG BUILDER_BASE=debian
+FROM builder-${BUILDER_BASE} AS builder
