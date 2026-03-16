@@ -1,4 +1,4 @@
-module github.com/flogo-enterprise-hub/extensions/openpgp
+module github.com/mmussett/flogo-enterprise-hub/extensions/openpgp
 
 go 1.26.1
 
