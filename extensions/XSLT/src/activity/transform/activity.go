@@ -3,7 +3,7 @@ package transform
 import (
 	"fmt"
 
-	"github.com/chrisdutz/gosaxon/library/pkg/gosaxon"
+	"github.com/wamuir/go-xslt"
 
 	"github.com/project-flogo/core/activity"
 	"github.com/project-flogo/core/data/metadata"
@@ -59,34 +59,52 @@ func (a *Activity) Cleanup() error {
 // Eval implements api.Activity.Eval - Logs the Message
 func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 
-	activityLog.Debugf("Executing Activity [%s] ", ctx.Name())
+	activityLog.Debug("Executing XSLT Transform activity")
 
 	input := &Input{}
 	err = ctx.GetInputObject(input)
 	if err != nil {
 		return false, fmt.Errorf("error while getting input object: %s", err.Error())
 	}
-	ctx.Logger().Debugf("xmldocument: %v", input.Xmldocument)
-	ctx.Logger().Debugf("xsltstylesheet: %v", input.Xsltstylesheet)
 
-	result, err := gosaxon.Transform([]byte(input.Xmldocument), []byte(input.Xsltstylesheet))
+	if len(input.Xmldocument) == 0 {
+		return false, fmt.Errorf("no XML Document provided")
+	}
 
+	if len(input.Xsltstylesheet) == 0 {
+		return false, fmt.Errorf("no XSLT Stylesheet provided")
+	}
+
+	activityLog.Debugf("xmldocument: %v", input.Xmldocument)
+	activityLog.Debugf("xsltstylesheet: %v", input.Xsltstylesheet)
+
+	ss, err := xslt.NewStylesheet([]byte(input.Xsltstylesheet))
 	if err != nil {
-		return false, fmt.Errorf("error while parsing xml: %s", err.Error())
+		ctx.Logger().Error(err)
+		return false, activity.NewActivityError("Failed to read Xslt", "XSLT-001", activity.ConfigError, nil)
+	}
+
+	defer ss.Close()
+
+	res, err := ss.Transform([]byte(input.Xmldocument))
+	if err != nil {
+		ctx.Logger().Error(err)
+		return false, activity.NewActivityError("Failed to read Xml", "XSLT-002", activity.ConfigError, nil)
 	}
 
 	output := &Output{}
 
-	output.Outputstring = string(result)
+	output.Outputstring = string(res)
 
-	ctx.Logger().Debugf("outputString: %v", output.Outputstring)
+	activityLog.Debugf("outputString: %v", output.Outputstring)
 
 	err = ctx.SetOutputObject(output)
 	if err != nil {
-		return false, fmt.Errorf("error while setting output object: %s", err.Error())
+		ctx.Logger().Error(err)
+		return false, activity.NewActivityError("error while setting output object", "XSLT-005", activity.ConfigError, nil)
 	}
 
-	activityLog.Infof("Completed Activity [%s] ", ctx.Name())
+	activityLog.Info("XSLT Transform activity complete")
 
 	return true, nil
 }

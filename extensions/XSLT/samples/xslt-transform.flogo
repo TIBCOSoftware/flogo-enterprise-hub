@@ -3,7 +3,8 @@
     "github.com/project-flogo/flow",
     "github.com/project-flogo/contrib/activity/noop",
     "github.com/mmussett/flogo-enterprise-hub/extensions/XSLT/src/activity/transform",
-    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook"
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/trigger/timer"
   ],
   "name": "xslt-transform",
   "description": "",
@@ -13,14 +14,23 @@
   "tags": [],
   "triggers": [
     {
-      "ref": "#startuphook",
-      "name": "tibco-appstartup",
-      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "ref": "#timer",
+      "name": "tibco-wi-timer",
+      "description": "Simple Timer trigger",
       "settings": {},
-      "id": "AppStartupTrigger",
+      "id": "TimerTrigger",
       "handlers": [
         {
           "description": "",
+          "settings": {
+            "Scheduler Options": "Timer",
+            "Start Time": "",
+            "Repeating": true,
+            "Delayed Start": false,
+            "Time Interval": 10,
+            "Interval Unit": "Second",
+            "Cron Expression": "CRON_TZ=Europe/London * * * * *"
+          },
           "action": {
             "ref": "github.com/project-flogo/flow",
             "settings": {
@@ -45,6 +55,20 @@
             "to": "transform",
             "type": "label",
             "label": "StartActivity to transform"
+          },
+          {
+            "id": 2,
+            "from": "transform",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "transform to LogMessage"
+          },
+          {
+            "id": 3,
+            "from": "transform",
+            "to": "LogMessage1",
+            "type": "error",
+            "label": "transform to LogMessage1"
           }
         ],
         "tasks": [
@@ -69,13 +93,41 @@
             "activity": {
               "ref": "#transform",
               "input": {
-                "xmlDocument": "<fruits>\\n  <apple/>\\n  <pair/>\\n</fruits>",
-                "xsltStylesheet": "<xsl:stylesheet version=\"2.0\"\\n                xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:xs=\"http://www.w3.org/1999/XSL/Transform\">\\n    <xsl:output method=\"xml\" indent=\"yes\"/>\\n\\n    <xsl:template match=\"/fruits\">\\n        <apples-and-friends>\\n            <xsl:for-each select=\"*\">\\n                <xsl:choose>\\n                    <xsl:when test=\"name() = 'pair'\">\\n                        <apple-like-fruit/>\\n                    </xsl:when>\\n                    <xsl:otherwise>\\n                        <xsl:copy-of select=\".\"/>\\n                    </xsl:otherwise>\\n                </xsl:choose>\\n            </xsl:for-each>\\n        </apples-and-friends>\\n    </xsl:template>\\n\\n</xsl:stylesheet>"
+                "xmlDocument": "=$property[\"xmlDocument\"]",
+                "xsltStylesheet": "=$property[\"xsltDocument\"]"
+              }
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$activity[transform].outputString",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "ERROR",
+                "flowInfo": false,
+                "message": "=$error[transform].message",
+                "logLevel": ""
               }
             }
           }
         ],
-        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMzLCJ5IjoxNDF9LCJ0cmFuc2Zvcm0iOnsieCI6MjI4LCJ5IjoxMzN9fQ==",
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMzLCJ5IjoxNDF9LCJ0cmFuc2Zvcm0iOnsieCI6MjI4LCJ5IjoxMzN9LCJMb2dNZXNzYWdlIjp7IngiOjQ5MCwieSI6MTMzfSwiTG9nTWVzc2FnZTEiOnsieCI6NTAyLCJ5IjozMjV9fQ==",
         "metadata": {
           "input": [],
           "output": [],
@@ -84,11 +136,22 @@
       }
     }
   ],
-  "properties": [],
+  "properties": [
+    {
+      "name": "xsltDocument",
+      "type": "string",
+      "value": "<xsl:stylesheet version=\\\"2.0\\\" xmlns:xsl=\\\"http://www.w3.org/1999/XSL/Transform\\\" xmlns:xs=\\\"http://www.w3.org/1999/XSL/Transform\\\"><xsl:template match=\\\"/fruits\\\"><apples-and-friends><xsl:for-each select=\\\"*\\\"><xsl:choose><xsl:when test=\\\"name() = 'pair'\\\"><apple-like-fruit/></xsl:when><xsl:otherwise><xsl:copy-of select=\\\".\\\"/></xsl:otherwise></xsl:choose></xsl:for-each></apples-and-friends></xsl:template></xsl:stylesheet>"
+    },
+    {
+      "name": "xmlDocument",
+      "type": "string",
+      "value": "<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?><fruits><apple>Granny Smith</apple><pair>Bosc</pair><banana>Cavendish</banana><pair>Anjou</pair><orange>Navel</orange><pair>Bartlett</pair><grape>Concord</grape></fruits>"
+    }
+  ],
   "connections": {},
-  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTAiLCJ0YWciOiIxLjYuMTAtYjA1IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9tbXVzc2V0dC9mbG9nby1lbnRlcnByaXNlLWh1Yi9leHRlbnNpb25zL1hTTFQiLCJ2ZXJzaW9uIjoiMS4wLjAiLCJ0YWciOiIxLjAuMCIsIm5hbWUiOiJ0cmFuc2Zvcm0iLCJpZCI6IlhTTFQiLCJzM2xvY2F0aW9uIjoie1VTRVJJRH0vWFNMVCIsImlzVXNlckV4dGVuc2lvbiI6dHJ1ZX1d",
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuOSIsInRhZyI6IjEuNi45LWIwNCIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vbW11c3NldHQvZmxvZ28tZW50ZXJwcmlzZS1odWIvZXh0ZW5zaW9ucy9YU0xUIiwidmVyc2lvbiI6IjEuMC4wIiwidGFnIjoiMS4wLjAiLCJuYW1lIjoidHJhbnNmb3JtIiwiaWQiOiJYU0xUIiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L1hTTFQiLCJpc1VzZXJFeHRlbnNpb24iOnRydWV9XQ==",
   "metadata": {
     "endpoints": [],
-    "flogoVersion": "2.25.10"
+    "flogoVersion": "2.25.9"
   }
 }
