@@ -1,0 +1,156 @@
+# ============================================================================================
+# Combined Runtime Stages - SAP Solutions Connector
+# ============================================================================================
+# This Dockerfile contains all runtime variants for SAP-enabled Flogo applications.
+# Use the RUNTIME_BASE build argument to select your runtime environment.
+#
+# Available runtime options:
+#   - debian (default)    : Debian Bookworm
+#   - centos             : CentOS Stream 9
+#   - fedora             : Fedora latest
+#   - amazonlinux2023    : Amazon Linux 2023
+#   - rhel-ubi           : Red Hat UBI 9
+#   - alpine             : Alpine Linux 3.21
+#   - distroless         : Google Distroless
+#
+# Build examples:
+#   docker build --build-arg RUNTIME_BASE=debian -t flogo-sap:debian -f Dockerfile.all-runtimes .
+#   docker build --build-arg RUNTIME_BASE=rhel-ubi -t flogo-sap:ubi -f Dockerfile.all-runtimes .
+# ============================================================================================
+
+# ============================================================================================
+# Runtime Stage: Debian Bookworm
+# ============================================================================================
+FROM debian:bookworm AS runtime-debian
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y bash ca-certificates uuid-runtime libcurl4 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY sap_solutions .
+COPY nwrfcsdk /opt/nwrfcsdk
+
+ENV SAP_HOME=/opt/nwrfcsdk
+ENV LD_LIBRARY_PATH=$SAP_HOME/lib:$LD_LIBRARY_PATH
+ENV PATH=$SAP_HOME/bin:$PATH
+
+RUN chmod +x ./sap_solutions
+CMD ["./sap_solutions"]
+
+# ============================================================================================
+# Runtime Stage: CentOS Stream 9
+# ============================================================================================
+FROM quay.io/centos/centos:stream9 AS runtime-centos
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash libuuid libcurl && dnf clean all
+
+COPY sap_solutions .
+COPY nwrfcsdk /opt/nwrfcsdk
+
+ENV SAP_HOME=/opt/nwrfcsdk
+ENV LD_LIBRARY_PATH=$SAP_HOME/lib:$LD_LIBRARY_PATH
+ENV PATH=$SAP_HOME/bin:$PATH
+
+RUN chmod +x ./sap_solutions
+CMD ["./sap_solutions"]
+
+# ============================================================================================
+# Runtime Stage: Fedora Latest
+# ============================================================================================
+FROM fedora:latest AS runtime-fedora
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash libuuid libcurl && dnf clean all
+
+COPY sap_solutions .
+COPY nwrfcsdk /opt/nwrfcsdk
+
+ENV SAP_HOME=/opt/nwrfcsdk
+ENV LD_LIBRARY_PATH=$SAP_HOME/lib:$LD_LIBRARY_PATH
+ENV PATH=$SAP_HOME/bin:$PATH
+
+RUN chmod +x ./sap_solutions
+CMD ["./sap_solutions"]
+
+# ============================================================================================
+# Runtime Stage: Amazon Linux 2023
+# ============================================================================================
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS runtime-amazonlinux2023
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash libuuid libcurl && dnf clean all
+
+COPY sap_solutions .
+COPY nwrfcsdk /opt/nwrfcsdk
+
+ENV SAP_HOME=/opt/nwrfcsdk
+ENV LD_LIBRARY_PATH=$SAP_HOME/lib:$LD_LIBRARY_PATH
+ENV PATH=$SAP_HOME/bin:$PATH
+
+RUN chmod +x ./sap_solutions
+CMD ["./sap_solutions"]
+
+# ============================================================================================
+# Runtime Stage: Red Hat UBI 9
+# ============================================================================================
+FROM registry.access.redhat.com/ubi9/ubi:latest AS runtime-rhel-ubi
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash libuuid libcurl && dnf clean all
+
+COPY sap_solutions .
+COPY nwrfcsdk /opt/nwrfcsdk
+
+ENV SAP_HOME=/opt/nwrfcsdk
+ENV LD_LIBRARY_PATH=$SAP_HOME/lib:$LD_LIBRARY_PATH
+ENV PATH=$SAP_HOME/bin:$PATH
+
+RUN chmod +x ./sap_solutions
+CMD ["./sap_solutions"]
+
+# ============================================================================================
+# Runtime Stage: Alpine Linux 3.21
+# ============================================================================================
+FROM alpine:3.21 AS runtime-alpine
+WORKDIR /app
+
+RUN apk add --no-cache \
+    bash \
+    libc6-compat \
+    ca-certificates \
+    libuuid \
+    curl
+
+COPY sap_solutions .
+COPY nwrfcsdk /opt/nwrfcsdk
+
+ENV SAP_HOME=/opt/nwrfcsdk
+ENV LD_LIBRARY_PATH=$SAP_HOME/lib:$LD_LIBRARY_PATH
+ENV PATH=$SAP_HOME/bin:$PATH
+
+RUN chmod +x ./sap_solutions
+CMD ["./sap_solutions"]
+
+# ============================================================================================
+# Runtime Stage: Distroless
+# ============================================================================================
+FROM gcr.io/distroless/cc AS runtime-distroless
+WORKDIR /app
+
+COPY sap_solutions .
+COPY nwrfcsdk /opt/nwrfcsdk
+
+ENV SAP_HOME=/opt/nwrfcsdk
+ENV LD_LIBRARY_PATH=$SAP_HOME/lib:$LD_LIBRARY_PATH
+ENV PATH=$SAP_HOME/bin:$PATH
+
+CMD ["./sap_solutions"]
+
+# ============================================================================================
+# Default Runtime Selection
+# ============================================================================================
+ARG RUNTIME_BASE=debian
+FROM runtime-${RUNTIME_BASE} AS runtime

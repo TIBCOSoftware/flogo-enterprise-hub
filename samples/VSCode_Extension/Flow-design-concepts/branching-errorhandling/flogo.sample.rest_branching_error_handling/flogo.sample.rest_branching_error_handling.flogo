@@ -1,0 +1,630 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/error",
+    "rest_1 github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/utility",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "flogo_sample_rest_branching_error_handling",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest_1",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "Get Books From BookStore",
+          "settings": {
+            "APISpecPath": "",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/books",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:getBooks"
+            },
+            "output": {
+              "data": {
+                "mapping": {
+                  "output": "=$.response"
+                }
+              }
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"output\":\"\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "getBooks"
+        },
+        {
+          "description": "Get Book By ISBN",
+          "settings": {
+            "APISpecPath": "",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/books/{isbn}",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:getBookByISBN"
+            },
+            "input": {
+              "isbn": "=$.pathParams.isbn"
+            },
+            "output": {
+              "data": {
+                "mapping": {
+                  "output": "=$.response"
+                }
+              }
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"output\":\"\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "pathParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"isbn\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"isbn\",\"type\":\"string\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "getBookByISBN"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:getBooks",
+      "data": {
+        "name": "getBooks",
+        "description": "Get Books From BookStore",
+        "links": [
+          {
+            "id": 1,
+            "from": "InvokeRESTService",
+            "to": "Return",
+            "type": "label",
+            "label": "InvokeRESTServicetoReturn"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "asrDialog": "",
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                    "fe_metadata": "{\n    \n}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": "=utility.renderJSON($activity[InvokeRESTService].responseBody,boolean.false())"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJJbnZva2VSRVNUU2VydmljZSI6eyJ4Ijo1MCwieSI6NTB9LCJSZXR1cm4iOnsieCI6MjUwLCJ5Ijo1MH19",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "Return4",
+              "name": "Return4",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn"
+              }
+            }
+          ],
+          "links": [],
+          "fe_metadata": "eyJSZXR1cm40Ijp7IngiOjI1MCwieSI6NTB9fQ=="
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\"},\"Accept-Charset\":{\"type\":\"string\"},\"Accept-Encoding\":{\"type\":\"string\"},\"Content-Type\":{\"type\":\"string\"},\"Content-Length\":{\"type\":\"string\"},\"Connection\":{\"type\":\"string\"},\"Cookie\":{\"type\":\"string\"},\"Pragma\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "string"
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\"},\"Accept-Charset\":{\"type\":\"string\"},\"Accept-Encoding\":{\"type\":\"string\"},\"Content-Type\":{\"type\":\"string\"},\"Content-Length\":{\"type\":\"string\"},\"Connection\":{\"type\":\"string\"},\"Cookie\":{\"type\":\"string\"},\"Pragma\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"string\"}}}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:getBookByISBN",
+      "data": {
+        "name": "getBookByISBN",
+        "description": "Get Book By ISBN",
+        "links": [
+          {
+            "id": 1,
+            "from": "InvokeRESTService1",
+            "to": "Return1",
+            "type": "label",
+            "label": "InvokeRESTService1toReturn1"
+          },
+          {
+            "id": 2,
+            "from": "InvokeRESTService1",
+            "to": "LogMessage",
+            "type": "expression",
+            "label": "newtask",
+            "value": "string.equals(string.tostring($activity[InvokeRESTService1].responseBody), \"[]\")"
+          },
+          {
+            "id": 3,
+            "from": "LogMessage",
+            "to": "Return2",
+            "type": "label",
+            "label": "LogMessagetoReturn2"
+          },
+          {
+            "id": 4,
+            "from": "InvokeRESTService1",
+            "to": "LogMessage1",
+            "type": "expression",
+            "label": "newtask",
+            "value": "string.regex(\"[^0-9]\", $flow.isbn)"
+          },
+          {
+            "id": 5,
+            "from": "LogMessage1",
+            "to": "ThrowError",
+            "type": "label",
+            "label": "LogMessage1toThrowError"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "InvokeRESTService1",
+            "name": "InvokeRESTService1",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "asrDialog": "",
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "queryParams": {
+                  "mapping": {
+                    "isbn": "=$flow.isbn"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "queryParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"isbn\":{\"type\":\"string\"}},\"required\":[\"isbn\"]}",
+                    "fe_metadata": "[{\"parameterName\":\"isbn\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"true\",\"isEditable\":true}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                    "fe_metadata": "{\n    \n}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return1",
+            "name": "Return1",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": "=utility.renderJSON($activity[InvokeRESTService1].responseBody,boolean.false())"
+                }
+              }
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "=$property[\"LOG_LEVEL\"]",
+                "flowInfo": false,
+                "message": "No Book found with the given ISBN Number",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return2",
+            "name": "Return2",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": "No Book found with the given ISBN Number"
+                }
+              }
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "=$property[\"LOG_LEVEL\"]",
+                "flowInfo": false,
+                "message": "**********Invalid ISBN Number********",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ThrowError",
+            "name": "ThrowError",
+            "description": "Simple Error Activity",
+            "activity": {
+              "ref": "#error",
+              "input": {
+                "message": "**********Invalid ISBN Number********"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJJbnZva2VSRVNUU2VydmljZTEiOnsieCI6NTAsInkiOjUwfSwiUmV0dXJuMSI6eyJ4IjoyNTAsInkiOjUwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyNTAsInkiOjE1MH0sIlJldHVybjIiOnsieCI6NDUwLCJ5IjoxNTB9LCJMb2dNZXNzYWdlMSI6eyJ4IjoyNTAsInkiOjI1MH0sIlRocm93RXJyb3IiOnsieCI6NDUwLCJ5IjoyNTB9fQ==",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "LogMessage2",
+              "name": "LogMessage2",
+              "description": "Simple Log Message Activity",
+              "activity": {
+                "ref": "#log",
+                "input": {
+                  "Log Level": "INFO",
+                  "flowInfo": false,
+                  "message": "********In Error Handler*******",
+                  "logLevel": ""
+                }
+              }
+            },
+            {
+              "id": "Return3",
+              "name": "Return3",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn",
+                "settings": {
+                  "mappings": {
+                    "response": "=string.concat($error.activity,\" \", $error.message)"
+                  }
+                }
+              }
+            }
+          ],
+          "links": [
+            {
+              "id": 6,
+              "from": "LogMessage2",
+              "to": "Return3",
+              "type": "label",
+              "label": "LogMessage2toReturn3"
+            }
+          ],
+          "fe_metadata": "eyJMb2dNZXNzYWdlMiI6eyJ4IjoyNTAsInkiOjUwfSwiUmV0dXJuMyI6eyJ4Ijo0NTAsInkiOjUwfX0="
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "isbn",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "string"
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\n    \"isbn\":\"\"\n}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"string\"}}}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "URL",
+      "type": "string",
+      "value": "https://my-json-server.typicode.com/tibcosoftware/tci-flogo/Book"
+    },
+    {
+      "name": "LOG_LEVEL",
+      "type": "string",
+      "value": "INFO"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "flogo_sample_rest_branching_error_handling",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "flogo_sample_rest_branching_error_handling",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/books": {
+              "get": {
+                "summary": "getBooks",
+                "operationId": "get_books",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                },
+                "description": "Get Books From BookStore"
+              }
+            },
+            "/books/{isbn}": {
+              "get": {
+                "summary": "getBookByISBN",
+                "operationId": "get_books_isbn",
+                "parameters": [
+                  {
+                    "name": "isbn",
+                    "in": "path",
+                    "description": "Request parameter",
+                    "required": true,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                },
+                "description": "Get Book By ISBN"
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "output": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.25.11"
+  }
+}

@@ -35,13 +35,13 @@ The main purpose of this sample is:
     
     > **Note:** There is a dot (.) at the end of the command that represents the current directory, which contains the Dockerfile and other files used during the build.
 
-    ![Build Flogo Oracle DB app in docker](../../images/Custom_App_Image/1.png)
+    ![Build Flogo Oracle DB app in docker](../../../images/Custom_App_Image/oracle_images/1.png)
 
 4. Check for oracle-custom-app image is created or not using below command:
     
     `docker images`
 
-    ![Verify image created](../../images/Custom_App_Image/2.png)
+    ![Verify image created](../../../images/Custom_App_Image/oracle_images/2.png)
 
 5. Run oracle-custom-app docker image using below command:
     
@@ -49,7 +49,7 @@ The main purpose of this sample is:
 
     Here above command maps port 9999 on the host machine to port 9999 within the oracle-custom-app container. It is needed because the application endpoint is exposed on port 9999.
 
-    ![Run Flogo Oracle DB app](../../images/Custom_App_Image/3.png)
+    ![Run Flogo Oracle DB app](../../../images/Custom_App_Image/oracle_images/3.png)
 
 6. Hit below curl command to get output: 
     
@@ -57,7 +57,7 @@ The main purpose of this sample is:
 
     Here above command sends an HTTP request to your local machine (localhost) on port 9999, requesting the /orcl endpoint.
 
-    ![Curl output](../../images/Custom_App_Image/4.png)
+    ![Curl output](../../../images/Custom_App_Image/oracle_images/4.png)
   
 
 ## Push the application image to your registry, such as Docker Hub or a private registry
@@ -70,7 +70,7 @@ The main purpose of this sample is:
 
     Make sure the token should have scope like write:packages,read:packages, repo to push the image.
 
-    ![Login github to push the image](../../images/Custom_App_Image/5.png)
+    ![Login github to push the image](../../../images/Custom_App_Image/oracle_images/5.png)
 
 
 2. Tag and push your Docker image::
@@ -83,8 +83,8 @@ The main purpose of this sample is:
 
     Make sure that the private repo 'oracle-custom-app' is created on github 
 
-    ![Tag image](../../images/Custom_App_Image/6.png)
-    ![Push the image on GitHub](../../images/Custom_App_Image/7.png)
+    ![Tag image](../../../images/Custom_App_Image/oracle_images/6.png)
+    ![Push the image on GitHub](../../../images/Custom_App_Image/oracle_images/7.png)
 
 3. Obtain the fully qualified image name from your image. 
       > **eg:** ghcr.io/kramawat-tibco/oracle-custom-app:v1.0.1
@@ -105,32 +105,32 @@ The main purpose of this sample is:
 
       > **eg:** flogobuild create-context -n "<context-name>" -v "<path-to-.vsix file>" --set-default
 
-    ![Create context](../../images/Custom_App_Image/8.png)  
+    ![Create context](../../../images/Custom_App_Image/oracle_images/8.png)  
 
 2. After creating the context, create the TIBCO Platform deployment zip file for your Flogo application using Flogo® - App Build Command Line Interface (CLI).
 
       > **eg:** flogobuild build-tp-deployment -f "<path-to-flogo-app-file>" -i "<fullyqualified-custom-container-image-name>" -c "<context-name>" -t "<tag1, tag2>" -o "<path-for-zip-file>" -z "<zip-file-name>"
 
-    ![Create build.zipt](../../images/Custom_App_Image/9.png)
+    ![Create build.zipt](../../../images/Custom_App_Image/oracle_images/9.png)
 
 ## Import, Deploy build.zip and Run the Application on Tibco Control Plane
 
 1. Import the generated build.zip file in your Data plane on Tibco Control Plane using Import App Build option on Flogo capability page.
 
-      ![Import build.zip on TP](../../images/Custom_App_Image/10.png)
-      ![build.zip get imported on TP successfully](../../images/Custom_App_Image/11.png)
+      ![Import build.zip on TP](../../../images/Custom_App_Image/oracle_images/10.png)
+      ![build.zip get imported on TP successfully](../../../images/Custom_App_Image/oracle_images/11.png)
       
       Here don't need to provision Flogo build, Oracle Database connector and upload supplement.
 
 2. Specify imagePullSecret for custom app image build deployed using Helm manage way.
 
-      ![Specify imagePullSecret](../../images/Custom_App_Image/12.png)
+      ![Specify imagePullSecret](../../../images/Custom_App_Image/oracle_images/12.png)
 
     Here we are using private image hence need to specify imagePullSecret value in deployment YAML.
 
 3. Start application, set endpoint visibility to public and hit the endpoint to get logs.
 
-      ![Start application](../../images/Custom_App_Image/13.png)
+      ![Start application](../../../images/Custom_App_Image/oracle_images/13.png)
 
 
 ## Understanding Dockerfile and start.sh file configuration
@@ -278,8 +278,8 @@ In the Dockerfile,
 
 Custom App Image run for Oracle Database
 
-![App Response in swagger](../../images/Custom_App_Image/13.png)
-![App logs on Tibco Platfrom UI](../../images/Custom_App_Image/14.png)
+![App Response in swagger](../../../images/Custom_App_Image/oracle_images/13.png)
+![App logs on Tibco Platfrom UI](../../../images/Custom_App_Image/oracle_images/14.png)
 
 
 ## Troubleshooting
