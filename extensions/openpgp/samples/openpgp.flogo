@@ -1,0 +1,163 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/mmussett/extensions/openpgp/activity/encrypt",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/mmussett/extensions/openpgp/activity/decrypt",
+    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "openpgp",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#startuphook",
+      "name": "tibco-appstartup",
+      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "settings": {},
+      "id": "AppStartupTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:New_flow"
+            }
+          },
+          "name": "New_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:New_flow",
+      "data": {
+        "name": "New_flow",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Encrypt",
+            "type": "label",
+            "label": "StartActivity to Encrypt"
+          },
+          {
+            "id": 2,
+            "from": "Encrypt",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "Encrypt to LogMessage"
+          },
+          {
+            "id": 3,
+            "from": "LogMessage",
+            "to": "Decrypt",
+            "type": "label",
+            "label": "LogMessage to Decrypt"
+          },
+          {
+            "id": 4,
+            "from": "Decrypt",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "Decrypt to LogMessage1"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Encrypt",
+            "name": "Encrypt",
+            "description": "Activity to encrypt openpgp messages",
+            "activity": {
+              "ref": "#encrypt",
+              "input": {
+                "plaintext": "Hello, World",
+                "publickey": "=string.base64ToString($property[\"PublicKey\"])"
+              }
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$activity[Encrypt].ciphertext",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Decrypt",
+            "name": "Decrypt",
+            "description": "Activity to decrypt openpgp messages",
+            "activity": {
+              "ref": "#decrypt",
+              "input": {
+                "ciphertext": "=$activity[Encrypt].ciphertext",
+                "privatekey": "=string.base64ToString($property[\"PrivateKey\"])"
+              }
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$activity[Decrypt].plaintext",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiRW5jcnlwdCI6eyJ4IjoxODEsInkiOjIyMX0sIkxvZ01lc3NhZ2UiOnsieCI6MzgxLCJ5IjoyMzF9LCJEZWNyeXB0Ijp7IngiOjU2NiwieSI6MjI1fSwiTG9nTWVzc2FnZTEiOnsieCI6NzcyLCJ5IjoyMjR9fQ==",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PublicKey",
+      "type": "string",
+      "value": "LS0tLS1CRUdJTiBQR1AgUFVCTElDIEtFWSBCTE9DSy0tLS0tClZlcnNpb246IEtleWJhc2UgT3BlblBHUCB2Mi4xLjE3CkNvbW1lbnQ6IGh0dHBzOi8va2V5YmFzZS5pby9jcnlwdG8KCnhvMEVhYmd4TkFFRUFMb3c1U3ZQM1dwRjl6YjNuSnJGaGJmNVBPSjlLcGw4c1lPYStCYldMMkJkeWUyb1gxcm4KU2x2eWF1bzlsT0g1dzlNU21aVC92U0dxT2hnR05zOWxZYkloODduWlR1WjVjaEhQVFVTSlNaUy82eW5hSWhTQgpiaW5idjJjZ1kxbjI2S3ZYc1E2N2ZNTmpmekhIS2IzOXVBK0lNcU5JaURSbFNRL2s3bERPaWtIN0FCRUJBQUhOCkdTQThiV0Z5YXk1dGRYTnpaWFIwUUhScFltTnZMbU52YlQ3Q3RBUVRBUW9BSGdVQ2FiZ3hOQUliTHdNTENRY0QKRlFvSUFoNEJBaGVBQXhZQ0FRSVpBUUFLQ1JBbGxRUVVvcmNWRWc0K0EvOTZrQ3pIdWtETzhWQ3Z5bHpTN0ZMQgpjb2o1OGVIUlVkaHJPby9ORGdOd2N4b3lVWEZpN0h5b3pqRjVpUDVoYmlHSzY3QzE4d1R6MlVURFVwaDVPVXJXCmNtRHBzeDV2enhUa1NQV0lKWlVvQmtlZE9FZ2dmOEdKY25XcmVhV3c1YXR1cURZK3dyUVZKUlUyM3FRL1ZyTy8KWERDRzZUNmtSMDFXNmRMMlJoVEhYYzZOQkdtNE1UUUJCQUMrOUZNSUdPYmVqd1pZMUhLNEZXSnM3SGMwekx3aQplV1I5cDAwRDJibnphbDJVN1UwQUdmRmNvUmVNL1pjNXczS2dHclR2bWRCdGhITnVtV2ZnbktMYUF6NHRoRHZICnhEK2tKbFJ0VGFZM0xLNXozWkNmM0Q2UXpBYms3VEIwaWxVWGNQVGIzRWdJVkZPOUYvM21QOVlIYWkwaEU5bnkKSUYreG83bk5xaFlQYVFBUkFRQUJ3c0NEQkJnQkNnQVBCUUpwdURFMEJRa1BDWndBQWhzdUFLZ0pFQ1dWQkJTaQp0eFVTblNBRUdRRUtBQVlGQW1tNE1UUUFDZ2tRNmJZaHRwUlZjcVJWOGdQL2V4Q1crQUtrN3g1OS9uUlduMUxOClB6U29MdFVQWGJTUnBNNnRETis3OXJFWEV2TitKM1Zzd21XR0trS2FmZzJyN1JocWhyQ3BuMHlXbWY0N0REMnAKSVZzQzFmSVJ3bmF6d3NTMlYxdGR2RVVhZ3kvOVU2ZnNvSks4Sk9HQkkzblk4Z0huMHgrSi84RHoyYldKWnFqagp5cjNTYk53NkU0ZmRGL0o5blAzbG1WbEErd1FBdFAwZ29VdWd2Z05kOTVWUC9IRFBWZGQreG5RRW8wdGdpaWlqCk9rVEF2MDhhcDBhdTgrdXp6MGZBSlkwc3FoUmNBRkNaeFk5WFZXdW1GVXV5OE1ScGpaZHlaSGthM0hBK3c2R04KUjRxVHFPZVVWU1lSdW8wa2h3Unl5cjhMSVRFalI2MWM5TENXcUFtMm9uUnQvS3RHNHpLcHA0T0dCaEdJL1FiYQp1THpMOXlqT2pRUnB1REUwQVFRQTEvbnd5SXRZMnFtTDI1V2NRS2FTUTdZdjNLMEZWYTdPMFZHY2V6WWRoSisvClo0UGRZQzh2SDMzZHVZQ3QxVFhEZVVDK1owYXh1aFRZSVlBbXcwTnZucjU1QjBNRjdQK0RpR0txR0lhdEh3QUoKZjJ1czhENE1tSUNEK1VzL1FXWDJGMTI5WXcrSjVwYnovZFRJamFFcXlrOEg2cVBIVHNDTnlOV3lib1VqUGY4QQpFUUVBQWNMQWd3UVlBUW9BRHdVQ2FiZ3hOQVVKQThKbkFBSWJMZ0NvQ1JBbGxRUVVvcmNWRXAwZ0JCa0JDZ0FHCkJRSnB1REUwQUFvSkVLcXBObldYVlBEc2RyOEQvM25MZlFyWS81N0hqOGl5Y0s0MGxwOGU4VVI0T2pqTzNBTjUKTk0yRzd6OTRqRFE2azZnRjFDZURSOSsvaGhWd3dXK0hKRG9ITW4xYUM2TVJMbW94MnlSRDFRN1ZtbkZ4Y0ZkMgpMVkFSb0tvSWxaN2RTcGN6NDVveVBPcklHSWY3ZGYrWEwrN0E0WWRpSWdITWhqMlpzS0FmY0FoTm8xUWxIdjIyCllRTUMyMEs5MUk4RUFMVjcxcUljd3gvNEVZNG9GbmE1akhQSVRZOVhVSVVKRVZrRDc0dkRWSjc4SWpBRW5VMVoKYjlucVhkdThocnA4RFhuK1JBYVEyNmIwYWhXS1ZER0NIeWtKbGIydVYwMHlGRU54T0VMeUQxSmFqK2IyNFE0VApsYzIyUlU0dkZDamJGYmk1RC9wRDVsNkIyVTlKQzlXbm1jcm5KcnpWWGRUcis2OGlSYVYrMDZ0Ygo9SzlzMwotLS0tLUVORCBQR1AgUFVCTElDIEtFWSBCTE9DSy0tLS0t"
+    },
+    {
+      "name": "PrivateKey",
+      "type": "string",
+      "value": "LS0tLS1CRUdJTiBQR1AgUFJJVkFURSBLRVkgQkxPQ0stLS0tLQpWZXJzaW9uOiBLZXliYXNlIE9wZW5QR1AgdjIuMS4xNwpDb21tZW50OiBodHRwczovL2tleWJhc2UuaW8vY3J5cHRvCgp4Y0VZQkdtNE1UUUJCQUM2TU9Vcno5MXFSZmMyOTV5YXhZVzMrVHppZlNxWmZMR0RtdmdXMWk5Z1hjbnRxRjlhCjUwcGI4bXJxUFpUaCtjUFRFcG1VLzcwaHFqb1lCamJQWldHeUlmTzUyVTdtZVhJUnowMUVpVW1VditzcDJpSVUKZ1c0cDI3OW5JR05aOXVpcjE3RU91M3pEWTM4eHh5bTkvYmdQaURLalNJZzBaVWtQNU81UXpvcEIrd0FSQVFBQgpBQVA4Q24xTnMreFgyTnNNano2MDhSZnNBczR2cXNJMWRRU01OYWRmT2JONFkzdjFMOXZ2LzFMa3pXTDR1SzN6CjBNLzltSFhGb1pva3pCdzhmZlQvcW9DQ0xUK3hqcTN3a29USmlIcUNsWjVLNUVjaG1ldFNKdUlBUTRrVS9NdUUKL0NCRGs1VEUrd2VGbHFhMmhoV3VjT1JncjNYRkhJVHZOeVI1L0V0MnBwbWxHKzBDQVBRQ2ZJTU5aYVhxaFZRYwpXWlhQWmI5S0Q2MTlUbEFFU3hDNDhhSUVkeC9KNGVFN0JGcjI4ODl3RnNBWkdyVnlxNE5uOHQ5UW9PSHpyUi9aClZsalovT2NDQU1OWEZIRENhY3NhQUttR3VVVFJ1aG16NEpLNWNmODZMUmg3eGJ6dFRiMDRoZmRra2Z5TEtTeVkKKzQ3VnFaZklVZUQvZFBQRXp1dXYxc0xNTWJ3U3U4MENBSVRIUUEwK2tMdHo0ZU1ZVVlMZjFqWXRRODlYdDNhcgp2VGNreE8rd3J3VjFpOXVGU1JjQXF4b01BMUY1eUM0UjE2ZCt2SFBYZUloODBBQ25tbjdFaUR5c0lNMFpJRHh0CllYSnJMbTExYzNObGRIUkFkR2xpWTI4dVkyOXRQc0swQkJNQkNnQWVCUUpwdURFMEFoc3ZBd3NKQndNVkNnZ0MKSGdFQ0Y0QURGZ0lCQWhrQkFBb0pFQ1dWQkJTaXR4VVNEajRELzNxUUxNZTZRTTd4VUsvS1hOTHNVc0Z5aVBueAo0ZEZSMkdzNmo4ME9BM0J6R2pKUmNXTHNmS2pPTVhtSS9tRnVJWXJyc0xYekJQUFpSTU5TbUhrNVN0WnlZT216CkhtL1BGT1JJOVlnbGxTZ0dSNTA0U0NCL3dZbHlkYXQ1cGJEbHEyNm9OajdDdEJVbEZUYmVwRDlXczc5Y01JYnAKUHFSSFRWYnAwdlpHRk1kZHg4RVlCR200TVRRQkJBQys5Rk1JR09iZWp3WlkxSEs0RldKczdIYzB6THdpZVdSOQpwMDBEMmJuemFsMlU3VTBBR2ZGY29SZU0vWmM1dzNLZ0dyVHZtZEJ0aEhOdW1XZmduS0xhQXo0dGhEdkh4RCtrCkpsUnRUYVkzTEs1ejNaQ2YzRDZRekFiazdUQjBpbFVYY1BUYjNFZ0lWRk85Ri8zbVA5WUhhaTBoRTlueUlGK3gKbzduTnFoWVBhUUFSQVFBQkFBUCtKQ1lQZytSbTdESHFNeTNBcTkyTWZPOUUzODkwUEJoNzhCZVlTa2JRMzJZKwo0ZjhNU1IwZ0puZHVoR2ZMVlltTTdRY3hRbng5U3dZOGJlOEhqYXRKWHFWUEh5alVDa3A2cDZ3NjllUWE0YWVlCjFDQVdjYndvUTVBVUZQdmFUczZSbWloSEEvQkFqN09MTDlRL0NQYjlRbThid3dEdG13THU1N3V4eDliQS9PTUMKQU9uM0p0NktXeDR5WkdVRUxYc0lLaXJtRlpZemVNbXJHV2h0WU9rV2pSWnMxQjFyTjludDAwVG1kcE1XVWVtTgpjdXM4Rmg0T2tYeXE5WWZSRmlocTg4OENBTkR3TDkySktoSlBteUJhUG9BeXZJMjVvLzVlVW5icEdzdXlhNGpqCk12ekJrYVYrWS9jSTBPakg4Z1hjbTZGN0V1bzNLcFFPdi9nblhZOTJDbTlydjBjQi9qenNTbUNQZ2lrdHoyKzgKL1lDdkorV0ppcytsdHovc3RBdXBTOXNqc21xQ2wvTHpTSEp1bzdOc05GcisxSGdMK24xNXRRRzc3c1hkbE5FdgpJOWNIMTVDaW5jTEFnd1FZQVFvQUR3VUNhYmd4TkFVSkR3bWNBQUliTGdDb0NSQWxsUVFVb3JjVkVwMGdCQmtCCkNnQUdCUUpwdURFMEFBb0pFT20ySWJhVVZYS2tWZklELzNzUWx2Z0NwTzhlZmY1MFZwOVN6VDgwcUM3VkQxMjAKa2FUT3JRemZ1L2F4RnhMemZpZDFiTUpsaGlwQ21uNE5xKzBZYW9hd3FaOU1scG4rT3d3OXFTRmJBdFh5RWNKMgpzOExFdGxkYlhieEZHb012L1ZPbjdLQ1N2Q1RoZ1NONTJQSUI1OU1maWYvQTg5bTFpV2FvNDhxOTBtemNPaE9ICjNSZnlmWno5NVpsWlFQc0VBTFQ5SUtGTG9MNERYZmVWVC94d3oxWFhmc1owQktOTFlJb29venBFd0w5UEdxZEcKcnZQcnM4OUh3Q1dOTEtvVVhBQlFtY1dQVjFWcnBoVkxzdkRFYVkyWGNtUjVHdHh3UHNPaGpVZUtrNmpubEZVbQpFYnFOSkljRWNzcS9DeUV4STBldFhQU3dscWdKdHFKMGJmeXJSdU15cWFlRGhnWVJpUDBHMnJpOHkvY294OEVZCkJHbTRNVFFCQkFEWCtmRElpMWphcVl2YmxaeEFwcEpEdGkvY3JRVlZyczdSVVp4N05oMkVuNzluZzkxZ0x5OGYKZmQyNWdLM1ZOY041UUw1blJyRzZGTmdoZ0NiRFEyK2V2bmtIUXdYcy80T0lZcW9ZaHEwZkFBbC9hNnp3UGd5WQpnSVA1U3o5QlpmWVhYYjFqRDRubWx2UDkxTWlOb1NyS1R3ZnFvOGRPd0kzSTFiSnVoU005L3dBUkFRQUJBQVArCk0rWWpWc1dwaGU0TkppaW5BaUFrOExHRWdkWnYvRDJFQkdmRW54VUxkZFcvZEh3TEEvU0NzZUlZbUYyVUtES0IKdFE3NlVpMzZRbG1FOEZQdnZLZGxXRUtsWThqRjdtUERPTjEwWjFha2E4TEhHcXVvYkpSeVk3V1cxK3MrMG4yVgo2NnNDUXJTZVRKYXJWeENkZStwM2JwRUlyRnBJUWw3R1p2eWM0MUMwR2pVQ0FQSW9TdTd5d0ppV1BTeGNxb0F6Cnh2dVZrUEl0TUo2K1o3ZEJUMkNvcFBGbkVXRU9la2V0eHFGSVMvNEs1QnE5SGIxVFY1WHY5cVc5LzRhSDh0eEUKME1NQ0FPUlNoRXNDU2hrRlFxN242TWxFakNkYkM1RldFTVdjcjVpR2g4ZEF4emVKYzZYZEdwOUE1Y1lHNUhlbApNbmh6ZmplVXRSUGNybjUrZ3oxVjcybm5paFVDQUk5bGNXZDlOazdZYkQ1S3BleHZSNFNQWXI3K3NwZzY1ZnNTCkpUYkh5b21yVWZFc29jbVJ0OGRqSC94UmpXZ3pCWkJwTndGMGJ4eGY3QUJvTFFxTkNTS2cwTUxBZ3dRWUFRb0EKRHdVQ2FiZ3hOQVVKQThKbkFBSWJMZ0NvQ1JBbGxRUVVvcmNWRXAwZ0JCa0JDZ0FHQlFKcHVERTBBQW9KRUtxcApObldYVlBEc2RyOEQvM25MZlFyWS81N0hqOGl5Y0s0MGxwOGU4VVI0T2pqTzNBTjVOTTJHN3o5NGpEUTZrNmdGCjFDZURSOSsvaGhWd3dXK0hKRG9ITW4xYUM2TVJMbW94MnlSRDFRN1ZtbkZ4Y0ZkMkxWQVJvS29JbFo3ZFNwY3oKNDVveVBPcklHSWY3ZGYrWEwrN0E0WWRpSWdITWhqMlpzS0FmY0FoTm8xUWxIdjIyWVFNQzIwSzkxSThFQUxWNwoxcUljd3gvNEVZNG9GbmE1akhQSVRZOVhVSVVKRVZrRDc0dkRWSjc4SWpBRW5VMVpiOW5xWGR1OGhycDhEWG4rClJBYVEyNmIwYWhXS1ZER0NIeWtKbGIydVYwMHlGRU54T0VMeUQxSmFqK2IyNFE0VGxjMjJSVTR2RkNqYkZiaTUKRC9wRDVsNkIyVTlKQzlXbm1jcm5KcnpWWGRUcis2OGlSYVYrMDZ0Ygo9NWFLagotLS0tLUVORCBQR1AgUFJJVkFURSBLRVkgQkxPQ0stLS0tLQ=="
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTIiLCJ0YWciOiIxLjYuMTItYjA2IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9tbXVzc2V0dC9leHRlbnNpb25zL29wZW5wZ3AiLCJpZCI6Im9wZW5wZ3AiLCJ2ZXJzaW9uIjoiMS4wLjAiLCJ0YWciOiIxLjAuMCIsIm5hbWUiOiJPcGVuUEdQIiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L29wZW5wZ3AiLCJpc1VzZXJFeHRlbnNpb24iOnRydWV9XQ==",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.1"
+  }
+}
