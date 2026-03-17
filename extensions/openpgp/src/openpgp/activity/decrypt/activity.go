@@ -53,15 +53,11 @@ func (activity *MyActivity) Eval(context activity.Context) (done bool, err error
 		return false, err
 	}
 
-	// 3. Decrypt it back
 	decrypted, err := decryptMessage(entity, input.Ciphertext)
 	if err != nil {
 		return false, err
 	}
 
-	context.Logger().Debug("=== Decrypted ===")
-	context.Logger().Debug(decrypted)
-	context.Logger().Debug("=================")
 	output.Plaintext = decrypted
 
 	//Set output object

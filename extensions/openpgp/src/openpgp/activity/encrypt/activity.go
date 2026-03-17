@@ -53,20 +53,13 @@ func (activity *MyActivity) Eval(context activity.Context) (done bool, err error
 		return false, err
 	}
 
-	activity.logger.Debugf("Key ID:  %X\n", entity.PrimaryKey.KeyId)
-	activity.logger.Debugf("Algo:    %v\n", entity.PrimaryKey.PubKeyAlgo)
-	for uid := range entity.Identities {
-		activity.logger.Debugf("UID:     %s\n", uid)
-	}
+
 
 	encrypted, err := encryptMessage(entity, input.Plaintext)
 	if err != nil {
 		return false, err
 	}
 
-	activity.logger.Debug("=== Encrypted ===")
-	activity.logger.Debug(encrypted)
-	activity.logger.Debug("=================")
 	output.Ciphertext = encrypted
 
 	//Set output object
