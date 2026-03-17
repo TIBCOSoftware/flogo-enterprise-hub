@@ -41,7 +41,6 @@ func (activity *MyActivity) Eval(context activity.Context) (done bool, err error
 	input := &Input{}
 	output := &Output{}
 
-
 	//Get Input Object
 	err = context.GetInputObject(input)
 	if err != nil {
@@ -54,19 +53,20 @@ func (activity *MyActivity) Eval(context activity.Context) (done bool, err error
 		return false, err
 	}
 
-	fmt.Printf("Key ID:  %X\n", entity.PrimaryKey.KeyId)
-	fmt.Printf("Algo:    %v\n", entity.PrimaryKey.PubKeyAlgo)
+	activity.logger.Debugf("Key ID:  %X\n", entity.PrimaryKey.KeyId)
+	activity.logger.Debugf("Algo:    %v\n", entity.PrimaryKey.PubKeyAlgo)
 	for uid := range entity.Identities {
-		fmt.Printf("UID:     %s\n", uid)
+		activity.logger.Debugf("UID:     %s\n", uid)
 	}
 
 	encrypted, err := encryptMessage(entity, input.Plaintext)
 	if err != nil {
 		return false, err
 	}
-	fmt.Println("=== Encrypted ===")
-	fmt.Println(encrypted)
 
+	activity.logger.Debug("=== Encrypted ===")
+	activity.logger.Debug(encrypted)
+	activity.logger.Debug("=================")
 	output.Ciphertext = encrypted
 
 	//Set output object
