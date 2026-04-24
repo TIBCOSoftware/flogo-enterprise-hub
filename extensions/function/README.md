@@ -94,10 +94,11 @@ All datetime functions accept any format supported by Flogo's `coerce.ToDateTime
 ## Debug Logging
 
 All functions emit `Debugf` log lines via `log.RootLogger()` at key points:
-- **Entry**: input parameters
-- **Intermediate**: key computed values
-- **Exit**: final result
+- **Entry**: parameter names and non-sensitive metadata only; do **not** log raw secrets or sensitive values (for example: HMAC keys, tokens, credentials, full payloads, or personal data)
+- **Intermediate**: key computed values, provided they are non-sensitive or redacted/masked
+- **Exit**: final result, only when it is non-sensitive; otherwise log a fixed placeholder such as `[REDACTED]`
 
+When diagnostic context is needed for sensitive inputs, log only safe substitutes such as value presence, type, item count, string/byte length, or a truncated hash — never the original value.
 Activate with `FLOGO_LOG_LEVEL=DEBUG`.
 
 ---
