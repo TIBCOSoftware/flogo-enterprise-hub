@@ -11,13 +11,13 @@ func TestSQSSignatureGeneration(t *testing.T) {
 	tc := test.NewActivityContext((&AWSSignatureV4Activity{}).Metadata())
 
 	// Set inputs to match the SQS scenario from the error - WITHOUT Content-Type header
-	tc.SetInput("accessKeyId", "ASIARC55DQGXWPCO6TV7")
-	tc.SetInput("secretAccessKey", "example-secret-key") // Use a test key
-	tc.SetInput("sessionToken", "test-session-token")
+	tc.SetInput("accessKeyId", "YOUR_ACCESS_KEY_ID")
+	tc.SetInput("secretAccessKey", "YOUR_SECRET_ACCESS_KEY")
+	tc.SetInput("sessionToken", "YOUR_SESSION_TOKEN")
 	tc.SetInput("region", "eu-central-1")
 	tc.SetInput("service", "sqs")
 	tc.SetInput("httpMethod", "POST")
-	tc.SetInput("url", "https://sqs.eu-central-1.amazonaws.com/075021648303/odido-demo-detelte-ops")
+	tc.SetInput("url", "https://sqs.eu-central-1.amazonaws.com/YOUR_ACCOUNT_ID/YOUR_QUEUE_NAME")
 	tc.SetInput("payload", "Version=2012-11-05&Action=DeleteMessage&ReceiptHandle=example-receipt")
 	// No headers - this is the key fix!
 	tc.SetInput("timestamp", "2025-08-27T08:07:52Z")
@@ -38,7 +38,7 @@ func TestSQSSignatureGeneration(t *testing.T) {
 
 		// Verify the canonical request structure matches AWS expectation
 		assert.Contains(t, canonicalRequest, "POST")
-		assert.Contains(t, canonicalRequest, "/075021648303/odido-demo-detelte-ops")
+		assert.Contains(t, canonicalRequest, "/YOUR_ACCOUNT_ID/YOUR_QUEUE_NAME")
 		assert.Contains(t, canonicalRequest, "host:sqs.eu-central-1.amazonaws.com")
 		assert.Contains(t, canonicalRequest, "x-amz-content-sha256:")
 		assert.Contains(t, canonicalRequest, "x-amz-date:20250827T080752Z")
