@@ -1,4 +1,4 @@
-module github.com/milindpandav/flogo-extensions/function
+module github.com/milindpandav/flogo-extensions/function/string
 
 go 1.21
 
