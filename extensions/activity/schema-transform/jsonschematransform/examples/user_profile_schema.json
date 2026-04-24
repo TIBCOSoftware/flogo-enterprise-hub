@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Profile Schema",
+  "type": "object",
+  "description": "Schema defining a user profile with personal information, preferences, and account details",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the user"
+    },
+    "username": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{3,20}$",
+      "description": "Username must be 3-20 characters, alphanumeric with underscore and dash"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Valid email address"
+    },
+    "personalInfo": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "format": "date"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "pattern": "^\\+?[1-9]\\d{1,14}$"
+        },
+        "address": {
+          "type": "object",
+          "properties": {
+            "street": {
+              "type": "string"
+            },
+            "city": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "zipCode": {
+              "type": "string",
+              "pattern": "^\\d{5}(-\\d{4})?$"
+            },
+            "country": {
+              "type": "string",
+              "enum": ["US", "CA", "UK", "DE", "FR", "JP", "AU"]
+            }
+          },
+          "required": ["street", "city", "country"]
+        }
+      },
+      "required": ["firstName", "lastName"]
+    },
+    "accountSettings": {
+      "type": "object",
+      "properties": {
+        "isActive": {
+          "type": "boolean",
+          "default": true
+        },
+        "accountType": {
+          "type": "string",
+          "enum": ["free", "premium", "enterprise"]
+        },
+        "subscriptionEnd": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "language": {
+              "type": "string",
+              "default": "en"
+            },
+            "timezone": {
+              "type": "string",
+              "pattern": "^[A-Za-z]+/[A-Za-z_]+$"
+            },
+            "notifications": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "sms": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "push": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": ["accountType"]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "maxItems": 10
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["id", "username", "email", "personalInfo", "accountSettings"],
+  "additionalProperties": false
+}

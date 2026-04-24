@@ -1,0 +1,228 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "REST API Response Schema",
+  "type": "object",
+  "description": "Standard API response schema with pagination, error handling, and data payload",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["success", "error", "warning"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the response"
+    },
+    "requestId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for request tracking"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v\\d+(\\.\\d+)*$",
+      "description": "API version in format v1.0.0"
+    },
+    "data": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "pagination": {
+              "type": "object",
+              "properties": {
+                "page": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "pageSize": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000
+                },
+                "totalItems": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "totalPages": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "hasNext": {
+                  "type": "boolean"
+                },
+                "hasPrevious": {
+                  "type": "boolean"
+                },
+                "nextPage": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "previousPage": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "page",
+                "pageSize",
+                "totalItems",
+                "totalPages",
+                "hasNext",
+                "hasPrevious"
+              ]
+            }
+          },
+          "required": ["items", "pagination"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Single object response"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "description": "Array response without pagination"
+        }
+      ]
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field": {
+            "type": "string",
+            "description": "Field name for validation errors"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": ["code", "message"]
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          }
+        },
+        "required": ["code", "message"]
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "processingTime": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Processing time in milliseconds"
+        },
+        "server": {
+          "type": "string"
+        },
+        "rateLimit": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "remaining": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reset": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "links": {
+          "type": "object",
+          "properties": {
+            "self": {
+              "type": "string",
+              "format": "uri"
+            },
+            "next": {
+              "type": "string",
+              "format": "uri"
+            },
+            "prev": {
+              "type": "string",
+              "format": "uri"
+            },
+            "first": {
+              "type": "string",
+              "format": "uri"
+            },
+            "last": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["status", "timestamp", "requestId", "version"],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "success"
+          }
+        }
+      },
+      "then": {
+        "required": ["data"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "error"
+          }
+        }
+      },
+      "then": {
+        "required": ["errors"]
+      }
+    }
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,135 @@
+{
+  "name": "JSONSchemaTransformExample",
+  "type": "flogo:app",
+  "version": "1.0.0",
+  "description": "Example Flogo application demonstrating JSON Schema transformation to XSD and Avro formats",
+  "properties": [],
+  "channels": [],
+  "triggers": [
+    {
+      "id": "http_trigger",
+      "name": "HTTP Trigger",
+      "ref": "github.com/project-flogo/contrib/trigger/rest",
+      "settings": {
+        "port": 8080
+      },
+      "handlers": [
+        {
+          "settings": {
+            "method": "POST",
+            "path": "/transform/json-schema"
+          },
+          "actions": [
+            {
+              "id": "transform_flow"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": [],
+  "actions": [
+    {
+      "id": "transform_flow",
+      "name": "JSON Schema Transform Flow",
+      "data": {
+        "flow": [
+          {
+            "id": "log_input",
+            "name": "Log Input",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/log",
+              "input": {
+                "message": "Received JSON Schema transformation request",
+                "flowInfo": true,
+                "addToFlow": true
+              }
+            }
+          },
+          {
+            "id": "json_schema_transform",
+            "name": "Transform JSON Schema",
+            "activity": {
+              "ref": "github.com/milindpandav/activity/jsonschematransform",
+              "settings": {
+                "outputFormat": "both"
+              },
+              "input": {
+                "jsonSchemaString": "=$flow.content",
+                "outputFormat": "=$flow.queryParams.format",
+                "rootElementName": "=$flow.queryParams.rootElement",
+                "targetNamespace": "=$flow.queryParams.namespace",
+                "avroRecordName": "=$flow.queryParams.avroRecord",
+                "avroNamespace": "=$flow.queryParams.avroNamespace"
+              }
+            }
+          },
+          {
+            "id": "check_error",
+            "name": "Check for Errors",
+            "activity": {
+              "ref": "github.com/project-flogo/core/activity/noop"
+            },
+            "if": "=$activity[json_schema_transform].error == true"
+          },
+          {
+            "id": "log_error",
+            "name": "Log Error",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/log",
+              "input": {
+                "message": "=string.concat('Transformation failed: ', $activity[json_schema_transform].errorMessage)",
+                "level": "ERROR"
+              }
+            },
+            "if": "=$activity[json_schema_transform].error == true"
+          },
+          {
+            "id": "return_error",
+            "name": "Return Error Response",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/actreturn",
+              "input": {
+                "code": 400,
+                "data": {
+                  "error": true,
+                  "message": "=$activity[json_schema_transform].errorMessage"
+                }
+              }
+            },
+            "if": "=$activity[json_schema_transform].error == true"
+          },
+          {
+            "id": "log_success",
+            "name": "Log Success",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/log",
+              "input": {
+                "message": "JSON Schema transformation completed successfully",
+                "level": "INFO"
+              }
+            },
+            "if": "=$activity[json_schema_transform].error == false"
+          },
+          {
+            "id": "return_success",
+            "name": "Return Success Response",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/actreturn",
+              "input": {
+                "code": 200,
+                "data": {
+                  "success": true,
+                  "xsdString": "=$activity[json_schema_transform].xsdString",
+                  "avroSchema": "=$activity[json_schema_transform].avroSchema"
+                }
+              }
+            },
+            "if": "=$activity[json_schema_transform].error == false"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IoT Sensor Data Schema",
+  "type": "object",
+  "description": "Schema for IoT sensor data with telemetry, device info, and environmental readings",
+  "properties": {
+    "deviceId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{12}$",
+      "description": "12-character alphanumeric device identifier"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the reading"
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "altitude": {
+          "type": "number",
+          "description": "Altitude in meters"
+        },
+        "accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "description": "GPS accuracy in meters"
+        }
+      },
+      "required": ["latitude", "longitude"]
+    },
+    "deviceInfo": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "firmware": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "batteryLevel": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Battery level percentage"
+        },
+        "signalStrength": {
+          "type": "integer",
+          "minimum": -120,
+          "maximum": 0,
+          "description": "Signal strength in dBm"
+        }
+      },
+      "required": ["model", "firmware"]
+    },
+    "sensorReadings": {
+      "type": "object",
+      "properties": {
+        "temperature": {
+          "type": "number",
+          "minimum": -50,
+          "maximum": 125,
+          "description": "Temperature in Celsius"
+        },
+        "humidity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Relative humidity percentage"
+        },
+        "pressure": {
+          "type": "number",
+          "minimum": 300,
+          "maximum": 1100,
+          "description": "Atmospheric pressure in hPa"
+        },
+        "lightLevel": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Light level in lux"
+        },
+        "soundLevel": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 120,
+          "description": "Sound level in decibels"
+        },
+        "airQuality": {
+          "type": "object",
+          "properties": {
+            "pm25": {
+              "type": "number",
+              "minimum": 0,
+              "description": "PM2.5 particles in µg/m³"
+            },
+            "pm10": {
+              "type": "number",
+              "minimum": 0,
+              "description": "PM10 particles in µg/m³"
+            },
+            "co2": {
+              "type": "number",
+              "minimum": 0,
+              "description": "CO2 concentration in ppm"
+            },
+            "voc": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Volatile organic compounds in ppb"
+            }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "properties": {
+            "detected": {
+              "type": "boolean"
+            },
+            "acceleration": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              }
+            },
+            "gyroscope": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "temperature",
+              "humidity",
+              "pressure",
+              "battery",
+              "connectivity",
+              "motion",
+              "air_quality"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "message": {
+            "type": "string"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                }
+              }
+            ]
+          },
+          "triggeredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["type", "severity", "message"]
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "dataFormat": {
+          "type": "string",
+          "enum": ["json", "binary", "compressed"]
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{32}$",
+          "description": "MD5 checksum of the data"
+        },
+        "sequenceNumber": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retransmission": {
+          "type": "boolean",
+          "default": false
+        },
+        "compressionRatio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  },
+  "required": [
+    "deviceId",
+    "timestamp",
+    "location",
+    "deviceInfo",
+    "sensorReadings"
+  ],
+  "additionalProperties": false
+}

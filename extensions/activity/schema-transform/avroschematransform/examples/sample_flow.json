@@ -1,0 +1,135 @@
+{
+  "name": "AvroSchemaTransformExample",
+  "type": "flogo:app",
+  "version": "1.0.0",
+  "description": "Example Flogo application demonstrating Avro Schema transformation",
+  "properties": [],
+  "channels": [],
+  "triggers": [
+    {
+      "id": "http_trigger",
+      "name": "HTTP Trigger",
+      "ref": "github.com/project-flogo/contrib/trigger/rest",
+      "settings": {
+        "port": 8080
+      },
+      "handlers": [
+        {
+          "settings": {
+            "method": "POST",
+            "path": "/transform/avro"
+          },
+          "actions": [
+            {
+              "id": "transform_flow"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": [],
+  "actions": [
+    {
+      "id": "transform_flow",
+      "name": "Avro Transform Flow",
+      "data": {
+        "flow": [
+          {
+            "id": "log_input",
+            "name": "Log Input",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/log",
+              "input": {
+                "message": "Received Avro schema transformation request",
+                "flowInfo": true,
+                "addToFlow": true
+              }
+            }
+          },
+          {
+            "id": "avro_transform",
+            "name": "Transform Avro Schema",
+            "activity": {
+              "ref": "github.com/milindpandav/activity/avroschematransform",
+              "settings": {
+                "outputFormat": "both",
+                "rootElementName": "Root",
+                "targetNamespace": "http://example.com/schema"
+              },
+              "input": {
+                "avroSchemaString": "=$flow.content",
+                "outputFormat": "=$flow.queryParams.format",
+                "rootElementName": "=$flow.queryParams.rootElement",
+                "targetNamespace": "=$flow.queryParams.namespace"
+              }
+            }
+          },
+          {
+            "id": "check_error",
+            "name": "Check for Errors",
+            "activity": {
+              "ref": "github.com/project-flogo/core/activity/noop"
+            },
+            "if": "=$activity[avro_transform].error == true"
+          },
+          {
+            "id": "log_error",
+            "name": "Log Error",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/log",
+              "input": {
+                "message": "=string.concat('Transformation failed: ', $activity[avro_transform].errorMessage)",
+                "level": "ERROR"
+              }
+            },
+            "if": "=$activity[avro_transform].error == true"
+          },
+          {
+            "id": "return_error",
+            "name": "Return Error Response",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/actreturn",
+              "input": {
+                "code": 400,
+                "data": {
+                  "error": true,
+                  "message": "=$activity[avro_transform].errorMessage"
+                }
+              }
+            },
+            "if": "=$activity[avro_transform].error == true"
+          },
+          {
+            "id": "log_success",
+            "name": "Log Success",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/log",
+              "input": {
+                "message": "Avro schema transformation completed successfully",
+                "level": "INFO"
+              }
+            },
+            "if": "=$activity[avro_transform].error == false"
+          },
+          {
+            "id": "return_success",
+            "name": "Return Success Response",
+            "activity": {
+              "ref": "github.com/project-flogo/contrib/activity/actreturn",
+              "input": {
+                "code": 200,
+                "data": {
+                  "success": true,
+                  "jsonSchema": "=$activity[avro_transform].jsonSchema",
+                  "xsdString": "=$activity[avro_transform].xsdString"
+                }
+              }
+            },
+            "if": "=$activity[avro_transform].error == false"
+          }
+        ]
+      }
+    }
+  ]
+}

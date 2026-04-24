@@ -1,0 +1,344 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "E-commerce Product Schema",
+  "type": "object",
+  "description": "Comprehensive schema for e-commerce product catalog with variants, pricing, and inventory",
+  "properties": {
+    "productId": {
+      "type": "string",
+      "pattern": "^PROD-[A-Z0-9]{8}$",
+      "description": "Product ID in format PROD-XXXXXXXX"
+    },
+    "sku": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 20
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "category": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "type": "string",
+          "enum": [
+            "Electronics",
+            "Clothing",
+            "Home",
+            "Sports",
+            "Books",
+            "Beauty",
+            "Automotive"
+          ]
+        },
+        "secondary": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": ["primary"]
+    },
+    "pricing": {
+      "type": "object",
+      "properties": {
+        "basePrice": {
+          "type": "number",
+          "minimum": 0,
+          "multipleOf": 0.01
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "default": "USD"
+        },
+        "discounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["percentage", "fixed", "bogo"]
+              },
+              "value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endDate": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": ["type", "value"]
+          }
+        },
+        "taxable": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": ["basePrice", "currency"]
+    },
+    "inventory": {
+      "type": "object",
+      "properties": {
+        "stockLevel": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reservedQuantity": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "availableQuantity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reorderPoint": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "supplier": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "leadTimeDays": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": ["id", "name"]
+        }
+      },
+      "required": ["stockLevel", "availableQuantity"]
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "variantId": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object",
+            "properties": {
+              "size": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "enum": ["XS", "S", "M", "L", "XL", "XXL"]
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d+)?\\s?(cm|inch|mm)$"
+                  }
+                ]
+              },
+              "color": {
+                "type": "string"
+              },
+              "material": {
+                "type": "string"
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "pricing": {
+            "type": "object",
+            "properties": {
+              "priceAdjustment": {
+                "type": "number"
+              },
+              "priceType": {
+                "type": "string",
+                "enum": ["fixed", "percentage"]
+              }
+            }
+          },
+          "inventory": {
+            "type": "object",
+            "properties": {
+              "stockLevel": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sku": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": ["variantId", "attributes"]
+      }
+    },
+    "specifications": {
+      "type": "object",
+      "properties": {
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "length": {
+              "type": "number",
+              "minimum": 0
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["cm", "inch", "mm"]
+            }
+          }
+        },
+        "weight": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["kg", "lb", "g", "oz"]
+            }
+          }
+        },
+        "additionalSpecs": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "media": {
+      "type": "object",
+      "properties": {
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "altText": {
+                "type": "string"
+              },
+              "isPrimary": {
+                "type": "boolean",
+                "default": false
+              },
+              "sortOrder": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["url"]
+          },
+          "minItems": 1
+        },
+        "videos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "title": {
+                "type": "string"
+              },
+              "duration": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": ["url"]
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "inactive", "discontinued", "pending"]
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string"
+        },
+        "lastModifiedBy": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "required": [
+    "productId",
+    "sku",
+    "name",
+    "category",
+    "pricing",
+    "inventory",
+    "status"
+  ],
+  "additionalProperties": false
+}

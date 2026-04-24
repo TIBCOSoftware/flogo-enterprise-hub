@@ -1,0 +1,369 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/mpandav-tibco/flogo-extensions/activity/awssignaturev4",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/tibco/flogo-aws-sqs/src/app/AmazonSQS/trigger/sqsreceivemessage",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-aws/src/app/AWS/connector"
+  ],
+  "name": "aws-sqs-delete-demo",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#sqsreceivemessage",
+      "name": "sqsreceivemessage",
+      "description": "This trigger receives messages from the Amazon queue Service",
+      "settings": {
+        "awsConnection": "conn://933637cd-f851-41d1-90d4-099ea918413a"
+      },
+      "id": "ReceiveSQSMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "queueUrl": "https://sqs.eu-central-1.amazonaws.com/075021648303/odido-demo-detelte-ops",
+            "MaxNumberOfMessages": 1,
+            "VisibilityTimeout": 0,
+            "WaitTimeSeconds": 0,
+            "ReceiveRequestAttemptId": "",
+            "deleteMessage": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:sqs_receive_message"
+            },
+            "input": {
+              "Message": {
+                "mapping": {
+                  "@foreach($.Message,Message)": {
+                    "=": "$loop"
+                  }
+                }
+              }
+            }
+          },
+          "schemas": {
+            "output": {
+              "Message": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"MessageAttributes\":{\"type\":\"object\",\"properties\":{}},\"Body\":{\"type\":\"string\"},\"MD5OfBody\":{\"type\":\"string\"},\"MD5OfMessageAttributes\":{\"type\":\"string\"},\"MessageId\":{\"type\":\"string\"},\"ReceiptHandle\":{\"type\":\"string\"}}}}",
+                "fe_metadata": "[{\"MessageAttributes\":{},\"Body\":\"\",\"MD5OfBody\":\"\",\"MD5OfMessageAttributes\":\"\",\"MessageId\":\"\",\"ReceiptHandle\":\"\"}]"
+              }
+            }
+          },
+          "name": "sqs_receive_message"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:sqs_receive_message",
+      "data": {
+        "name": "sqs receive message",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "AWSSignatureV4Generator1",
+            "type": "label",
+            "label": "StartActivity to AWSSignatureV4Generator1"
+          },
+          {
+            "id": 2,
+            "from": "AWSSignatureV4Generator1",
+            "to": "LogSignedRequest",
+            "type": "label",
+            "label": "AWSSignatureV4Generator1 to LogMessage"
+          },
+          {
+            "id": 3,
+            "from": "AWSSignatureV4Generator1",
+            "to": "deleteSQSMsg",
+            "type": "label",
+            "label": "AWSSignatureV4Generator1 to deleteSQSMsg"
+          },
+          {
+            "id": 4,
+            "from": "deleteSQSMsg",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "deleteSQSMsg to LogMessage1"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "AWSSignatureV4Generator1",
+            "name": "AWSSignatureV4Generator1",
+            "description": "Generates AWS Signature Version 4 authentication headers for REST API calls",
+            "activity": {
+              "ref": "#awssignaturev4",
+              "input": {
+                "accessKeyId": "=$property[\"AWS.aws.Access_key_ID\"]",
+                "secretAccessKey": "=$property[\"AWS.aws.Secret_access_key\"]",
+                "region": "=$property[\"AWS.aws.Region\"]",
+                "service": "sqs",
+                "sessionToken": "=$property[\"AWS.aws.Session_Token\"]",
+                "httpMethod": "POST",
+                "url": "https://sqs.eu-central-1.amazonaws.com/075021648303/odido-demo-detelte-ops",
+                "payload": "=string.concat(\"Version=2012-11-05&Action=DeleteMessage&ReceiptHandle=\",$flow.Message[0].ReceiptHandle)",
+                "timestamp": ""
+              },
+              "output": {
+                "success": false
+              }
+            }
+          },
+          {
+            "id": "LogSignedRequest",
+            "name": "LogSignedRequest",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[AWSSignatureV4Generator1])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "deleteSQSMsg",
+            "name": "deleteSQSMsg",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "POST",
+                "Uri": "https://sqs.eu-central-1.amazonaws.com/075021648303/odido-demo-detelte-ops",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "multipartForm": {
+                  "metadata": "",
+                  "value": "[{\"name\":\"Receipthandle\",\"type\":\"string\",\"required\":\"true\",\"schema\":\"\"},{\"name\":\"Action\",\"type\":\"string\",\"required\":\"true\",\"schema\":\"\"}]"
+                },
+                "headers": {
+                  "mapping": {
+                    "X-Amz-Security-Token": "=$activity[AWSSignatureV4Generator1].xAmzSecurityToken",
+                    "X-Amz-Content-Sha256": "=$activity[AWSSignatureV4Generator1].xAmzContentSha256",
+                    "X-Amz-Date": "=$activity[AWSSignatureV4Generator1].xAmzDate",
+                    "Authorization": "=$activity[AWSSignatureV4Generator1].authorizationHeader",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                  }
+                },
+                "body": {
+                  "mapping": {
+                    "data": "=$activity[AWSSignatureV4Generator1].canonicalRequest"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "text/plain",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"X-Amz-Date\":{\"type\":\"string\"},\"X-Amz-Content-Sha256\":{\"type\":\"string\"},\"X-Amz-Security-Token\":{\"type\":\"string\"},\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"X-Amz-Date\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"},{\"parameterName\":\"X-Amz-Content-Sha256\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"},{\"parameterName\":\"X-Amz-Security-Token\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"},{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  },
+                  "body": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  },\n  \"type\": \"object\"\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  },\n  \"type\": \"object\"\n}"
+                  },
+                  "multipartFormData": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Receipthandle\":{\"type\":\"string\"},\"Action\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"Receipthandle\":{\"type\":\"string\"},\"Action\":{\"type\":\"string\"}}}"
+                  },
+                  "multipartForm": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"},\"required\":{\"type\":\"string\"},\"schema\":{\"type\":\"string\"}},\"required\":[\"name\",\"type\",\"required\",\"schema\"]}}",
+                    "fe_metadata": "[{\"name\":\"Receipthandle\",\"type\":\"string\",\"required\":\"true\",\"schema\":\"\"},{\"name\":\"Action\",\"type\":\"string\",\"required\":\"true\",\"schema\":\"\"}]"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  },\n  \"type\": \"object\"\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  },\n  \"type\": \"object\"\n}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[deleteSQSMsg])",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiQVdTU2lnbmF0dXJlVjRHZW5lcmF0b3IxIjp7IngiOjM1NCwieSI6OTd9LCJMb2dTaWduZWRSZXF1ZXN0Ijp7IngiOjU2OSwieSI6Mjk0fSwiZGVsZXRlU1FTTXNnIjp7IngiOjY1MCwieSI6OTd9LCJMb2dNZXNzYWdlMSI6eyJ4Ijo5MTYsInkiOjk3fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "Message",
+              "type": "array",
+              "schema": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"MessageAttributes\":{\"type\":\"object\",\"properties\":{}},\"Body\":{\"type\":\"string\"},\"MD5OfBody\":{\"type\":\"string\"},\"MD5OfMessageAttributes\":{\"type\":\"string\"},\"MessageId\":{\"type\":\"string\"},\"ReceiptHandle\":{\"type\":\"string\"}}}"
+              }
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveSQSMessage\",\"properties\":{\"Message\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"MessageAttributes\":{\"type\":\"object\",\"properties\":{}},\"Body\":{\"type\":\"string\"},\"MD5OfBody\":{\"type\":\"string\"},\"MD5OfMessageAttributes\":{\"type\":\"string\"},\"MessageId\":{\"type\":\"string\"},\"ReceiptHandle\":{\"type\":\"string\"}}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AWS.aws.Custom_Endpoint",
+      "type": "boolean",
+      "value": false
+    },
+    {
+      "name": "AWS.aws.Region",
+      "type": "string",
+      "value": "eu-central-1"
+    },
+    {
+      "name": "AWS.aws.Authentication_Type",
+      "type": "string",
+      "value": "AWS Credentials"
+    },
+    {
+      "name": "AWS.aws.Access_key_ID",
+      "type": "string",
+      "value": "ASIARC55DQGXWPCO6TV7"
+    },
+    {
+      "name": "AWS.aws.Secret_access_key",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "AWS.aws.Session_Token",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "AWS.aws.Role_ARN",
+      "type": "string",
+      "value": "arn:aws:iam::075021648303:role/EMEA_SQS_SNS"
+    },
+    {
+      "name": "AWS.aws.Role_Session_Name",
+      "type": "string",
+      "value": "aws-sqs-sns"
+    },
+    {
+      "name": "AWS.aws.External_ID",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "AWS.aws.Expiration_Duration",
+      "type": "float64",
+      "value": 900
+    }
+  ],
+  "connections": {
+    "933637cd-f851-41d1-90d4-099ea918413a": {
+      "id": "933637cd-f851-41d1-90d4-099ea918413a",
+      "name": "aws",
+      "ref": "#connector",
+      "isGlobal": false,
+      "settings": {
+        "name": "aws",
+        "description": "aws",
+        "customEndpoint": "=$property[\"AWS.aws.Custom_Endpoint\"]",
+        "endpoint": "",
+        "region": "=$property[\"AWS.aws.Region\"]",
+        "authenticationType": "=$property[\"AWS.aws.Authentication_Type\"]",
+        "accessKey": "=$property[\"AWS.aws.Access_key_ID\"]",
+        "secretKey": "=$property[\"AWS.aws.Secret_access_key\"]",
+        "sessionToken": "=$property[\"AWS.aws.Session_Token\"]",
+        "assumeRole": true,
+        "roleArn": "=$property[\"AWS.aws.Role_ARN\"]",
+        "roleSessionName": "=$property[\"AWS.aws.Role_Session_Name\"]",
+        "externalId": "=$property[\"AWS.aws.External_ID\"]",
+        "expirationDuration": "=$property[\"AWS.aws.Expiration_Duration\"]",
+        "LAMBDA_CONNECTION_INFO": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1hd3Mtc3FzL3NyYy9hcHAvQW1hem9uU1FTIiwiaWQiOiJBbWF6b25TUVMiLCJ2ZXJzaW9uIjoiMS4wLjEiLCJ0YWciOiIxLjAuMS1iMDEiLCJuYW1lIjoiQW1hem9uIFNRUyIsInMzbG9jYXRpb24iOiJUaWJjby9BbWF6b25TUVMiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vbXBhbmRhdi10aWJjby9mbG9nby1leHRlbnNpb25zL2FjdGl2aXR5L2F3c3NpZ25hdHVyZXY0IiwidmVyc2lvbiI6IjEuMC4wIiwidGFnIjoiMS4wLjAiLCJuYW1lIjoiQVdTU2lnbmF0dXJlVjRHZW5lcmF0b3IxIiwiaWQiOiJhd3NzaWduYXR1cmV2NCIsInMzbG9jYXRpb24iOiJ7VVNFUklEfS9EZWZhdWx0L2FjdGl2aXR5L2F3c3NpZ25hdHVyZXY0IiwiaXNVc2VyRXh0ZW5zaW9uIjp0cnVlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJpZCI6IkdlbmVyYWwiLCJ2ZXJzaW9uIjoiMS42LjciLCJ0YWciOiIxLjYuNy1iMDMiLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWF3cy9zcmMvYXBwL0FXUyIsImlkIjoiQVdTIiwidmVyc2lvbiI6IjEuMi4yIiwidGFnIjoiMS4yLjItYjAyIiwibmFtZSI6IkFXUyIsInMzbG9jYXRpb24iOiJUaWJjby9BV1MiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.25.7"
+  }
+}

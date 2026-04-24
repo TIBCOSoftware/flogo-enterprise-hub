@@ -1,0 +1,505 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Financial Transaction Schema",
+  "type": "object",
+  "description": "Comprehensive schema for financial transactions with compliance and audit requirements",
+  "properties": {
+    "transactionId": {
+      "type": "string",
+      "pattern": "^TXN-[0-9]{4}-[0-9]{8}-[A-Z0-9]{6}$",
+      "description": "Transaction ID in format TXN-YYYY-NNNNNNNN-XXXXXX"
+    },
+    "referenceNumber": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 35,
+      "description": "External reference number"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "debit",
+        "credit",
+        "transfer",
+        "payment",
+        "refund",
+        "fee",
+        "interest",
+        "dividend"
+      ]
+    },
+    "amount": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number",
+          "minimum": 0.01,
+          "multipleOf": 0.01,
+          "description": "Transaction amount with 2 decimal precision"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 currency code"
+        },
+        "exchangeRate": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Exchange rate if currency conversion applied"
+        },
+        "originalAmount": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0.01
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            }
+          },
+          "description": "Original amount before currency conversion"
+        }
+      },
+      "required": ["value", "currency"],
+      "additionalProperties": false
+    },
+    "parties": {
+      "type": "object",
+      "properties": {
+        "payer": {
+          "type": "object",
+          "properties": {
+            "accountNumber": {
+              "type": "string",
+              "pattern": "^[0-9]{10,34}$"
+            },
+            "routingNumber": {
+              "type": "string",
+              "pattern": "^[0-9]{9}$"
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 140
+            },
+            "address": {
+              "type": "object",
+              "properties": {
+                "street": {
+                  "type": "string",
+                  "maxLength": 70
+                },
+                "city": {
+                  "type": "string",
+                  "maxLength": 35
+                },
+                "country": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$"
+                },
+                "postalCode": {
+                  "type": "string",
+                  "maxLength": 16
+                }
+              },
+              "required": ["country"]
+            },
+            "identifiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["swift", "iban", "lei", "tax_id", "customer_id"]
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": ["type", "value"]
+              }
+            }
+          },
+          "required": ["accountNumber", "name"]
+        },
+        "payee": {
+          "type": "object",
+          "properties": {
+            "accountNumber": {
+              "type": "string",
+              "pattern": "^[0-9]{10,34}$"
+            },
+            "routingNumber": {
+              "type": "string",
+              "pattern": "^[0-9]{9}$"
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 140
+            },
+            "address": {
+              "type": "object",
+              "properties": {
+                "street": {
+                  "type": "string",
+                  "maxLength": 70
+                },
+                "city": {
+                  "type": "string",
+                  "maxLength": 35
+                },
+                "country": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$"
+                },
+                "postalCode": {
+                  "type": "string",
+                  "maxLength": 16
+                }
+              },
+              "required": ["country"]
+            },
+            "identifiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["swift", "iban", "lei", "tax_id", "customer_id"]
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": ["type", "value"]
+              }
+            }
+          },
+          "required": ["accountNumber", "name"]
+        },
+        "intermediary": {
+          "type": "object",
+          "properties": {
+            "bankCode": {
+              "type": "string"
+            },
+            "bankName": {
+              "type": "string"
+            },
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            }
+          }
+        }
+      },
+      "required": ["payer", "payee"]
+    },
+    "timing": {
+      "type": "object",
+      "properties": {
+        "initiatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "processedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "settledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valueDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "cutoffTime": {
+          "type": "string",
+          "format": "time"
+        }
+      },
+      "required": ["initiatedAt", "valueDate"]
+    },
+    "status": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "processing",
+            "completed",
+            "failed",
+            "cancelled",
+            "on_hold",
+            "returned"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "reasonCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}[0-9]{2}$"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "processing",
+                  "completed",
+                  "failed",
+                  "cancelled",
+                  "on_hold",
+                  "returned"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": ["status", "timestamp"]
+          }
+        }
+      },
+      "required": ["current"]
+    },
+    "compliance": {
+      "type": "object",
+      "properties": {
+        "amlScreening": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["passed", "failed", "manual_review", "pending"]
+            },
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "flags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "sanctions_list",
+                  "pep",
+                  "high_risk_country",
+                  "suspicious_pattern"
+                ]
+              }
+            }
+          },
+          "required": ["status"]
+        },
+        "sanctions": {
+          "type": "object",
+          "properties": {
+            "checked": {
+              "type": "boolean"
+            },
+            "lists": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["ofac", "eu", "un", "hmt", "custom"]
+              }
+            },
+            "matches": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "list": {
+                    "type": "string"
+                  },
+                  "entity": {
+                    "type": "string"
+                  },
+                  "confidence": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "regulatory": {
+          "type": "object",
+          "properties": {
+            "reportingRequired": {
+              "type": "boolean"
+            },
+            "regulations": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "kyc",
+                  "cdd",
+                  "edd",
+                  "suspicious_activity",
+                  "large_transaction",
+                  "cross_border"
+                ]
+              }
+            },
+            "jurisdiction": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            }
+          }
+        }
+      }
+    },
+    "fees": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "wire",
+              "foreign_exchange",
+              "correspondent",
+              "compliance",
+              "other"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "description": {
+            "type": "string"
+          },
+          "billedTo": {
+            "type": "string",
+            "enum": ["payer", "payee", "shared"]
+          }
+        },
+        "required": ["type", "amount", "currency", "billedTo"]
+      }
+    },
+    "enrichment": {
+      "type": "object",
+      "properties": {
+        "merchantData": {
+          "type": "object",
+          "properties": {
+            "categoryCode": {
+              "type": "string",
+              "pattern": "^[0-9]{4}$"
+            },
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "object",
+              "properties": {
+                "city": {
+                  "type": "string"
+                },
+                "country": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$"
+                }
+              }
+            }
+          }
+        },
+        "geolocation": {
+          "type": "object",
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "accuracy": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "deviceInfo": {
+          "type": "object",
+          "properties": {
+            "userAgent": {
+              "type": "string"
+            },
+            "ipAddress": {
+              "type": "string",
+              "format": "ipv4"
+            },
+            "sessionId": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "createdBy": {
+          "type": "string"
+        },
+        "approvedBy": {
+          "type": "string"
+        },
+        "approvalLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "traceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    }
+  },
+  "required": [
+    "transactionId",
+    "type",
+    "amount",
+    "parties",
+    "timing",
+    "status"
+  ],
+  "additionalProperties": false
+}

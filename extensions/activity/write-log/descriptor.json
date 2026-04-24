@@ -1,0 +1,80 @@
+{
+  "name": "tibco-write-log",
+  "title": "Write Log",
+  "version": "1.0.0",
+  "type": "flogo:activity",
+  "description": "Enterprise-grade logging activity with OpenTracing/OpenTelemetry integration, ECS compliance, field filtering, and sensitive data masking capabilities.",
+  "ref": "github.com/milindpandav/activity/write-log",
+  "settings": [
+    {
+      "name": "logLevel",
+      "type": "string",
+      "required": true,
+      "value": "INFO",
+      "display": {
+        "name": "Log Level",
+        "description": "Default log level for this activity (can be overridden by input)."
+      },
+      "allowed": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"]
+    },
+    {
+      "name": "includeFlowInfo",
+      "type": "boolean",
+      "value": true,
+      "display": {
+        "name": "Include Standard Fields (ECS)",
+        "description": "If true, automatically merges standard fields like @timestamp, service.name, etc., into the log. User-provided data takes precedence."
+      }
+    },
+    {
+      "name": "outputFormat",
+      "type": "string",
+      "required": true,
+      "value": "JSON",
+      "display": {
+        "name": "Default Output Format",
+        "description": "Default format for log output (can be overridden by input)"
+      },
+      "allowed": ["JSON", "KEY_VALUE", "LOGFMT"]
+    },
+    {
+      "name": "addFlowDetails",
+      "type": "boolean",
+      "value": false,
+      "display": {
+        "name": "Add Flow Details",
+        "description": "If true, appends flow instance ID, flow name, and activity name to log messages."
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "name": "logObject",
+      "type": "object",
+      "display": {
+        "name": "Log Schema",
+        "description": "Define a JSON schema or object here. The Flogo UI will create mappable fields based on its structure.",
+        "type": "texteditor",
+        "syntax": "json",
+        "mappable": true
+      },
+      "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"field1\":{\"type\":\"string\"},\"field2\":{\"type\":\"number\"}}}"
+    },
+    {
+      "name": "logLevel",
+      "type": "string"
+    },
+    {
+      "name": "sensitiveFields",
+      "type": "object",
+      "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fieldNamesToHide\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"maskWith\":{\"type\":\"string\", \"default\":\"*****\"},\"maskLength\":{\"type\":\"number\",\"default\":0}}}"
+
+    },
+    {
+      "name": "fieldFilters",
+      "type": "object",
+      "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"include\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"exclude\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"
+    }
+  ],
+  "outputs": []
+}
