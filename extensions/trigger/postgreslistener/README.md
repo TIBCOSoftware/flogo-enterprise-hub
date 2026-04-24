@@ -1,6 +1,6 @@
 # PostgreSQL Listener Trigger
 
-A  Flogo trigger that listens for PostgreSQL NOTIFY messages on specified channels using PostgreSQL's LISTEN/NOTIFY mechanism.
+A Flogo trigger that listens for PostgreSQL NOTIFY messages on specified channels using PostgreSQL's LISTEN/NOTIFY mechanism.
 
 ## Overview
 
