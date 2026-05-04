@@ -4,7 +4,7 @@
 SAP S/4HANA (SAP Business Suite 4 SAP HANA) is an integrated enterprise resource planning (ERP) system developed by SAP SE. It's the next-generation ERP system that runs exclusively on SAP's in-memory database.The features are like 'Allows real-time processing and analytics','Much faster than traditional disk-based databases.'
 
 Below example demonstrates how we can create and use SAP S4HANA provide activities.
-SAP S4HANA app bascially contain 5 activities. 
+SAP S4HANA app basically contain 5 activities. 
 
 The main purpose of these activities are:
 * To insert data using 'SAPS4HANACloudCreate' activity.

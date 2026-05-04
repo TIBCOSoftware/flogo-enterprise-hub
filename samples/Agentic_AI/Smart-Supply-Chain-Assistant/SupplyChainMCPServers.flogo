@@ -1,0 +1,872 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "SupplyChainMCPServers",
+  "description": "Flogo app hosting two MCP servers for supply chain data. InventoryMCPServer on port 9091 and SupplierMCPServer on port 9092.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "MCP server exposing inventory tools for product catalog, stock alerts, and warehouse locations",
+      "settings": {
+        "serverName": "InventoryMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"InventoryMCPServer.PORT\"]",
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "InventoryMCPServer",
+      "handlers": [
+        {
+          "description": "Return the full product catalog with stock levels and reorder points",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetProductCatalog",
+            "handlerDescription": "Get the full product catalog including product IDs, names, categories, unit prices, current stock levels, reorder points, and preferred supplier IDs"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetProductCatalog"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "GetProductCatalog"
+        },
+        {
+          "description": "Return products with stock at or below the reorder point",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetStockAlerts",
+            "handlerDescription": "Get products with stock at or below reorder point. Each alert includes the product ID, current stock, reorder point, shortage quantity, preferred supplier ID, and alert level (LOW, CRITICAL, or OUT_OF_STOCK)"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetStockAlerts"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "GetStockAlerts"
+        },
+        {
+          "description": "Return warehouse storage locations for all products",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetWarehouseLocations",
+            "handlerDescription": "Get physical warehouse locations for all products including warehouse ID, aisle/bin location code, and quantity on hand per location"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetWarehouseLocations"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "GetWarehouseLocations"
+        }
+      ]
+    },
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "MCP server exposing supplier tools for supplier catalog, purchase orders, and capacity data",
+      "settings": {
+        "serverName": "SupplierMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"SupplierMCPServer.PORT\"]",
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "SupplierMCPServer",
+      "handlers": [
+        {
+          "description": "Return the full supplier catalog",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetSuppliers",
+            "handlerDescription": "Get the supplier catalog including supplier IDs, names, countries, contact emails, reliability scores (0-5), average lead times in days, payment terms, quality certifications, and active status"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetSuppliers"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "GetSuppliers"
+        },
+        {
+          "description": "Return open and recent purchase orders",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetPurchaseOrders",
+            "handlerDescription": "Get all purchase orders (open and recently delivered) including PO IDs, supplier details, product details, quantities, unit prices, total values, statuses (Processing, Confirmed, In Transit, Delivered), order dates, and expected delivery dates"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetPurchaseOrders"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "GetPurchaseOrders"
+        },
+        {
+          "description": "Return current production capacity for all suppliers",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetSupplierCapacity",
+            "handlerDescription": "Get current production capacity for all suppliers including utilization percentage, available capacity level (Very High, High, Low), next available production slot, maximum order volume, and operational notes"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetSupplierCapacity"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "GetSupplierCapacity"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GetProductCatalog",
+      "data": {
+        "name": "GetProductCatalog",
+        "description": "Return the full product catalog with stock levels and reorder points",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"products\":[{\"product_id\":\"P001\",\"product_name\":\"Industrial Sensor Type-A\",\"product_category\":\"Electronics\",\"unit_price\":149.99,\"current_stock\":450,\"reorder_point\":100,\"preferred_supplier_id\":\"S001\"},{\"product_id\":\"P002\",\"product_name\":\"Industrial Sensor Type-B\",\"product_category\":\"Electronics\",\"unit_price\":299.99,\"current_stock\":12,\"reorder_point\":50,\"preferred_supplier_id\":\"S002\"},{\"product_id\":\"P003\",\"product_name\":\"Safety Valve MK-7\",\"product_category\":\"Mechanical\",\"unit_price\":89.99,\"current_stock\":0,\"reorder_point\":200,\"preferred_supplier_id\":\"S001\"},{\"product_id\":\"P004\",\"product_name\":\"Control Board X200\",\"product_category\":\"Electronics\",\"unit_price\":499.99,\"current_stock\":78,\"reorder_point\":25,\"preferred_supplier_id\":\"S003\"},{\"product_id\":\"P005\",\"product_name\":\"Hydraulic Pump HY-500\",\"product_category\":\"Mechanical\",\"unit_price\":1250.00,\"current_stock\":5,\"reorder_point\":10,\"preferred_supplier_id\":\"S002\"},{\"product_id\":\"P006\",\"product_name\":\"Pneumatic Cylinder PC-100\",\"product_category\":\"Mechanical\",\"unit_price\":220.00,\"current_stock\":340,\"reorder_point\":75,\"preferred_supplier_id\":\"S003\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"InventoryMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetStockAlerts",
+      "data": {
+        "name": "GetStockAlerts",
+        "description": "Return products with stock at or below the reorder point",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"alerts\":[{\"product_id\":\"P002\",\"product_name\":\"Industrial Sensor Type-B\",\"current_stock\":12,\"reorder_point\":50,\"shortage\":38,\"preferred_supplier_id\":\"S002\",\"alert_level\":\"CRITICAL\"},{\"product_id\":\"P003\",\"product_name\":\"Safety Valve MK-7\",\"current_stock\":0,\"reorder_point\":200,\"shortage\":200,\"preferred_supplier_id\":\"S001\",\"alert_level\":\"OUT_OF_STOCK\"},{\"product_id\":\"P005\",\"product_name\":\"Hydraulic Pump HY-500\",\"current_stock\":5,\"reorder_point\":10,\"shortage\":5,\"preferred_supplier_id\":\"S002\",\"alert_level\":\"LOW\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"InventoryMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetWarehouseLocations",
+      "data": {
+        "name": "GetWarehouseLocations",
+        "description": "Return warehouse storage locations for all products",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"warehouse_locations\":[{\"product_id\":\"P001\",\"product_name\":\"Industrial Sensor Type-A\",\"warehouse_id\":\"WH-EAST\",\"location_code\":\"A12-E3\",\"qty_on_hand\":300},{\"product_id\":\"P001\",\"product_name\":\"Industrial Sensor Type-A\",\"warehouse_id\":\"WH-WEST\",\"location_code\":\"B5-A1\",\"qty_on_hand\":150},{\"product_id\":\"P002\",\"product_name\":\"Industrial Sensor Type-B\",\"warehouse_id\":\"WH-EAST\",\"location_code\":\"A13-B2\",\"qty_on_hand\":12},{\"product_id\":\"P003\",\"product_name\":\"Safety Valve MK-7\",\"warehouse_id\":\"WH-EAST\",\"location_code\":\"C4-F6\",\"qty_on_hand\":0},{\"product_id\":\"P004\",\"product_name\":\"Control Board X200\",\"warehouse_id\":\"WH-NORTH\",\"location_code\":\"D1-A1\",\"qty_on_hand\":78},{\"product_id\":\"P005\",\"product_name\":\"Hydraulic Pump HY-500\",\"warehouse_id\":\"WH-EAST\",\"location_code\":\"H2-D5\",\"qty_on_hand\":5},{\"product_id\":\"P006\",\"product_name\":\"Pneumatic Cylinder PC-100\",\"warehouse_id\":\"WH-WEST\",\"location_code\":\"G3-B7\",\"qty_on_hand\":210},{\"product_id\":\"P006\",\"product_name\":\"Pneumatic Cylinder PC-100\",\"warehouse_id\":\"WH-NORTH\",\"location_code\":\"G1-C2\",\"qty_on_hand\":130}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"InventoryMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetSuppliers",
+      "data": {
+        "name": "GetSuppliers",
+        "description": "Return the full supplier catalog",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"suppliers\":[{\"supplier_id\":\"S001\",\"supplier_name\":\"TechParts Inc.\",\"country\":\"USA\",\"contact_email\":\"orders@techparts.com\",\"reliability_score\":4.8,\"average_lead_days\":5,\"payment_terms\":\"Net-30\",\"certifications\":[\"ISO-9001\",\"RoHS\"],\"status\":\"Active\"},{\"supplier_id\":\"S002\",\"supplier_name\":\"Pacific Components Ltd.\",\"country\":\"Japan\",\"contact_email\":\"supply@pacificcomp.co.jp\",\"reliability_score\":4.5,\"average_lead_days\":14,\"payment_terms\":\"Net-45\",\"certifications\":[\"ISO-9001\",\"ISO-14001\"],\"status\":\"Active\"},{\"supplier_id\":\"S003\",\"supplier_name\":\"EuroMech GmbH\",\"country\":\"Germany\",\"contact_email\":\"procurement@euromech.de\",\"reliability_score\":4.9,\"average_lead_days\":10,\"payment_terms\":\"Net-30\",\"certifications\":[\"ISO-9001\",\"CE\"],\"status\":\"Active\"},{\"supplier_id\":\"S004\",\"supplier_name\":\"QuickShip Supplies\",\"country\":\"USA\",\"contact_email\":\"ops@quickship.com\",\"reliability_score\":3.9,\"average_lead_days\":2,\"payment_terms\":\"Net-15\",\"certifications\":[\"ISO-9001\"],\"status\":\"Active\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SupplierMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetPurchaseOrders",
+      "data": {
+        "name": "GetPurchaseOrders",
+        "description": "Return open and recent purchase orders",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"purchase_orders\":[{\"po_id\":\"PO-2025-001\",\"supplier_id\":\"S002\",\"supplier_name\":\"Pacific Components Ltd.\",\"product_id\":\"P002\",\"product_name\":\"Industrial Sensor Type-B\",\"quantity\":100,\"unit_price\":280.00,\"total_value\":28000.00,\"status\":\"In Transit\",\"order_date\":\"2025-03-15\",\"expected_delivery\":\"2025-04-05\"},{\"po_id\":\"PO-2025-002\",\"supplier_id\":\"S001\",\"supplier_name\":\"TechParts Inc.\",\"product_id\":\"P003\",\"product_name\":\"Safety Valve MK-7\",\"quantity\":300,\"unit_price\":82.00,\"total_value\":24600.00,\"status\":\"Confirmed\",\"order_date\":\"2025-03-20\",\"expected_delivery\":\"2025-03-27\"},{\"po_id\":\"PO-2025-003\",\"supplier_id\":\"S002\",\"supplier_name\":\"Pacific Components Ltd.\",\"product_id\":\"P005\",\"product_name\":\"Hydraulic Pump HY-500\",\"quantity\":15,\"unit_price\":1150.00,\"total_value\":17250.00,\"status\":\"Processing\",\"order_date\":\"2025-03-28\",\"expected_delivery\":\"2025-04-18\"},{\"po_id\":\"PO-2025-004\",\"supplier_id\":\"S003\",\"supplier_name\":\"EuroMech GmbH\",\"product_id\":\"P004\",\"product_name\":\"Control Board X200\",\"quantity\":50,\"unit_price\":450.00,\"total_value\":22500.00,\"status\":\"Delivered\",\"order_date\":\"2025-03-01\",\"expected_delivery\":\"2025-03-12\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SupplierMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetSupplierCapacity",
+      "data": {
+        "name": "GetSupplierCapacity",
+        "description": "Return current production capacity for all suppliers",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"supplier_capacity\":[{\"supplier_id\":\"S001\",\"supplier_name\":\"TechParts Inc.\",\"current_utilization_pct\":65,\"available_capacity\":\"High\",\"next_available_slot\":\"Immediate\",\"max_order_volume\":10000,\"notes\":\"Operating at normal capacity\"},{\"supplier_id\":\"S002\",\"supplier_name\":\"Pacific Components Ltd.\",\"current_utilization_pct\":90,\"available_capacity\":\"Low\",\"next_available_slot\":\"2025-04-20\",\"max_order_volume\":5000,\"notes\":\"High demand period, limited slots available\"},{\"supplier_id\":\"S003\",\"supplier_name\":\"EuroMech GmbH\",\"current_utilization_pct\":45,\"available_capacity\":\"High\",\"next_available_slot\":\"Immediate\",\"max_order_volume\":8000,\"notes\":\"Increased capacity after facility expansion\"},{\"supplier_id\":\"S004\",\"supplier_name\":\"QuickShip Supplies\",\"current_utilization_pct\":30,\"available_capacity\":\"Very High\",\"next_available_slot\":\"Immediate\",\"max_order_volume\":3000,\"notes\":\"Specializes in rush orders\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SupplierMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "InventoryMCPServer.PORT",
+      "type": "string",
+      "value": "9091"
+    },
+    {
+      "name": "SupplierMCPServer.PORT",
+      "type": "string",
+      "value": "9092"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMSIsInRhZyI6IjEuMC4xLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTIiLCJ0YWciOiIxLjYuMTItYjA2IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9091",
+        "title": "InventoryMCPServer",
+        "type": "public"
+      },
+      {
+        "protocol": "http",
+        "port": "9092",
+        "title": "SupplierMCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.2"
+  }
+}

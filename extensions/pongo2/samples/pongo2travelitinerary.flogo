@@ -1,0 +1,236 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/kulbhushanbhalerao/pongo2",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/array"
+  ],
+  "name": "pongo2travelitinerary",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Flogo MCP server for Agentic AI",
+      "settings": {
+        "serverName": "travelItinerary",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "8081",
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "MCPServer",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "handlerType": "Prompt",
+            "handlerName": "travelitinerary-pongo",
+            "handlerDescription": "Prompt for generating travel itinerary to given location for number of days",
+            "resourceUri": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:TravelItineraryPrompt"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"location\": {\n            \"type\": \"string\"\n        },\n        \"days\": {\n            \"type\": \"string\"\n        }\n    }\n}",
+                "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"location\": {\n            \"type\": \"string\"\n        },\n        \"days\": {\n            \"type\": \"string\"\n        }\n    }\n}"
+              }
+            }
+          },
+          "name": "TravelItineraryPrompt"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:TravelItineraryPrompt",
+      "data": {
+        "name": "TravelItineraryPrompt",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Pongo2AIPromptTemplate",
+            "type": "label",
+            "label": "StartActivity to Pongo2AIPromptTemplate"
+          },
+          {
+            "id": 2,
+            "from": "Pongo2AIPromptTemplate",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "Pongo2AIPromptTemplate to LogMessage"
+          },
+          {
+            "id": 3,
+            "from": "LogMessage",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Pongo2AIPromptTemplate",
+            "name": "Pongo2AIPromptTemplate",
+            "description": "Processes Pongo2/Django templates for AI prompts with dynamic variable mapping. Uses pongo2 library for Go-native template processing.",
+            "activity": {
+              "ref": "#pongo2",
+              "settings": {
+                "template": "# 🌍 Travel itinerary for {{ location }} for {{ days }} days\n\nYou are a travel itinerary generator for tourists and create a itinerary\n\n• Your job is to create itineraries for tourists coming to Europe, based on user input.\n• You must address all of what the user provides.\n• You must have a catchy title.\n• You must bullet point every sentence.\n• Your output must be in a logical format and order.\n• Come up with at least 2 ideas the user may not have mentioned.\n• Output 1-2 lines of a history of each place suggested.\n• Provide 1-2 lines of current cultural background on the place provided.\n• Provide 1-2 lines of weather related advice for each place suggested.\n• Provide one line of rationale for each place suggested.\n• Include one joke in the itinerary.\n• End the itinerary with a clever, place-related goodbye.\n\n## 🗺️ First Destination:\n\n\n## 🗺️ Second Destination: \n\n\nGenerate me a travel itinerary based on the above template."
+              },
+              "input": {
+                "templateVariables": {
+                  "mapping": {
+                    "location": "=$flow.arguments.location",
+                    "days": "=$flow.arguments.days"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "templateVariables": {
+                    "type": "json",
+                    "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"location\": {\n            \"type\": \"string\"\n        },\n        \"days\": {\n            \"type\": \"string\"\n        }\n    }\n}",
+                    "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"location\": {\n            \"type\": \"string\"\n        },\n        \"days\": {\n            \"type\": \"string\"\n        }\n    }\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$activity[Pongo2AIPromptTemplate].renderedPrompt",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "messages": [
+                        {
+                          "role": "user",
+                          "content": "=$activity[Pongo2AIPromptTemplate].renderedPrompt"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUG9uZ28yQUlQcm9tcHRUZW1wbGF0ZSI6eyJ4IjoyMjIsInkiOjk0fSwiTG9nTWVzc2FnZSI6eyJ4Ijo0MjQsInkiOjk3fSwiUmV0dXJuIjp7IngiOjY0MCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"location\":{\"type\":\"string\"},\"days\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"location\":{\"type\":\"string\"},\"days\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [],
+  "schemas": {
+    "simpleItinerarySchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"traveler_name\": {\n            \"type\": \"string\"\n        },\n        \"itinerary_title\": {\n            \"type\": \"string\"\n        },\n        \"trip_focus\": {\n            \"type\": \"string\"\n        },\n        \"duration\": {\n            \"type\": \"string\"\n        },\n        \"travel_style\": {\n            \"type\": \"string\"\n        },\n        \"budget_range\": {\n            \"type\": \"string\"\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"traveler_name\": {\n            \"type\": \"string\"\n        },\n        \"itinerary_title\": {\n            \"type\": \"string\"\n        },\n        \"trip_focus\": {\n            \"type\": \"string\"\n        },\n        \"duration\": {\n            \"type\": \"string\"\n        },\n        \"travel_style\": {\n            \"type\": \"string\"\n        },\n        \"budget_range\": {\n            \"type\": \"string\"\n        }\n    }\n}"
+    }
+  },
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIwLjkuMSIsInRhZyI6IjAuOS4xLWIxMSIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIERldmVsb3BlciBQcmV2aWV3IiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9rdWxiaHVzaGFuYmhhbGVyYW8vcG9uZ28yIiwidmVyc2lvbiI6IjEuMC4wIiwidGFnIjoiMS4wLjAiLCJuYW1lIjoiUG9uZ28yQUlQcm9tcHRUZW1wbGF0ZSIsImlkIjoicG9uZ28yLXByb21wdCIsInMzbG9jYXRpb24iOiJ7VVNFUklEfS9EZWZhdWx0L2FjdGl2aXR5L3BvbmdvMiIsImlzVXNlckV4dGVuc2lvbiI6dHJ1ZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiaWQiOiJHZW5lcmFsIiwidmVyc2lvbiI6IjEuNi4xMCIsInRhZyI6IjEuNi4xMC1iMDUiLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "8081",
+        "title": "MCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.25.10"
+  }
+}

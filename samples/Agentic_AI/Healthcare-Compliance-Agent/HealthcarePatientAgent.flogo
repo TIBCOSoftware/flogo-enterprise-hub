@@ -1,0 +1,1449 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/callagent",
+    "github.com/project-flogo/websocket/activity/wswritedata",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-files/src/app/File/activity/read",
+    "github.com/tibco/flogo-general/src/app/General/activity/parsejson",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/project-flogo/websocket/trigger/wsserver",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider"
+  ],
+  "name": "HealthcarePatientAgent",
+  "description": "HIPAA-aware AI patient support assistant using OpenAI GPT-5.4. Features a custom PHI guardrail (SSN/DOB/MRN redaction) and a file-based custom conversation store for compliance audit trails.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#wsserver",
+      "name": "wsserver",
+      "description": "WebSocket server — patients connect here to chat with the healthcare support agent",
+      "settings": {
+        "port": 9998,
+        "enableTLS": false,
+        "serverCert": "",
+        "serverKey": "",
+        "enableClientAuth": false,
+        "trustStore": ""
+      },
+      "id": "WebsocketServer",
+      "handlers": [
+        {
+          "description": "Receives patient messages via WebSocket and dispatches them to the HealthcarePatientAgent",
+          "settings": {
+            "method": "GET",
+            "path": "/patient-support",
+            "mode": "Data",
+            "format": "String",
+            "jsonSchema": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:callHealthcareAgent_flow"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "queryParams": "=$.queryParams",
+              "headers": "=$.headers",
+              "content": "=$.content",
+              "wsconnection": "=$.wsconnection"
+            }
+          },
+          "schemas": {
+            "output": {
+              "queryParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"sessionId\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"sessionId\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Key\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Version\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Upgrade\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "callHealthcareAgent_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Healthcare Patient Support Agent — HIPAA-aware, with custom PHI guardrail, file-based conversation store, and 3 patient-service tools.",
+      "settings": {
+        "llmProviderConnection": "conn://22222222-2222-2222-2222-222222222222",
+        "agentName": "=$property[\"Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"Trigger_Settings.AgentDescription\"]",
+        "agentType": "Local",
+        "agentPort": 8081,
+        "model": "=$property[\"Trigger_Settings.LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "=$property[\"Trigger_Settings.LLM_temperature\"]",
+        "enableGuardrails": true,
+        "rateLimit": "=$property[\"Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": "=$property[\"Trigger_Settings.Redact_Sensitive_Data\"]",
+        "mcpServers": [],
+        "conversationStoreType": "Custom Store",
+        "memoryMaxSize": 30,
+        "systemPrompt": "You are a compassionate and knowledgeable patient support assistant for HealthBridge Medical Group. Your role is to help patients navigate their healthcare journey with empathy, clarity, and respect.\n\n## Core Principles\n- **Patient privacy first**: Never encourage patients to share SSN, full DOB, or Medical Record Numbers in chat. If they do, remind them this channel is not the appropriate place for sensitive identifiers.\n- **Non-diagnostic**: You provide general health information and coordinate services — you are not a doctor and cannot diagnose conditions or prescribe medications.\n- **Empathy**: Many patients are anxious or unwell. Respond with warmth and patience.\n- **Clarity**: Use plain language. Avoid medical jargon unless the patient uses it first.\n\n## What You Can Help With\n- Checking appointment availability and suggesting times (use CheckAppointmentSlots tool)\n- Finding nearby clinics and urgent care centers (use FindNearestClinic tool)\n- Providing general medication guidance — side effects, storage, interactions (use GetMedicationGuide tool)\n- Explaining next steps for common procedures\n- Answering general questions about the healthcare provider's services\n\n## What You Should NOT Do\n- Diagnose medical conditions\n- Recommend specific medications or dosing changes\n- Access or discuss specific patient medical records\n- Promise specific wait times or outcomes\n\n## Privacy Reminders\nIf a patient begins sharing sensitive identifiers (SSN, full DOB, MRN), gently redirect them:\n\"For your security, please don't share sensitive identifiers here. For identity verification, our staff will contact you securely through verified channels.\"\n\n## Response Style\n- Begin with acknowledgment of the patient's concern\n- Provide clear, actionable next steps\n- End with an offer to help further or connect them with human staff if needed"
+      },
+      "id": "HealthcarePatientAgent",
+      "handlers": [
+        {
+          "description": "Custom PHI Guardrail: Receives pre-processed customGuardrailInput (SSN already redacted at handler level) and applies additional DOB and MRN redaction before returning sanitized data to the LLM pipeline.",
+          "settings": {
+            "handlerType": "Custom Guardrail",
+            "agentToolName": "",
+            "agentToolDescription": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:phi_guardrail_flow"
+            },
+            "input": {
+              "customGuardrailInput": {
+                "@conditional": [
+                  {
+                    "string.contains($.customGuardrailInput.data, \"\\\\d{3}-\\\\d{2}-\\\\d{4}\")": {
+                      "data": "=string.replaceRegEx(\"\\\\d{3}-\\\\d{2}-\\\\d{4}\", $.customGuardrailInput.data, \"XXX-XX-XXXX\")",
+                      "isRequest": "=$.customGuardrailInput.isRequest"
+                    }
+                  },
+                  {
+                    "@otherwise": {
+                      "data": "=$.customGuardrailInput.data",
+                      "isRequest": "=$.customGuardrailInput.isRequest"
+                    }
+                  }
+                ]
+              }
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "phi_guardrail_flow"
+        },
+        {
+          "description": "Custom Conversation Store STORE: Reads the existing per-session JSON file, appends the new message enriched with HIPAA-context metadata, then writes the updated session back. Per-session isolation: each patient conversationId maps to its own {conversationId}.json file under HealthcareAgent.ConversationDir. Pattern follows the AI_CustSore.json reference: Read -> ParseJSON -> array.append -> Write.",
+          "settings": {
+            "handlerType": "Custom Conversation Store",
+            "agentToolName": "",
+            "agentToolDescription": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:store_conversation_flow"
+            },
+            "input": {
+              "customConversationStoreOpInput": {
+                "mapping": {
+                  "conversationId": "=$.customConversationStoreOpInput.conversationId",
+                  "message": {
+                    "role": "=$.customConversationStoreOpInput.message.role",
+                    "content": "=$.customConversationStoreOpInput.message.content",
+                    "metadata": {
+                      "sessionId": "=$.customConversationStoreOpInput.conversationId",
+                      "channel": "websocket",
+                      "phiHandled": true,
+                      "dataClassification": "PHI_PROTECTED",
+                      "patientPortalVersion": "2.0"
+                    }
+                  }
+                }
+              }
+            },
+            "output": {
+              "customConversationStoreOpOutput": "=$.customConversationStoreOpOutput"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "store_conversation_flow"
+        },
+        {
+          "description": "Custom Conversation Store FETCH: Reads the per-session JSON file for this conversationId and returns the full message history to the agent. Unlike the single-file reference (which filtered by hardcoded ID), per-session files eliminate the filter entirely — each file IS one patient conversation.",
+          "settings": {
+            "handlerType": "Custom Conversation Store",
+            "agentToolName": "",
+            "agentToolDescription": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "FETCH"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:fetch_conversation_flow"
+            },
+            "input": {
+              "customConversationStoreOpInput": "=$.customConversationStoreOpInput"
+            },
+            "output": {
+              "customConversationStoreOpOutput": "=$.customConversationStoreOpOutput"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"role\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"content\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"metadata\": {\r\n            \"type\": \"object\",\r\n            \"properties\": {}\r\n          }\r\n        },\r\n        \"required\": [\"role\",\"content\"]\r\n      }\r\n    }\r\n  },\r\n  \"required\": [\"success\",\"messages\"]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"object\",\r\n        \"properties\": {\r\n          \"role\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"content\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"metadata\": {\r\n            \"type\": \"object\",\r\n            \"properties\": {}\r\n          }\r\n        },\r\n        \"required\": [\"role\",\"content\"]\r\n      }\r\n    }\r\n  },\r\n  \"required\": [\"success\",\"messages\"]\r\n}"
+              }
+            },
+            "output": {
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "fetch_conversation_flow"
+        },
+        {
+          "description": "Tool handler: Returns available appointment slots. Replace Return with InvokeRestService to your EHR/scheduling system (Epic, Cerner, etc.) in production.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "CheckAppointmentSlots",
+            "agentToolDescription": "Checks available appointment slots for a given medical department or specific doctor. Returns a list of available date/time slots. Use when a patient asks about booking or scheduling an appointment.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:check_appointments_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"department\": {\"type\": \"string\"},\n    \"preferredDate\": {\"type\": \"string\"},\n    \"doctorName\": {\"type\": \"string\"}\n  },\n  \"required\": [\"department\", \"preferredDate\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"department\": {\"type\": \"string\"},\n    \"preferredDate\": {\"type\": \"string\"},\n    \"doctorName\": {\"type\": \"string\"}\n  },\n  \"required\": [\"department\", \"preferredDate\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "check_appointments_flow"
+        },
+        {
+          "description": "Tool handler: Finds nearest clinics by ZIP code and specialty. Replace Return with InvokeRestService to a real clinic locator API in production.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "FindNearestClinic",
+            "agentToolDescription": "Finds the nearest clinics or urgent care centers by ZIP code and medical specialty. Use when a patient asks where they can go for a specific type of care.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:find_clinic_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"zipCode\": {\"type\": \"string\"},\n    \"specialty\": {\"type\": \"string\"},\n    \"maxDistanceMiles\": {\"type\": \"number\"}\n  },\n  \"required\": [\"zipCode\", \"specialty\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"zipCode\": {\"type\": \"string\"},\n    \"specialty\": {\"type\": \"string\"},\n    \"maxDistanceMiles\": {\"type\": \"number\"}\n  },\n  \"required\": [\"zipCode\", \"specialty\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "find_clinic_flow"
+        },
+        {
+          "description": "Tool handler: Returns general (non-diagnostic) medication guidance. Replace Return with InvokeRestService to a pharmacology database API in production.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "GetMedicationGuide",
+            "agentToolDescription": "Returns general, non-diagnostic medication information such as common side effects, storage instructions, food interactions, and general dosage guidance. Never recommends dosage changes — always directs patients to consult their prescribing doctor for personal medical decisions.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_medication_guide_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"medicationName\": {\"type\": \"string\"},\n    \"infoType\": {\"type\": \"string\"}\n  },\n  \"required\": [\"medicationName\", \"infoType\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"medicationName\": {\"type\": \"string\"},\n    \"infoType\": {\"type\": \"string\"}\n  },\n  \"required\": [\"medicationName\", \"infoType\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "get_medication_guide_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:callHealthcareAgent_flow",
+      "data": {
+        "name": "callHealthcareAgent_flow",
+        "description": "Receives patient messages via WebSocket and dispatches them to the HealthcarePatientAgent",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "CallHealthcareAgent",
+            "type": "label",
+            "label": "StartActivity to CallHealthcareAgent"
+          },
+          {
+            "id": 2,
+            "from": "CallHealthcareAgent",
+            "to": "WebsocketWriteData",
+            "type": "label",
+            "label": "CallHealthcareAgent to WebsocketWriteData"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "CallHealthcareAgent",
+            "name": "CallHealthcareAgent",
+            "description": "Invokes the Healthcare Patient Agent. The sessionId query parameter is used as the conversationId for multi-turn memory and the custom conversation store file name.",
+            "activity": {
+              "ref": "#callagent",
+              "settings": {
+                "agentType": "Local"
+              },
+              "input": {
+                "agentName": "HealthcarePatientAgent",
+                "agentBaseUrl": "",
+                "prompt": "=coerce.toString($flow.content)",
+                "structuredOutput": false,
+                "conversationId": "=coerce.toString($flow.queryParams.sessionId)"
+              }
+            }
+          },
+          {
+            "id": "WebsocketWriteData",
+            "name": "WebsocketWriteData",
+            "description": "Streams the agent's response back to the patient over WebSocket",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "=$activity[CallHealthcareAgent].response",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxIZWFsdGhjYXJlQWdlbnQiOnsieCI6MjExLCJ5Ijo1M30sIldlYnNvY2tldFdyaXRlRGF0YSI6eyJ4Ijo0MTYsInkiOjQ5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "params"
+            },
+            {
+              "name": "queryParams",
+              "type": "params"
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "content",
+              "type": "any"
+            },
+            {
+              "name": "wsconnection",
+              "type": "any"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"WebsocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"params\"},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:phi_guardrail_flow",
+      "data": {
+        "name": "phi_guardrail_flow",
+        "description": "Custom PHI Guardrail: Receives pre-processed customGuardrailInput (SSN already redacted at handler level) and applies additional DOB and MRN redaction before returning sanitized data to the LLM pipeline.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogPHIGuardrail",
+            "type": "label",
+            "label": "StartActivity to LogPHIGuardrail"
+          },
+          {
+            "id": 2,
+            "from": "LogPHIGuardrail",
+            "to": "ReturnSanitizedData",
+            "type": "label",
+            "label": "LogPHIGuardrail to ReturnSanitizedData"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogPHIGuardrail",
+            "name": "LogPHIGuardrail",
+            "description": "Logs the guardrail invocation direction (input=patient→LLM, output=LLM→patient)",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[PHIGuardrail] direction=\", string.concat(coerce.toString($flow.customGuardrailInput.isRequest), \" — PHI redaction applied\"))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnSanitizedData",
+            "name": "ReturnSanitizedData",
+            "description": "Returns sanitized data: SSN was already redacted by the handler-level @conditional; applies DOB (\\d{4}-\\d{2}-\\d{2} → ****-**-**) and MRN (MRN-\\d{6,10} → MRN-XXXXXXXX) on the handler-processed value.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.replaceRegEx(\"MRN-\\\\d{6,10}\", string.replaceRegEx(\"\\\\d{4}-\\\\d{2}-\\\\d{2}\", $flow.customGuardrailInput.data, \"****-**-**\"), \"MRN-XXXXXXXX\")",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nUEhJR3VhcmRyYWlsIjp7IngiOjI3NSwieSI6OTJ9LCJSZXR1cm5TYW5pdGl6ZWREYXRhIjp7IngiOjQ4MCwieSI6OTF9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "customGuardrailInput",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"isRequest\":{\"type\":\"boolean\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"HealthcarePatientAgent\",\"properties\":{\"customGuardrailInput\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"isRequest\":{\"type\":\"boolean\"}},\"required\":[\"data\",\"isRequest\"]}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:store_conversation_flow",
+      "data": {
+        "name": "store_conversation_flow",
+        "description": "Custom Conversation Store STORE: Reads the existing per-session JSON file, appends the new message enriched with HIPAA-context metadata, then writes the updated session back. Per-session isolation: each patient conversationId maps to its own {conversationId}.json file under HealthcareAgent.ConversationDir. Pattern follows the AI_CustSore.json reference: Read -> ParseJSON -> array.append -> Write.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStore",
+            "type": "label",
+            "label": "StartActivity to LogStore"
+          },
+          {
+            "id": 2,
+            "from": "LogStore",
+            "to": "ReadSessionFile",
+            "type": "label",
+            "label": "LogStore to ReadSessionFile"
+          },
+          {
+            "id": 3,
+            "from": "ReadSessionFile",
+            "to": "ParseSessionJSON",
+            "type": "label",
+            "label": "ReadSessionFile to ParseSessionJSON"
+          },
+          {
+            "id": 4,
+            "from": "ParseSessionJSON",
+            "to": "WriteUpdatedSession",
+            "type": "label",
+            "label": "ParseSessionJSON to WriteUpdatedSession"
+          },
+          {
+            "id": 5,
+            "from": "WriteUpdatedSession",
+            "to": "ReturnStoreSuccess",
+            "type": "label",
+            "label": "WriteUpdatedSession to ReturnStoreSuccess"
+          },
+          {
+            "id": 6,
+            "from": "ReadSessionFile",
+            "to": "WriteNewSession",
+            "type": "error",
+            "label": "ReadSessionFile to WriteNewSession (new session bootstrap)"
+          },
+          {
+            "id": 7,
+            "from": "WriteNewSession",
+            "to": "ReturnStoreSuccess",
+            "type": "label",
+            "label": "WriteNewSession to ReturnStoreSuccess"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStore",
+            "name": "LogStore",
+            "description": "Logs the store operation with role and conversationId for HIPAA audit observability",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[PHIConvStore STORE] conversationId=\",$flow.customConversationStoreOpInput.conversationId,\" role=\",$flow.customConversationStoreOpInput.message.role)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReadSessionFile",
+            "name": "ReadSessionFile",
+            "description": "Reads the existing per-session conversation JSON file. Format: {conversationId, messages[]}. Each patient conversationId maps to its own isolated file. Self-bootstrapping: if the file does not exist (new session), the error link routes to WriteNewSession to create it automatically.",
+            "activity": {
+              "ref": "#read",
+              "input": {
+                "readAs": "Text",
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "fileName": "=string.concat($property[\"HealthcareAgent.ConversationDir\"],\"/\",$flow.customConversationStoreOpInput.conversationId,\".json\")"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ParseSessionJSON",
+            "name": "ParseSessionJSON",
+            "description": "Parses the session JSON file content into a structured object. Schema matches per-session format: {conversationId, messages[{role,content,metadata}]} with HIPAA metadata fields (sessionId, channel, phiHandled, dataClassification, patientPortalVersion).",
+            "activity": {
+              "ref": "#parsejson",
+              "input": {
+                "validate": false,
+                "jsonString": "=$activity[ReadSessionFile].output.fileContent.textContent"
+              },
+              "schemas": {
+                "output": {
+                  "jsonObject": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"conversationId\": {\"type\": \"string\"},\n    \"messages\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"role\": {\"type\": \"string\", \"enum\": [\"user\", \"assistant\", \"system\", \"tool\"]},\n          \"content\": {\"type\": \"string\"},\n          \"metadata\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"sessionId\": {\"type\": \"string\"},\n              \"channel\": {\"type\": \"string\"},\n              \"phiHandled\": {\"type\": \"boolean\"},\n              \"dataClassification\": {\"type\": \"string\"},\n              \"patientPortalVersion\": {\"type\": \"string\"}\n            }\n          }\n        },\n        \"required\": [\"role\", \"content\"],\n        \"additionalProperties\": false\n      }\n    }\n  },\n  \"required\": [\"conversationId\", \"messages\"],\n  \"additionalProperties\": false\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"conversationId\": {\"type\": \"string\"},\n    \"messages\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"role\": {\"type\": \"string\", \"enum\": [\"user\", \"assistant\", \"system\", \"tool\"]},\n          \"content\": {\"type\": \"string\"},\n          \"metadata\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"sessionId\": {\"type\": \"string\"},\n              \"channel\": {\"type\": \"string\"},\n              \"phiHandled\": {\"type\": \"boolean\"},\n              \"dataClassification\": {\"type\": \"string\"},\n              \"patientPortalVersion\": {\"type\": \"string\"}\n            }\n          }\n        },\n        \"required\": [\"role\", \"content\"],\n        \"additionalProperties\": false\n      }\n    }\n  },\n  \"required\": [\"conversationId\", \"messages\"],\n  \"additionalProperties\": false\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "WriteUpdatedSession",
+            "name": "WriteUpdatedSession",
+            "description": "Writes the updated session JSON back to the per-session file using array.append() — identical pattern to the AI_CustSore.json reference app. createNonExistingDir auto-creates the conversations/ directory on first use.",
+            "activity": {
+              "ref": "#write",
+              "input": {
+                "writeAs": "Text",
+                "createNonExistingDir": true,
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "overwrite": "=boolean.true()",
+                    "fileName": "=string.concat($property[\"HealthcareAgent.ConversationDir\"],\"/\",$flow.customConversationStoreOpInput.conversationId,\".json\")",
+                    "textContent": "=string.concat(\"{\\\"conversationId\\\":\\\"\",$flow.customConversationStoreOpInput.conversationId,\"\\\",\\\"messages\\\":\",coerce.toString(array.append(($activity[ParseSessionJSON].jsonObject.messages),$flow.customConversationStoreOpInput.message)),\"}\")"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReturnStoreSuccess",
+            "name": "ReturnStoreSuccess",
+            "description": "Returns success to the agent after appending the message to the per-session conversation file.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "customConversationStoreOpOutput": {
+                    "mapping": {
+                      "success": "=boolean.true()"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "WriteNewSession",
+            "name": "WriteNewSession",
+            "description": "New session bootstrap: file did not exist so create a new session JSON with the current message as the first entry. Auto-creates the conversations/ directory. No seed file required.",
+            "activity": {
+              "ref": "#write",
+              "input": {
+                "writeAs": "Text",
+                "createNonExistingDir": true,
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "overwrite": "=boolean.true()",
+                    "fileName": "=string.concat($property[\"HealthcareAgent.ConversationDir\"],\"/\",$flow.customConversationStoreOpInput.conversationId,\".json\")",
+                    "textContent": "=string.concat(\"{\\\"conversationId\\\":\\\"\",$flow.customConversationStoreOpInput.conversationId,\"\\\",\\\"messages\\\":[\",coerce.toString($flow.customConversationStoreOpInput.message),\"]}\")"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0b3JlIjp7IngiOjE0NCwieSI6NDJ9LCJSZWFkU2Vzc2lvbkZpbGUiOnsieCI6MzIzLCJ5Ijo0M30sIlBhcnNlU2Vzc2lvbkpTT04iOnsieCI6NTQxLCJ5Ijo0M30sIldyaXRlVXBkYXRlZFNlc3Npb24iOnsieCI6NzAwLCJ5Ijo0NH0sIlJldHVyblN0b3JlU3VjY2VzcyI6eyJ4Ijo3MDAsInkiOjI0Mn0sIldyaXRlTmV3U2Vzc2lvbiI6eyJ4Ijo0MDgsInkiOjE1N319",
+        "metadata": {
+          "input": [
+            {
+              "name": "customConversationStoreOpInput",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"conversationId\":{\"type\":\"string\"},\"message\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"object\",\"properties\":{}}}}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "customConversationStoreOpOutput",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"success\":{\"type\":\"boolean\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customConversationStoreOpInput\":{\"type\":\"object\",\"properties\":{\"conversationId\":{\"type\":\"string\"},\"message\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"object\",\"properties\":{}}}}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customConversationStoreOpOutput\":{\"type\":\"object\",\"properties\":{\"success\":{\"type\":\"boolean\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:fetch_conversation_flow",
+      "data": {
+        "name": "fetch_conversation_flow",
+        "description": "Custom Conversation Store FETCH: Reads the per-session JSON file for this conversationId and returns the full message history to the agent. Unlike the single-file reference (which filtered by hardcoded ID), per-session files eliminate the filter entirely — each file IS one patient conversation.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogFetch",
+            "type": "label",
+            "label": "StartActivity to LogFetch"
+          },
+          {
+            "id": 2,
+            "from": "LogFetch",
+            "to": "ReadSessionFile",
+            "type": "label",
+            "label": "LogFetch to ReadSessionFile"
+          },
+          {
+            "id": 3,
+            "from": "ReadSessionFile",
+            "to": "ParseSessionJSON",
+            "type": "label",
+            "label": "ReadSessionFile to ParseSessionJSON"
+          },
+          {
+            "id": 4,
+            "from": "ParseSessionJSON",
+            "to": "ReturnMessages",
+            "type": "label",
+            "label": "ParseSessionJSON to ReturnMessages"
+          },
+          {
+            "id": 5,
+            "from": "ReadSessionFile",
+            "to": "ReturnEmptyMessages",
+            "type": "error",
+            "label": "ReadSessionFile to ReturnEmptyMessages (new session bootstrap)"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogFetch",
+            "name": "LogFetch",
+            "description": "Logs the fetch request for observability and HIPAA audit trail",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[PHIConvStore FETCH] Retrieving history for conversationId=\",$flow.customConversationStoreOpInput.conversationId)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReadSessionFile",
+            "name": "ReadSessionFile",
+            "description": "Reads the per-session conversation JSON file named by conversationId. Each patient session has its own isolated {conversationId}.json file. Self-bootstrapping: if the file does not exist (new session), the error link routes to ReturnEmptyMessages automatically.",
+            "activity": {
+              "ref": "#read",
+              "input": {
+                "readAs": "Text",
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "fileName": "=string.concat($property[\"HealthcareAgent.ConversationDir\"],\"/\",$flow.customConversationStoreOpInput.conversationId,\".json\")"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ParseSessionJSON",
+            "name": "ParseSessionJSON",
+            "description": "Parses the session JSON file content. Schema matches the per-session format {conversationId, messages[]} with HIPAA metadata fields. minItems:0 allows empty (new) sessions.",
+            "activity": {
+              "ref": "#parsejson",
+              "input": {
+                "validate": false,
+                "jsonString": "=$activity[ReadSessionFile].output.fileContent.textContent"
+              },
+              "schemas": {
+                "output": {
+                  "jsonObject": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"conversationId\": {\"type\": \"string\"},\n    \"messages\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"role\": {\"type\": \"string\", \"enum\": [\"user\", \"assistant\", \"system\", \"tool\"]},\n          \"content\": {\"type\": \"string\"},\n          \"metadata\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"sessionId\": {\"type\": \"string\"},\n              \"channel\": {\"type\": \"string\"},\n              \"phiHandled\": {\"type\": \"boolean\"},\n              \"dataClassification\": {\"type\": \"string\"},\n              \"patientPortalVersion\": {\"type\": \"string\"}\n            }\n          }\n        },\n        \"required\": [\"role\", \"content\"],\n        \"additionalProperties\": false\n      },\n      \"minItems\": 0\n    }\n  },\n  \"required\": [\"conversationId\", \"messages\"],\n  \"additionalProperties\": false\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"conversationId\": {\"type\": \"string\"},\n    \"messages\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"role\": {\"type\": \"string\", \"enum\": [\"user\", \"assistant\", \"system\", \"tool\"]},\n          \"content\": {\"type\": \"string\"},\n          \"metadata\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"sessionId\": {\"type\": \"string\"},\n              \"channel\": {\"type\": \"string\"},\n              \"phiHandled\": {\"type\": \"boolean\"},\n              \"dataClassification\": {\"type\": \"string\"},\n              \"patientPortalVersion\": {\"type\": \"string\"}\n            }\n          }\n        },\n        \"required\": [\"role\", \"content\"],\n        \"additionalProperties\": false\n      },\n      \"minItems\": 0\n    }\n  },\n  \"required\": [\"conversationId\", \"messages\"],\n  \"additionalProperties\": false\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReturnMessages",
+            "name": "ReturnMessages",
+            "description": "Returns the full conversation message history to the agent. No conversationId filter needed — each per-session file contains exactly this patient's conversation. The @foreach maps all stored messages to the output array.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "customConversationStoreOpOutput": {
+                    "mapping": {
+                      "success": "=boolean.true()",
+                      "messages": {
+                        "@foreach($activity[ParseSessionJSON].jsonObject.messages,messages)": {
+                          "=": "$loop"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "ReturnEmptyMessages",
+            "name": "ReturnEmptyMessages",
+            "description": "New session bootstrap: file did not exist yet so return an empty message history. The agent treats this as a fresh conversation with no prior context.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "customConversationStoreOpOutput": {
+                    "mapping": {
+                      "success": "=boolean.true()",
+                      "messages": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ0ZldGNoIjp7IngiOjI0MiwieSI6Mzh9LCJSZWFkU2Vzc2lvbkZpbGUiOnsieCI6NDQ1LCJ5Ijo0M30sIlBhcnNlU2Vzc2lvbkpTT04iOnsieCI6NjQyLCJ5Ijo0N30sIlJldHVybk1lc3NhZ2VzIjp7IngiOjgxNywieSI6NDZ9LCJSZXR1cm5FbXB0eU1lc3NhZ2VzIjp7IngiOjYzNSwieSI6MTY2fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "customConversationStoreOpInput",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"conversationId\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "customConversationStoreOpOutput",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"success\":{\"type\":\"boolean\"},\"error\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"object\",\"properties\":{}}},\"required\":[\"role\",\"content\"]}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customConversationStoreOpInput\":{\"type\":\"object\",\"properties\":{\"conversationId\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customConversationStoreOpOutput\":{\"type\":\"object\",\"properties\":{\"success\":{\"type\":\"boolean\"},\"error\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"object\",\"properties\":{}}},\"required\":[\"role\",\"content\"]}}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:check_appointments_flow",
+      "data": {
+        "name": "check_appointments_flow",
+        "description": "Tool handler: Returns available appointment slots. Replace Return with InvokeRestService to your EHR/scheduling system (Epic, Cerner, etc.) in production.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogAppointmentCheck",
+            "type": "label",
+            "label": "StartActivity to LogAppointmentCheck"
+          },
+          {
+            "id": 2,
+            "from": "LogAppointmentCheck",
+            "to": "ReturnAppointments",
+            "type": "label",
+            "label": "LogAppointmentCheck to ReturnAppointments"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogAppointmentCheck",
+            "name": "LogAppointmentCheck",
+            "description": "Logs the appointment check request",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[CheckAppointmentSlots] Checking slots for: \", coerce.toString($flow.toolParams))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnAppointments",
+            "name": "ReturnAppointments",
+            "description": "Returns mock appointment slots. Replace with InvokeRestService to your scheduling API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"department\":\"Cardiology\",\"availableSlots\":[{\"date\":\"2026-04-08\",\"times\":[\"09:00 AM\",\"11:30 AM\",\"02:00 PM\"],\"doctor\":\"Dr. Sarah Johnson\"},{\"date\":\"2026-04-09\",\"times\":[\"10:00 AM\",\"03:30 PM\"],\"doctor\":\"Dr. Michael Chen\"}],\"bookingInstructions\":\"To confirm a slot, please call 1-800-HEALTH-1 or log in to the patient portal.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nQXBwb2ludG1lbnRDaGVjayI6eyJ4IjoyNzUsInkiOjkyfSwiUmV0dXJuQXBwb2ludG1lbnRzIjp7IngiOjQ4MCwieSI6OTF9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"department\":{\"type\":\"string\"},\"preferredDate\":{\"type\":\"string\"},\"doctorName\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"department\":{\"type\":\"string\"},\"preferredDate\":{\"type\":\"string\"},\"doctorName\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:find_clinic_flow",
+      "data": {
+        "name": "find_clinic_flow",
+        "description": "Tool handler: Finds nearest clinics by ZIP code and specialty. Replace Return with InvokeRestService to a real clinic locator API in production.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogClinicSearch",
+            "type": "label",
+            "label": "StartActivity to LogClinicSearch"
+          },
+          {
+            "id": 2,
+            "from": "LogClinicSearch",
+            "to": "ReturnClinics",
+            "type": "label",
+            "label": "LogClinicSearch to ReturnClinics"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogClinicSearch",
+            "name": "LogClinicSearch",
+            "description": "Logs the clinic search request",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[FindNearestClinic] Searching near ZIP: \", coerce.toString($flow.toolParams.zipCode))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnClinics",
+            "name": "ReturnClinics",
+            "description": "Returns mock clinic results. Replace with InvokeRestService to a clinic locator API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"clinics\":[{\"name\":\"HealthBridge Cardiology Center\",\"address\":\"450 Medical Drive, Suite 200\",\"city\":\"Austin\",\"state\":\"TX\",\"zip\":\"78701\",\"phone\":\"512-555-0100\",\"distanceMiles\":2.3,\"waitTime\":\"~15 min\",\"hours\":\"Mon-Fri 8am-6pm\"},{\"name\":\"HealthBridge Urgent Care – Downtown\",\"address\":\"200 Congress Ave\",\"city\":\"Austin\",\"state\":\"TX\",\"zip\":\"78701\",\"phone\":\"512-555-0200\",\"distanceMiles\":3.1,\"waitTime\":\"~30 min\",\"hours\":\"Mon-Sun 8am-10pm\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nQ2xpbmljU2VhcmNoIjp7IngiOjI3NSwieSI6OTJ9LCJSZXR1cm5DbGluaWNzIjp7IngiOjQ4MCwieSI6OTF9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"zipCode\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"maxDistanceMiles\":{\"type\":\"number\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"zipCode\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"maxDistanceMiles\":{\"type\":\"number\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_medication_guide_flow",
+      "data": {
+        "name": "get_medication_guide_flow",
+        "description": "Tool handler: Returns general (non-diagnostic) medication guidance. Replace Return with InvokeRestService to a pharmacology database API in production.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMedGuide",
+            "type": "label",
+            "label": "StartActivity to LogMedGuide"
+          },
+          {
+            "id": 2,
+            "from": "LogMedGuide",
+            "to": "ReturnMedication",
+            "type": "label",
+            "label": "LogMedGuide to ReturnMedication"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMedGuide",
+            "name": "LogMedGuide",
+            "description": "Logs the medication guide request",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[GetMedicationGuide] Requested: \", coerce.toString($flow.toolParams))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnMedication",
+            "name": "ReturnMedication",
+            "description": "Returns mock medication guidance. Replace with InvokeRestService to a pharmacology API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"medication\":\"Metformin\",\"infoType\":\"SideEffects\",\"information\":\"Common side effects include nausea, vomiting, diarrhea, and stomach pain, especially when starting the medication. These often improve over time. Take with food to reduce stomach upset. Rare but serious: lactic acidosis — seek immediate medical attention if you experience unusual muscle pain, difficulty breathing, or stomach pain with nausea. Always consult your prescribing physician before making any changes to your medication regimen.\",\"disclaimer\":\"This information is for general educational purposes only and is not a substitute for professional medical advice. Always follow your doctor's instructions.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVkR3VpZGUiOnsieCI6MjcwLCJ5Ijo5Mn0sIlJldHVybk1lZGljYXRpb24iOnsieCI6NDgwLCJ5Ijo5MX19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"medicationName\":{\"type\":\"string\"},\"infoType\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"medicationName\":{\"type\":\"string\"},\"infoType\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.OpenAI_LLMProvider.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAI_LLMProvider.API_Key",
+      "type": "string",
+      "value": "SECRET:M3w8sH3IBTTCcLHS2HUCx8U5G8E+wap4FOB7MwG7iDDgOX9WpnwOsW48rdaedHxGuPnhRnb8uB3GhYrw/6wzxWDUlUvO7CjFr1TZrYhqFDXHMeOl1qWUwIIdrw8r079Ua25BePEkIfTuhLsa3edLCuyXTFa8ObQbmNpF3Ilz1fgNM27BVPkHWXd6Z9cjjIbXSJgEnWu2KI2EGLtW/3tSPyH/dVB2HOXy/XCcsGB/HEzu2eI9"
+    },
+    {
+      "name": "AgenticAI.OpenAI_LLMProvider.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "HealthcareAgent.ConversationDir",
+      "type": "string",
+      "value": "conversations"
+    },
+    {
+      "name": "Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "HealthcarePatientAgent"
+    },
+    {
+      "name": "Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "A compassionate healthcare patient support assistant. Helps patients with appointment scheduling, clinic locations, and general medication guidance. Strictly protects patient privacy."
+    },
+    {
+      "name": "Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-5.2"
+    },
+    {
+      "name": "Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 4096
+    },
+    {
+      "name": "Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 20
+    },
+    {
+      "name": "Trigger_Settings.Redact_Sensitive_Data",
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "name": "Trigger_Settings.LLM_temperature",
+      "type": "float64",
+      "value": 1
+    }
+  ],
+  "connections": {
+    "22222222-2222-2222-2222-222222222222": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "OpenAI_LLMProvider",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "OpenAI_LLMProvider",
+        "description": "OpenAI LLM Provider connection.",
+        "llmProvider": "=$property[\"AgenticAI.OpenAI_LLMProvider.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAI_LLMProvider.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAI_LLMProvider.LLM_Base_URL\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9wcm9qZWN0LWZsb2dvL3dlYnNvY2tldCIsImlkIjoid2Vic29ja2V0IiwidmVyc2lvbiI6IjEuMC4xIiwidGFnIjoiMS4wLjEtYjAzLWZsb2dvLTIuMjUuMCIsIm5hbWUiOiJXZWJzb2NrZXQiLCJzM2xvY2F0aW9uIjoiVGliY28vd2Vic29ja2V0IiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWFpLWFnZW50L3NyYy9hcHAvQWdlbnRpY0FJIiwiaWQiOiJBZ2VudGljQUkiLCJ2ZXJzaW9uIjoiMC45LjAiLCJ0YWciOiIwLjkuMC1iMDMiLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInMzbG9jYXRpb24iOiJUaWJjby9BZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJpZCI6IkdlbmVyYWwiLCJ2ZXJzaW9uIjoiMS42LjEyIiwidGFnIjoiMS42LjEyLWIwNiIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZmlsZXMvc3JjL2FwcC9GaWxlIiwiaWQiOiJGaWxlIiwidmVyc2lvbiI6IjEuMC4wIiwidGFnIjoiMS4wLjAtYjE0IiwibmFtZSI6IkZpbGUiLCJzM2xvY2F0aW9uIjoiVGliY28vRmlsZSIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9998",
+        "title": "WebsocketServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.2"
+  }
+}

@@ -1,0 +1,136 @@
+# ============================================================================================
+# Combined Runtime Stages - All Distros
+# ============================================================================================
+# This Dockerfile contains all runtime variants for different Linux distributions.
+# Use the RUNTIME_BASE build argument to select your runtime environment.
+# Requires a pre-built builder stage or binary artifact.
+#
+# Available runtime options:
+#   - debian (default)    : Debian Bookworm
+#   - centos             : CentOS Stream 9
+#   - fedora             : Fedora latest
+#   - amazonlinux2023    : Amazon Linux 2023
+#   - rhel-ubi           : Red Hat UBI 9
+#   - alpine             : Alpine Linux 3.21
+#   - distroless         : Google Distroless
+#
+# Build examples (assuming builder stage exists):
+#   docker build --build-arg RUNTIME_BASE=debian -t flogo-app:debian -f Dockerfile.all-runtimes .
+#   docker build --build-arg RUNTIME_BASE=alpine -t flogo-app:alpine -f Dockerfile.all-runtimes .
+#   docker build --build-arg RUNTIME_BASE=distroless -t flogo-app:distroless -f Dockerfile.all-runtimes .
+# ============================================================================================
+
+# Note: This file assumes you have a builder stage that produces /build/rest
+# You can use this with multi-stage builds or by copying from a previous build
+
+# ============================================================================================
+# Runtime Stage: Debian Bookworm
+# ============================================================================================
+FROM debian:bookworm AS runtime-debian
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y bash ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy application binary from builder
+# Uncomment the line below if using with a builder stage in the same Dockerfile
+# COPY --from=builder /build/rest .
+
+# Or copy from local build context if running standalone
+COPY rest .
+RUN chmod +x ./rest
+
+CMD ["./rest"]
+
+# ============================================================================================
+# Runtime Stage: CentOS Stream 9
+# ============================================================================================
+FROM quay.io/centos/centos:stream9 AS runtime-centos
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash && dnf clean all
+
+# Copy application binary
+COPY rest .
+RUN chmod +x ./rest
+
+CMD ["./rest"]
+
+# ============================================================================================
+# Runtime Stage: Fedora Latest
+# ============================================================================================
+FROM fedora:latest AS runtime-fedora
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash && dnf clean all
+
+# Copy application binary
+COPY rest .
+RUN chmod +x ./rest
+
+CMD ["./rest"]
+
+# ============================================================================================
+# Runtime Stage: Amazon Linux 2023
+# ============================================================================================
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS runtime-amazonlinux2023
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash && dnf clean all
+
+# Copy application binary
+COPY rest .
+RUN chmod +x ./rest
+
+CMD ["./rest"]
+
+# ============================================================================================
+# Runtime Stage: Red Hat UBI 9
+# ============================================================================================
+FROM registry.access.redhat.com/ubi9/ubi:latest AS runtime-rhel-ubi
+WORKDIR /app
+
+RUN dnf install -y --allowerasing bash && dnf clean all
+
+# Copy application binary
+COPY rest .
+RUN chmod +x ./rest
+
+CMD ["./rest"]
+
+# ============================================================================================
+# Runtime Stage: Alpine Linux 3.21
+# ============================================================================================
+FROM alpine:3.21 AS runtime-alpine
+WORKDIR /app
+
+RUN apk add --no-cache \
+    bash \
+    libc6-compat \
+    ca-certificates
+
+# Copy application binary
+COPY rest .
+RUN chmod +x ./rest
+
+CMD ["./rest"]
+
+# ============================================================================================
+# Runtime Stage: Distroless (Minimal, no shell)
+# ============================================================================================
+FROM gcr.io/distroless/cc AS runtime-distroless
+WORKDIR /app
+
+# Copy application binary
+# Note: No chmod available in distroless, ensure binary has execute permissions from builder
+COPY rest .
+
+CMD ["./rest"]
+
+# ============================================================================================
+# Default Runtime Selection
+# ============================================================================================
+ARG RUNTIME_BASE=debian
+FROM runtime-${RUNTIME_BASE} AS runtime

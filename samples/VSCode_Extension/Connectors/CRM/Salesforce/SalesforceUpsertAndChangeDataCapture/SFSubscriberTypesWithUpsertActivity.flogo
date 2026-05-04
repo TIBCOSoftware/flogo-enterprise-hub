@@ -1,0 +1,716 @@
+{
+    "imports": [
+        "github.com/project-flogo/flow",
+        "github.com/tibco/wi-mysql/src/app/MySQL/activity/query",
+        "github.com/tibco/flogo-general/src/app/General/activity/log",
+        "github.com/tibco/wi-salesforce/src/app/Salesforce/activity/upsert",
+        "query_1 github.com/tibco/wi-salesforce/src/app/Salesforce/activity/query",
+        "github.com/project-flogo/contrib/activity/actreturn",
+        "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+        "github.com/tibco/wi-salesforce/src/app/Salesforce/trigger/salesforce",
+        "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+        "git.tibco.com/git/product/ipaas/wi-contrib.git/function/utility",
+        "github.com/project-flogo/contrib/function/array",
+        "github.com/project-flogo/contrib/function/string",
+        "github.com/tibco/wi-mysql/src/app/MySQL/connector/connection",
+        "github.com/tibco/wi-salesforce/src/app/Salesforce/connector"
+    ],
+    "name": "SFSubscriberTypesWithUpsertActivity",
+    "description": "This app having two flows one with SFUpsert and other with SF Trigger",
+    "version": "1.0.0",
+    "type": "flogo:app",
+    "appModel": "1.1.1",
+    "tags": [],
+    "triggers": [
+        {
+            "ref": "#rest",
+            "name": "tibco-wi-rest",
+            "description": "Simple REST Trigger",
+            "settings": {
+                "port": 9999,
+                "APISpecUpdate": false,
+                "swagger": "",
+                "swaggerVersion": "v2",
+                "apiVersion": "1.0.0",
+                "secureConnection": false,
+                "serverKey": "",
+                "caCertificate": ""
+            },
+            "id": "ReceiveHTTPMessage",
+            "handlers": [
+                {
+                    "description": "In this flow records are getting fetched from mysql database using query and using Salesforce Upsert records from database are getting created in the salesforce if not exist already and updated if already exist.",
+                    "settings": {
+                        "Method": "GET",
+                        "reqType": "application/json",
+                        "Path": "/sfupsert/{upsert}",
+                        "OutputValidation": false
+                    },
+                    "action": {
+                        "ref": "github.com/project-flogo/flow",
+                        "settings": {
+                            "flowURI": "res://flow:SFUpsertWithMySQLDB"
+                        },
+                        "input": {
+                            "headers": "=$.headers"
+                        },
+                        "output": {
+                            "code": "=$.code",
+                            "message": "=$.message"
+                        }
+                    },
+                    "reply": {
+                        "code": 200,
+                        "configureResponseCodes": false,
+                        "message": {}
+                    },
+                    "schemas": {
+                        "reply": {
+                            "responseBody": {
+                                "type": "json",
+                                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+                            }
+                        },
+                        "output": {
+                            "pathParams": {
+                                "type": "json",
+                                "value": "{\"type\":\"object\",\"properties\":{\"upsert\":{\"type\":\"string\"}},\"required\":[]}",
+                                "fe_metadata": "[{\"parameterName\":\"upsert\",\"type\":\"string\"}]"
+                            },
+                            "headers": {
+                                "type": "json",
+                                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                            }
+                        }
+                    },
+                    "name": "SFUpsertWithMySQLDB"
+                }
+            ]
+        },
+        {
+            "ref": "#salesforce",
+            "name": "salesforce-trigger",
+            "description": "Salesforce Trigger",
+            "settings": {},
+            "id": "ReceiveSalesforceMessage",
+            "handlers": [
+                {
+                    "description": "In this flow Salesforce trigger is used with Subscriber type as Change Data Capture and this trigger will executes when there are changes to Salesforce records in the Contact object i,e here once the flow 'SFUpsertWithMySQLDB' executes.",
+                    "settings": {
+                        "Connection Name": "conn://5f8db4a0-eab3-11eb-a764-dda70f3bcc25",
+                        "Object Name": "ContactChangeEvent",
+                        "subscriberType": "Change Data Capture",
+                        "autoCreatePushTopic": true,
+                        "channelName": "/data/ContactChangeEvent",
+                        "replayID": 0,
+                        "Query": ""
+                    },
+                    "action": {
+                        "ref": "github.com/project-flogo/flow",
+                        "settings": {
+                            "flowURI": "res://flow:SFChangeDataCapture"
+                        },
+                        "input": {
+                            "output": "=$.output"
+                        }
+                    },
+                    "schemas": {
+                        "output": {
+                            "output": {
+                                "type": "json",
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"object\",\"properties\":{\"schema\":{\"type\":\"string\"},\"payload\":{\"type\":\"object\",\"properties\":{\"ChangeEventHeader\":{\"type\":\"object\",\"properties\":{\"commitNumber\":{\"type\":\"integer\"},\"commitUser\":{\"type\":\"string\"},\"sequenceNumber\":{\"type\":\"integer\"},\"entityName\":{\"type\":\"string\"},\"changeType\":{\"type\":\"string\"},\"changedFields\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]},\"changeOrigin\":{\"type\":\"string\"},\"transactionKey\":{\"type\":\"string\"},\"commitTimestamp\":{\"type\":\"integer\"},\"recordIds\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]}}},\"Id\":{\"type\":\"string\",\"maxLength\":18},\"ReplayId\":{\"type\":\"string\",\"maxLength\":1000},\"AccountId\":{\"type\":\"string\",\"maxLength\":18},\"LastName\":{\"type\":\"string\",\"maxLength\":80},\"FirstName\":{\"type\":\"string\",\"maxLength\":40},\"Salutation\":{\"type\":\"string\",\"maxLength\":40},\"Name\":{\"type\":\"string\",\"maxLength\":121},\"OtherStreet\":{\"type\":\"string\",\"maxLength\":255},\"OtherCity\":{\"type\":\"string\",\"maxLength\":40},\"OtherState\":{\"type\":\"string\",\"maxLength\":80},\"OtherPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"OtherCountry\":{\"type\":\"string\",\"maxLength\":80},\"OtherLatitude\":{\"type\":\"number\"},\"OtherLongitude\":{\"type\":\"number\"},\"OtherGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"OtherAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"MailingStreet\":{\"type\":\"string\",\"maxLength\":255},\"MailingCity\":{\"type\":\"string\",\"maxLength\":40},\"MailingState\":{\"type\":\"string\",\"maxLength\":80},\"MailingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"MailingCountry\":{\"type\":\"string\",\"maxLength\":80},\"MailingLatitude\":{\"type\":\"number\"},\"MailingLongitude\":{\"type\":\"number\"},\"MailingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"MailingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"MobilePhone\":{\"type\":\"string\",\"maxLength\":40},\"HomePhone\":{\"type\":\"string\",\"maxLength\":40},\"OtherPhone\":{\"type\":\"string\",\"maxLength\":40},\"AssistantPhone\":{\"type\":\"string\",\"maxLength\":40},\"ReportsToId\":{\"type\":\"string\",\"maxLength\":18},\"Email\":{\"type\":\"string\",\"format\":\"email\",\"maxLength\":80},\"Title\":{\"type\":\"string\",\"maxLength\":128},\"Department\":{\"type\":\"string\",\"maxLength\":80},\"AssistantName\":{\"type\":\"string\",\"maxLength\":40},\"LeadSource\":{\"type\":\"string\",\"maxLength\":255},\"Birthdate\":{\"type\":\"string\",\"format\":\"date\"},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"LastCURequestDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastCUUpdateDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"EmailBouncedReason\":{\"type\":\"string\",\"maxLength\":255},\"EmailBouncedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawContactId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"IndividualId\":{\"type\":\"string\",\"maxLength\":18},\"Level__c\":{\"type\":\"string\",\"maxLength\":255},\"Languages__c\":{\"type\":\"string\",\"maxLength\":100},\"ContactID__c\":{\"type\":\"string\",\"maxLength\":255},\"ContactPhone__c\":{\"type\":\"number\"}}},\"event\":{\"type\":\"object\",\"properties\":{\"replayId\":{\"type\":\"integer\"}}}}},\"channel\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"object\",\"properties\":{\"schema\":{\"type\":\"string\"},\"payload\":{\"type\":\"object\",\"properties\":{\"ChangeEventHeader\":{\"type\":\"object\",\"properties\":{\"commitNumber\":{\"type\":\"integer\"},\"commitUser\":{\"type\":\"string\"},\"sequenceNumber\":{\"type\":\"integer\"},\"entityName\":{\"type\":\"string\"},\"changeType\":{\"type\":\"string\"},\"changedFields\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]},\"changeOrigin\":{\"type\":\"string\"},\"transactionKey\":{\"type\":\"string\"},\"commitTimestamp\":{\"type\":\"integer\"},\"recordIds\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]}}},\"Id\":{\"type\":\"string\",\"maxLength\":18},\"ReplayId\":{\"type\":\"string\",\"maxLength\":1000},\"AccountId\":{\"type\":\"string\",\"maxLength\":18},\"LastName\":{\"type\":\"string\",\"maxLength\":80},\"FirstName\":{\"type\":\"string\",\"maxLength\":40},\"Salutation\":{\"type\":\"string\",\"maxLength\":40},\"Name\":{\"type\":\"string\",\"maxLength\":121},\"OtherStreet\":{\"type\":\"string\",\"maxLength\":255},\"OtherCity\":{\"type\":\"string\",\"maxLength\":40},\"OtherState\":{\"type\":\"string\",\"maxLength\":80},\"OtherPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"OtherCountry\":{\"type\":\"string\",\"maxLength\":80},\"OtherLatitude\":{\"type\":\"number\"},\"OtherLongitude\":{\"type\":\"number\"},\"OtherGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"OtherAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"MailingStreet\":{\"type\":\"string\",\"maxLength\":255},\"MailingCity\":{\"type\":\"string\",\"maxLength\":40},\"MailingState\":{\"type\":\"string\",\"maxLength\":80},\"MailingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"MailingCountry\":{\"type\":\"string\",\"maxLength\":80},\"MailingLatitude\":{\"type\":\"number\"},\"MailingLongitude\":{\"type\":\"number\"},\"MailingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"MailingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"MobilePhone\":{\"type\":\"string\",\"maxLength\":40},\"HomePhone\":{\"type\":\"string\",\"maxLength\":40},\"OtherPhone\":{\"type\":\"string\",\"maxLength\":40},\"AssistantPhone\":{\"type\":\"string\",\"maxLength\":40},\"ReportsToId\":{\"type\":\"string\",\"maxLength\":18},\"Email\":{\"type\":\"string\",\"format\":\"email\",\"maxLength\":80},\"Title\":{\"type\":\"string\",\"maxLength\":128},\"Department\":{\"type\":\"string\",\"maxLength\":80},\"AssistantName\":{\"type\":\"string\",\"maxLength\":40},\"LeadSource\":{\"type\":\"string\",\"maxLength\":255},\"Birthdate\":{\"type\":\"string\",\"format\":\"date\"},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"LastCURequestDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastCUUpdateDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"EmailBouncedReason\":{\"type\":\"string\",\"maxLength\":255},\"EmailBouncedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawContactId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"IndividualId\":{\"type\":\"string\",\"maxLength\":18},\"Level__c\":{\"type\":\"string\",\"maxLength\":255},\"Languages__c\":{\"type\":\"string\",\"maxLength\":100},\"ContactID__c\":{\"type\":\"string\",\"maxLength\":255},\"ContactPhone__c\":{\"type\":\"number\"}}},\"event\":{\"type\":\"object\",\"properties\":{\"replayId\":{\"type\":\"integer\"}}}}},\"channel\":{\"type\":\"string\"}}}"
+                            }
+                        }
+                    },
+                    "name": "SFChangeDataCapture"
+                }
+            ]
+        }
+    ],
+    "resources": [
+        {
+            "id": "flow:SFUpsertWithMySQLDB",
+            "data": {
+                "name": "SFUpsertWithMySQLDB",
+                "description": "In this flow records are getting fetched from mysql database using query and using Salesforce Upsert records from database are getting created in the salesforce if not exist already and updated if already exist.",
+                "links": [
+                    {
+                        "id": 1,
+                        "from": "MySQLQuery",
+                        "to": "MySQLLogMessage",
+                        "type": "label",
+                        "label": "MySQLQuery to MySQLLogMessage"
+                    },
+                    {
+                        "id": 2,
+                        "from": "MySQLLogMessage",
+                        "to": "SalesforceUpsert",
+                        "type": "label",
+                        "label": "MySQLLogMessage to SalesforceUpsert"
+                    },
+                    {
+                        "id": 3,
+                        "from": "SalesforceUpsert",
+                        "to": "SFUpsertLogMessage",
+                        "type": "label",
+                        "label": "SalesforceUpsert to SFUpsertLogMessage"
+                    },
+                    {
+                        "id": 4,
+                        "from": "SFUpsertLogMessage",
+                        "to": "SalesforceQuery",
+                        "type": "label",
+                        "label": "SFUpsertLogMessage to SalesforceQuery"
+                    },
+                    {
+                        "id": 5,
+                        "from": "SalesforceQuery",
+                        "to": "SFQueryLogMessage",
+                        "type": "label",
+                        "label": "SalesforceQuery to SFQueryLogMessage"
+                    },
+                    {
+                        "id": 6,
+                        "from": "SFQueryLogMessage",
+                        "to": "Return",
+                        "type": "label",
+                        "label": "SFQueryLogMessage to Return"
+                    }
+                ],
+                "tasks": [
+                    {
+                        "id": "MySQLQuery",
+                        "name": "MySQLQuery",
+                        "description": "This activity executes query on a MySQL database",
+                        "settings": {
+                            "retryOnError": {
+                                "count": 0,
+                                "interval": 0
+                            }
+                        },
+                        "activity": {
+                            "ref": "#query",
+                            "input": {
+                                "Connection": "conn://e5e78670-0106-11ec-870d-818b0e110ad3",
+                                "QueryName": "",
+                                "Query": "select * from customers where customerName like 'To%';",
+                                "manualmode": false,
+                                "Fields": [
+                                    {
+                                        "FieldName": "customerNumber",
+                                        "Type": "INTEGER",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "customerName",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "contactLastName",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "contactFirstName",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "phone",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "addressLine1",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "addressLine2",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "city",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "state",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "postalCode",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "country",
+                                        "Type": "VARCHAR",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "salesRepEmployeeNumber",
+                                        "Type": "INTEGER",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    },
+                                    {
+                                        "FieldName": "creditLimit",
+                                        "Type": "DECIMAL",
+                                        "Selected": true,
+                                        "Parameter": false,
+                                        "isEditable": false
+                                    }
+                                ],
+                                "State": "c0571960-7faa-46f7-979d-086bf114393cselect * from customers where customerName like 'To%';"
+                            },
+                            "schemas": {
+                                "input": {
+                                    "input": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{}}}}",
+                                        "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{}}}}"
+                                    }
+                                },
+                                "output": {
+                                    "Output": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"customerNumber\":{\"type\":\"integer\"},\"customerName\":{\"type\":\"string\"},\"contactLastName\":{\"type\":\"string\"},\"contactFirstName\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"addressLine1\":{\"type\":\"string\"},\"addressLine2\":{\"type\":\"string\"},\"city\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"salesRepEmployeeNumber\":{\"type\":\"integer\"},\"creditLimit\":{\"type\":\"number\"}}}}}}",
+                                        "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"customerNumber\":{\"type\":\"integer\"},\"customerName\":{\"type\":\"string\"},\"contactLastName\":{\"type\":\"string\"},\"contactFirstName\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"addressLine1\":{\"type\":\"string\"},\"addressLine2\":{\"type\":\"string\"},\"city\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"salesRepEmployeeNumber\":{\"type\":\"integer\"},\"creditLimit\":{\"type\":\"number\"}}}}}}"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "MySQLLogMessage",
+                        "name": "MySQLLogMessage",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "=utility.renderJSON($activity[MySQLQuery].Output.records, boolean.false())",
+                                "logLevel": ""
+                            }
+                        }
+                    },
+                    {
+                        "id": "SalesforceUpsert",
+                        "name": "SalesforceUpsert",
+                        "description": "Salesforce Upsert Activity",
+                        "activity": {
+                            "ref": "#upsert",
+                            "input": {
+                                "connectionName": "conn://5f8db4a0-eab3-11eb-a764-dda70f3bcc25",
+                                "objectName": "Contact",
+                                "externalIdFieldName": "ContactID__c",
+                                "allOrNone": "=boolean.false()",
+                                "input": {
+                                    "mapping": {
+                                        "Contact": {
+                                            "records": {
+                                                "@foreach($activity[MySQLQuery].Output.records,records)": {
+                                                    "LastName": "LastNameFromUpsert",
+                                                    "FirstName": "=$loop.contactFirstName",
+                                                    "ContactID__c": "=string.tostring($loop.customerNumber)"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "schemas": {
+                                "input": {
+                                    "input": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Contact\":{\"type\":\"object\",\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Id\":{\"type\":\"string\",\"maxLength\":18},\"IsDeleted\":{\"type\":\"boolean\"},\"MasterRecordId\":{\"type\":\"string\",\"maxLength\":18},\"AccountId\":{\"type\":\"string\",\"maxLength\":18},\"LastName\":{\"type\":\"string\",\"maxLength\":80},\"FirstName\":{\"type\":\"string\",\"maxLength\":40},\"Salutation\":{\"type\":\"string\",\"maxLength\":40},\"Name\":{\"type\":\"string\",\"maxLength\":121},\"OtherStreet\":{\"type\":\"string\",\"maxLength\":255},\"OtherCity\":{\"type\":\"string\",\"maxLength\":40},\"OtherState\":{\"type\":\"string\",\"maxLength\":80},\"OtherPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"OtherCountry\":{\"type\":\"string\",\"maxLength\":80},\"OtherLatitude\":{\"type\":\"number\"},\"OtherLongitude\":{\"type\":\"number\"},\"OtherGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"OtherAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"MailingStreet\":{\"type\":\"string\",\"maxLength\":255},\"MailingCity\":{\"type\":\"string\",\"maxLength\":40},\"MailingState\":{\"type\":\"string\",\"maxLength\":80},\"MailingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"MailingCountry\":{\"type\":\"string\",\"maxLength\":80},\"MailingLatitude\":{\"type\":\"number\"},\"MailingLongitude\":{\"type\":\"number\"},\"MailingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"MailingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"MobilePhone\":{\"type\":\"string\",\"maxLength\":40},\"HomePhone\":{\"type\":\"string\",\"maxLength\":40},\"OtherPhone\":{\"type\":\"string\",\"maxLength\":40},\"AssistantPhone\":{\"type\":\"string\",\"maxLength\":40},\"ReportsToId\":{\"type\":\"string\",\"maxLength\":18},\"Email\":{\"type\":\"string\",\"format\":\"email\",\"maxLength\":80},\"Title\":{\"type\":\"string\",\"maxLength\":128},\"Department\":{\"type\":\"string\",\"maxLength\":80},\"AssistantName\":{\"type\":\"string\",\"maxLength\":40},\"LeadSource\":{\"type\":\"string\",\"maxLength\":255},\"Birthdate\":{\"type\":\"string\",\"format\":\"date\"},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"SystemModstamp\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastActivityDate\":{\"type\":\"string\",\"format\":\"date\"},\"LastCURequestDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastCUUpdateDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastViewedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastReferencedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"EmailBouncedReason\":{\"type\":\"string\",\"maxLength\":255},\"EmailBouncedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"IsEmailBounced\":{\"type\":\"boolean\"},\"PhotoUrl\":{\"type\":\"string\",\"maxLength\":255},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawContactId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"IndividualId\":{\"type\":\"string\",\"maxLength\":18},\"Level__c\":{\"type\":\"string\",\"maxLength\":255},\"Languages__c\":{\"type\":\"string\",\"maxLength\":100},\"ContactID__c\":{\"type\":\"string\",\"maxLength\":255},\"ContactPhone__c\":{\"type\":\"number\"}}}}}}}}",
+                                        "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Contact\":{\"type\":\"object\",\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Id\":{\"type\":\"string\",\"maxLength\":18},\"IsDeleted\":{\"type\":\"boolean\"},\"MasterRecordId\":{\"type\":\"string\",\"maxLength\":18},\"AccountId\":{\"type\":\"string\",\"maxLength\":18},\"LastName\":{\"type\":\"string\",\"maxLength\":80},\"FirstName\":{\"type\":\"string\",\"maxLength\":40},\"Salutation\":{\"type\":\"string\",\"maxLength\":40},\"Name\":{\"type\":\"string\",\"maxLength\":121},\"OtherStreet\":{\"type\":\"string\",\"maxLength\":255},\"OtherCity\":{\"type\":\"string\",\"maxLength\":40},\"OtherState\":{\"type\":\"string\",\"maxLength\":80},\"OtherPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"OtherCountry\":{\"type\":\"string\",\"maxLength\":80},\"OtherLatitude\":{\"type\":\"number\"},\"OtherLongitude\":{\"type\":\"number\"},\"OtherGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"OtherAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"MailingStreet\":{\"type\":\"string\",\"maxLength\":255},\"MailingCity\":{\"type\":\"string\",\"maxLength\":40},\"MailingState\":{\"type\":\"string\",\"maxLength\":80},\"MailingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"MailingCountry\":{\"type\":\"string\",\"maxLength\":80},\"MailingLatitude\":{\"type\":\"number\"},\"MailingLongitude\":{\"type\":\"number\"},\"MailingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"MailingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"MobilePhone\":{\"type\":\"string\",\"maxLength\":40},\"HomePhone\":{\"type\":\"string\",\"maxLength\":40},\"OtherPhone\":{\"type\":\"string\",\"maxLength\":40},\"AssistantPhone\":{\"type\":\"string\",\"maxLength\":40},\"ReportsToId\":{\"type\":\"string\",\"maxLength\":18},\"Email\":{\"type\":\"string\",\"format\":\"email\",\"maxLength\":80},\"Title\":{\"type\":\"string\",\"maxLength\":128},\"Department\":{\"type\":\"string\",\"maxLength\":80},\"AssistantName\":{\"type\":\"string\",\"maxLength\":40},\"LeadSource\":{\"type\":\"string\",\"maxLength\":255},\"Birthdate\":{\"type\":\"string\",\"format\":\"date\"},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"SystemModstamp\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastActivityDate\":{\"type\":\"string\",\"format\":\"date\"},\"LastCURequestDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastCUUpdateDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastViewedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastReferencedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"EmailBouncedReason\":{\"type\":\"string\",\"maxLength\":255},\"EmailBouncedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"IsEmailBounced\":{\"type\":\"boolean\"},\"PhotoUrl\":{\"type\":\"string\",\"maxLength\":255},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawContactId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"IndividualId\":{\"type\":\"string\",\"maxLength\":18},\"Level__c\":{\"type\":\"string\",\"maxLength\":255},\"Languages__c\":{\"type\":\"string\",\"maxLength\":100},\"ContactID__c\":{\"type\":\"string\",\"maxLength\":255},\"ContactPhone__c\":{\"type\":\"number\"}}}}}}}}"
+                                    }
+                                },
+                                "output": {
+                                    "output": {
+                                        "type": "json",
+                                        "value": "{ \"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"properties\": { \"response\": { \"type\": \"array\", \"items\": { \"type\": \"object\", \"properties\": { \"id\": { \"type\": \"string\" }, \"success\": { \"type\": \"boolean\" }, \"errors\": { \"type\": \"array\", \"items\": {} }, \"created\": { \"type\": \"boolean\" } } } } } }",
+                                        "fe_metadata": "{ \"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"properties\": { \"response\": { \"type\": \"array\", \"items\": { \"type\": \"object\", \"properties\": { \"id\": { \"type\": \"string\" }, \"success\": { \"type\": \"boolean\" }, \"errors\": { \"type\": \"array\", \"items\": {} }, \"created\": { \"type\": \"boolean\" } } } } } }"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "SFUpsertLogMessage",
+                        "name": "SFUpsertLogMessage",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "=utility.renderJSON($activity[SalesforceUpsert].output.response, boolean.false())"
+                            }
+                        }
+                    },
+                    {
+                        "id": "SalesforceQuery",
+                        "name": "SalesforceQuery",
+                        "description": "Salesforce Query Activity",
+                        "activity": {
+                            "ref": "#query_1",
+                            "input": {
+                                "Connection Name": "conn://5f8db4a0-eab3-11eb-a764-dda70f3bcc25",
+                                "Object Name": "Contact",
+                                "queryType": "Query",
+                                "query": "SELECT Id, Name, ContactID__c FROM Contact where LastName like 'UpdatedLastNameFromUpsert'"
+                            },
+                            "schemas": {
+                                "output": {
+                                    "output": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Contact\":{\"type\":\"object\",\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Id\":{\"type\":\"string\",\"maxLength\":18},\"IsDeleted\":{\"type\":\"boolean\"},\"MasterRecordId\":{\"type\":\"string\",\"maxLength\":18},\"AccountId\":{\"type\":\"string\",\"maxLength\":18},\"LastName\":{\"type\":\"string\",\"maxLength\":80},\"FirstName\":{\"type\":\"string\",\"maxLength\":40},\"Salutation\":{\"type\":\"string\",\"maxLength\":40},\"Name\":{\"type\":\"string\",\"maxLength\":121},\"OtherStreet\":{\"type\":\"string\",\"maxLength\":255},\"OtherCity\":{\"type\":\"string\",\"maxLength\":40},\"OtherState\":{\"type\":\"string\",\"maxLength\":80},\"OtherPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"OtherCountry\":{\"type\":\"string\",\"maxLength\":80},\"OtherLatitude\":{\"type\":\"number\"},\"OtherLongitude\":{\"type\":\"number\"},\"OtherGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"OtherAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"MailingStreet\":{\"type\":\"string\",\"maxLength\":255},\"MailingCity\":{\"type\":\"string\",\"maxLength\":40},\"MailingState\":{\"type\":\"string\",\"maxLength\":80},\"MailingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"MailingCountry\":{\"type\":\"string\",\"maxLength\":80},\"MailingLatitude\":{\"type\":\"number\"},\"MailingLongitude\":{\"type\":\"number\"},\"MailingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"MailingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"MobilePhone\":{\"type\":\"string\",\"maxLength\":40},\"HomePhone\":{\"type\":\"string\",\"maxLength\":40},\"OtherPhone\":{\"type\":\"string\",\"maxLength\":40},\"AssistantPhone\":{\"type\":\"string\",\"maxLength\":40},\"ReportsToId\":{\"type\":\"string\",\"maxLength\":18},\"Email\":{\"type\":\"string\",\"format\":\"email\",\"maxLength\":80},\"Title\":{\"type\":\"string\",\"maxLength\":128},\"Department\":{\"type\":\"string\",\"maxLength\":80},\"AssistantName\":{\"type\":\"string\",\"maxLength\":40},\"LeadSource\":{\"type\":\"string\",\"maxLength\":255},\"Birthdate\":{\"type\":\"string\",\"format\":\"date\"},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"SystemModstamp\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastActivityDate\":{\"type\":\"string\",\"format\":\"date\"},\"LastCURequestDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastCUUpdateDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastViewedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastReferencedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"EmailBouncedReason\":{\"type\":\"string\",\"maxLength\":255},\"EmailBouncedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"IsEmailBounced\":{\"type\":\"boolean\"},\"PhotoUrl\":{\"type\":\"string\",\"maxLength\":255},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawContactId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"IndividualId\":{\"type\":\"string\",\"maxLength\":18},\"Level__c\":{\"type\":\"string\",\"maxLength\":255},\"Languages__c\":{\"type\":\"string\",\"maxLength\":100},\"ContactID__c\":{\"type\":\"string\",\"maxLength\":255},\"ContactPhone__c\":{\"type\":\"number\"}}}},\"done\":{\"type\":\"boolean\"},\"totalSize\":{\"type\":\"number\"}}}}}",
+                                        "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Contact\":{\"type\":\"object\",\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Id\":{\"type\":\"string\",\"maxLength\":18},\"IsDeleted\":{\"type\":\"boolean\"},\"MasterRecordId\":{\"type\":\"string\",\"maxLength\":18},\"AccountId\":{\"type\":\"string\",\"maxLength\":18},\"LastName\":{\"type\":\"string\",\"maxLength\":80},\"FirstName\":{\"type\":\"string\",\"maxLength\":40},\"Salutation\":{\"type\":\"string\",\"maxLength\":40},\"Name\":{\"type\":\"string\",\"maxLength\":121},\"OtherStreet\":{\"type\":\"string\",\"maxLength\":255},\"OtherCity\":{\"type\":\"string\",\"maxLength\":40},\"OtherState\":{\"type\":\"string\",\"maxLength\":80},\"OtherPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"OtherCountry\":{\"type\":\"string\",\"maxLength\":80},\"OtherLatitude\":{\"type\":\"number\"},\"OtherLongitude\":{\"type\":\"number\"},\"OtherGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"OtherAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"MailingStreet\":{\"type\":\"string\",\"maxLength\":255},\"MailingCity\":{\"type\":\"string\",\"maxLength\":40},\"MailingState\":{\"type\":\"string\",\"maxLength\":80},\"MailingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"MailingCountry\":{\"type\":\"string\",\"maxLength\":80},\"MailingLatitude\":{\"type\":\"number\"},\"MailingLongitude\":{\"type\":\"number\"},\"MailingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"MailingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"MobilePhone\":{\"type\":\"string\",\"maxLength\":40},\"HomePhone\":{\"type\":\"string\",\"maxLength\":40},\"OtherPhone\":{\"type\":\"string\",\"maxLength\":40},\"AssistantPhone\":{\"type\":\"string\",\"maxLength\":40},\"ReportsToId\":{\"type\":\"string\",\"maxLength\":18},\"Email\":{\"type\":\"string\",\"format\":\"email\",\"maxLength\":80},\"Title\":{\"type\":\"string\",\"maxLength\":128},\"Department\":{\"type\":\"string\",\"maxLength\":80},\"AssistantName\":{\"type\":\"string\",\"maxLength\":40},\"LeadSource\":{\"type\":\"string\",\"maxLength\":255},\"Birthdate\":{\"type\":\"string\",\"format\":\"date\"},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"SystemModstamp\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastActivityDate\":{\"type\":\"string\",\"format\":\"date\"},\"LastCURequestDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastCUUpdateDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastViewedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastReferencedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"EmailBouncedReason\":{\"type\":\"string\",\"maxLength\":255},\"EmailBouncedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"IsEmailBounced\":{\"type\":\"boolean\"},\"PhotoUrl\":{\"type\":\"string\",\"maxLength\":255},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawContactId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"IndividualId\":{\"type\":\"string\",\"maxLength\":18},\"Level__c\":{\"type\":\"string\",\"maxLength\":255},\"Languages__c\":{\"type\":\"string\",\"maxLength\":100},\"ContactID__c\":{\"type\":\"string\",\"maxLength\":255},\"ContactPhone__c\":{\"type\":\"number\"}}}},\"done\":{\"type\":\"boolean\"},\"totalSize\":{\"type\":\"number\"}}}}}"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "SFQueryLogMessage",
+                        "name": "SFQueryLogMessage",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "=utility.renderJSON($activity[SalesforceQuery].output.Contact.records, boolean.false())"
+                            }
+                        }
+                    },
+                    {
+                        "id": "Return",
+                        "name": "Return",
+                        "description": "Simple Return Activity",
+                        "activity": {
+                            "ref": "#actreturn",
+                            "settings": {
+                                "mappings": {
+                                    "code": 200,
+                                    "message": "=string.tostring($activity[SalesforceUpsert].output)"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "fe_metadata": "eyJNeVNRTFF1ZXJ5Ijp7IngiOjUwLCJ5Ijo1MH0sIk15U1FMTG9nTWVzc2FnZSI6eyJ4IjoyNTAsInkiOjUwfSwiU2FsZXNmb3JjZVVwc2VydCI6eyJ4Ijo0NTAsInkiOjUwfSwiU0ZVcHNlcnRMb2dNZXNzYWdlIjp7IngiOjY1MCwieSI6NTB9LCJTYWxlc2ZvcmNlUXVlcnkiOnsieCI6ODUwLCJ5Ijo1MH0sIlNGUXVlcnlMb2dNZXNzYWdlIjp7IngiOjEwNTAsInkiOjUwfSwiUmV0dXJuIjp7IngiOjEyNTAsInkiOjUwfX0=",
+                "metadata": {
+                    "input": [
+                        {
+                            "name": "pathParams",
+                            "type": "object",
+                            "schema": {
+                                "type": "json",
+                                "value": "{\"upsert\":{\"type\":\"string\"}}"
+                            }
+                        },
+                        {
+                            "name": "headers",
+                            "type": "object",
+                            "schema": {
+                                "type": "json",
+                                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+                            }
+                        }
+                    ],
+                    "output": [
+                        {
+                            "name": "code",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "message",
+                            "type": "string"
+                        }
+                    ],
+                    "fe_metadata": {
+                        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"pathParams\":{\"type\":\"object\",\"properties\":{\"upsert\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}}}",
+                        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"message\":{\"type\":\"string\",\"required\":false}},\"required\":[]}"
+                    }
+                },
+                "explicitReply": true
+            }
+        },
+        {
+            "id": "flow:SFChangeDataCapture",
+            "data": {
+                "name": "SFChangeDataCapture",
+                "description": "In this flow Salesforce trigger is used with Subscriber type as Change Data Capture and this trigger will executes when there are changes to Salesforce records in the Contact object i,e here once the flow 'SFUpsertWithMySQLDB' executes.",
+                "links": [],
+                "tasks": [
+                    {
+                        "id": "CDCLogMessage",
+                        "name": "CDCLogMessage",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "=string.tostring($flow.output)"
+                            }
+                        }
+                    }
+                ],
+                "fe_metadata": "eyJDRENMb2dNZXNzYWdlIjp7IngiOjUwLCJ5Ijo1MH19",
+                "metadata": {
+                    "input": [
+                        {
+                            "name": "output",
+                            "type": "object",
+                            "schema": {
+                                "type": "json",
+                                "value": "{\"data\":{\"type\":\"object\",\"properties\":{\"schema\":{\"type\":\"string\"},\"payload\":{\"type\":\"object\",\"properties\":{\"ChangeEventHeader\":{\"type\":\"object\",\"properties\":{\"commitNumber\":{\"type\":\"integer\"},\"commitUser\":{\"type\":\"string\"},\"sequenceNumber\":{\"type\":\"integer\"},\"entityName\":{\"type\":\"string\"},\"changeType\":{\"type\":\"string\"},\"changedFields\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]},\"changeOrigin\":{\"type\":\"string\"},\"transactionKey\":{\"type\":\"string\"},\"commitTimestamp\":{\"type\":\"integer\"},\"recordIds\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]}}},\"Id\":{\"type\":\"string\",\"maxLength\":18},\"ReplayId\":{\"type\":\"string\",\"maxLength\":1000},\"AccountId\":{\"type\":\"string\",\"maxLength\":18},\"LastName\":{\"type\":\"string\",\"maxLength\":80},\"FirstName\":{\"type\":\"string\",\"maxLength\":40},\"Salutation\":{\"type\":\"string\",\"maxLength\":40},\"Name\":{\"type\":\"string\",\"maxLength\":121},\"OtherStreet\":{\"type\":\"string\",\"maxLength\":255},\"OtherCity\":{\"type\":\"string\",\"maxLength\":40},\"OtherState\":{\"type\":\"string\",\"maxLength\":80},\"OtherPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"OtherCountry\":{\"type\":\"string\",\"maxLength\":80},\"OtherLatitude\":{\"type\":\"number\"},\"OtherLongitude\":{\"type\":\"number\"},\"OtherGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"OtherAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"MailingStreet\":{\"type\":\"string\",\"maxLength\":255},\"MailingCity\":{\"type\":\"string\",\"maxLength\":40},\"MailingState\":{\"type\":\"string\",\"maxLength\":80},\"MailingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"MailingCountry\":{\"type\":\"string\",\"maxLength\":80},\"MailingLatitude\":{\"type\":\"number\"},\"MailingLongitude\":{\"type\":\"number\"},\"MailingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"MailingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"MobilePhone\":{\"type\":\"string\",\"maxLength\":40},\"HomePhone\":{\"type\":\"string\",\"maxLength\":40},\"OtherPhone\":{\"type\":\"string\",\"maxLength\":40},\"AssistantPhone\":{\"type\":\"string\",\"maxLength\":40},\"ReportsToId\":{\"type\":\"string\",\"maxLength\":18},\"Email\":{\"type\":\"string\",\"format\":\"email\",\"maxLength\":80},\"Title\":{\"type\":\"string\",\"maxLength\":128},\"Department\":{\"type\":\"string\",\"maxLength\":80},\"AssistantName\":{\"type\":\"string\",\"maxLength\":40},\"LeadSource\":{\"type\":\"string\",\"maxLength\":255},\"Birthdate\":{\"type\":\"string\",\"format\":\"date\"},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"LastCURequestDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastCUUpdateDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"EmailBouncedReason\":{\"type\":\"string\",\"maxLength\":255},\"EmailBouncedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawContactId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"IndividualId\":{\"type\":\"string\",\"maxLength\":18},\"Level__c\":{\"type\":\"string\",\"maxLength\":255},\"Languages__c\":{\"type\":\"string\",\"maxLength\":100},\"ContactID__c\":{\"type\":\"string\",\"maxLength\":255},\"ContactPhone__c\":{\"type\":\"number\"}}},\"event\":{\"type\":\"object\",\"properties\":{\"replayId\":{\"type\":\"integer\"}}}}},\"channel\":{\"type\":\"string\"}}"
+                            }
+                        }
+                    ],
+                    "output": [],
+                    "fe_metadata": {
+                        "input": "{\"type\":\"object\",\"title\":\"ReceiveSalesforceMessage\",\"properties\":{\"output\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"object\",\"properties\":{\"schema\":{\"type\":\"string\"},\"payload\":{\"type\":\"object\",\"properties\":{\"ChangeEventHeader\":{\"type\":\"object\",\"properties\":{\"commitNumber\":{\"type\":\"integer\"},\"commitUser\":{\"type\":\"string\"},\"sequenceNumber\":{\"type\":\"integer\"},\"entityName\":{\"type\":\"string\"},\"changeType\":{\"type\":\"string\"},\"changedFields\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]},\"changeOrigin\":{\"type\":\"string\"},\"transactionKey\":{\"type\":\"string\"},\"commitTimestamp\":{\"type\":\"integer\"},\"recordIds\":{\"type\":\"array\",\"items\":[{\"type\":\"string\"}]}}},\"Id\":{\"type\":\"string\",\"maxLength\":18},\"ReplayId\":{\"type\":\"string\",\"maxLength\":1000},\"AccountId\":{\"type\":\"string\",\"maxLength\":18},\"LastName\":{\"type\":\"string\",\"maxLength\":80},\"FirstName\":{\"type\":\"string\",\"maxLength\":40},\"Salutation\":{\"type\":\"string\",\"maxLength\":40},\"Name\":{\"type\":\"string\",\"maxLength\":121},\"OtherStreet\":{\"type\":\"string\",\"maxLength\":255},\"OtherCity\":{\"type\":\"string\",\"maxLength\":40},\"OtherState\":{\"type\":\"string\",\"maxLength\":80},\"OtherPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"OtherCountry\":{\"type\":\"string\",\"maxLength\":80},\"OtherLatitude\":{\"type\":\"number\"},\"OtherLongitude\":{\"type\":\"number\"},\"OtherGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"OtherAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"MailingStreet\":{\"type\":\"string\",\"maxLength\":255},\"MailingCity\":{\"type\":\"string\",\"maxLength\":40},\"MailingState\":{\"type\":\"string\",\"maxLength\":80},\"MailingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"MailingCountry\":{\"type\":\"string\",\"maxLength\":80},\"MailingLatitude\":{\"type\":\"number\"},\"MailingLongitude\":{\"type\":\"number\"},\"MailingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"MailingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"MobilePhone\":{\"type\":\"string\",\"maxLength\":40},\"HomePhone\":{\"type\":\"string\",\"maxLength\":40},\"OtherPhone\":{\"type\":\"string\",\"maxLength\":40},\"AssistantPhone\":{\"type\":\"string\",\"maxLength\":40},\"ReportsToId\":{\"type\":\"string\",\"maxLength\":18},\"Email\":{\"type\":\"string\",\"format\":\"email\",\"maxLength\":80},\"Title\":{\"type\":\"string\",\"maxLength\":128},\"Department\":{\"type\":\"string\",\"maxLength\":80},\"AssistantName\":{\"type\":\"string\",\"maxLength\":40},\"LeadSource\":{\"type\":\"string\",\"maxLength\":255},\"Birthdate\":{\"type\":\"string\",\"format\":\"date\"},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"LastCURequestDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastCUUpdateDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"EmailBouncedReason\":{\"type\":\"string\",\"maxLength\":255},\"EmailBouncedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawContactId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"IndividualId\":{\"type\":\"string\",\"maxLength\":18},\"Level__c\":{\"type\":\"string\",\"maxLength\":255},\"Languages__c\":{\"type\":\"string\",\"maxLength\":100},\"ContactID__c\":{\"type\":\"string\",\"maxLength\":255},\"ContactPhone__c\":{\"type\":\"number\"}}},\"event\":{\"type\":\"object\",\"properties\":{\"replayId\":{\"type\":\"integer\"}}}}},\"channel\":{\"type\":\"string\"}}}}}"
+                    }
+                }
+            }
+        }
+    ],
+    "properties": [
+        {
+            "name": "MySQL.MySQL.Host",
+            "type": "string",
+            "value": "REPLACE_WITH_MYSQL_HOST"
+        },
+        {
+            "name": "MySQL.MySQL.Port",
+            "type": "float64",
+            "value": 3306
+        },
+        {
+            "name": "MySQL.MySQL.Database_Name",
+            "type": "string",
+            "value": "Northwind"
+        },
+        {
+            "name": "MySQL.MySQL.User",
+            "type": "string",
+            "value": "CHANGEME_MYSQL_USER"
+        },
+        {
+            "name": "MySQL.MySQL.Password",
+            "type": "string",
+            "value": "CHANGEME_MYSQL_Password"
+        },
+        {
+            "name": "MySQL.MySQL.Maximum_Open_Connections",
+            "type": "float64",
+            "value": 0
+        },
+        {
+            "name": "MySQL.MySQL.Maximum_Idle_Connections",
+            "type": "float64",
+            "value": 2
+        },
+        {
+            "name": "MySQL.MySQL.Maximum_Connection_Lifetime",
+            "type": "string",
+            "value": 0
+        },
+        {
+            "name": "MySQL.MySQL.Maximum_Connection_Retry_Attempts",
+            "type": "float64",
+            "value": 3
+        },
+        {
+            "name": "MySQL.MySQL.Connection_Retry_Delay",
+            "type": "float64",
+            "value": 5
+        },
+        {
+            "name": "MySQL.MySQL.Connection_Timeout",
+            "type": "float64",
+            "value": 20
+        },
+        {
+            "name": "Salesforce.Salesforce.Environment",
+            "type": "string",
+            "value": "Production"
+        },
+        {
+            "name": "Salesforce.Salesforce.Client_Id",
+            "type": "string",
+            "value": "YOUR_SALESFORCE_CLIENT_ID_HERE"
+        },
+        {
+            "name": "Salesforce.Salesforce.Client_Secret",
+            "type": "string",
+            "value": "YOUR_SALESFORCE_CLIENT_SECRET_HERE"
+        },
+        {
+            "name": "Salesforce.Salesforce.OAuth2_Token",
+            "type": "string",
+            "value": "YOUR_SALESFORCE_OAUTH2_TOKEN_HERE"
+        },
+        {
+            "name": "channelname",
+            "type": "string",
+            "value": "/data/ContactYog__ChangeEvent"
+        },
+        {
+            "name": "replayid",
+            "type": "float64",
+            "value": -1
+        },
+        {
+            "name": "ReplayID",
+            "type": "float64",
+            "value": -1
+        },
+        {
+            "name": "channel",
+            "type": "string",
+            "value": "/data/ContactYog__ChangeEvent"
+        }
+    ],
+    "connections": {
+        "e5e78670-0106-11ec-870d-818b0e110ad3": {
+            "id": "e5e78670-0106-11ec-870d-818b0e110ad3",
+            "name": "MySQL",
+            "ref": "#connection",
+            "isGlobal": false,
+            "settings": {
+                "name": "MySQL",
+                "description": "",
+                "host": "=$property[\"MySQL.MySQL.Host\"]",
+                "port": "=$property[\"MySQL.MySQL.Port\"]",
+                "databaseName": "=$property[\"MySQL.MySQL.Database_Name\"]",
+                "user": "=$property[\"MySQL.MySQL.User\"]",
+                "password": "=$property[\"MySQL.MySQL.Password\"]",
+                "maxopenconnection": "=$property[\"MySQL.MySQL.Maximum_Open_Connections\"]",
+                "maxidleconnection": "=$property[\"MySQL.MySQL.Maximum_Idle_Connections\"]",
+                "connmaxlifetime": "=$property[\"MySQL.MySQL.Maximum_Connection_Lifetime\"]",
+                "maxconnectattempts": "=$property[\"MySQL.MySQL.Maximum_Connection_Retry_Attempts\"]",
+                "connectionretrydelay": "=$property[\"MySQL.MySQL.Connection_Retry_Delay\"]",
+                "connectiontimeout": "=$property[\"MySQL.MySQL.Connection_Timeout\"]",
+                "onprem": false,
+                "tlsconfig": false,
+                "tlsparam": "Required",
+                "cacert": "",
+                "clientcert": "",
+                "clientkey": "",
+                "validatecert": false
+            }
+        },
+        "5f8db4a0-eab3-11eb-a764-dda70f3bcc25": {
+            "id": "5f8db4a0-eab3-11eb-a764-dda70f3bcc25",
+            "name": "Salesforce",
+            "ref": "#connector",
+            "isGlobal": false,
+            "settings": {
+                "name": "Salesforce",
+                "description": "Salesforce Connection",
+                "authType": "OAuth 2.0 Web Server Flow",
+                "environment": "=$property[\"Salesforce.Salesforce.Environment\"]",
+                "customOAuth2Credentials": true,
+                "generateJwt": false,
+                "clientId": "=$property[\"Salesforce.Salesforce.Client_Id\"]",
+                "clientSecret": "=$property[\"Salesforce.Salesforce.Client_Secret\"]",
+                "apiVersion": "v52.0",
+                "jwt": "",
+                "subject": "",
+                "jwtExpiry": 3,
+                "clientKey": "",
+                "WI_STUDIO_OAUTH_CONNECTOR_INFO": "=$property[\"Salesforce.Salesforce.OAuth2_Token\"]"
+            }
+        }
+    },
+    "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1teXNxbC9zcmMvYXBwL015U1FMIiwiaWQiOiJNeVNRTCIsInZlcnNpb24iOiIyLjQuNSBIRi0xIiwidGFnIjoiMi40LjUtYjAzIiwibmFtZSI6Ik9yYWNsZSBNeVNRTCIsInMzbG9jYXRpb24iOiJUaWJjby9NeVNRTCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1zYWxlc2ZvcmNlL3NyYy9hcHAvU2FsZXNmb3JjZSIsImlkIjoiU2FsZXNmb3JjZSIsInZlcnNpb24iOiIxLjMuNyIsInRhZyI6IjEuMy43LWIwMSIsIm5hbWUiOiJTYWxlc2ZvcmNlIiwiczNsb2NhdGlvbiI6IlRpYmNvL1NhbGVzZm9yY2UiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+    "metadata": {
+        "endpoints": [
+            {
+                "protocol": "http",
+                "port": "9999",
+                "spec": {
+                    "name": "SFSubscriberTypesWithUpsertActivity",
+                    "version": "1.0.0"
+                },
+                "title": "ReceiveHTTPMessage",
+                "swagger": {
+                    "swagger": "2.0",
+                    "info": {
+                        "title": "SFSubscriberTypesWithUpsertActivity",
+                        "version": "1.0.0",
+                        "description": "Simple REST Trigger"
+                    },
+                    "paths": {
+                        "/sfupsert/{upsert}": {
+                            "get": {
+                                "summary": "SFUpsertWithMySQLDB",
+                                "operationId": "get_sfupsert_upsert",
+                                "parameters": [
+                                    {
+                                        "name": "upsert",
+                                        "in": "path",
+                                        "description": "Request parameter",
+                                        "required": true,
+                                        "type": "string"
+                                    }
+                                ],
+                                "responses": {
+                                    "200": {
+                                        "description": "Rest Response",
+                                        "schema": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "description": "In this flow records are getting fetched from mysql database using query and using Salesforce Upsert records from database are getting created in the salesforce if not exist already and updated if already exist."
+                            }
+                        }
+                    },
+                    "definitions": {}
+                }
+            }
+        ],
+        "flogoVersion": "2.25.11"
+    }
+}

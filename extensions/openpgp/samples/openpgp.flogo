@@ -1,0 +1,172 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/mmussett/extensions/openpgp/activity/keypair",
+    "github.com/mmussett/extensions/openpgp/activity/encrypt",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/mmussett/extensions/openpgp/activity/decrypt",
+    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook"
+  ],
+  "name": "openpgp",
+  "description": "OpenPGP Sample",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#startuphook",
+      "name": "tibco-appstartup",
+      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "settings": {},
+      "id": "AppStartupTrigger",
+      "handlers": [
+        {
+          "description": "Encrypt and decrypt using openpgp",
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:EncryptDecryptSample"
+            }
+          },
+          "name": "EncryptDecryptSample"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:EncryptDecryptSample",
+      "data": {
+        "name": "EncryptDecryptSample",
+        "description": "Encrypt and decrypt using openpgp",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Generateakeypair",
+            "type": "label",
+            "label": "StartActivity to Generateakeypair"
+          },
+          {
+            "id": 2,
+            "from": "Generateakeypair",
+            "to": "Encrypt",
+            "type": "label",
+            "label": "Generateakeypair to Encrypt"
+          },
+          {
+            "id": 3,
+            "from": "Encrypt",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "Encrypt to LogMessage"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage",
+            "to": "Decrypt",
+            "type": "label",
+            "label": "LogMessage to Decrypt"
+          },
+          {
+            "id": 5,
+            "from": "Decrypt",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "Decrypt to LogMessage1"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Generateakeypair",
+            "name": "Generateakeypair",
+            "description": "Generates a key pair",
+            "activity": {
+              "ref": "#keypair",
+              "input": {
+                "name": "Mark Mussett",
+                "comment": "Mark Mussett",
+                "email": "mark.mussett@tibco.com"
+              }
+            }
+          },
+          {
+            "id": "Encrypt",
+            "name": "Encrypt",
+            "description": "Activity to encrypt openpgp messages",
+            "activity": {
+              "ref": "#encrypt",
+              "input": {
+                "plaintext": "Hello, World",
+                "publickey": "=$activity[Generateakeypair].publicKey"
+              }
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$activity[Encrypt].ciphertext",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Decrypt",
+            "name": "Decrypt",
+            "description": "Activity to decrypt openpgp messages",
+            "activity": {
+              "ref": "#decrypt",
+              "input": {
+                "ciphertext": "=$activity[Encrypt].ciphertext",
+                "privatekey": "=$activity[Generateakeypair].privateKey"
+              }
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$activity[Decrypt].plaintext",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjQxLCJ5IjoxMDF9LCJHZW5lcmF0ZWFrZXlwYWlyIjp7IngiOjE3NiwieSI6ODl9LCJFbmNyeXB0Ijp7IngiOjM2MCwieSI6ODl9LCJMb2dNZXNzYWdlIjp7IngiOjU2NCwieSI6OTB9LCJEZWNyeXB0Ijp7IngiOjc2NSwieSI6OTB9LCJMb2dNZXNzYWdlMSI6eyJ4Ijo5NjIsInkiOjkzfX0=",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTIiLCJ0YWciOiIxLjYuMTItYjA2IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9tbXVzc2V0dC9leHRlbnNpb25zL29wZW5wZ3AiLCJpZCI6Im9wZW5wZ3AiLCJ2ZXJzaW9uIjoiMS4wLjAiLCJ0YWciOiIxLjAuMCIsIm5hbWUiOiJPcGVuUEdQIiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L29wZW5wZ3AiLCJpc1VzZXJFeHRlbnNpb24iOnRydWV9XQ==",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.1"
+  }
+}
