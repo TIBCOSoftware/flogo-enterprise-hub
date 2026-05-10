@@ -1,0 +1,1493 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/array"
+  ],
+  "name": "Customer360WithPromptsAndResources",
+  "description": "Customer 360 MCP Server demonstrating all three MCP primitive types - Tools, Resources and Prompts - using real Customer 360 data.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpserver",
+      "description": "Flogo MCP Server exposing Customer 360 Tools, Resources, and Prompts",
+      "settings": {
+        "serverName": "Customer360MCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"MCPServer.PORT\"]",
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "MCPServer",
+      "handlers": [
+        {
+          "description": "Get Customers Data from REST API",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetCustomers",
+            "handlerDescription": "Get a list of all Customers with their profile, address and contact details"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Customers_Tool"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "Get_Customers_Tool"
+        },
+        {
+          "description": "Get Products Data from REST API",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetProducts",
+            "handlerDescription": "Get List of Products with pricing and inventory details"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Products_Tool"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "Get_Products_Tool"
+        },
+        {
+          "description": "Get Sales Data from REST API",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetSales",
+            "handlerDescription": "Get a list of all Sales transactions with date, price, customer and product details"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Sales_Tool"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "Get_Sales_Tool"
+        },
+        {
+          "description": "Static resource returning the full product catalog as JSON. The AI client reads this once as context to reduce repeated tool calls.",
+          "settings": {
+            "handlerType": "Resource",
+            "resourceUri": "products://catalog",
+            "handlerName": "product_catalog",
+            "handlerDescription": "Static product catalog with all products including name, cost, MSRP and quantity. Read by the AI client as context without invoking a tool call."
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Product_Catalog_Resource"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "Product_Catalog_Resource"
+        },
+        {
+          "description": "Static resource returning a pre-aggregated sales summary including total revenue, top products and top customers. The AI client reads this for instant business overview answers.",
+          "settings": {
+            "handlerType": "Resource",
+            "resourceUri": "sales://summary",
+            "handlerName": "sales_summary",
+            "handlerDescription": "Pre-aggregated sales summary with total revenue, best-selling products and top customers. Read by the AI client as context for business overview questions."
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Sales_Summary_Resource"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "Sales_Summary_Resource"
+        },
+        {
+          "description": "Dynamic resource that returns a single customer full profile by ID. The AI client reads this URI with the customer ID to retrieve the matching record.",
+          "settings": {
+            "handlerType": "Resource",
+            "resourceUri": "customers://{id}/profile",
+            "handlerName": "customer_profile",
+            "handlerDescription": "Dynamic customer profile resource. Returns the full profile for a specific customer by ID using the URI template customers://{id}/profile."
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Customer_Profile_Resource"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"]}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"]}"
+              }
+            }
+          },
+          "name": "Customer_Profile_Resource"
+        },
+        {
+          "description": "Prompt that returns a structured sales analysis instruction for a named customer and period. Returns role and content message pairs to start the analysis conversation.",
+          "settings": {
+            "handlerType": "Prompt",
+            "resourceUri": "",
+            "handlerName": "analyze_customer_sales",
+            "handlerDescription": "Prompt template for deep customer sales analysis. Provide customer_name and period to get a structured analysis instruction covering purchase history, spend trends and product details."
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Analyze_Customer_Sales_Prompt"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer to analyse, e.g. Bruce Wayne\"},\"period\":{\"type\":\"string\",\"description\":\"The sales period to analyse, e.g. Q1 2025 or March 2025\"}},\"required\":[\"customer_name\",\"period\"]}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer to analyse, e.g. Bruce Wayne\"},\"period\":{\"type\":\"string\",\"description\":\"The sales period to analyse, e.g. Q1 2025 or March 2025\"}},\"required\":[\"customer_name\",\"period\"]}"
+              }
+            }
+          },
+          "name": "Analyze_Customer_Sales_Prompt"
+        },
+        {
+          "description": "Prompt that returns a cross-sell recommendation instruction for a named customer. Guides the AI to compare purchase history against the catalog and suggest complementary products.",
+          "settings": {
+            "handlerType": "Prompt",
+            "resourceUri": "",
+            "handlerName": "cross_sell_recommendation",
+            "handlerDescription": "Prompt template for cross-sell product recommendations. Provide customer_name to get an instruction that compares the customer purchase history against the full product catalog and proposes complementary products."
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Cross_Sell_Recommendation_Prompt"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer to generate recommendations for, e.g. Bruce Wayne\"}},\"required\":[\"customer_name\"]}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer to generate recommendations for, e.g. Bruce Wayne\"}},\"required\":[\"customer_name\"]}"
+              }
+            }
+          },
+          "name": "Cross_Sell_Recommendation_Prompt"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:Get_Customers_Tool",
+      "data": {
+        "name": "Get_Customers_Tool",
+        "description": "Get Customers Data from REST API",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "Start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "Call API"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogResponse",
+            "type": "label",
+            "label": "API Response"
+          },
+          {
+            "id": 4,
+            "from": "LogResponse",
+            "to": "Return",
+            "type": "label",
+            "label": "Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log start",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Get_Customers_Tool invoked with args: \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Call Customers REST API",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"CustInvokeRESTServiceURL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://CustomersSchema",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResponse",
+            "name": "LogResponse",
+            "description": "Log response",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Customers API response: \", coerce.toString($activity[InvokeRESTService].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return customer data",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[InvokeRESTService].responseBody.customer)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjE2NiwieSI6NDJ9LCJJbnZva2VSRVNUU2VydmljZSI6eyJ4IjozNDQsInkiOjQ1fSwiTG9nUmVzcG9uc2UiOnsieCI6NTQyLCJ5Ijo0OH0sIlJldHVybiI6eyJ4Ijo3NjgsInkiOjQ3fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Get_Products_Tool",
+      "data": {
+        "name": "Get_Products_Tool",
+        "description": "Get Products Data from REST API",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "Start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "Call API"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogResponse",
+            "type": "label",
+            "label": "API Response"
+          },
+          {
+            "id": 4,
+            "from": "LogResponse",
+            "to": "Return",
+            "type": "label",
+            "label": "Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log start",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Get_Products_Tool invoked with args: \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Call Products REST API",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"ProdInvokeRESTServiceURL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://ProductsSchema",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResponse",
+            "name": "LogResponse",
+            "description": "Log response",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Products API response: \", coerce.toString($activity[InvokeRESTService].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return product data",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[InvokeRESTService].responseBody.product)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiSW52b2tlUkVTVFNlcnZpY2UiOnsieCI6NDUwLCJ5IjoyNTB9LCJMb2dSZXNwb25zZSI6eyJ4Ijo2NTAsInkiOjM1MH0sIlJldHVybiI6eyJ4Ijo4NTAsInkiOjQ1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Get_Sales_Tool",
+      "data": {
+        "name": "Get_Sales_Tool",
+        "description": "Get Sales Data from REST API",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "Start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "Call API"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogResponse",
+            "type": "label",
+            "label": "API Response"
+          },
+          {
+            "id": 4,
+            "from": "LogResponse",
+            "to": "Return",
+            "type": "label",
+            "label": "Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log start",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Get_Sales_Tool invoked with args: \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Call Sales REST API",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"SaleInvokeRESTServiceURL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://SalesSchema",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResponse",
+            "name": "LogResponse",
+            "description": "Log response",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Sales API response: \", coerce.toString($activity[InvokeRESTService].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return sales data",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[InvokeRESTService].responseBody.sale)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiSW52b2tlUkVTVFNlcnZpY2UiOnsieCI6NDUwLCJ5IjoyNTB9LCJMb2dSZXNwb25zZSI6eyJ4Ijo2NTAsInkiOjM1MH0sIlJldHVybiI6eyJ4Ijo4NTAsInkiOjQ1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Product_Catalog_Resource",
+      "data": {
+        "name": "Product_Catalog_Resource",
+        "description": "Static resource returning the full product catalog as JSON. The AI client reads this once as context to reduce repeated tool calls.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "Start to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return product catalog as JSON resource content",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "textResourceContents": [
+                        {
+                          "uri": "products://catalog",
+                          "mimeType": "application/json",
+                          "text": "{\"catalog\":[{\"product_id\":1,\"product_name\":\"red cape\",\"product_cost\":\"1000\",\"product_msrp\":\"2000\",\"product_quantity\":\"20\"},{\"product_id\":2,\"product_name\":\"magic lasso\",\"product_cost\":\"100000\",\"product_msrp\":\"100000\",\"product_quantity\":\"0\"},{\"product_id\":3,\"product_name\":\"pym particles disc\",\"product_cost\":\"8000\",\"product_msrp\":\"20000\",\"product_quantity\":\"4\"},{\"product_id\":4,\"product_name\":\"vibranium shield\",\"product_cost\":\"1000\",\"product_msrp\":\"100000\",\"product_quantity\":\"0\"},{\"product_id\":5,\"product_name\":\"arc reactor\",\"product_cost\":\"10000\",\"product_msrp\":\"50000\",\"product_quantity\":\"2\"},{\"product_id\":6,\"product_name\":\"spider-suit\",\"product_cost\":\"500\",\"product_msrp\":\"2000\",\"product_quantity\":\"5\"},{\"product_id\":7,\"product_name\":\"bat cape\",\"product_cost\":\"1000\",\"product_msrp\":\"10000\",\"product_quantity\":\"10\"},{\"product_id\":8,\"product_name\":\"mjolnir hammer\",\"product_cost\":\"5000\",\"product_msrp\":\"100000\",\"product_quantity\":\"0\"}]}"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"blobResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"blob\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"blobResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"blob\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Sales_Summary_Resource",
+      "data": {
+        "name": "Sales_Summary_Resource",
+        "description": "Static resource returning a pre-aggregated sales summary including total revenue, top products and top customers. The AI client reads this for instant business overview answers.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "Start to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return sales summary as JSON resource content",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "textResourceContents": [
+                        {
+                          "uri": "sales://summary",
+                          "mimeType": "application/json",
+                          "text": "{\"sales_summary\":{\"total_revenue\":\"$593,463.00\",\"total_transactions\":10,\"period\":\"2025-01 to 2025-05\",\"top_products\":[{\"product_name\":\"mjolnir hammer\",\"units_sold\":1,\"revenue\":\"$199,999.00\"},{\"product_name\":\"magic lasso\",\"units_sold\":1,\"revenue\":\"$143,953.00\"},{\"product_name\":\"vibranium shield\",\"units_sold\":1,\"revenue\":\"$139,503.00\"}],\"top_customers\":[{\"customer_name\":\"thor odinson\",\"transactions\":1,\"total_spend\":\"$199,999.00\"},{\"customer_name\":\"diana prince\",\"transactions\":1,\"total_spend\":\"$143,953.00\"},{\"customer_name\":\"bruce wayne\",\"transactions\":2,\"total_spend\":\"$26,746.00\"}]}}"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"blobResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"blob\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"blobResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"blob\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Customer_Profile_Resource",
+      "data": {
+        "name": "Customer_Profile_Resource",
+        "description": "Dynamic resource that returns a single customer full profile by ID. The AI client reads this URI with the customer ID to retrieve the matching record.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "Start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "Fetch customer"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "InvokeRESTService to LogMessage"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log resource read",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Customer_Profile_Resource reading id=\", coerce.toString($flow.arguments.id))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Fetch single customer from REST API by ID",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"CustByIdInvokeRESTServiceURL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "serviceUrl": "",
+                "pathParams": "=$flow.arguments"
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "pathParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"id\",\"type\":\"string\"}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://CustomerByIdSchema",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Fetched customer profile for customer ID: \", coerce.toString($flow.arguments.id))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return customer profile as JSON resource content",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "textResourceContents": [
+                        {
+                          "uri": "=string.concat(\"customers://\", coerce.toString($flow.arguments.id), \"/profile\")",
+                          "mimeType": "application/json",
+                          "text": "=coerce.toString($activity[InvokeRESTService].responseBody)"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjE3OCwieSI6NDF9LCJJbnZva2VSRVNUU2VydmljZSI6eyJ4IjozNzIsInkiOjQ5fSwiTG9nTWVzc2FnZSI6eyJ4Ijo1MzcsInkiOjUxfSwiUmV0dXJuIjp7IngiOjcxNywieSI6NDV9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"id\":{\"type\":\"string\",\"description\":\"The customer ID\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}},\"required\":[\"text\",\"mimeType\"]}},\"blobResourceContents\":{\"type\":\"array\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"description\":\"The customer ID\"}},\"required\":[\"id\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}},\"required\":[\"text\",\"mimeType\"]}},\"blobResourceContents\":{\"type\":\"array\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Analyze_Customer_Sales_Prompt",
+      "data": {
+        "name": "Analyze_Customer_Sales_Prompt",
+        "description": "Prompt that returns a structured sales analysis instruction for a named customer and period. Returns role and content message pairs to start the analysis conversation.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "Start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log prompt invocation",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Analyze_Customer_Sales_Prompt invoked: customer=\", coerce.toString($flow.arguments.customer_name), \" period=\", coerce.toString($flow.arguments.period))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return prompt messages for customer sales analysis",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "description": "=string.concat(\"Sales analysis for \", coerce.toString($flow.arguments.customer_name), \" - \", coerce.toString($flow.arguments.period))",
+                      "messages": [
+                        {
+                          "role": "user",
+                          "content": "=string.concat(\"You are a Customer 360 sales analyst. Using the data available from the GetCustomers, GetProducts, and GetSales tools, please perform a comprehensive sales analysis for the customer named '\", coerce.toString($flow.arguments.customer_name), \"' covering the period '\", coerce.toString($flow.arguments.period), \"'.\\n\\nYour analysis should include:\\n1. Total number of transactions and total spend for this customer during the period.\\n2. A breakdown of all products purchased, including product name, unit price and quantity.\\n3. The customer's average order value compared to the overall customer average.\\n4. The top-selling product category this customer has purchased from.\\n5. Any noticeable purchase trends or patterns (e.g. repeat purchases, increasing spend, seasonal behaviour).\\n6. A one-paragraph executive summary.\\n\\nCall the necessary tools to retrieve the data, then present the analysis in a clear, structured format.\")"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjIxMywieSI6NDJ9LCJSZXR1cm4iOnsieCI6NDQ3LCJ5Ijo0OH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer\"},\"period\":{\"type\":\"string\",\"description\":\"The sales period, e.g. Q1 2025\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer\"},\"period\":{\"type\":\"string\",\"description\":\"The sales period, e.g. Q1 2025\"}},\"required\":[\"customer_name\",\"period\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Cross_Sell_Recommendation_Prompt",
+      "data": {
+        "name": "Cross_Sell_Recommendation_Prompt",
+        "description": "Prompt that returns a cross-sell recommendation instruction for a named customer. Guides the AI to compare purchase history against the catalog and suggest complementary products.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "Start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log prompt invocation",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Cross_Sell_Recommendation_Prompt invoked: customer=\", coerce.toString($flow.arguments.customer_name))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return prompt messages for cross-sell recommendation",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "description": "=string.concat(\"Cross-sell recommendations for \", coerce.toString($flow.arguments.customer_name))",
+                      "messages": [
+                        {
+                          "role": "user",
+                          "content": "=string.concat(\"You are a Customer 360 product recommendation engine. Using the GetCustomers, GetProducts, and GetSales tools, identify personalised cross-sell opportunities for the customer named '\", coerce.toString($flow.arguments.customer_name), \"'.\\n\\nFollow these steps:\\n1. Retrieve all sales transactions for this customer using GetSales and filter by their name.\\n2. Retrieve the complete product catalog using GetProducts (or the products://catalog resource if available).\\n3. Identify which products the customer has NEVER purchased.\\n4. From those unpurchased products, recommend up to 3 that are most complementary to what the customer has already bought (consider product category, price range, and typical bundle patterns).\\n5. For each recommended product provide:\\n   - Product name and MSRP\\n   - Why it complements the customer's existing purchases\\n   - A personalised one-sentence pitch\\n\\nPresent the recommendations in a structured, sales-ready format.\")"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI0NSwieSI6NDV9LCJSZXR1cm4iOnsieCI6NDYwLCJ5Ijo0OH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer\"}},\"required\":[\"customer_name\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "MCPServer.PORT",
+      "type": "string",
+      "value": "9092"
+    },
+    {
+      "name": "CustInvokeRESTServiceURL",
+      "type": "string",
+      "value": "http://localhost:18080/customers"
+    },
+    {
+      "name": "ProdInvokeRESTServiceURL",
+      "type": "string",
+      "value": "http://localhost:18080/products"
+    },
+    {
+      "name": "SaleInvokeRESTServiceURL",
+      "type": "string",
+      "value": "http://localhost:18080/sales"
+    },
+    {
+      "name": "CustByIdInvokeRESTServiceURL",
+      "type": "string",
+      "value": "http://localhost:18080/customers/{id}"
+    }
+  ],
+  "schemas": {
+    "CustomersSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"customer\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"customer_id\": { \"type\": \"number\" },\n                    \"customer_name\": { \"type\": \"string\" },\n                    \"customer_age\": { \"type\": \"number\" },\n                    \"customer_street\": { \"type\": \"string\" },\n                    \"customer_city\": { \"type\": \"string\" },\n                    \"customer_state\": { \"type\": \"string\" },\n                    \"customer_country\": { \"type\": \"string\" }\n                }\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"customer\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"customer_id\": { \"type\": \"number\" },\n                    \"customer_name\": { \"type\": \"string\" },\n                    \"customer_age\": { \"type\": \"number\" },\n                    \"customer_street\": { \"type\": \"string\" },\n                    \"customer_city\": { \"type\": \"string\" },\n                    \"customer_state\": { \"type\": \"string\" },\n                    \"customer_country\": { \"type\": \"string\" }\n                }\n            }\n        }\n    }\n}"
+    },
+    "ProductsSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"product\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"product_id\": { \"type\": \"number\" },\n                    \"product_name\": { \"type\": \"string\" },\n                    \"product_cost\": { \"type\": \"string\" },\n                    \"product_msrp\": { \"type\": \"string\" },\n                    \"product_quantity\": { \"type\": \"string\" }\n                }\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"product\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"product_id\": { \"type\": \"number\" },\n                    \"product_name\": { \"type\": \"string\" },\n                    \"product_cost\": { \"type\": \"string\" },\n                    \"product_msrp\": { \"type\": \"string\" },\n                    \"product_quantity\": { \"type\": \"string\" }\n                }\n            }\n        }\n    }\n}"
+    },
+    "SalesSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"sale\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"sale_id\": { \"type\": \"number\" },\n                    \"sale_date\": { \"type\": \"string\" },\n                    \"sale_price\": { \"type\": \"string\" },\n                    \"product_name\": { \"type\": \"string\" },\n                    \"customer_name\": { \"type\": \"string\" }\n                }\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"sale\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"sale_id\": { \"type\": \"number\" },\n                    \"sale_date\": { \"type\": \"string\" },\n                    \"sale_price\": { \"type\": \"string\" },\n                    \"product_name\": { \"type\": \"string\" },\n                    \"customer_name\": { \"type\": \"string\" }\n                }\n            }\n        }\n    }\n}"
+    },
+    "CustomerByIdSchema": {
+      "type": "json",
+      "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"number\"},\"customer_name\":{\"type\":\"string\"},\"customer_age\":{\"type\":\"string\"},\"customer_street\":{\"type\":\"string\"},\"customer_city\":{\"type\":\"string\"},\"customer_state\":{\"type\":\"string\"},\"customer_country\":{\"type\":\"string\"}}}",
+      "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"number\"},\"customer_name\":{\"type\":\"string\"},\"customer_age\":{\"type\":\"string\"},\"customer_street\":{\"type\":\"string\"},\"customer_city\":{\"type\":\"string\"},\"customer_state\":{\"type\":\"string\"},\"customer_country\":{\"type\":\"string\"}}}"
+    }
+  },
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMSIsInRhZyI6IjEuMC4xLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTMiLCJ0YWciOiIxLjYuMTMtYjAzIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9092",
+        "title": "MCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.3"
+  }
+}

@@ -1,0 +1,784 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-files/src/app/File/activity/read",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "LoanApplicationMCPServer",
+  "description": "Stateful MCP server for a multi-step loan application wizard. Issues Mcp-Session-Id; session context persists across tool calls.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Stateful MCP server — Mcp-Session-Id issued at initialization to track loan application state.",
+      "settings": {
+        "serverName": "LoanApplicationMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": false,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "LoanApplicationMCPServer",
+      "handlers": [
+        {
+          "description": "Step 1: Creates session state file with applicant details.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "start_loan_application",
+            "handlerDescription": "Starts a new loan application session for an applicant. Records the applicant's name, email, loan type, and requested amount. Returns a unique application reference ID. Call this tool first — it initialises the session state used by subsequent tools in this wizard.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:start_loan_application_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"applicant_name\": {\n      \"type\": \"string\",\n      \"description\": \"Full legal name of the applicant\"\n    },\n    \"applicant_email\": {\n      \"type\": \"string\",\n      \"description\": \"Applicant's email address for correspondence\"\n    },\n    \"loan_type\": {\n      \"type\": \"string\",\n      \"description\": \"Type of loan: HOME_LOAN, PERSONAL_LOAN, AUTO_LOAN, BUSINESS_LOAN\"\n    },\n    \"requested_amount_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Loan amount requested in USD\"\n    },\n    \"loan_term_months\": {\n      \"type\": \"integer\",\n      \"description\": \"Requested loan term in months (e.g. 12, 24, 36, 60, 120, 240, 360)\"\n    }\n  },\n  \"required\": [\"applicant_name\", \"applicant_email\", \"loan_type\", \"requested_amount_usd\", \"loan_term_months\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"applicant_name\": {\n      \"type\": \"string\",\n      \"description\": \"Full legal name of the applicant\"\n    },\n    \"applicant_email\": {\n      \"type\": \"string\",\n      \"description\": \"Applicant's email address for correspondence\"\n    },\n    \"loan_type\": {\n      \"type\": \"string\",\n      \"description\": \"Type of loan: HOME_LOAN, PERSONAL_LOAN, AUTO_LOAN, BUSINESS_LOAN\"\n    },\n    \"requested_amount_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Loan amount requested in USD\"\n    },\n    \"loan_term_months\": {\n      \"type\": \"integer\",\n      \"description\": \"Requested loan term in months (e.g. 12, 24, 36, 60, 120, 240, 360)\"\n    }\n  },\n  \"required\": [\"applicant_name\", \"applicant_email\", \"loan_type\", \"requested_amount_usd\", \"loan_term_months\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "start_loan_application_flow"
+        },
+        {
+          "description": "Step 2: Reads session state, merges financial profile, writes back. Idempotent.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "submit_financial_profile",
+            "handlerDescription": "Adds the applicant's financial details to the existing loan application session. Requires the application_ref returned by start_loan_application. The server appends this financial data to the session state — the session ID (Mcp-Session-Id) ensures this update is associated with the correct applicant's in-progress application.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:submit_financial_profile_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID returned by start_loan_application\"\n    },\n    \"annual_income_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Applicant's gross annual income in USD\"\n    },\n    \"employment_status\": {\n      \"type\": \"string\",\n      \"description\": \"Employment status: EMPLOYED, SELF_EMPLOYED, RETIRED, UNEMPLOYED\"\n    },\n    \"employer_name\": {\n      \"type\": \"string\",\n      \"description\": \"Name of current employer (for EMPLOYED status)\"\n    },\n    \"monthly_expenses_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Applicant's total monthly expenses in USD\"\n    },\n    \"existing_debt_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Total outstanding debt across all existing loans and credit cards in USD\"\n    },\n    \"credit_score\": {\n      \"type\": \"integer\",\n      \"description\": \"Applicant's credit score (300–850)\"\n    }\n  },\n  \"required\": [\"application_ref\", \"annual_income_usd\", \"employment_status\", \"monthly_expenses_usd\", \"existing_debt_usd\", \"credit_score\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID returned by start_loan_application\"\n    },\n    \"annual_income_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Applicant's gross annual income in USD\"\n    },\n    \"employment_status\": {\n      \"type\": \"string\",\n      \"description\": \"Employment status: EMPLOYED, SELF_EMPLOYED, RETIRED, UNEMPLOYED\"\n    },\n    \"employer_name\": {\n      \"type\": \"string\",\n      \"description\": \"Name of current employer (for EMPLOYED status)\"\n    },\n    \"monthly_expenses_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Applicant's total monthly expenses in USD\"\n    },\n    \"existing_debt_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Total outstanding debt across all existing loans and credit cards in USD\"\n    },\n    \"credit_score\": {\n      \"type\": \"integer\",\n      \"description\": \"Applicant's credit score (300–850)\"\n    }\n  },\n  \"required\": [\"application_ref\", \"annual_income_usd\", \"employment_status\", \"monthly_expenses_usd\", \"existing_debt_usd\", \"credit_score\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "submit_financial_profile_flow"
+        },
+        {
+          "description": "Step 3: Read-only review of accumulated session state.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "review_application",
+            "handlerDescription": "Returns a full read-only summary of the in-progress loan application — all applicant details and financial data collected so far — so the applicant can review and confirm before final submission. Reads session state accumulated across previous tool calls within the same Mcp-Session-Id.",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:review_application_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID to review\"\n    }\n  },\n  \"required\": [\"application_ref\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID to review\"\n    }\n  },\n  \"required\": [\"application_ref\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "review_application_flow"
+        },
+        {
+          "description": "Step 4: Reads session state and submits to loan origination API. Not idempotent.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "submit_application",
+            "handlerDescription": "Finalises and submits the completed loan application to the bank's underwriting system. Reads all state accumulated during the session (applicant profile + financial data) and dispatches it to the external loan origination platform. NOT idempotent — each call creates a new submission record. Open-world: calls the external loan origination API. Requires the applicant to have reviewed the application first.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": true
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:submit_application_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID to submit\"\n    },\n    \"applicant_consent\": {\n      \"type\": \"boolean\",\n      \"description\": \"Must be true — confirms the applicant has reviewed the application and consents to submission and credit check\"\n    }\n  },\n  \"required\": [\"application_ref\", \"applicant_consent\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID to submit\"\n    },\n    \"applicant_consent\": {\n      \"type\": \"boolean\",\n      \"description\": \"Must be true — confirms the applicant has reviewed the application and consents to submission and credit check\"\n    }\n  },\n  \"required\": [\"application_ref\", \"applicant_consent\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "submit_application_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:start_loan_application_flow",
+      "data": {
+        "name": "start_loan_application_flow",
+        "description": "Step 1: Creates session state file with applicant details.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "WriteApplicationState",
+            "type": "label",
+            "label": "StartActivity to WriteApplicationState"
+          },
+          {
+            "id": 2,
+            "from": "WriteApplicationState",
+            "to": "Return",
+            "type": "label",
+            "label": "WriteApplicationState to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "WriteApplicationState",
+            "name": "WriteApplicationState",
+            "description": "Writes applicant details to session state file. Replace with DB/cache in production.",
+            "activity": {
+              "ref": "#write",
+              "input": {
+                "writeAs": "Text",
+                "createNonExistingDir": true,
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "overwrite": true,
+                    "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_LOAN-\",coerce.toString($flow.arguments.loan_type),\"-20260414.json\")",
+                    "textContent": "=string.concat(\"{\\\"application_ref\\\":\\\"LOAN-\",coerce.toString($flow.arguments.loan_type),\"-20260414\\\",\\\"status\\\":\\\"DRAFT\\\",\\\"applicant_name\\\":\\\"\",coerce.toString($flow.arguments.applicant_name),\"\\\",\\\"applicant_email\\\":\\\"\",coerce.toString($flow.arguments.applicant_email),\"\\\",\\\"loan_type\\\":\\\"\",coerce.toString($flow.arguments.loan_type),\"\\\",\\\"requested_amount_usd\\\":\",coerce.toString($flow.arguments.requested_amount_usd),\",\\\"loan_term_months\\\":\",coerce.toString($flow.arguments.loan_term_months),\",\\\"financial_profile_complete\\\":false}\")"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns application reference ID and next-step prompt.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.applicant_name != '' && $flow.arguments.applicant_email != '' && $flow.arguments.loan_type != ''": {
+                          "data": "=string.concat(\"Loan application started | Application Ref: LOAN-\",$flow.arguments.loan_type,\"-20260414 | Applicant: \",$flow.arguments.applicant_name,\" (\",$flow.arguments.applicant_email,\") | Type: \",$flow.arguments.loan_type,\" | Amount: $\",coerce.toString($flow.arguments.requested_amount_usd),\" USD | Term: \",coerce.toString($flow.arguments.loan_term_months),\" months | Status: DRAFT | Next step: Call submit_financial_profile with Application Ref LOAN-\",$flow.arguments.loan_type,\"-20260414 to add your financial details.\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "applicant_name, applicant_email, loan_type, requested_amount_usd, and loan_term_months are required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIldyaXRlQXBwbGljYXRpb25TdGF0ZSI6eyJ4IjoyMjksInkiOjQzfSwiUmV0dXJuIjp7IngiOjQ2MCwieSI6NDd9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicant_name\":{\"type\":\"string\"},\"applicant_email\":{\"type\":\"string\"},\"loan_type\":{\"type\":\"string\"},\"requested_amount_usd\":{\"type\":\"number\"},\"loan_term_months\":{\"type\":\"number\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicant_name\":{\"type\":\"string\"},\"applicant_email\":{\"type\":\"string\"},\"loan_type\":{\"type\":\"string\"},\"requested_amount_usd\":{\"type\":\"number\"},\"loan_term_months\":{\"type\":\"number\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:submit_financial_profile_flow",
+      "data": {
+        "name": "submit_financial_profile_flow",
+        "description": "Step 2: Reads session state, merges financial profile, writes back. Idempotent.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadApplicationState",
+            "type": "label",
+            "label": "StartActivity to ReadApplicationState"
+          },
+          {
+            "id": 2,
+            "from": "ReadApplicationState",
+            "to": "WriteFinancialProfile",
+            "type": "label",
+            "label": "ReadApplicationState to WriteFinancialProfile"
+          },
+          {
+            "id": 3,
+            "from": "WriteFinancialProfile",
+            "to": "Return",
+            "type": "label",
+            "label": "WriteFinancialProfile to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadApplicationState",
+            "name": "ReadApplicationState",
+            "description": "Reads existing session state. Replace with DB/cache in production.",
+            "activity": {
+              "ref": "#read",
+              "input": {
+                "readAs": "Text",
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_\",coerce.toString($flow.arguments.application_ref),\".json\")"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "WriteFinancialProfile",
+            "name": "WriteFinancialProfile",
+            "description": "Writes merged session state (applicant + financial). Replace with DB/cache in production.",
+            "activity": {
+              "ref": "#write",
+              "input": {
+                "writeAs": "Text",
+                "createNonExistingDir": true,
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "overwrite": true,
+                    "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_\",coerce.toString($flow.arguments.application_ref),\".json\")",
+                    "textContent": "=string.replaceAll(string.replaceAll($activity[ReadApplicationState].output.fileContent.textContent,\"\\\"status\\\":\\\"DRAFT\\\"\",\"\\\"status\\\":\\\"AWAITING_REVIEW\\\"\"),\"\\\"financial_profile_complete\\\":false}\",string.concat(\"\\\"financial_profile_complete\\\":true,\\\"annual_income_usd\\\":\",coerce.toString($flow.arguments.annual_income_usd),\",\\\"employment_status\\\":\\\"\",coerce.toString($flow.arguments.employment_status),\"\\\",\\\"employer_name\\\":\\\"\",coerce.toString($flow.arguments.employer_name),\"\\\",\\\"monthly_expenses_usd\\\":\",coerce.toString($flow.arguments.monthly_expenses_usd),\",\\\"existing_debt_usd\\\":\",coerce.toString($flow.arguments.existing_debt_usd),\",\\\"credit_score\\\":\",coerce.toString($flow.arguments.credit_score),\"}\"))"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns financial profile save confirmation.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.application_ref != '' && coerce.toString($flow.arguments.annual_income_usd) != '' && coerce.toString($flow.arguments.credit_score) != ''": {
+                          "data": "=string.concat(\"Financial profile saved | Application Ref: \",$flow.arguments.application_ref,\" | Income: $\",coerce.toString($flow.arguments.annual_income_usd),\" USD/year | Employment: \",$flow.arguments.employment_status,\" | Expenses: $\",coerce.toString($flow.arguments.monthly_expenses_usd),\"/month | Existing Debt: $\",coerce.toString($flow.arguments.existing_debt_usd),\" | Credit Score: \",coerce.toString($flow.arguments.credit_score),\" | Status: AWAITING_REVIEW | Next step: Call review_application with this Application Ref to verify all details before final submission.\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "application_ref, annual_income_usd, employment_status, monthly_expenses_usd, existing_debt_usd, and credit_score are required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRBcHBsaWNhdGlvblN0YXRlIjp7IngiOjIwNywieSI6NTd9LCJXcml0ZUZpbmFuY2lhbFByb2ZpbGUiOnsieCI6NDAzLCJ5Ijo1NX0sIlJldHVybiI6eyJ4Ijo2MDEsInkiOjUxfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"application_ref\":{\"type\":\"string\"},\"annual_income_usd\":{\"type\":\"number\"},\"employment_status\":{\"type\":\"string\"},\"employer_name\":{\"type\":\"string\"},\"monthly_expenses_usd\":{\"type\":\"number\"},\"existing_debt_usd\":{\"type\":\"number\"},\"credit_score\":{\"type\":\"number\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"application_ref\":{\"type\":\"string\"},\"annual_income_usd\":{\"type\":\"number\"},\"employment_status\":{\"type\":\"string\"},\"employer_name\":{\"type\":\"string\"},\"monthly_expenses_usd\":{\"type\":\"number\"},\"existing_debt_usd\":{\"type\":\"number\"},\"credit_score\":{\"type\":\"number\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:review_application_flow",
+      "data": {
+        "name": "review_application_flow",
+        "description": "Step 3: Read-only review of accumulated session state.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadApplicationState",
+            "type": "label",
+            "label": "StartActivity to ReadApplicationState"
+          },
+          {
+            "id": 2,
+            "from": "ReadApplicationState",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadApplicationState to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadApplicationState",
+            "name": "ReadApplicationState",
+            "description": "Reads full accumulated session state. Replace with DB/cache in production.",
+            "activity": {
+              "ref": "#read",
+              "input": {
+                "readAs": "Text",
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_\",coerce.toString($flow.arguments.application_ref),\".json\")"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns full application summary for review.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.application_ref != ''": {
+                          "data": "=string.concat(\"=== LOAN APPLICATION REVIEW === | Application Ref: \",$flow.arguments.application_ref,\" | Session State: \",$activity[ReadApplicationState].output.fileContent.textContent,\" | --- | If all details are correct, call submit_application with this ref and applicant_consent=true to finalise. To update financial details, call submit_financial_profile again (idempotent).\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "application_ref is required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRBcHBsaWNhdGlvblN0YXRlIjp7IngiOjIwOCwieSI6NDd9LCJSZXR1cm4iOnsieCI6NDQyLCJ5Ijo1Mn19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"application_ref\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"application_ref\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:submit_application_flow",
+      "data": {
+        "name": "submit_application_flow",
+        "description": "Step 4: Reads session state and submits to loan origination API. Not idempotent.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadFinalState",
+            "type": "label",
+            "label": "StartActivity to ReadFinalState"
+          },
+          {
+            "id": 2,
+            "from": "ReadFinalState",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadFinalState to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadFinalState",
+            "name": "ReadFinalState",
+            "description": "Reads complete session state for final submission. Replace with DB + external API in production.",
+            "activity": {
+              "ref": "#read",
+              "input": {
+                "readAs": "Text",
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_\",coerce.toString($flow.arguments.application_ref),\".json\")"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns unique tracking number. Not idempotent.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.application_ref != '' && coerce.toString($flow.arguments.applicant_consent) == 'true'": {
+                          "data": "=string.concat(\"=== APPLICATION SUBMITTED === | Application Ref: \",$flow.arguments.application_ref,\" | Tracking Number: TRK-\",$flow.arguments.application_ref,\"-093042 | Session State Submitted: \",$activity[ReadFinalState].output.fileContent.textContent,\" | Status: SUBMITTED_FOR_UNDERWRITING | Estimated Decision: 3-5 business days | Confirmation email sent to applicant | Next step: Use Tracking Number TRK-\",$flow.arguments.application_ref,\"-093042 to check application status with the bank. NOT idempotent — do not submit again.\")"
+                        }
+                      },
+                      {
+                        "$flow.arguments.application_ref != '' && coerce.toString($flow.arguments.applicant_consent) != 'true'": {
+                          "error": "applicant_consent must be true — the applicant must review and consent before this application can be submitted"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "application_ref and applicant_consent=true are required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRGaW5hbFN0YXRlIjp7IngiOjIyMywieSI6NDl9LCJSZXR1cm4iOnsieCI6NDQ2LCJ5Ijo1NH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"application_ref\":{\"type\":\"string\"},\"applicant_consent\":{\"type\":\"boolean\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"application_ref\":{\"type\":\"string\"},\"applicant_consent\":{\"type\":\"boolean\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9095"
+    },
+    {
+      "name": "session_state_dir",
+      "type": "string",
+      "value": "/tmp/loan_application_sessions"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMiIsInRhZyI6IjEuMC4yLWIwMSIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1maWxlcy9zcmMvYXBwL0ZpbGUiLCJpZCI6IkZpbGUiLCJ2ZXJzaW9uIjoiMS4wLjAiLCJ0YWciOiIxLjAuMC1iMTQiLCJuYW1lIjoiRmlsZSIsInMzbG9jYXRpb24iOiJUaWJjby9GaWxlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9095",
+        "title": "LoanApplicationMCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.3"
+  }
+}

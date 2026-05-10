@@ -1,0 +1,446 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/callagent",
+    "github.com/project-flogo/websocket/activity/wswritedata",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/websocket/trigger/wsserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
+  ],
+  "name": "SupplyChainAgent",
+  "description": "Supply chain AI agent using Agent Trigger with List of MCP Servers and a custom CreatePurchaseOrder tool. MCP servers provide read access to inventory and supplier data. The custom tool enables the agent to write purchase orders back into the system.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Supply chain agent trigger with MCP server list and custom CreatePurchaseOrder tool",
+      "settings": {
+        "llmProviderConnection": "conn://a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "agentName": "=$property[\"Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"Trigger_Settings.AgentDescription\"]",
+        "agentType": "Local",
+        "agentPort": 8080,
+        "model": "=$property[\"Trigger_Settings.LLM_Model\"]",
+        "reasoning": "high",
+        "temperature": "=$property[\"Trigger_Settings.LLM_temperature\"]",
+        "enableGuardrails": true,
+        "rateLimit": "=$property[\"Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": "=$property[\"Trigger_Settings.Redact_Sensitive_Data\"]",
+        "mcpServers": [
+          "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "c3d4e5f6-a7b8-9012-cdef-012345678902"
+        ],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 20,
+        "systemPrompt": "You are an intelligent Supply Chain Procurement Assistant with simultaneous access to two live data sources via MCP and the ability to create purchase orders.\n\n## Data Sources (via MCP)\n\n1. Inventory MCP Server (port 9091):\n   - GetProductCatalog: full product list with stock levels, reorder points, and preferred_supplier_id\n   - GetStockAlerts: products at or below reorder threshold with alert_level (LOW, CRITICAL, OUT_OF_STOCK)\n   - GetWarehouseLocations: physical storage locations per warehouse\n\n2. Supplier MCP Server (port 9092):\n   - GetSuppliers: supplier details including reliability_score, average_lead_days, certifications\n   - GetPurchaseOrders: open and recent POs with status and expected delivery\n   - GetSupplierCapacity: current production capacity utilization and available order slots\n\n## Write Capability (Custom Tool)\n\n- CreatePurchaseOrder: create a new purchase order in the system. Always show the user the details (supplier, product, quantity, unit price, estimated total) and ask for explicit confirmation BEFORE calling this tool.\n\n## Key Data Relationships\n- product.preferred_supplier_id links to supplier.supplier_id\n- purchase_order.product_id links to product.product_id\n- purchase_order.supplier_id links to supplier.supplier_id\n\n## Behavior Rules\n- For read-only questions: query the appropriate MCP server(s)\n- For cross-domain questions: query both MCP servers and correlate using shared IDs\n- Before creating a PO: always summarize what you are about to create and wait for the user to say yes\n- After creating a PO: confirm the PO ID and next steps\n- For stock alerts with no existing PO: proactively suggest raising a PO and offer to do it\n- Present tabular data in markdown tables\n- Always close with a Recommendation when an action is implied"
+      },
+      "id": "SupplyChainAgentTrigger",
+      "handlers": [
+        {
+          "description": "Custom tool flow that creates a purchase order and returns a confirmation",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "CreatePurchaseOrder",
+            "agentToolDescription": "Create a new purchase order for a product from a supplier. Call this only after the user has confirmed the order details. Required fields: supplier_id, product_id, quantity, unit_price.",
+            "customGuardrailType": "NONE",
+            "customConversationStoreOperation": "NONE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:create_po_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"supplier_id\":{\"type\":\"string\"},\"product_id\":{\"type\":\"string\"},\"quantity\":{\"type\":\"number\"},\"unit_price\":{\"type\":\"number\"}}}",
+                "fe_metadata": "{\n  \"supplier_id\": \"S001\",\n  \"product_id\": \"P003\",\n  \"quantity\": 300,\n  \"unit_price\": 82.00\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              }
+            }
+          },
+          "name": "create_po_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#wsserver",
+      "name": "wsserver",
+      "description": "WebSocket server that accepts supply chain queries with a sessionId parameter for per-session conversation history",
+      "settings": {
+        "port": 9998,
+        "enableTLS": false,
+        "serverCert": "",
+        "serverKey": "",
+        "enableClientAuth": false,
+        "trustStore": ""
+      },
+      "id": "WebsocketServer",
+      "handlers": [
+        {
+          "description": "Receives WebSocket messages and dispatches them to the SupplyChainAgentTrigger via InvokeAIAgentTrigger activity",
+          "settings": {
+            "method": "GET",
+            "path": "/supply-chain",
+            "mode": "Data",
+            "format": "String",
+            "jsonSchema": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:invoke_supply_chain_flow"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "queryParams": "=$.queryParams",
+              "headers": "=$.headers",
+              "content": "=$.content",
+              "wsconnection": "=$.wsconnection"
+            }
+          },
+          "schemas": {
+            "output": {
+              "queryParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"sessionId\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"sessionId\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Key\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Version\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Upgrade\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "invoke_supply_chain_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:invoke_supply_chain_flow",
+      "data": {
+        "name": "invoke_supply_chain_flow",
+        "description": "Receives WebSocket messages and dispatches them to the SupplyChainAgentTrigger via InvokeAIAgentTrigger activity",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "InvokeAgent",
+            "type": "label",
+            "label": "StartActivity to InvokeAgent"
+          },
+          {
+            "id": 2,
+            "from": "InvokeAgent",
+            "to": "WebsocketWriteData",
+            "type": "label",
+            "label": "InvokeAgent to WebsocketWriteData"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "InvokeAgent",
+            "name": "InvokeAgent",
+            "description": "InvokeAIAgentTrigger activity that dispatches the user prompt to the SupplyChainAgentTrigger",
+            "activity": {
+              "ref": "#callagent",
+              "settings": {
+                "agentType": "Local"
+              },
+              "input": {
+                "agentName": "SupplyChainAgent",
+                "agentBaseUrl": "",
+                "prompt": "=coerce.toString($flow.content)",
+                "structuredOutput": false,
+                "conversationId": "=coerce.toString($flow.queryParams.sessionId)"
+              }
+            }
+          },
+          {
+            "id": "WebsocketWriteData",
+            "name": "WebsocketWriteData",
+            "description": "Write the agent response back to the WebSocket client",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "=$activity[InvokeAgent].response",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjk2LCJ5Ijo3OH0sIkludm9rZUFnZW50Ijp7IngiOjI2NiwieSI6NzB9LCJXZWJzb2NrZXRXcml0ZURhdGEiOnsieCI6NDcxLCJ5Ijo2OH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "params"
+            },
+            {
+              "name": "queryParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"sessionId\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "content",
+              "type": "any"
+            },
+            {
+              "name": "wsconnection",
+              "type": "any"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"WebsocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"object\",\"properties\":{\"sessionId\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:create_po_flow",
+      "data": {
+        "name": "create_po_flow",
+        "description": "Custom tool flow that creates a purchase order and returns a confirmation",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"po_id\":\"PO-2026-5001\",\"status\":\"Processing\",\"supplier_id\":\"S001\",\"product_id\":\"P003\",\"quantity\":300,\"unit_price\":82.00,\"total_value\":24600.00,\"order_date\":\"2026-04-03\",\"message\":\"Purchase order created successfully. It will be confirmed by the supplier within 1 business day.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"supplier_id\":{\"type\":\"string\"},\"product_id\":{\"type\":\"string\"},\"quantity\":{\"type\":\"number\"},\"unit_price\":{\"type\":\"number\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SupplyChainAgentTrigger\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"supplier_id\":{\"type\":\"string\"},\"product_id\":{\"type\":\"string\"},\"quantity\":{\"type\":\"number\"},\"unit_price\":{\"type\":\"number\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.openai.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.openai.API_Key",
+      "type": "string",
+      "value": "SECRET:pP3IQOJhSXzvPF8yBJiiOSW+CqaCIoEvyKnrjZ3C6O0hYbzQ9tyiAMlXWf4HvD0Q9sg6r9idCy6mJak1v64N2vS1c9cXER/HqSQ1L2A+U/xxWMwgd9EzLfSzWpfeal6sBqogjeqzh2P+JUMyMabGN5sFc92mJZQWhLQ7U4CqTQWzJh+fyylV6+8N9FuuIZrkFTKcV2+Sun7YlyfS2hlDavFWkbVm4UXV0nbLhWWWkX7NLSI9"
+    },
+    {
+      "name": "AgenticAI.openai.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "SupplyChainAgent"
+    },
+    {
+      "name": "Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "Supply chain procurement assistant with real-time access to inventory and supplier data via MCP servers and the ability to create purchase orders"
+    },
+    {
+      "name": "Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-4o"
+    },
+    {
+      "name": "Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 4096
+    },
+    {
+      "name": "Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 25
+    },
+    {
+      "name": "Trigger_Settings.Redact_Sensitive_Data",
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "name": "Trigger_Settings.LLM_temperature",
+      "type": "float64",
+      "value": 1
+    }
+  ],
+  "connections": {
+    "a1b2c3d4-e5f6-7890-abcd-ef1234567890": {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "openai",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "openai",
+        "description": "OpenAI LLM provider connection",
+        "llmProvider": "=$property[\"AgenticAI.openai.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.openai.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.openai.LLM_Base_URL\"]"
+      }
+    },
+    "b2c3d4e5-f6a7-8901-bcde-f12345678901": {
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "inventory_mcp_server",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "inventory_mcp_server",
+        "description": "Inventory MCP Server connection for product catalog, stock alerts, and warehouse locations",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9091/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": [
+          "GetProductCatalog",
+          "GetStockAlerts",
+          "GetWarehouseLocations"
+        ]
+      }
+    },
+    "c3d4e5f6-a7b8-9012-cdef-012345678902": {
+      "id": "c3d4e5f6-a7b8-9012-cdef-012345678902",
+      "name": "supplier_mcp_server",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "supplier_mcp_server",
+        "description": "Supplier MCP Server connection for supplier catalog, purchase orders, and capacity data",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9092/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": [
+          "GetSuppliers",
+          "GetPurchaseOrders",
+          "GetSupplierCapacity"
+        ]
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9wcm9qZWN0LWZsb2dvL3dlYnNvY2tldCIsImlkIjoid2Vic29ja2V0IiwidmVyc2lvbiI6IjEuMC4xIiwidGFnIjoiMS4wLjEtYjAzLWZsb2dvLTIuMjUuMCIsIm5hbWUiOiJXZWJzb2NrZXQiLCJzM2xvY2F0aW9uIjoiVGliY28vd2Vic29ja2V0IiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWFpLWFnZW50L3NyYy9hcHAvQWdlbnRpY0FJIiwiaWQiOiJBZ2VudGljQUkiLCJ2ZXJzaW9uIjoiMC45LjAiLCJ0YWciOiIwLjkuMC1iMDMiLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInMzbG9jYXRpb24iOiJUaWJjby9BZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9998",
+        "title": "WebsocketServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.2"
+  }
+}

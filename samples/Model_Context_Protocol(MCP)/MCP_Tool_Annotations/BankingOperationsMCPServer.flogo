@@ -1,0 +1,816 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "name": "BankingOperationsMCPServer",
+  "description": "Demonstrates all four MCP tool annotation hints via a banking operations scenario.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "MCP server for Banking Operations — demonstrates all four tool annotation hints.",
+      "settings": {
+        "serverName": "BankingOperationsMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": false,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "BankingOperationsMCPServer",
+      "handlers": [
+        {
+          "description": "Read-only, closed-domain. readOnly=true, openWorld=false.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_account_balance",
+            "handlerDescription": "Retrieves the current balance and status for a given account. Safe read-only operation — never modifies data. Operates entirely within the bank's internal ledger (closed domain).",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_account_balance_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique account identifier (e.g. ACC-100042)\"\n    },\n    \"currency\": {\n      \"type\": \"string\",\n      \"description\": \"Optional ISO 4217 currency code to convert balance to (e.g. USD, EUR, GBP). Defaults to account home currency.\"\n    }\n  },\n  \"required\": [\"account_id\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique account identifier (e.g. ACC-100042)\"\n    },\n    \"currency\": {\n      \"type\": \"string\",\n      \"description\": \"Optional ISO 4217 currency code to convert balance to (e.g. USD, EUR, GBP). Defaults to account home currency.\"\n    }\n  },\n  \"required\": [\"account_id\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "get_account_balance_flow"
+        },
+        {
+          "description": "Read-only, open-world. readOnly=true, openWorld=true.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_forex_rate",
+            "handlerDescription": "Fetches the live foreign exchange rate between two currencies from an external market data provider. Read-only, but open-world — it reaches outside the bank's closed systems to query external foreign exchange APIs.",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": true
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_forex_rate_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"from_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Source ISO 4217 currency code (e.g. USD)\"\n    },\n    \"to_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Target ISO 4217 currency code (e.g. EUR)\"\n    }\n  },\n  \"required\": [\"from_currency\", \"to_currency\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"from_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Source ISO 4217 currency code (e.g. USD)\"\n    },\n    \"to_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Target ISO 4217 currency code (e.g. EUR)\"\n    }\n  },\n  \"required\": [\"from_currency\", \"to_currency\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "get_forex_rate_flow"
+        },
+        {
+          "description": "Idempotent write, closed-domain. idempotent=true, openWorld=false.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "set_daily_spending_limit",
+            "handlerDescription": "Sets the daily spending limit for an account. Idempotent write — applying the same limit value multiple times produces the same state as applying it once. Not destructive: the previous limit can always be restored by calling this tool again.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:set_daily_spending_limit_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique account identifier\"\n    },\n    \"daily_limit\": {\n      \"type\": \"number\",\n      \"description\": \"New daily spending limit amount in the account home currency\"\n    },\n    \"currency\": {\n      \"type\": \"string\",\n      \"description\": \"ISO 4217 currency code of the limit amount (e.g. USD)\"\n    }\n  },\n  \"required\": [\"account_id\", \"daily_limit\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique account identifier\"\n    },\n    \"daily_limit\": {\n      \"type\": \"number\",\n      \"description\": \"New daily spending limit amount in the account home currency\"\n    },\n    \"currency\": {\n      \"type\": \"string\",\n      \"description\": \"ISO 4217 currency code of the limit amount (e.g. USD)\"\n    }\n  },\n  \"required\": [\"account_id\", \"daily_limit\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "set_daily_spending_limit_flow"
+        },
+        {
+          "description": "Non-idempotent write, closed-domain. idempotent=false, openWorld=false.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "transfer_funds",
+            "handlerDescription": "Initiates a funds transfer between two accounts. NOT idempotent — each call creates a brand-new transaction record with a unique reference ID, so calling it twice with identical arguments produces two separate transfers. Not destructive (no data is permanently erased) and operates within the closed banking domain.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:transfer_funds_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"from_account_id\": {\n      \"type\": \"string\",\n      \"description\": \"Source account identifier\"\n    },\n    \"to_account_id\": {\n      \"type\": \"string\",\n      \"description\": \"Destination account identifier\"\n    },\n    \"amount\": {\n      \"type\": \"number\",\n      \"description\": \"Amount to transfer (must be greater than zero)\"\n    },\n    \"currency\": {\n      \"type\": \"string\",\n      \"description\": \"ISO 4217 currency code (e.g. USD, EUR)\"\n    },\n    \"reference\": {\n      \"type\": \"string\",\n      \"description\": \"Optional payment reference or memo (e.g. Invoice #1042)\"\n    }\n  },\n  \"required\": [\"from_account_id\", \"to_account_id\", \"amount\", \"currency\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"from_account_id\": {\n      \"type\": \"string\",\n      \"description\": \"Source account identifier\"\n    },\n    \"to_account_id\": {\n      \"type\": \"string\",\n      \"description\": \"Destination account identifier\"\n    },\n    \"amount\": {\n      \"type\": \"number\",\n      \"description\": \"Amount to transfer (must be greater than zero)\"\n    },\n    \"currency\": {\n      \"type\": \"string\",\n      \"description\": \"ISO 4217 currency code (e.g. USD, EUR)\"\n    },\n    \"reference\": {\n      \"type\": \"string\",\n      \"description\": \"Optional payment reference or memo (e.g. Invoice #1042)\"\n    }\n  },\n  \"required\": [\"from_account_id\", \"to_account_id\", \"amount\", \"currency\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "transfer_funds_flow"
+        },
+        {
+          "description": "Destructive, idempotent write, closed-domain. destructive=true, idempotent=true.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "close_account",
+            "handlerDescription": "Permanently closes a bank account and archives all associated data. Destructive — the action cannot be reversed without manual intervention by bank operations staff. Idempotent — closing an already-closed account returns the same result without causing additional side effects.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": true,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:close_account_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique account identifier to close\"\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"description\": \"Reason for account closure (e.g. customer request, fraud, inactivity)\"\n    },\n    \"confirm\": {\n      \"type\": \"boolean\",\n      \"description\": \"Must be set to true to confirm this irreversible destructive operation\"\n    }\n  },\n  \"required\": [\"account_id\", \"confirm\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique account identifier to close\"\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"description\": \"Reason for account closure (e.g. customer request, fraud, inactivity)\"\n    },\n    \"confirm\": {\n      \"type\": \"boolean\",\n      \"description\": \"Must be set to true to confirm this irreversible destructive operation\"\n    }\n  },\n  \"required\": [\"account_id\", \"confirm\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "close_account_flow"
+        },
+        {
+          "description": "Non-idempotent write, open-world. idempotent=false, openWorld=true.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "send_fraud_alert",
+            "handlerDescription": "Dispatches a fraud alert to the account holder and the bank's fraud prevention team via external notification services (SMS gateway, email relay, push notification provider). NOT idempotent — each invocation sends a new notification. Open-world: reaches external messaging APIs outside the bank's closed systems.",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": true
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:send_fraud_alert_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"Account ID of the affected customer\"\n    },\n    \"transaction_id\": {\n      \"type\": \"string\",\n      \"description\": \"ID of the suspicious transaction that triggered the alert\"\n    },\n    \"alert_type\": {\n      \"type\": \"string\",\n      \"description\": \"Category of suspected fraud: SUSPICIOUS_TRANSACTION, CARD_SKIMMING, ACCOUNT_TAKEOVER, UNUSUAL_LOCATION, OTHER\"\n    },\n    \"details\": {\n      \"type\": \"string\",\n      \"description\": \"Additional context about the suspected fraudulent activity\"\n    }\n  },\n  \"required\": [\"account_id\", \"transaction_id\", \"alert_type\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"Account ID of the affected customer\"\n    },\n    \"transaction_id\": {\n      \"type\": \"string\",\n      \"description\": \"ID of the suspicious transaction that triggered the alert\"\n    },\n    \"alert_type\": {\n      \"type\": \"string\",\n      \"description\": \"Category of suspected fraud: SUSPICIOUS_TRANSACTION, CARD_SKIMMING, ACCOUNT_TAKEOVER, UNUSUAL_LOCATION, OTHER\"\n    },\n    \"details\": {\n      \"type\": \"string\",\n      \"description\": \"Additional context about the suspected fraudulent activity\"\n    }\n  },\n  \"required\": [\"account_id\", \"transaction_id\", \"alert_type\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "send_fraud_alert_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:get_account_balance_flow",
+      "data": {
+        "name": "get_account_balance_flow",
+        "description": "Read-only, closed-domain. readOnly=true, openWorld=false.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock balance. Replace with ledger API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.account_id != ''": {
+                          "data": "=string.concat(\"Account: \",$flow.arguments.account_id,\" | Balance: 10500.75 USD | Available: 9800.00 USD | Status: Active | Type: Checking | Last Updated: 2026-04-14T09:30:00Z\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "account_id is required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNjksInkiOjQxfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"account_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"account_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_forex_rate_flow",
+      "data": {
+        "name": "get_forex_rate_flow",
+        "description": "Read-only, open-world. readOnly=true, openWorld=true.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock forex rate. Replace with forex API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.from_currency != '' && $flow.arguments.to_currency != ''": {
+                          "data": "=string.concat(\"Rate: \",$flow.arguments.from_currency,\" -> \",$flow.arguments.to_currency,\" = 0.9215 | Source: External Forex API | Timestamp: 2026-04-14T09:30:00Z | Rate Type: Mid-market\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "from_currency and to_currency are required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"from_currency\":{\"type\":\"string\"},\"to_currency\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"from_currency\":{\"type\":\"string\"},\"to_currency\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:set_daily_spending_limit_flow",
+      "data": {
+        "name": "set_daily_spending_limit_flow",
+        "description": "Idempotent write, closed-domain. idempotent=true, openWorld=false.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns limit confirmation. Replace with account management API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.account_id != '' && coerce.toString($flow.arguments.daily_limit) != ''": {
+                          "data": "=string.concat(\"Spending limit updated | Account: \",$flow.arguments.account_id,\" | New Daily Limit: \",coerce.toString($flow.arguments.daily_limit),\" \",coerce.toString($flow.arguments.currency),\" | Effective: Immediately | Note: Idempotent — repeating this call with the same limit has no additional effect.\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "account_id and daily_limit are required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyMTksInkiOjQ1fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"account_id\":{\"type\":\"string\"},\"daily_limit\":{\"type\":\"number\"},\"currency\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"account_id\":{\"type\":\"string\"},\"daily_limit\":{\"type\":\"number\"},\"currency\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:transfer_funds_flow",
+      "data": {
+        "name": "transfer_funds_flow",
+        "description": "Non-idempotent write, closed-domain. idempotent=false, openWorld=false.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock transaction ID. Replace with payment processing API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.from_account_id != '' && $flow.arguments.to_account_id != '' && coerce.toString($flow.arguments.amount) != '' && $flow.arguments.currency != ''": {
+                          "data": "=string.concat(\"Transfer initiated | Transaction ID: TXN-\",coerce.toString($flow.arguments.from_account_id),\"-20260414-093042 | From: \",$flow.arguments.from_account_id,\" | To: \",$flow.arguments.to_account_id,\" | Amount: \",coerce.toString($flow.arguments.amount),\" \",$flow.arguments.currency,\" | Status: PENDING | Note: NOT idempotent — each call creates a new transaction. To avoid duplicate transfers, verify this transaction succeeds before retrying.\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "from_account_id, to_account_id, amount, and currency are required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"from_account_id\":{\"type\":\"string\"},\"to_account_id\":{\"type\":\"string\"},\"amount\":{\"type\":\"number\"},\"currency\":{\"type\":\"string\"},\"reference\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"from_account_id\":{\"type\":\"string\"},\"to_account_id\":{\"type\":\"string\"},\"amount\":{\"type\":\"number\"},\"currency\":{\"type\":\"string\"},\"reference\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:close_account_flow",
+      "data": {
+        "name": "close_account_flow",
+        "description": "Destructive, idempotent write, closed-domain. destructive=true, idempotent=true.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns closure confirmation. Replace with account lifecycle API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.account_id != '' && coerce.toString($flow.arguments.confirm) == 'true'": {
+                          "data": "=string.concat(\"Account closed | Account: \",$flow.arguments.account_id,\" | Status: CLOSED | Closed At: 2026-04-14T09:30:00Z | Reason: \",coerce.toString($flow.arguments.reason),\" | WARNING: Destructive — this action cannot be reversed without manual bank operations intervention. Idempotent — closing an already-closed account returns this same result.\")"
+                        }
+                      },
+                      {
+                        "$flow.arguments.account_id != '' && coerce.toString($flow.arguments.confirm) != 'true'": {
+                          "error": "confirm must be set to true to authorise this irreversible destructive operation"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "account_id and confirm=true are required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"account_id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"confirm\":{\"type\":\"boolean\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"account_id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"confirm\":{\"type\":\"boolean\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:send_fraud_alert_flow",
+      "data": {
+        "name": "send_fraud_alert_flow",
+        "description": "Non-idempotent write, open-world. idempotent=false, openWorld=true.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns dispatch confirmation. Replace with notification APIs in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.account_id != '' && $flow.arguments.transaction_id != '' && $flow.arguments.alert_type != ''": {
+                          "data": "=string.concat(\"Fraud alert dispatched | Alert ID: ALERT-\",$flow.arguments.account_id,\"-20260414-093042 | Account: \",$flow.arguments.account_id,\" | Transaction: \",$flow.arguments.transaction_id,\" | Type: \",$flow.arguments.alert_type,\" | Channels: SMS, Email, Push | Status: SENT | Note: NOT idempotent — each call dispatches a new external notification. Each invocation interacts with external open-world messaging APIs.\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "account_id, transaction_id, and alert_type are required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"account_id\":{\"type\":\"string\"},\"transaction_id\":{\"type\":\"string\"},\"alert_type\":{\"type\":\"string\"},\"details\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"account_id\":{\"type\":\"string\"},\"transaction_id\":{\"type\":\"string\"},\"alert_type\":{\"type\":\"string\"},\"details\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9093"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMiIsInRhZyI6IjEuMC4yLWIwMSIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9093",
+        "title": "BankingOperationsMCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.3"
+  }
+}

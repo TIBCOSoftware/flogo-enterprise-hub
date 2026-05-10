@@ -1,0 +1,469 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-saps4hana/src/app/SAPS4HANACloud/activity/create",
+    "github.com/tibco/wi-saps4hana/src/app/SAPS4HANACloud/activity/update",
+    "github.com/tibco/wi-saps4hana/src/app/SAPS4HANACloud/activity/get",
+    "github.com/tibco/wi-saps4hana/src/app/SAPS4HANACloud/activity/delete",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/wi-sap/src/app/SAPConnector/connector/SAPConnector"
+  ],
+  "name": "SAPS4HANA",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/sap",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:New_flow"
+            },
+            "input": {
+              "headers": "=$.headers"
+            },
+            "output": {
+              "data": {
+                "mapping": {
+                  "output": "=$.data.output"
+                }
+              }
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"object\",\"properties\":{}}}}",
+                "fe_metadata": "{\r\n     \"output\" : {}\r\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "New_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:New_flow",
+      "data": {
+        "name": "New_flow",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "SAPS4HANACloudCreate",
+            "type": "label",
+            "label": "StartActivity to SAPS4HANACloudCreate"
+          },
+          {
+            "id": 2,
+            "from": "SAPS4HANACloudCreate",
+            "to": "SAPS4HANACloudUpdate",
+            "type": "label",
+            "label": "SAPS4HANACloudCreate to SAPS4HANACloudUpdate"
+          },
+          {
+            "id": 3,
+            "from": "SAPS4HANACloudUpdate",
+            "to": "SAPS4HANACloudGet",
+            "type": "label",
+            "label": "SAPS4HANACloudUpdate to SAPS4HANACloudGet"
+          },
+          {
+            "id": 4,
+            "from": "SAPS4HANACloudGet",
+            "to": "SAPS4HANACloudDelete",
+            "type": "label",
+            "label": "SAPS4HANACloudGet to SAPS4HANACloudDelete"
+          },
+          {
+            "id": 5,
+            "from": "SAPS4HANACloudDelete",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "SAPS4HANACloudDelete to LogMessage"
+          },
+          {
+            "id": 6,
+            "from": "LogMessage",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "SAPS4HANACloudCreate",
+            "name": "SAPS4HANACloudCreate",
+            "description": "This activity executes POST operation for SAP services",
+            "activity": {
+              "ref": "#create",
+              "input": {
+                "SAP S4HANA Cloud API": "API_PRODUCT_SRV_0001",
+                "apiTitle": "API_PRODUCT_SRV",
+                "Service": "Product('{Product}')/to_ProductBasicText",
+                "serviceType": "ODATAV2",
+                "basePath": "/sap/opu/odata/sap/API_PRODUCT_SRV",
+                "actService": "A_Product('{Product}')/to_ProductBasicText",
+                "input": {
+                  "mapping": {
+                    "Product": "A002",
+                    "API_PRODUCT_SRV.A_ProductBasicTextType-create": {
+                      "Product": "A002",
+                      "LongText": "New text is updated",
+                      "Language": "EN"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"Product\":{\"type\":\"string\",\"required\":true},\"API_PRODUCT_SRV.A_ProductBasicTextType-create\":{\"properties\":{\"Language\":{\"type\":\"string\",\"maxLength\":\"2\",\"title\":\"Language Key\",\"description\":\"Language Key\",\"required\":true},\"Product\":{\"type\":\"string\",\"maxLength\":\"40\",\"title\":\"Material\",\"description\":\"Material\",\"required\":true},\"LongText\":{\"type\":\"string\",\"maxLength\":\"\",\"title\":\"String\",\"description\":\"String\"}},\"required\":[\"Language\",\"Product\"],\"type\":\"object\"}},\"required\":[\"Product\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"Product\":{\"type\":\"string\",\"required\":true},\"API_PRODUCT_SRV.A_ProductBasicTextType-create\":{\"properties\":{\"Language\":{\"type\":\"string\",\"maxLength\":\"2\",\"title\":\"Language Key\",\"description\":\"Language Key\",\"required\":true},\"Product\":{\"type\":\"string\",\"maxLength\":\"40\",\"title\":\"Material\",\"description\":\"Material\",\"required\":true},\"LongText\":{\"type\":\"string\",\"maxLength\":\"\",\"title\":\"String\",\"description\":\"String\"}},\"required\":[\"Language\",\"Product\"],\"type\":\"object\"}},\"required\":[\"Product\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"item\":{\"type\":\"object\",\"properties\":{\"Language\":{\"type\":\"string\",\"maxLength\":\"2\",\"title\":\"Language Key\",\"description\":\"Language Key\",\"required\":true},\"LongText\":{\"type\":\"string\",\"maxLength\":\"\",\"title\":\"String\",\"description\":\"String\"},\"Product\":{\"type\":\"string\",\"maxLength\":\"40\",\"title\":\"Material\",\"description\":\"Material\",\"required\":true}}}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"item\":{\"type\":\"object\",\"properties\":{\"Language\":{\"type\":\"string\",\"maxLength\":\"2\",\"title\":\"Language Key\",\"description\":\"Language Key\",\"required\":true},\"LongText\":{\"type\":\"string\",\"maxLength\":\"\",\"title\":\"String\",\"description\":\"String\"},\"Product\":{\"type\":\"string\",\"maxLength\":\"40\",\"title\":\"Material\",\"description\":\"Material\",\"required\":true}}}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "SAPS4HANACloudUpdate",
+            "name": "SAPS4HANACloudUpdate",
+            "description": "This activity executes Patch operation for SAP services",
+            "activity": {
+              "ref": "#update",
+              "input": {
+                "SAP S4HANA Cloud API": "API_PRODUCT_SRV_0001",
+                "apiTitle": "API_PRODUCT_SRV",
+                "Service": "ProductBasicText(Product,Language)",
+                "serviceType": "ODATAV2",
+                "basePath": "/sap/opu/odata/sap/API_PRODUCT_SRV",
+                "actService": "A_ProductBasicText(Product='{Product}',Language='{Language}')",
+                "input": {
+                  "mapping": {
+                    "API_PRODUCT_SRV.A_ProductBasicTextType-update": {
+                      "LongText": "Updated version 002"
+                    },
+                    "Language": "=$activity[SAPS4HANACloudCreate].output.item.Language",
+                    "Product": "=$activity[SAPS4HANACloudCreate].output.item.Product"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"Language\":{\"type\":\"string\",\"required\":true},\"Product\":{\"type\":\"string\",\"required\":true},\"API_PRODUCT_SRV.A_ProductBasicTextType-update\":{\"properties\":{\"LongText\":{\"type\":\"string\",\"maxLength\":\"\",\"title\":\"String\",\"description\":\"String\"}},\"required\":[],\"type\":\"object\"}},\"required\":[\"Language\",\"Product\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"Language\":{\"type\":\"string\",\"required\":true},\"Product\":{\"type\":\"string\",\"required\":true},\"API_PRODUCT_SRV.A_ProductBasicTextType-update\":{\"properties\":{\"LongText\":{\"type\":\"string\",\"maxLength\":\"\",\"title\":\"String\",\"description\":\"String\"}},\"required\":[],\"type\":\"object\"}},\"required\":[\"Language\",\"Product\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Language\":{\"type\":\"string\",\"required\":false},\"Product\":{\"type\":\"string\",\"required\":false},\"Status\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"Language\":{\"type\":\"string\",\"required\":false},\"Product\":{\"type\":\"string\",\"required\":false},\"Status\":{\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "SAPS4HANACloudGet",
+            "name": "SAPS4HANACloudGet",
+            "description": "This activity executes GET operation for SAP services",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "SAP S4HANA Cloud API": "API_PRODUCT_SRV_0001",
+                "Service": "ProductBasicText",
+                "actService": "A_ProductBasicText",
+                "serviceType": "ODATAV2",
+                "apiTitle": "API_PRODUCT_SRV",
+                "basePath": "/sap/opu/odata/sap/API_PRODUCT_SRV",
+                "input": {
+                  "mapping": {
+                    "$top": 1,
+                    "$filter": "Language eq 'EN'"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"$filter\":{\"name\":\"$filter\",\"in\":\"query\",\"description\":\"Filter items by property values, see [OData Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)\",\"type\":\"string\"},\"$inlinecount\":{\"name\":\"$inlinecount\",\"in\":\"query\",\"description\":\"Include count of items, see [OData Count](http://www.odata.org/documentation/odata-version-2-0/uri-conventions/#InlinecountSystemQueryOption)\",\"type\":\"string\",\"enum\":[\"allpages\",\"none\"]},\"$orderby\":{\"name\":\"$orderby\",\"in\":\"query\",\"description\":\"Order items by property values, see [OData Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)\",\"type\":\"array\",\"uniqueItems\":\"true\",\"items\":{\"type\":\"string\",\"enum\":[\"Product\",\"Language\",\"LongText\"]}},\"$select\":{\"name\":\"$select\",\"in\":\"query\",\"description\":\"Select properties to be returned, see [OData Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)\",\"type\":\"array\",\"uniqueItems\":\"true\",\"items\":{\"type\":\"string\",\"enum\":[\"Product\",\"Language\",\"LongText\"]}},\"$skip\":{\"name\":\"$skip\",\"in\":\"query\",\"description\":\"Skip the first n items, see [OData Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)\",\"type\":\"integer\",\"minimum\":\"0\"},\"$top\":{\"name\":\"$top\",\"in\":\"query\",\"description\":\"Show only the first n items, see [OData Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)\",\"type\":\"integer\",\"minimum\":\"0\"}},\"required\":[],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"$filter\":{\"name\":\"$filter\",\"in\":\"query\",\"description\":\"Filter items by property values, see [OData Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)\",\"type\":\"string\"},\"$inlinecount\":{\"name\":\"$inlinecount\",\"in\":\"query\",\"description\":\"Include count of items, see [OData Count](http://www.odata.org/documentation/odata-version-2-0/uri-conventions/#InlinecountSystemQueryOption)\",\"type\":\"string\",\"enum\":[\"allpages\",\"none\"]},\"$orderby\":{\"name\":\"$orderby\",\"in\":\"query\",\"description\":\"Order items by property values, see [OData Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)\",\"type\":\"array\",\"uniqueItems\":\"true\",\"items\":{\"type\":\"string\",\"enum\":[\"Product\",\"Language\",\"LongText\"]}},\"$select\":{\"name\":\"$select\",\"in\":\"query\",\"description\":\"Select properties to be returned, see [OData Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)\",\"type\":\"array\",\"uniqueItems\":\"true\",\"items\":{\"type\":\"string\",\"enum\":[\"Product\",\"Language\",\"LongText\"]}},\"$skip\":{\"name\":\"$skip\",\"in\":\"query\",\"description\":\"Skip the first n items, see [OData Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)\",\"type\":\"integer\",\"minimum\":\"0\"},\"$top\":{\"name\":\"$top\",\"in\":\"query\",\"description\":\"Show only the first n items, see [OData Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)\",\"type\":\"integer\",\"minimum\":\"0\"}},\"required\":[],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"item\":{\"type\":\"object\",\"properties\":{\"results\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Language\":{\"type\":\"string\",\"maxLength\":\"2\",\"title\":\"Language Key\",\"description\":\"Language Key\"},\"LongText\":{\"type\":\"string\",\"maxLength\":\"\",\"title\":\"String\",\"description\":\"String\"},\"Product\":{\"type\":\"string\",\"maxLength\":\"40\",\"title\":\"Material\",\"description\":\"Material\"}}}}}}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"item\":{\"type\":\"object\",\"properties\":{\"results\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Language\":{\"type\":\"string\",\"maxLength\":\"2\",\"title\":\"Language Key\",\"description\":\"Language Key\"},\"LongText\":{\"type\":\"string\",\"maxLength\":\"\",\"title\":\"String\",\"description\":\"String\"},\"Product\":{\"type\":\"string\",\"maxLength\":\"40\",\"title\":\"Material\",\"description\":\"Material\"}}}}}}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "SAPS4HANACloudDelete",
+            "name": "SAPS4HANACloudDelete",
+            "description": "This activity executes Delete operation for SAP services",
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "SAP S4HANA Cloud API": "API_PRODUCT_SRV_0001",
+                "apiTitle": "API_PRODUCT_SRV",
+                "Service": "ProductBasicText(Product,Language)",
+                "serviceType": "ODATAV2",
+                "basePath": "/sap/opu/odata/sap/API_PRODUCT_SRV",
+                "actService": "A_ProductBasicText(Product='{Product}',Language='{Language}')",
+                "input": {
+                  "mapping": {
+                    "Language": "=$activity[SAPS4HANACloudUpdate].output.Language",
+                    "Product": "=$activity[SAPS4HANACloudUpdate].output.Product"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"Language\":{\"name\":\"Language\",\"in\":\"path\",\"required\":true,\"description\":\"Language Key\",\"type\":\"string\"},\"Product\":{\"name\":\"Product\",\"in\":\"path\",\"required\":true,\"description\":\"Material\",\"type\":\"string\"},\"If-Match\":{\"name\":\"If-Match\",\"in\":\"header\",\"description\":\"ETag\",\"type\":\"string\"}},\"required\":[\"Language\",\"Product\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"Language\":{\"name\":\"Language\",\"in\":\"path\",\"required\":true,\"description\":\"Language Key\",\"type\":\"string\"},\"Product\":{\"name\":\"Product\",\"in\":\"path\",\"required\":true,\"description\":\"Material\",\"type\":\"string\"},\"If-Match\":{\"name\":\"If-Match\",\"in\":\"header\",\"description\":\"ETag\",\"type\":\"string\"}},\"required\":[\"Language\",\"Product\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Language\":{\"name\":\"Language\",\"in\":\"path\",\"required\":false,\"description\":\"Language Key\",\"type\":\"string\"},\"Product\":{\"name\":\"Product\",\"in\":\"path\",\"required\":false,\"description\":\"Material\",\"type\":\"string\"},\"Status\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"Language\":{\"name\":\"Language\",\"in\":\"path\",\"required\":false,\"description\":\"Language Key\",\"type\":\"string\"},\"Product\":{\"name\":\"Product\",\"in\":\"path\",\"required\":false,\"description\":\"Material\",\"type\":\"string\"},\"Status\":{\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[SAPS4HANACloudDelete].output)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "data": {
+                    "mapping": {
+                      "output": "=$activity[SAPS4HANACloudDelete].output"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjIxLCJ5Ijo2OH0sIlNBUFM0SEFOQUNsb3VkQ3JlYXRlIjp7IngiOjk3LCJ5Ijo1OH0sIlNBUFM0SEFOQUNsb3VkVXBkYXRlIjp7IngiOjMwMiwieSI6NTJ9LCJTQVBTNEhBTkFDbG91ZEdldCI6eyJ4Ijo0OTAsInkiOjYxfSwiU0FQUzRIQU5BQ2xvdWREZWxldGUiOnsieCI6Njc1LCJ5Ijo2MX0sIkxvZ01lc3NhZ2UiOnsieCI6MTE5LCJ5IjoyMDV9LCJSZXR1cm4iOnsieCI6MzMwLCJ5IjoyMDh9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"output\":{\"type\":\"object\",\"properties\":{}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"object\",\"properties\":{}}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [],
+  "connections": {
+    "9163a505-4342-4025-86f6-f8aec1b50f0d": {
+      "id": "9163a505-4342-4025-86f6-f8aec1b50f0d",
+      "name": "test",
+      "ref": "#SAPConnector",
+      "isGlobal": false,
+      "settings": {
+        "name": "test",
+        "description": "",
+        "url": "",
+        "userName": "",
+        "password": "",
+        "conntype": "Production",
+        "authType": "Basic Authentication",
+        "tenantUrl": "",
+        "tenantUserName": "",
+        "tenantPassword": "ENTER_YOUR_PASSWORD_HERE",
+        "SSL Client Configuration": "",
+        "apikey": "ENTER_YOUR_APIKEY_HERE",
+        "sapAPIkey": "",
+        "userID": "",
+        "APIUrl": "",
+        "companyID": "",
+        "X.509 Certificate": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1zYXBzNGhhbmEvc3JjL2FwcC9TQVBTNEhBTkFDbG91ZCIsImlkIjoiU0FQUzRIQU5BQ2xvdWQiLCJ2ZXJzaW9uIjoiMS4zLjAtSEYxIiwidGFnIjoiMS4zLjAtaGYxLWIwNSIsIm5hbWUiOiJPRGF0YSBTZXJ2aWNlcyBmb3IgU0FQIFMvNEhBTkEiLCJzM2xvY2F0aW9uIjoiVGliY28vU0FQUzRIQU5BQ2xvdWQiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vd2ktc2FwL3NyYy9hcHAvU0FQQ29ubmVjdG9yIiwiaWQiOiJTQVBDb25uZWN0b3IiLCJ2ZXJzaW9uIjoiMS4wLjAtSEYxIiwidGFnIjoiMS4wLjAtaGYxLWIwNCIsIm5hbWUiOiJTQVAiLCJzM2xvY2F0aW9uIjoiVGliY28vU0FQQ29ubmVjdG9yIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "SAPS4HANA",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "SAPS4HANA",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/sap": {
+              "get": {
+                "summary": "New_flow",
+                "operationId": "get_sap",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "output": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.25.11"
+  }
+}

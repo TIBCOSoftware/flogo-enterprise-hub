@@ -1,0 +1,287 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-azdatafactory/src/app/AzureDataFactory/activity/dfpipeline",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/wi-azadconnection/src/app/AzureAD/connector/connection"
+  ],
+  "name": "AzureDataFactory",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/azdf",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:RUN_Query"
+            },
+            "input": {
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"output\":\"\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "RUN_Query"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:RUN_Query",
+      "data": {
+        "name": "RUN_Query",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "MicrosoftAzureDataFactoryPipeline",
+            "type": "label",
+            "label": "StartActivity to MicrosoftAzureDataFactoryPipeline"
+          },
+          {
+            "id": 2,
+            "from": "MicrosoftAzureDataFactoryPipeline",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "MicrosoftAzureDataFactoryPipeline to LogMessage"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "MicrosoftAzureDataFactoryPipeline",
+            "name": "MicrosoftAzureDataFactoryPipeline",
+            "description": "AzureDataFactory Publish Activity",
+            "activity": {
+              "ref": "#dfpipeline",
+              "input": {
+                "operation": "Run Once",
+                "subscriptionId": "3d9f846f-9849-4329-a35e-91fa5ea16488",
+                "resourceGroup": "ADFTesting",
+                "dataFactories": "tibcoazdf-1",
+                "dfPipeline": "Copy_Data_0",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "pipelineParameters": {
+                        "filename": "movies.csv"
+                      }
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"$id\":\"http://example.com/example.json\",\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"subscriptionId\":{\"type\":\"string\",\"required\":false},\"resourceGroupName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"factoryName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineParameters\":{\"description\":\"\",\"required\":false,\"type\":\"object\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"$id\":\"http://example.com/example.json\",\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false,\"properties\":{\"subscriptionId\":{\"type\":\"string\",\"required\":false},\"resourceGroupName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"factoryName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineParameters\":{\"description\":\"\",\"required\":false,\"type\":\"object\"}}}}}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"factoryName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineRunId\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"statusCode\":{\"description\":\"output message\",\"required\":false,\"type\":\"integer\"},\"statusMessage\":{\"description\":\"output message\",\"required\":false,\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"factoryName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineName\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"pipelineRunId\":{\"description\":\"\",\"required\":false,\"type\":\"string\"},\"statusCode\":{\"description\":\"output message\",\"required\":false,\"type\":\"integer\"},\"statusMessage\":{\"description\":\"output message\",\"required\":false,\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[MicrosoftAzureDataFactoryPipeline].output)",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjIsInkiOjc1fSwiTWljcm9zb2Z0QXp1cmVEYXRhRmFjdG9yeVBpcGVsaW5lIjp7IngiOjE2MSwieSI6NzV9LCJMb2dNZXNzYWdlIjp7IngiOjQwOCwieSI6NzR9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"output\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [],
+  "connections": {
+    "91ce8548-b3da-43a2-aff3-0e1b48b8e996": {
+      "id": "91ce8548-b3da-43a2-aff3-0e1b48b8e996",
+      "name": "test",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "name": "test",
+        "description": "",
+        "tenantId": "ENTER_YOUR_AZURE_DATA_TENANT_ID_HERE",
+        "clientID": "ENTER_YOUR_AZURE_DATA_CLIENT_ID_HERE",
+        "userName": "",
+        "password": "",
+        "resourceURL": "",
+        "grantType": "password",
+        "WI_STUDIO_OAUTH_CONNECTOR_INFO": "SECRET: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",
+        "configProperties": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1hemRhdGFmYWN0b3J5L3NyYy9hcHAvQXp1cmVEYXRhRmFjdG9yeSIsImlkIjoiQXp1cmVEYXRhRmFjdG9yeSIsInZlcnNpb24iOiIxLjEuMSIsInRhZyI6IjEuMS4xLWIwMyIsIm5hbWUiOiJNaWNyb3NvZnQgQXp1cmUgRGF0YSBGYWN0b3J5IiwiczNsb2NhdGlvbiI6IlRpYmNvL0F6dXJlRGF0YUZhY3RvcnkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vd2ktYXphZGNvbm5lY3Rpb24vc3JjL2FwcC9BenVyZUFEIiwiaWQiOiJBenVyZUFEIiwidmVyc2lvbiI6IjEuMC4xIiwidGFnIjoiMS4wLjEtYjAzIiwibmFtZSI6Ik1pY3Jvc29mdCBBenVyZSBDb25uZWN0aW9uIiwiczNsb2NhdGlvbiI6IlRpYmNvL0F6dXJlQUQiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "AzureDataFactory",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "AzureDataFactory",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/azdf": {
+              "get": {
+                "summary": "RUN_Query",
+                "operationId": "get_azdf",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "output": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.25.11"
+  }
+}

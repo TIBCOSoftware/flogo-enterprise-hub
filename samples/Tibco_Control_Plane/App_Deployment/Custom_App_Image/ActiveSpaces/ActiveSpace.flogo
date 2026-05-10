@@ -1,0 +1,681 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/activity/sqldirect",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/trigger/tablelistener",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/connector/as"
+  ],
+  "name": "ActiveSpace",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/sql",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:New_flow"
+            },
+            "input": {
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "message": "=$.message"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "New_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#tablelistener",
+      "name": "activespaces-tablelistener-trigger",
+      "description": "ActiveSpaces Table Listener Trigger",
+      "settings": {
+        "asConnection": "conn://27f8c2b2-dd02-4715-90c6-d246929eaedf"
+      },
+      "id": "ActiveSpacesTableListenerTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "tableName": "",
+            "eventType": "[\"Put\", \"Delete\", \"Expired\"]",
+            "filterExpression": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:New_flow_1"
+            },
+            "input": {
+              "output": "=$.output"
+            }
+          },
+          "schemas": {
+            "output": {
+              "output": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"event\":{\"type\":\"object\",\"properties\":{\"eventType\":{\"type\":\"string\"},\"previous\":{},\"current\":{}}},\"tableName\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"event\":{\"type\":\"object\",\"properties\":{\"eventType\":{\"type\":\"string\"},\"previous\":{},\"current\":{}}},\"tableName\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "New_flow_1"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:New_flow",
+      "data": {
+        "name": "New_flow",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Select",
+            "type": "label",
+            "label": "StartActivity to ActiveSpacesSQLDirect"
+          },
+          {
+            "id": 2,
+            "from": "Select",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "ActiveSpacesSQLDirect to LogMessage"
+          },
+          {
+            "id": 3,
+            "from": "LogMessage",
+            "to": "Insert",
+            "type": "label",
+            "label": "LogMessage to ActiveSpacesSQLDirect"
+          },
+          {
+            "id": 4,
+            "from": "Insert",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "ActiveSpacesSQLDirect to LogMessage1"
+          },
+          {
+            "id": 5,
+            "from": "LogMessage1",
+            "to": "Select1",
+            "type": "label",
+            "label": "LogMessage1 to ActiveSpacesSQLDirect"
+          },
+          {
+            "id": 6,
+            "from": "Select1",
+            "to": "LogMessage2",
+            "type": "label",
+            "label": "ActiveSpacesSQLDirect to LogMessage2"
+          },
+          {
+            "id": 7,
+            "from": "LogMessage2",
+            "to": "Update",
+            "type": "label",
+            "label": "LogMessage2 to ActiveSpacesSQLDirect"
+          },
+          {
+            "id": 8,
+            "from": "Update",
+            "to": "LogMessage3",
+            "type": "label",
+            "label": "ActiveSpacesSQLDirect to LogMessage3"
+          },
+          {
+            "id": 9,
+            "from": "LogMessage3",
+            "to": "Select2",
+            "type": "label",
+            "label": "LogMessage3 to ActiveSpacesSQLDirect"
+          },
+          {
+            "id": 10,
+            "from": "Select2",
+            "to": "LogMessage4",
+            "type": "label",
+            "label": "ActiveSpacesSQLDirect to LogMessage4"
+          },
+          {
+            "id": 11,
+            "from": "LogMessage4",
+            "to": "Delete",
+            "type": "label",
+            "label": "LogMessage4 to ActiveSpacesSQLDirect"
+          },
+          {
+            "id": 12,
+            "from": "Delete",
+            "to": "LogMessage5",
+            "type": "label",
+            "label": "ActiveSpacesSQLDirect to LogMessage5"
+          },
+          {
+            "id": 13,
+            "from": "LogMessage5",
+            "to": "Select3",
+            "type": "label",
+            "label": "LogMessage5 to ActiveSpacesSQLDirect"
+          },
+          {
+            "id": 14,
+            "from": "Select3",
+            "to": "LogMessage6",
+            "type": "label",
+            "label": "ActiveSpacesSQLDirect to LogMessage6"
+          },
+          {
+            "id": 15,
+            "from": "LogMessage6",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage6 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Select",
+            "name": "Select",
+            "description": "This activity runs SQL queries on TIBCO ActiveSpaces Grid data",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sqldirect",
+              "settings": {
+                "asConnection": "conn://27f8c2b2-dd02-4715-90c6-d246929eaedf"
+              },
+              "input": {
+                "query": "SELECT * FROM PatientDetails"
+              }
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[Select].rows)  +  \"  ****** \"  +   $activity[Select].rowCount",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Insert",
+            "name": "Insert",
+            "description": "This activity runs SQL queries on TIBCO ActiveSpaces Grid data",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sqldirect",
+              "settings": {
+                "asConnection": "conn://27f8c2b2-dd02-4715-90c6-d246929eaedf"
+              },
+              "input": {
+                "query": "INSERT INTO PatientDetails (PatientID, FirstName, LastName, Age, Height, Weight, DateOfBirth, AdmissionDate) VALUES (10, 'Carl', 'Campbell', 34, 178.0, 74.6, '1989-12-20T00:00:00', '2025-09-29T10:45:00');"
+              }
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[Insert].rows)  +  \" ****** \" +  $activity[Insert].rowCount",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Select1",
+            "name": "Select1",
+            "description": "This activity runs SQL queries on TIBCO ActiveSpaces Grid data",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sqldirect",
+              "settings": {
+                "asConnection": "conn://27f8c2b2-dd02-4715-90c6-d246929eaedf"
+              },
+              "input": {
+                "query": "SELECT * FROM PatientDetails"
+              }
+            }
+          },
+          {
+            "id": "LogMessage2",
+            "name": "LogMessage2",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[Select1].rows) + \" ******  \"  +   $activity[Select1].rowCount",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Update",
+            "name": "Update",
+            "description": "This activity runs SQL queries on TIBCO ActiveSpaces Grid data",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sqldirect",
+              "settings": {
+                "asConnection": "conn://27f8c2b2-dd02-4715-90c6-d246929eaedf"
+              },
+              "input": {
+                "query": "UPDATE PatientDetails SET FirstName = 'Michael', LastName = 'Johnson' WHERE PatientID = 10;"
+              }
+            }
+          },
+          {
+            "id": "LogMessage3",
+            "name": "LogMessage3",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[Update].rows) + \" ***** \" +  $activity[Update].rowCount",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Select2",
+            "name": "Select2",
+            "description": "This activity runs SQL queries on TIBCO ActiveSpaces Grid data",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sqldirect",
+              "settings": {
+                "asConnection": "conn://27f8c2b2-dd02-4715-90c6-d246929eaedf"
+              },
+              "input": {
+                "query": "SELECT * FROM PatientDetails"
+              }
+            }
+          },
+          {
+            "id": "LogMessage4",
+            "name": "LogMessage4",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[Select2].rows) + \" ****** \" +  $activity[Select2].rowCount",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Delete",
+            "name": "Delete",
+            "description": "This activity runs SQL queries on TIBCO ActiveSpaces Grid data",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sqldirect",
+              "settings": {
+                "asConnection": "conn://27f8c2b2-dd02-4715-90c6-d246929eaedf"
+              },
+              "input": {
+                "query": "DELETE FROM PatientDetails WHERE PatientID = 10;"
+              }
+            }
+          },
+          {
+            "id": "LogMessage5",
+            "name": "LogMessage5",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[Delete].rows) + \" ***** \" +  $activity[Delete].rowCount",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Select3",
+            "name": "Select3",
+            "description": "This activity runs SQL queries on TIBCO ActiveSpaces Grid data",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sqldirect",
+              "settings": {
+                "asConnection": "conn://27f8c2b2-dd02-4715-90c6-d246929eaedf"
+              },
+              "input": {
+                "query": "SELECT * FROM PatientDetails"
+              }
+            }
+          },
+          {
+            "id": "LogMessage6",
+            "name": "LogMessage6",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[Select3].rows) + \" ***** \" +  $activity[Select3].rowCount",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "message": "Query by SQL is working fine"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMsInkiOjM3fSwiU2VsZWN0Ijp7IngiOjE0MCwieSI6MzR9LCJMb2dNZXNzYWdlIjp7IngiOjMyNCwieSI6MzV9LCJJbnNlcnQiOnsieCI6NTA3LCJ5IjozNn0sIkxvZ01lc3NhZ2UxIjp7IngiOjY3OSwieSI6MzN9LCJTZWxlY3QxIjp7IngiOjgsInkiOjEzOH0sIkxvZ01lc3NhZ2UyIjp7IngiOjE4OCwieSI6MTM4fSwiVXBkYXRlIjp7IngiOjM3MCwieSI6MTQzfSwiTG9nTWVzc2FnZTMiOnsieCI6NTM2LCJ5IjoxNDJ9LCJTZWxlY3QyIjp7IngiOjcwMiwieSI6MTQyfSwiTG9nTWVzc2FnZTQiOnsieCI6ODUzLCJ5IjoxMzd9LCJEZWxldGUiOnsieCI6MzIsInkiOjI0N30sIkxvZ01lc3NhZ2U1Ijp7IngiOjIxMSwieSI6MjQzfSwiU2VsZWN0MyI6eyJ4Ijo0MDcsInkiOjI2N30sIkxvZ01lc3NhZ2U2Ijp7IngiOjU2OSwieSI6MjYzfSwiUmV0dXJuIjp7IngiOjc1MywieSI6MjU5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"message\":{\"type\":\"string\",\"required\":false}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:New_flow_1",
+      "data": {
+        "name": "New_flow_1",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($flow.output)",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyNjAsInkiOjEwMX19",
+        "metadata": {
+          "input": [
+            {
+              "name": "output",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"event\":{\"type\":\"object\",\"properties\":{\"eventType\":{\"type\":\"string\"},\"previous\":{},\"current\":{}}},\"tableName\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ActiveSpacesTableListenerTrigger\",\"properties\":{\"output\":{\"type\":\"object\",\"properties\":{\"event\":{\"type\":\"object\",\"properties\":{\"eventType\":{\"type\":\"string\"},\"previous\":{},\"current\":{}}},\"tableName\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "ActiveSpaces.testConnectionSSL.Grid_URL",
+      "type": "string",
+      "value": "https://gasdflgflogo301.dev.tibco.com:8443"
+    },
+    {
+      "name": "ActiveSpaces.testConnectionSSL.FTL_Trust_File",
+      "type": "string",
+      "value": {
+        "content": "",
+        "filename": ""
+      }
+    },
+    {
+      "name": "ActiveSpaces.testConnectionSSL.Grid_Name",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "ActiveSpaces.testConnectionSSL.Username",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "ActiveSpaces.testConnectionSSL.Password",
+      "type": "string",
+      "value": ""
+    }
+  ],
+  "connections": {
+    "27f8c2b2-dd02-4715-90c6-d246929eaedf": {
+      "id": "27f8c2b2-dd02-4715-90c6-d246929eaedf",
+      "name": "testConnectionSSL",
+      "ref": "#as",
+      "isGlobal": false,
+      "settings": {
+        "name": "testConnectionSSL",
+        "description": "",
+        "gridUrl": "=$property[\"ActiveSpaces.testConnectionSSL.Grid_URL\"]",
+        "useTrustFile": true,
+        "trustFile": "=$property[\"ActiveSpaces.testConnectionSSL.FTL_Trust_File\"]",
+        "gridName": "=$property[\"ActiveSpaces.testConnectionSSL.Grid_Name\"]",
+        "username": "=$property[\"ActiveSpaces.testConnectionSSL.Username\"]",
+        "password": "=$property[\"ActiveSpaces.testConnectionSSL.Password\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1hY3RpdmVzcGFjZXMvc3JjL2FwcC9BY3RpdmVTcGFjZXMiLCJpZCI6IkFjdGl2ZVNwYWNlcyIsInZlcnNpb24iOiIxLjAuMCIsInRhZyI6IjEuMC4wLWIwNCIsIm5hbWUiOiJUSUJDTyBBY3RpdmVTcGFjZXMiLCJzM2xvY2F0aW9uIjoiVGliY28vQWN0aXZlU3BhY2VzIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "ActiveSpace",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "ActiveSpace",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/sql": {
+              "get": {
+                "summary": "New_flow",
+                "operationId": "get_sql",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "definitions": {}
+        }
+      }
+    ],
+    "flogoVersion": "2.25.11"
+  }
+}

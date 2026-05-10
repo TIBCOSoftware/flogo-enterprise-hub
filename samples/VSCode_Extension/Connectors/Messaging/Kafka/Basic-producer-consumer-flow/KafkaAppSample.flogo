@@ -1,0 +1,510 @@
+{
+    "imports": [
+        "github.com/project-flogo/flow",
+        "github.com/project-flogo/contrib/activity/noop",
+        "github.com/tibco/wi-plugins/contributions/kafka/src/app/Kafka/activity/producer",
+        "github.com/project-flogo/contrib/activity/actreturn",
+        "github.com/tibco/wi-plugins/contributions/kafka/src/app/Kafka/activity/commit",
+        "github.com/tibco/flogo-general/src/app/General/activity/log",
+        "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+        "github.com/tibco/wi-plugins/contributions/kafka/src/app/Kafka/trigger/consumer",
+        "github.com/tibco/wi-plugins/contributions/kafka/src/app/Kafka/connector/kafka"
+    ],
+    "name": "KafkaAppSample",
+    "description": "",
+    "version": "1.0.0",
+    "type": "flogo:app",
+    "appModel": "1.1.1",
+    "tags": [],
+    "triggers": [
+        {
+            "ref": "#rest",
+            "name": "tibco-wi-rest",
+            "description": "Simple REST Trigger",
+            "settings": {
+                "port": 9999,
+                "APISpecUpdate": false,
+                "swagger": "",
+                "swaggerVersion": "v2",
+                "apiVersion": "1.0.0",
+                "secureConnection": false,
+                "serverKey": "",
+                "caCertificate": ""
+            },
+            "id": "ReceiveHTTPMessage",
+            "handlers": [
+                {
+                    "description": "To publish a messages to a topic",
+                    "settings": {
+                        "Method": "GET",
+                        "reqType": "application/json",
+                        "Path": "/produce/{message}",
+                        "OutputValidation": false
+                    },
+                    "action": {
+                        "ref": "github.com/project-flogo/flow",
+                        "settings": {
+                            "flowURI": "res://flow:ProducerFlow"
+                        },
+                        "input": {
+                            "pathParams": "=$.pathParams",
+                            "headers": "=$.headers"
+                        },
+                        "output": {
+                            "code": "=$.code",
+                            "data": "=$.data"
+                        }
+                    },
+                    "reply": {
+                        "code": 200,
+                        "configureResponseCodes": false,
+                        "message": {}
+                    },
+                    "schemas": {
+                        "reply": {
+                            "data": {
+                                "type": "json",
+                                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}",
+                                "fe_metadata": "{\"output\":\"string\"}"
+                            },
+                            "responseBody": {
+                                "type": "json",
+                                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+                            }
+                        },
+                        "output": {
+                            "pathParams": {
+                                "type": "json",
+                                "value": "{\"type\":\"object\",\"properties\":{\"message\":{\"type\":\"string\"}},\"required\":[]}",
+                                "fe_metadata": "[{\"parameterName\":\"message\",\"type\":\"string\"}]"
+                            },
+                            "headers": {
+                                "type": "json",
+                                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                            }
+                        }
+                    },
+                    "name": "ProducerFlow"
+                }
+            ]
+        },
+        {
+            "ref": "#consumer",
+            "name": "tibco-kafka-consumer-trigger",
+            "description": "",
+            "settings": {
+                "kafkaConnection": "conn://4453b700-4ae4-11ee-85b6-536186a8f204"
+            },
+            "id": "KafkaConsumer",
+            "handlers": [
+                {
+                    "description": "Consume messages from topic",
+                    "settings": {
+                        "topic": "=$property[\"topic\"]",
+                        "customPartition": false,
+                        "partitionId": 0,
+                        "topicPattern": "",
+                        "consumerGroup": "=$property[\"cgp\"]",
+                        "valueType": "String",
+                        "subjects": "String",
+                        "versions": 1,
+                        "commitInterval": 5000,
+                        "initialOffset": "Oldest",
+                        "seekOffset": 0,
+                        "timeStamp": "",
+                        "fetchMinBytes": 0,
+                        "fetchMaxWait": 500,
+                        "heartbeatInterval": 3000,
+                        "sessionTimeout": 30000
+                    },
+                    "action": {
+                        "ref": "github.com/project-flogo/flow",
+                        "settings": {
+                            "flowURI": "res://flow:ConsumerFlow"
+                        },
+                        "input": {
+                            "topic": "=$.topic",
+                            "stringValue": "=$.stringValue"
+                        }
+                    },
+                    "name": "ConsumerFlow"
+                }
+            ]
+        }
+    ],
+    "resources": [
+        {
+            "id": "flow:ProducerFlow",
+            "data": {
+                "name": "ProducerFlow",
+                "description": "To publish a messages to a topic",
+                "links": [
+                    {
+                        "id": 1,
+                        "from": "StartActivity",
+                        "to": "KafkaProducer",
+                        "type": "label",
+                        "label": "StartActivity to KafkaProducer"
+                    },
+                    {
+                        "id": 2,
+                        "from": "KafkaProducer",
+                        "to": "Return",
+                        "type": "label",
+                        "label": "KafkaProducer to Return"
+                    }
+                ],
+                "tasks": [
+                    {
+                        "id": "StartActivity",
+                        "name": "StartActivity",
+                        "description": "NoOp Activity",
+                        "activity": {
+                            "ref": "#noop"
+                        }
+                    },
+                    {
+                        "id": "KafkaProducer",
+                        "name": "KafkaProducer",
+                        "description": "",
+                        "settings": {
+                            "retryOnError": {
+                                "count": 0,
+                                "interval": 0
+                            }
+                        },
+                        "activity": {
+                            "ref": "#producer",
+                            "input": {
+                                "kafkaConnection": "conn://4453b700-4ae4-11ee-85b6-536186a8f204",
+                                "ackMode": "All",
+                                "ackTimeout": 10000,
+                                "partitioner": "Hash",
+                                "compressionType": "None",
+                                "valueType": "String",
+                                "subjects": "String",
+                                "versions": 1,
+                                "maxRequestSize": 1048576,
+                                "maxMessages": 0,
+                                "frequency": 100,
+                                "topic": "=$property[\"topic\"]",
+                                "partition": 0,
+                                "key": "",
+                                "stringValue": "=$flow.pathParams.message"
+                            }
+                        }
+                    },
+                    {
+                        "id": "Return",
+                        "name": "Return",
+                        "description": "Simple Return Activity",
+                        "activity": {
+                            "ref": "#actreturn",
+                            "settings": {
+                                "mappings": {
+                                    "code": 200,
+                                    "data": {
+                                        "mapping": {
+                                            "output": "=\"Message successfully sent on topic: \"+$activity[KafkaProducer].topic"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiS2Fma2FQcm9kdWNlciI6eyJ4IjoxNzMsInkiOjE3OH0sIlJldHVybiI6eyJ4IjozNjksInkiOjE3N319",
+                "metadata": {
+                    "input": [
+                        {
+                            "name": "pathParams",
+                            "type": "object",
+                            "schema": {
+                                "type": "json",
+                                "value": "{\"message\":{\"type\":\"string\"}}"
+                            }
+                        },
+                        {
+                            "name": "headers",
+                            "type": "object",
+                            "schema": {
+                                "type": "json",
+                                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+                            }
+                        },
+                        {
+                            "name": "requestURI",
+                            "type": "string"
+                        },
+                        {
+                            "name": "method",
+                            "type": "string"
+                        }
+                    ],
+                    "output": [
+                        {
+                            "name": "code",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "data",
+                            "type": "object",
+                            "schema": {
+                                "type": "json",
+                                "value": "{\"output\":{\"type\":\"string\"}}"
+                            }
+                        }
+                    ],
+                    "fe_metadata": {
+                        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"pathParams\":{\"type\":\"object\",\"properties\":{\"message\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+                        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}},\"required\":[]}"
+                    }
+                },
+                "explicitReply": true
+            }
+        },
+        {
+            "id": "flow:ConsumerFlow",
+            "data": {
+                "name": "ConsumerFlow",
+                "description": "Consume messages from topic",
+                "links": [
+                    {
+                        "id": 1,
+                        "from": "StartActivity",
+                        "to": "KafkaCommitOffset",
+                        "type": "label",
+                        "label": "StartActivity to KafkaCommitOffset"
+                    },
+                    {
+                        "id": 2,
+                        "from": "KafkaCommitOffset",
+                        "to": "LogMessage",
+                        "type": "label",
+                        "label": "KafkaCommitOffset to LogMessage"
+                    }
+                ],
+                "tasks": [
+                    {
+                        "id": "StartActivity",
+                        "name": "StartActivity",
+                        "description": "NoOp Activity",
+                        "activity": {
+                            "ref": "#noop"
+                        }
+                    },
+                    {
+                        "id": "KafkaCommitOffset",
+                        "name": "KafkaCommitOffset",
+                        "description": "",
+                        "activity": {
+                            "ref": "#commit"
+                        }
+                    },
+                    {
+                        "id": "LogMessage",
+                        "name": "LogMessage",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "=\"Message Received in Consumer on Topic : \"+$flow.topic+\" is: \"+$flow.stringValue",
+                                "logLevel": ""
+                            }
+                        }
+                    }
+                ],
+                "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiS2Fma2FDb21taXRPZmZzZXQiOnsieCI6MTc0LCJ5IjoxNzd9LCJMb2dNZXNzYWdlIjp7IngiOjM3NCwieSI6MTc3fX0=",
+                "metadata": {
+                    "input": [
+                        {
+                            "name": "topic",
+                            "type": "string"
+                        },
+                        {
+                            "name": "partition",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "offset",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "key",
+                            "type": "string"
+                        },
+                        {
+                            "name": "stringValue",
+                            "type": "string"
+                        },
+                        {
+                            "name": "headers",
+                            "type": "object"
+                        }
+                    ],
+                    "output": [],
+                    "fe_metadata": {
+                        "input": "{\"type\":\"object\",\"title\":\"KafkaConsumer\",\"properties\":{\"topic\":{\"type\":\"string\",\"required\":false},\"partition\":{\"type\":\"integer\",\"required\":false},\"offset\":{\"type\":\"integer\",\"required\":false},\"key\":{\"type\":\"string\",\"required\":false},\"stringValue\":{\"type\":\"string\",\"required\":false},\"headers\":{\"type\":\"object\"}}}"
+                    }
+                },
+                "explicitReply": true
+            }
+        }
+    ],
+    "properties": [
+        {
+            "name": "Kafka.kafkaSSLGCPConn.Brokers",
+            "type": "string",
+            "value": "gasdflgflogo301.dev.tibco.com:9093"
+        },
+        {
+            "name": "Kafka.kafkaSSLGCPConn.Client_Certificate",
+            "type": "string",
+            "value": {
+                "filename": "client.crt.pem",
+                "content": "data:application/octet-stream;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQ1VENDQXMwQ0ZGSG12ZDhlU0ZHQVlRQUc4NGlRRTQrQldvbXVNQTBHQ1NxR1NJYjNEUUVCQ3dVQU1JR3gKTVFzd0NRWURWUVFHRXdKSlRqRUxNQWtHQTFVRUNBd0NUVWd4RFRBTEJnTlZCQWNNQkZCMWJtVXhEakFNQmdOVgpCQW9NQlZSSlFrTlBNUk13RVFZRFZRUUxEQXBEYjI1dVpXTjBiM0p6TVNZd0pBWURWUVFEREIxbllYTmtabXhuClpteHZaMjh6TURFdVpHVjJMblJwWW1OdkxtTnZiVEU1TURjR0NTcUdTSWIzRFFFSkFSWXFZV1J0YVc1QWNtOXYKZEdOaExtZGhjMlJtYkdkbWJHOW5iek13TVM1a1pYWXVkR2xpWTI4dVkyOXRNQjRYRFRJME1URXlPREExTWpJMApNVm9YRFRJM01Ea3hPREExTWpJME1Wb3dnYXN4Q3pBSkJnTlZCQVlUQWtsT01Rc3dDUVlEVlFRSURBSk5TREVOCk1Bc0dBMVVFQnd3RVVIVnVaVEVPTUF3R0ExVUVDZ3dGVkVsQ1EwOHhFekFSQmdOVkJBc01Da052Ym01bFkzUnYKY25NeE16QXhCZ2txaGtpRzl3MEJDUUVXSkdOc2FXVnVkRUJuWVhOa1pteG5abXh2WjI4ek1ERXVaR1YyTG5ScApZbU52TG1OdmJURW1NQ1FHQTFVRUF3d2RaMkZ6Wkdac1oyWnNiMmR2TXpBeExtUmxkaTUwYVdKamJ5NWpiMjB3CmdnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUJBUURiNzBmRDVncVp0Z0poaHgrN3FSckMKVVNhVEV5UXFBMWxKekVhbmgrL1RSQ2xkTGZHcG5UMEhuRXI4L0ZpMlJ2U2NMTVdjcDh1amhNU1FieG80dUk0bgpoYUhnNHVqQndwZzlzTWFnNFV0SXhHbk9JdG1vMXNYMUFKcnBUOE02OHl2cGFaTWlqVGswRlBOak4vZitQZ3daCnQzaFNpTFhrTklKamo5OXQwK0JhRnZXUXZrdHdBbHhrVmZIUEc2VkQxeWVCY0c0VFF6S1hGRXFUMU9CK1c4aDgKWkROeERVVDRJSGNpRVdiUEtCOFViT1g3SGVvaFNoNFpzVjE1cGVJaTRwSE1yYWgwQU9aaXM2MEJ5TmhMaFJndgo5Z3FZK0ZRcWt2NlVnZUc2MllzQ3ZEZ2V2eHIxNm5mcFhVcVpOVWp3ajh3SE9mT251Y3p5UDNyaG85dXY1TTRYCkFnTUJBQUV3RFFZSktvWklodmNOQVFFTEJRQURnZ0VCQUVtVEZ0ZTJOS0tiaTN1V2NkeThFSy90OW8zMmlrMUEKbU43WnUyUEhzbmRqcWVmM3g1MERhQ1EwZTNKN0hQRVFMVWJHK25ZaDJSemhadTlaYTQ5R0pBYU8xbGIwZFU2dApYSkR0UkQzTDdmV3YzdGtyS1NNUEk3Y1hQZmgwRWNMU291NzJZT2ZtVFJvNEZ2WHpZclNrNytMcm05alZhc0JnClY3S3U4eGxzMDg1a1Q3YXloMDNiMTNuQjlpRU1PQ1JFVnZjRlRZaDl5SksxNE9ZaFJlME5GaHBGUmJvNzg4SVMKVHB4dm8wcXhzalR1VVhGSC90ekFHVndHWWQrbUgxT0pVTVAxS3h1cHc4R1k0K0VWbXJjNk84ZVZBS0xXOWhrZgpQVHhKRXcwUXkvV0xPWWRnRW5OWlU2N01oZWhpWDlDMWlyeGxuR1hXU3lyajZBdnYwYnBEbUpJPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+            }
+        },
+        {
+            "name": "Kafka.kafkaSSLGCPConn.Client_Key",
+            "type": "string",
+            "value": {
+                "filename": "client.key.pem",
+                "content": "data:application/octet-stream;base64,LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcFFJQkFBS0NBUUVBMis5SHcrWUttYllDWVljZnU2a2F3bEVta3hNa0tnTlpTY3hHcDRmdjAwUXBYUzN4CnFaMDlCNXhLL1B4WXRrYjBuQ3pGbktmTG80VEVrRzhhT0xpT0o0V2g0T0xvd2NLWVBiREdvT0ZMU01ScHppTFoKcU5iRjlRQ2E2VS9ET3ZNcjZXbVRJbzA1TkJUell6ZjMvajRNR2JkNFVvaTE1RFNDWTQvZmJkUGdXaGIxa0w1TApjQUpjWkZYeHp4dWxROWNuZ1hCdUUwTXlseFJLazlUZ2ZsdklmR1F6Y1ExRStDQjNJaEZtenlnZkZHemwreDNxCklVb2VHYkZkZWFYaUl1S1J6SzJvZEFEbVlyT3RBY2pZUzRVWUwvWUttUGhVS3BMK2xJSGh1dG1MQXJ3NEhyOGEKOWVwMzZWMUttVFZJOEkvTUJ6bnpwN25NOGo5NjRhUGJyK1RPRndJREFRQUJBb0lCQVFDVDRrSU1MRXRtYmVjTgo4eERZVzIyOXlWazV2YjRzYmRJRStGRnQ1czdRN04wdlpXeEFrNVRzNEIvZ0drSUFWcGUxeDdrY2pBczJxVmlPCmtkWTgyNFBpZVUyTzdLUjdYTUNIZ3EwY2trRFA3aG9DM0pZa25EM0JieVc2eWNKSmlpYzFyS0tkc2Y0TDBpYVIKeVpsOEgvWjgrRXYwbXk1TEF5L0ZpSUZBMVIzZkZKL3hMNnZEeEZjNW1tVWdlQlN5Q3B5NkdqazA5MnFpSktPZAphNWpJOTV2M3VBNEFiUDFkTmtFeFRqakx4Y3lWTkxEQ0Q4RTMxbTVXVThRUkFIQXFkWUtxQnc3YmlrdHdhS3dLClpVVFdzbzFseThQMS9JQTV6RUttaTZNZzdQeHN5Uzgzcm9hYlBnd0JKeXh0dmlPQVdjMjFFUnp3UG1tNWxmWVQKd0tVOEJTQmhBb0dCQU81S3kvVmw0NWVBTkpCeDYxZDhWd29PM2pyVC8wbjdKWVZmRCtsZk1STjAvUGdLVjhtaApsY1l0TU56dHZOY1gza3c4dGl3MmtySjVUYXlGSFNTQUlxU2lwaUlxTVphTi9RUU5WZTBHTDhOaW5ISUxoNFBJCm5RYUYyU0IyNS9hTDlKR0h0YmU3SXd0QUN4aU11bkNqMXVPUUU0NG5TTGh0Z1MzNFVQVUJ1VnRIQW9HQkFPeEgKUVlkOGJneVZvQTl1RUVna3Zvc2lvUTJJSlVSRzlUek84cXdHNlJwS0g1TlVHZ1p5ZmlFTTNJZVJobzlOU3lrQwpYWjFVTCtCQUZtUFIrTEtDN3hHSENkbFZ5YXZNMjlCYWVIMGpQRzZRaFB5OFpwSW12TlRnaG8wczloWUFleGhsClNYbDdEN0pzc0NFTG1XOTZvRHJMeklJMEhkc1U1ZVlaZGl0dUVyNnhBb0dCQUpRZ2RNYllEbkVuNWdVQWU3NEgKY2dlemxGdFhXek4rNWlVUkljLzlONEdUMElqVHpSeHUwSzYvZXNkckZWOVQzQURpSUpBOVlGV0hhRXhjOXUrdwpvMWhhTHhHL3p0RjY5QlFud2drME5rNnJwdnFSeGl5YWNWb1RyQlF0TmlhaGUyZFh5Qk10Uml5QkpDU2ZubW5VCnZ3ajRqOTltOWlLSEY2MGUxaHhuZFBTVEFvR0FOMzBZZjVnU1JEUlRiYXc4ZUtUZ2RzNkFJaXhxREJuWitCamwKMXM2Y3FjYmttWFh6MHJYS3R6cE5CQzJCKzE5OG1qbnJBRXJJSDVNTmJ3M2RxUmFrekduNVB5Z3RmNEpSMFNHZQpFRTFaSU9JaHlUVDVwYk1oUDZFbkdEcUo1R3JpZmIwenZ5ck9hZW1xaDJndzlZUkg0dWIvdFVoR0JyQm11VjRiCmFXR2xWMUVDZ1lFQTBlWTVCcGxxYmxycElzVk1YdUl4RTRIS0ZtZHprbFphZ1YwVlVOMTN5Yll3djd6eERQL2cKZ2JkN2N4cS94eDRJaXB5ck03cHE0dUlGdE1ta0hreG96WmtIdHJ5ZzNRL0xqdzNVNXlYci9nbVNYVlRiM2FBMQpIc01XRm5XUHNRdHJ0VGU5MW5uNWFNZ05Zam5rekRjQ0szdlhtUVZheWtiSmtlZlN1NmFCK1RRPQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo="
+            }
+        },
+        {
+            "name": "Kafka.kafkaSSLGCPConn.CA_or_Server_Certificate",
+            "type": "string",
+            "value": {
+                "filename": "rootCA.crt.pem",
+                "content": "data:application/octet-stream;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVSVENDQXkyZ0F3SUJBZ0lVY3NBekdwSmltNGJNdjZGM2xZcUVJdGsxa0hjd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2diRXhDekFKQmdOVkJBWVRBa2xPTVFzd0NRWURWUVFJREFKTlNERU5NQXNHQTFVRUJ3d0VVSFZ1WlRFTwpNQXdHQTFVRUNnd0ZWRWxDUTA4eEV6QVJCZ05WQkFzTUNrTnZibTVsWTNSdmNuTXhKakFrQmdOVkJBTU1IV2RoCmMyUm1iR2RtYkc5bmJ6TXdNUzVrWlhZdWRHbGlZMjh1WTI5dE1Ua3dOd1lKS29aSWh2Y05BUWtCRmlwaFpHMXAKYmtCeWIyOTBZMkV1WjJGelpHWnNaMlpzYjJkdk16QXhMbVJsZGk1MGFXSmpieTVqYjIwd0hoY05NalF4TVRJNApNRFV5TWpReFdoY05NamN3T1RFNE1EVXlNalF4V2pDQnNURUxNQWtHQTFVRUJoTUNTVTR4Q3pBSkJnTlZCQWdNCkFrMUlNUTB3Q3dZRFZRUUhEQVJRZFc1bE1RNHdEQVlEVlFRS0RBVlVTVUpEVHpFVE1CRUdBMVVFQ3d3S1EyOXUKYm1WamRHOXljekVtTUNRR0ExVUVBd3dkWjJGelpHWnNaMlpzYjJkdk16QXhMbVJsZGk1MGFXSmpieTVqYjIweApPVEEzQmdrcWhraUc5dzBCQ1FFV0ttRmtiV2x1UUhKdmIzUmpZUzVuWVhOa1pteG5abXh2WjI4ek1ERXVaR1YyCkxuUnBZbU52TG1OdmJUQ0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCQUwvRlpsT0gKRERrdjdVUEFJWUIyOTBvYkZOZXMrbDV1U1Byb3M1U1VwSDJ5VjJyYzQ0Tld2RGYxMWh2VlM0amhOb1dkTjRkdgoyN3hKMHN3N0JnMTEwQ21sdTBJT0pxcVZjSWcxdmxQeHBEQTRyK3M0aDlZVFVDVUcxTDQzVjJIMjg5cE9nZ1hjCjkzYnhvY0p5SytrK2xLUnNqbWN6NE12Qk1RMUxPUUVwVmpBMzE3ZzRLZ2FDanl2dm1jSk9TTWU2TkZROUZQOWYKSUg1ZGFjcjgvSVZ4djZjNXpyRmV4dUNvSzBrWkRZOEF1dGp6ZnFhZHh6ZHRERlhVank1TkJTaVJ6RkVuVGpDRwpkdEM1UmExTFc0cVF1T1BVOE5CSlVVdnprblJkMHNySlIwZElyRUNraXlLWDN0VkQ1cjJBQnZXR1IwOGZyU0lHCnFJTFBYMDQzRGlpVmgyc0NBd0VBQWFOVE1GRXdIUVlEVlIwT0JCWUVGQWU3bFNmNm9lSk01ZlA3cSt3Y2FEOW8KUkpiMk1COEdBMVVkSXdRWU1CYUFGQWU3bFNmNm9lSk01ZlA3cSt3Y2FEOW9SSmIyTUE4R0ExVWRFd0VCL3dRRgpNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFBeGRMVWxNcjk2cVJydmJscXMrY0dIZ1hERUt0eWQ5Ckp6SGRXOW8raGU0NWNOc0dZdTNiR0NFVFRnZWozZExZNGZnQkRJMkkvazUyMlUrRkZTd01WeEFvSTljK2JZU3QKbVRva3JDdkFraVU0VFgyeFU1VVZvclpmb3cxeXg1dllnTWp5c0NCcmhPVjBxSlRlbkFXZjkza0k2aUpwL2NRWgo5SWgrZkFnMWR6UWJGY1RMUHd1TkpNN1p1Tmo3L0dmVzJucEV2TVJJWHVlQXRwSEFLRm5PWXVkZVFyNllFelhoCk9XUVdzWUNWRXpHUkQrcFBTZWRaRlpEZm1YbnZXTTAyVldZMzlDVEV5T0J3RXVlVWhianNMbThMdkhLZ1hSZHEKWjc1N2dYSHhSemdFZ281cS9RYTlxN1F1MlN3SDZENFBvdmN5Y1E4Mys1Q3ZLRk1GNFg0clNkST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+            }
+        },
+        {
+            "name": "Kafka.kafkaSSLGCPConn.Connection_Timeout",
+            "type": "float64",
+            "value": 30
+        },
+        {
+            "name": "Kafka.kafkaSSLGCPConn.Retry_Backoff",
+            "type": "float64",
+            "value": 250
+        },
+        {
+            "name": "Kafka.kafkaSSLGCPConn.Max_Retry",
+            "type": "float64",
+            "value": 3
+        },
+        {
+            "name": "Kafka.kafkaSSLGCPConn.Refresh_Frequency",
+            "type": "float64",
+            "value": 40
+        },
+        {
+            "name": "topic",
+            "type": "string",
+            "value": "testPart28"
+        },
+        {
+            "name": "cgp",
+            "type": "string",
+            "value": "sasl-consumer-grp"
+        }
+    ],
+    "connections": {
+        "4453b700-4ae4-11ee-85b6-536186a8f204": {
+            "id": "4453b700-4ae4-11ee-85b6-536186a8f204",
+            "name": "kafkaSSLGCPConn",
+            "ref": "#kafka",
+            "isGlobal": false,
+            "settings": {
+                "name": "kafkaSSLGCPConn",
+                "description": "Apache Kafka client configuration",
+                "brokers": "=$property[\"Kafka.kafkaSSLGCPConn.Brokers\"]",
+                "authMode": "SSL",
+                "userName": "",
+                "password": "",
+                "clientID": "",
+                "clientSecret": "",
+                "tokenURL": "",
+                "scope": "",
+                "securityProtocol": "SASL_SSL",
+                "clientCert": "=$property[\"Kafka.kafkaSSLGCPConn.Client_Certificate\"]",
+                "clientKey": "=$property[\"Kafka.kafkaSSLGCPConn.Client_Key\"]",
+                "caCert": "=$property[\"Kafka.kafkaSSLGCPConn.CA_or_Server_Certificate\"]",
+                "connectionTimeout": "=$property[\"Kafka.kafkaSSLGCPConn.Connection_Timeout\"]",
+                "retryBackoff": "=$property[\"Kafka.kafkaSSLGCPConn.Retry_Backoff\"]",
+                "retryMax": "=$property[\"Kafka.kafkaSSLGCPConn.Max_Retry\"]",
+                "refreshFrequency": "=$property[\"Kafka.kafkaSSLGCPConn.Refresh_Frequency\"]",
+                "useSchmaRegistry": false,
+                "url": "",
+                "userName_schemaRegistry": "",
+                "password_schemaRegistry": ""
+            }
+        }
+    },
+    "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wbHVnaW5zL2NvbnRyaWJ1dGlvbnMva2Fma2Evc3JjL2FwcC9LYWZrYSIsImlkIjoiS2Fma2EiLCJ2ZXJzaW9uIjoiMS4zLjQiLCJ0YWciOiIxLjMuNC1iMDIiLCJuYW1lIjoiQXBhY2hlIEthZmthIiwiczNsb2NhdGlvbiI6IlRpYmNvL0thZmthIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+    "metadata": {
+        "endpoints": [
+            {
+                "protocol": "http",
+                "port": "9999",
+                "spec": {
+                    "name": "KafkaAppSample",
+                    "version": "1.0.0"
+                },
+                "title": "ReceiveHTTPMessage",
+                "swagger": {
+                    "swagger": "2.0",
+                    "info": {
+                        "title": "KafkaAppSample",
+                        "version": "1.0.0",
+                        "description": "Simple REST Trigger"
+                    },
+                    "paths": {
+                        "/produce/{message}": {
+                            "get": {
+                                "summary": "ProducerFlow",
+                                "operationId": "get_produce_message",
+                                "parameters": [
+                                    {
+                                        "name": "message",
+                                        "in": "path",
+                                        "description": "Request parameter",
+                                        "required": true,
+                                        "type": "string"
+                                    }
+                                ],
+                                "responses": {
+                                    "200": {
+                                        "description": "Rest Response",
+                                        "schema": {
+                                            "$ref": "#/definitions/schema1"
+                                        }
+                                    }
+                                },
+                                "description": "To publish a messages to a topic"
+                            }
+                        }
+                    },
+                    "definitions": {
+                        "schema1": {
+                            "type": "object",
+                            "properties": {
+                                "output": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ],
+        "flogoVersion": "2.25.10"
+    }
+}

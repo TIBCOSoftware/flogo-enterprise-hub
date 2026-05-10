@@ -1,0 +1,339 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-mcp/src/app/MCP/activity/elicitation",
+    "github.com/tibco/flogo-mcp/src/app/MCP/activity/sendlogmessage",
+    "github.com/tibco/flogo-mcp/src/app/MCP/activity/sampling",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "name": "Smart_Incident_Response_Assistant_MCPServer",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Flogo MCP server for Agentic AI",
+      "settings": {
+        "serverName": "Smart_Incident_Response_Assistant_MCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "MCPShowcaseServer",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "incident_response",
+            "handlerDescription": "Runs a structured incident triage — collects incident details, analyses root causes using AI, and returns a remediation report."
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:smart_incident_response_assistant_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments",
+              "httpHeaders": "=$.httpHeaders"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "smart_incident_response_assistant_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:smart_incident_response_assistant_flow",
+      "data": {
+        "name": "smart_incident_response_assistant_flow",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ElicitIncidentDetails",
+            "type": "label",
+            "label": "StartActivity to MCPElicitationActivity"
+          },
+          {
+            "id": 2,
+            "from": "ElicitIncidentDetails",
+            "to": "LogIntakeComplete",
+            "type": "label",
+            "label": "ElicitIncidentDetails to MCPLoggingActivity"
+          },
+          {
+            "id": 3,
+            "from": "LogIntakeComplete",
+            "to": "SampleRootCause",
+            "type": "label",
+            "label": "LogIntakeComplete to MCPSamplingActivity"
+          },
+          {
+            "id": 4,
+            "from": "SampleRootCause",
+            "to": "LogAnalysisComplete",
+            "type": "label",
+            "label": "SampleRootCause to MCPLoggingActivity"
+          },
+          {
+            "id": 5,
+            "from": "LogAnalysisComplete",
+            "to": "Return",
+            "type": "label",
+            "label": "LogAnalysisComplete to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ElicitIncidentDetails",
+            "name": "ElicitIncidentDetails",
+            "description": "Allows MCP server to receive additional inputs from MCP client in Flogo workflow",
+            "activity": {
+              "ref": "#elicitation",
+              "settings": {
+                "elicitationMode": "FORM"
+              },
+              "input": {
+                "elicitationRequest": {
+                  "mapping": {
+                    "message": "Please provide details about the production incident."
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "elicitationRequest": {
+                    "type": "json",
+                    "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"message\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"message\"\r\n  ]\r\n}",
+                    "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"message\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"message\"\r\n  ]\r\n}"
+                  }
+                },
+                "output": {
+                  "content": {
+                    "type": "json",
+                    "value": "{\r\n  \"title\": \"Production Incident Report\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"reported_by\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Your Email Address\",\r\n      \"format\": \"email\"\r\n    },\r\n    \"affected_system\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Affected System / Service\",\r\n      \"enum\": [\"Payment API\", \"Auth Service\", \"Order Service\", \"Inventory Service\", \"Notification Service\", \"Other\"]\r\n    },\r\n    \"environment\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Environment\",\r\n      \"enum\": [\"Production\", \"Staging\", \"DR\"]\r\n    },\r\n    \"severity\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Severity\",\r\n      \"enum\": [\"P1 - Critical\", \"P2 - High\", \"P3 - Medium\", \"P4 - Low\"]\r\n    },\r\n    \"error_message\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Error Message or Symptom\"\r\n    },\r\n    \"started_at\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Approximate Incident Start Time (e.g. 14:30 UTC)\"\r\n    },\r\n    \"already_tried\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"What have you already tried? (optional)\"\r\n    }\r\n  },\r\n  \"required\": [\"reported_by\", \"affected_system\", \"environment\", \"severity\", \"error_message\"]\r\n}",
+                    "fe_metadata": "{\r\n  \"title\": \"Production Incident Report\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"reported_by\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Your Email Address\",\r\n      \"format\": \"email\"\r\n    },\r\n    \"affected_system\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Affected System / Service\",\r\n      \"enum\": [\"Payment API\", \"Auth Service\", \"Order Service\", \"Inventory Service\", \"Notification Service\", \"Other\"]\r\n    },\r\n    \"environment\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Environment\",\r\n      \"enum\": [\"Production\", \"Staging\", \"DR\"]\r\n    },\r\n    \"severity\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Severity\",\r\n      \"enum\": [\"P1 - Critical\", \"P2 - High\", \"P3 - Medium\", \"P4 - Low\"]\r\n    },\r\n    \"error_message\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Error Message or Symptom\"\r\n    },\r\n    \"started_at\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"Approximate Incident Start Time (e.g. 14:30 UTC)\"\r\n    },\r\n    \"already_tried\": {\r\n      \"type\": \"string\",\r\n      \"title\": \"What have you already tried? (optional)\"\r\n    }\r\n  },\r\n  \"required\": [\"reported_by\", \"affected_system\", \"environment\", \"severity\", \"error_message\"]\r\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogIntakeComplete",
+            "name": "LogIntakeComplete",
+            "description": "Allows MCP server to send structured log messages to MCP client from Flogo workflow",
+            "activity": {
+              "ref": "#sendlogmessage",
+              "input": {
+                "loggingMessageParams": {
+                  "mapping": {
+                    "data": "=string.concat(\"Incident intake complete. Reporter: \", $activity[ElicitIncidentDetails].content.reported_by, \" | System: \", $activity[ElicitIncidentDetails].content.affected_system,\" | Severity: \", $activity[ElicitIncidentDetails].content.severity, \" | Environment: \", $activity[ElicitIncidentDetails].content.environment)",
+                    "level": "info",
+                    "logger": "FLOGO-LOGINTAKE-COMPLETE"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "loggingMessageParams": {
+                    "type": "json",
+                    "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"level\": {\r\n      \"type\": \"string\",\r\n      \"enum\": [\"alert\",\"critical\",\"debug\",\"emergency\",\"error\",\"info\",\"notice\",\"warning\"]\r\n    },\r\n    \"logger\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\r\n    \"level\"\r\n  ]\r\n}",
+                    "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"level\": {\r\n      \"type\": \"string\",\r\n      \"enum\": [\"alert\",\"critical\",\"debug\",\"emergency\",\"error\",\"info\",\"notice\",\"warning\"]\r\n    },\r\n    \"logger\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\r\n    \"level\"\r\n  ]\r\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "SampleRootCause",
+            "name": "SampleRootCause",
+            "description": "Allows MCP server to send LLM sampling requests to agent from Flogo workflow",
+            "activity": {
+              "ref": "#sampling",
+              "input": {
+                "samplingMessageRequest": {
+                  "mapping": {
+                    "systemPrompt": "You are an expert SRE (Site Reliability Engineer). Given the following production incident details, provide: 1. Top 3 most likely root causes (ranked by probability) 2. Immediate remediation steps for each cause 3. A recommended escalation action if not resolved within 15 minutes Keep the response concise and actionable. Plain text only, no markdown.",
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": {
+                          "type": "Text",
+                          "data": "=string.concat(\"Affected System: \", $activity[ElicitIncidentDetails].content.affected_system, \"\\n\", \"Environment: \", $activity[ElicitIncidentDetails].content.environment, \"\\n\", \"Severity: \", $activity[ElicitIncidentDetails].content.severity, \"\\n\", \"Error Message: \", $activity[ElicitIncidentDetails].content.error_message, \"\\n\", \"Incident Start: \", $activity[ElicitIncidentDetails].content.started_at, \"\\n\", \"Already Tried: \", $activity[ElicitIncidentDetails].content.already_tried)"
+                        }
+                      }
+                    ],
+                    "maxTokens": 1000,
+                    "modelPreferences": {
+                      "hints": [
+                        {
+                          "name": "gpt-5.2"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "samplingMessageRequest": {
+                    "type": "json",
+                    "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"maxTokens\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"properties\": {\r\n          \"role\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"content\": {\r\n            \"type\": \"object\",\r\n            \"properties\": {\r\n              \"type\": {\r\n                \"type\": \"string\",\r\n                \"enum\": [\r\n                  \"Text\",\r\n                  \"Image\"\r\n                ]\r\n              },\r\n              \"data\": {\r\n                \"type\": \"string\"\r\n              },\r\n              \"mimeType\": {\r\n                \"type\": \"string\"\r\n              }\r\n            },\r\n            \"required\": [\r\n              \"type\",\r\n              \"data\"\r\n            ]\r\n          }\r\n        }\r\n      }\r\n    },\r\n    \"modelPreferences\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"hints\": {\r\n          \"type\": \"array\",\r\n          \"items\": {\r\n            \"type\": \"object\",\r\n            \"properties\": {\r\n              \"name\": {\r\n                \"type\": \"string\"\r\n              }\r\n            }\r\n          }\r\n        },\r\n        \"costPriority\": {\r\n          \"type\": \"number\"\r\n        },\r\n        \"intelligencePriority\": {\r\n          \"type\": \"number\"\r\n        },\r\n        \"speedPriority\": {\r\n          \"type\": \"number\"\r\n        }\r\n      }\r\n    },\r\n    \"systemPrompt\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"temperature\": {\r\n      \"type\": \"number\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"messages\"\r\n  ]\r\n}",
+                    "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"maxTokens\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"properties\": {\r\n          \"role\": {\r\n            \"type\": \"string\"\r\n          },\r\n          \"content\": {\r\n            \"type\": \"object\",\r\n            \"properties\": {\r\n              \"type\": {\r\n                \"type\": \"string\",\r\n                \"enum\": [\r\n                  \"Text\",\r\n                  \"Image\"\r\n                ]\r\n              },\r\n              \"data\": {\r\n                \"type\": \"string\"\r\n              },\r\n              \"mimeType\": {\r\n                \"type\": \"string\"\r\n              }\r\n            },\r\n            \"required\": [\r\n              \"type\",\r\n              \"data\"\r\n            ]\r\n          }\r\n        }\r\n      }\r\n    },\r\n    \"modelPreferences\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"hints\": {\r\n          \"type\": \"array\",\r\n          \"items\": {\r\n            \"type\": \"object\",\r\n            \"properties\": {\r\n              \"name\": {\r\n                \"type\": \"string\"\r\n              }\r\n            }\r\n          }\r\n        },\r\n        \"costPriority\": {\r\n          \"type\": \"number\"\r\n        },\r\n        \"intelligencePriority\": {\r\n          \"type\": \"number\"\r\n        },\r\n        \"speedPriority\": {\r\n          \"type\": \"number\"\r\n        }\r\n      }\r\n    },\r\n    \"systemPrompt\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"temperature\": {\r\n      \"type\": \"number\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"messages\"\r\n  ]\r\n}"
+                  }
+                },
+                "output": {
+                  "samplingMessageResponse": {
+                    "type": "json",
+                    "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"role\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"content\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"type\": {\r\n          \"type\": \"string\",\r\n          \"enum\": [\"Text\", \"Image\"]\r\n        },\r\n        \"data\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"mimeType\": {\r\n          \"type\": \"string\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"type\",\r\n        \"data\"\r\n      ]\r\n    },\r\n    \"model\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"stopReason\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"role\",\r\n    \"content\",\r\n    \"model\"\r\n  ]\r\n}",
+                    "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"role\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"content\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"type\": {\r\n          \"type\": \"string\",\r\n          \"enum\": [\"Text\", \"Image\"]\r\n        },\r\n        \"data\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"mimeType\": {\r\n          \"type\": \"string\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"type\",\r\n        \"data\"\r\n      ]\r\n    },\r\n    \"model\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"stopReason\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"role\",\r\n    \"content\",\r\n    \"model\"\r\n  ]\r\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogAnalysisComplete",
+            "name": "LogAnalysisComplete",
+            "description": "Allows MCP server to send structured log messages to MCP client from Flogo workflow",
+            "activity": {
+              "ref": "#sendlogmessage",
+              "input": {
+                "loggingMessageParams": {
+                  "mapping": {
+                    "data": "=string.concat(\"LLM root-cause analysis complete for \", $activity[ElicitIncidentDetails].content.affected_system, \". Analysis: \",coerce.toString($activity[SampleRootCause].samplingMessageResponse.content))",
+                    "level": "info",
+                    "logger": "FLOGO-LOGANALYSIS-COMPLETE"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "loggingMessageParams": {
+                    "type": "json",
+                    "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"level\": {\r\n      \"type\": \"string\",\r\n      \"enum\": [\"alert\",\"critical\",\"debug\",\"emergency\",\"error\",\"info\",\"notice\",\"warning\"]\r\n    },\r\n    \"logger\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\r\n    \"level\"\r\n  ]\r\n}",
+                    "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"level\": {\r\n      \"type\": \"string\",\r\n      \"enum\": [\"alert\",\"critical\",\"debug\",\"emergency\",\"error\",\"info\",\"notice\",\"warning\"]\r\n    },\r\n    \"logger\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\r\n    \"level\"\r\n  ]\r\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat(\"=== INCIDENT TRIAGE REPORT ===\\n\", \"Reporter:  \", $activity[ElicitIncidentDetails].content.reported_by, \"\\n\", \"System:    \", $activity[ElicitIncidentDetails].content.affected_system, \"\\n\", \"Severity:  \", $activity[ElicitIncidentDetails].content.severity, \"\\n\", \"Environment: \", $activity[ElicitIncidentDetails].content.environment, \"\\n\", \"Error:     \", $activity[ElicitIncidentDetails].content.error_message, \"\\n\\n\", \"--- AI Root-Cause Analysis ---\\n\", $activity[SampleRootCause].samplingMessageResponse.content.data, \"\\n\\n\", \"--- Next Step ---\\n\", \"Please acknowledge this incident and follow the remediation steps above.\")"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEzLCJ5IjoxMDR9LCJFbGljaXRJbmNpZGVudERldGFpbHMiOnsieCI6MTA4LCJ5Ijo5MX0sIkxvZ0ludGFrZUNvbXBsZXRlIjp7IngiOjI3MSwieSI6ODl9LCJTYW1wbGVSb290Q2F1c2UiOnsieCI6NDU3LCJ5Ijo5MH0sIkxvZ0FuYWx5c2lzQ29tcGxldGUiOnsieCI6MTExLCJ5IjoxOTV9LCJSZXR1cm4iOnsieCI6MzMzLCJ5IjoxOTd9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPShowcaseServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9092"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMSIsInRhZyI6IjEuMC4xLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9092",
+        "title": "MCPShowcaseServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.1"
+  }
+}

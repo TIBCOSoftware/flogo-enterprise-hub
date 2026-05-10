@@ -1,0 +1,651 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-general/src/app/General/connector/authorization"
+  ],
+  "name": "MFT_MCP_Server",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Flogo MCP server for Agentic AI",
+      "settings": {
+        "serverName": "MFT-MCP-Server",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"MCPServer_Port\"]"
+      },
+      "id": "MCPServer",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "handlerType": "Tool",
+            "handlerName": "MFT-Server-Transfers",
+            "handlerDescription": "",
+            "resourceUri": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Transfers"
+            },
+            "output": {
+              "toolResult": {
+                "mapping": {
+                  "data": "=$.toolResult.data",
+                  "error": "=$.toolResult.error",
+                  "success": "=$.toolResult.success"
+                }
+              }
+            }
+          },
+          "schemas": {
+            "reply": {
+              "toolResult": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  }\r\n}"
+              },
+              "promptResult": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "resourceResult": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"success\": {\r\n            \"type\": \"boolean\"\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"success\": {\r\n            \"type\": \"boolean\"\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+              }
+            }
+          },
+          "name": "Transfers"
+        },
+        {
+          "description": "",
+          "settings": {
+            "handlerType": "Tool",
+            "handlerName": "MFT-Server-Users",
+            "handlerDescription": "",
+            "resourceUri": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Users"
+            },
+            "output": {
+              "toolResult": "=$.toolResult"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "toolResult": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  }\r\n}"
+              },
+              "promptResult": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "resourceResult": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"success\": {\r\n            \"type\": \"boolean\"\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"success\": {\r\n            \"type\": \"boolean\"\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+              }
+            }
+          },
+          "name": "Users"
+        },
+        {
+          "description": "Internet Server Audit Collection",
+          "settings": {
+            "handlerType": "Tool",
+            "handlerName": "MFT-Server-Audits",
+            "handlerDescription": "This tool collects internet server audit data. As an input the number of days is expected. This defines the number of days backward to collect the audit records.",
+            "resourceUri": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Audits"
+            },
+            "input": {
+              "noOfDays": "=$.arguments.noOfDays"
+            },
+            "output": {
+              "toolResult": "=$.toolResult"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "toolResult": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  }\r\n}"
+              },
+              "promptResult": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "resourceResult": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"success\": {\r\n            \"type\": \"boolean\"\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"success\": {\r\n            \"type\": \"boolean\"\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"noOfDays\": {\n            \"type\": \"string\"\n        }\n    }\n}",
+                "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"noOfDays\": {\n            \"type\": \"string\"\n        }\n    }\n}"
+              }
+            }
+          },
+          "name": "Audits"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:Transfers",
+      "data": {
+        "name": "Transfers",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Invoke_MFT_Transfers",
+            "type": "label",
+            "label": "StartActivity to Invoke_MFT_Transfers"
+          },
+          {
+            "id": 2,
+            "from": "Invoke_MFT_Transfers",
+            "to": "Return",
+            "type": "label",
+            "label": "Invoke_MFT_Transfers to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Invoke_MFT_Transfers",
+            "name": "Invoke_MFT_Transfers",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": true,
+                "authorizationConn": "conn://77abb1b2-98d0-450d-9c5b-af670814d6dc",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "https://localhost:7443/cfcc/rest/ft/v5/ftuser/transfers",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": {
+                  "filename": "localhost.pem",
+                  "content": "data:application/octet-stream;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tDQpNSUlDeVRDQ0FiR2dBd0lCQWdJRVIvMkZEVEFOQmdrcWhraUc5dzBCQVFzRkFEQVVNUkl3RUFZRFZRUURFd2xzDQpiMk5oYkdodmMzUXdJQmNOTWpJd01qRTFNakEwTkRJMldoZ1BNakEzTWpBeU1ETXlNRFEwTWpaYU1CUXhFakFRDQpCZ05WQkFNVENXeHZZMkZzYUc5emREQ0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCDQpBT2dTbTNiMW0xdlpzWFU1SmdRS1dZTFk0QlNDcGRndDBrUlU1bHIrQVI0UndnRmZNU1hENVpEZi9Vam1yMDJ4DQoxZ2EzY0txRmdMcVVKOEEvMVBJR253WWtvSkJUUVk3M0V3eXZmR2pTZ0M2YjZCOFJFOC91WTZXVUN2NTdWc0l6DQpFcU9UeVlvMnFRQ1I0Wmh1ZDhKdGRLSW1VQ3hUSkk3SkZGUTh4VUpheSs1SVFMeWVCSUVXcUVMbldtS2hQemdtDQpmRVA5NWU3eDhtL3ZCQU9EK0dJSGpxTDlRQkFnV2dYb0cyNlpDTVIyU1dBa2tZZ2hSY1Rkc1FqYXBZYVljRU90DQpqSnNMSkJsSGZhMGxVM3hwT29HOGlhczBqc0JwTkVaM1N6Q0tvaWo4RzZpWHl3dnlsaHZZZkRBaGJjYTN5eGJRDQpsK0QwUktITTc4eHBZcVJ2T3prRkFoVUNBd0VBQWFNaE1COHdIUVlEVlIwT0JCWUVGSDE4YXNnNUFuZzRDK2w1DQp1S2l0bW1xaHVWZU1NQTBHQ1NxR1NJYjNEUUVCQ3dVQUE0SUJBUUF5TlVWUXJNN3RELzYwbEovclprZ3pMWkpJDQp1LytycG95Z0VOcVI0TjNxOWlDTWFOL3F1L2g0MkZpNW5GL3k1dWJiKzBoaVpYL2c0SkdHRnFqbVdpWCtyUXBxDQpZTk12SHV3WEtkcFhsMTliRzJNdDhvU0lSb1RMRWl2ZzJ2RmNvM2s2aVRVR2lqTU1tdGFlamQwSmpqU3lMSHUvDQo1OTJ4STVZNzVCYVYvZXFlL3JhU3pYODJzVTh2Wk00UExDMWQxcVRqS1c4Um92L0xXTitSc1J0OEVrN3k5eGVlDQpVbHZtNWRLRnEzRlV1OS9mRUFSTGxBbmk3R1NjZ2JCa0MyaHViUmwvdUtnVFBkdmVGcWZzUlZxeE5weFBpV1hsDQpZNkswYkh2QjRuVWNzWHJacCtoOVNBYVIxYTJITDkxUEgwdExHelBwdG5jdVVJSHVkcWhVdkl4ajhsNEoNCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0NCg=="
+                },
+                "disableSSLVerification": true,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://GetTransferResponse",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "toolResult": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[Invoke_MFT_Transfers].responseBody)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjY3LCJ5IjoxMDF9LCJJbnZva2VfTUZUX1RyYW5zZmVycyI6eyJ4IjoxNzIsInkiOjkwfSwiUmV0dXJuIjp7IngiOjM4NSwieSI6ODl9fQ==",
+        "metadata": {
+          "input": [],
+          "output": [
+            {
+              "name": "toolResult",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"},\"success\":{\"type\":\"boolean\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"toolResult\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"},\"success\":{\"type\":\"boolean\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Users",
+      "data": {
+        "name": "Users",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Invoke_MFT_Users",
+            "type": "label",
+            "label": "StartActivity to InvokeRESTService"
+          },
+          {
+            "id": 2,
+            "from": "Invoke_MFT_Users",
+            "to": "Return",
+            "type": "label",
+            "label": "InvokeRESTService to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Invoke_MFT_Users",
+            "name": "Invoke_MFT_Users",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": true,
+                "authorizationConn": "conn://77abb1b2-98d0-450d-9c5b-af670814d6dc",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "https://localhost:8443/cfcc/rest/admin/v5/users",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": true,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": "schema://getUserResponse",
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "toolResult": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[Invoke_MFT_Users].responseBody)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiSW52b2tlX01GVF9Vc2VycyI6eyJ4IjoyMzAsInkiOjkwfSwiUmV0dXJuIjp7IngiOjQ0MywieSI6OTB9fQ==",
+        "metadata": {
+          "input": [],
+          "output": [
+            {
+              "name": "toolResult",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"},\"success\":{\"type\":\"boolean\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"toolResult\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"},\"success\":{\"type\":\"boolean\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Audits",
+      "data": {
+        "name": "Audits",
+        "description": "Internet Server Audit Collection",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Call_MFT_ISAudits",
+            "type": "label",
+            "label": "StartActivity to Call_MFT_ISAudits"
+          },
+          {
+            "id": 2,
+            "from": "Call_MFT_ISAudits",
+            "to": "Return",
+            "type": "label",
+            "label": "Call_MFT_ISAudits to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Call_MFT_ISAudits",
+            "name": "Call_MFT_ISAudits",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": true,
+                "authorizationConn": "conn://77abb1b2-98d0-450d-9c5b-af670814d6dc",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "https://localhost:8443/cfcc/rest/admin/v5/isaudits",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": true,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "queryParams": {
+                  "mapping": {
+                    "noOfDays": "=$flow.noOfDays"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "queryParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"noOfDays\":{\"type\":\"string\"}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"noOfDays\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"auditId\":{\"type\":\"string\"},\"transferStatus\":{\"type\":\"string\"},\"transferStartTime\":{\"type\":\"string\"},\"transferEndTime\":{\"type\":\"string\"},\"localTransactionId\":{\"type\":\"string\"},\"clientFileName_localFileName\":{\"type\":\"string\"},\"serverFileName_remoteFileName\":{\"type\":\"string\"},\"transferUserId\":{\"type\":\"string\"},\"serverName\":{\"type\":\"string\"},\"proxyStatusMessage\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"transferByteCount\":{\"type\":\"string\"},\"uploadDownloadFlag_sendReceiveFlag\":{\"type\":\"string\"}}}}",
+                    "fe_metadata": "[{\r\n   \"auditId\": \"AA20P0000405\",\r\n   \"transferStatus\": \"SUCCESS\",\r\n   \"transferStartTime\": \"2025-10-20T11:30:52\",\r\n   \"transferEndTime\": \"2025-10-20T11:30:52\",\r\n   \"localTransactionId\": \"IA205000SK\",\r\n   \"clientFileName_localFileName\": \"TIB_ems_10.4.0_HF-003_readme.txt\",\r\n   \"serverFileName_remoteFileName\": \"/persist/tibco/InOut/TIB_ems_10.4.0_HF-003_readme.txt\",\r\n   \"transferUserId\": \"michel.leijdekker\",\r\n   \"serverName\": \"*LOCAL\",\r\n   \"proxyStatusMessage\": \"Transfer completed\",\r\n   \"description\": \"Upload and Download to *LOCAL\",\r\n   \"transferByteCount\": \"14545\",\r\n   \"uploadDownloadFlag_sendReceiveFlag\": \"S\"\r\n}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "toolResult": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[Call_MFT_ISAudits].responseBody)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiQ2FsbF9NRlRfSVNBdWRpdHMiOnsieCI6MjM4LCJ5Ijo5Nn0sIlJldHVybiI6eyJ4Ijo0OTcsInkiOjk1fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "noOfDays",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "toolResult",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"},\"success\":{\"type\":\"boolean\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\n    \"noOfDays\":\"10\"\n}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"toolResult\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"},\"success\":{\"type\":\"boolean\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "General.MFT_Internet.User_Name",
+      "type": "string",
+      "value": "michel.leijdekker"
+    },
+    {
+      "name": "General.MFT_Internet.Password",
+      "type": "string",
+      "value": "SECRET:j1FmmVqE7ye6bLgtJcuN9IvzQxSlE84+gaB0Xg=="
+    },
+    {
+      "name": "MCPServer_Port",
+      "type": "string",
+      "value": "9098"
+    }
+  ],
+  "schemas": {
+    "GetTransferResponse": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"array\",\n    \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"transferId\": {\n                \"type\": \"string\"\n            },\n            \"clientFileName\": {\n                \"type\": \"string\"\n            },\n            \"transferDirection\": {\n                \"type\": \"string\"\n            },\n            \"directoryTransfer\": {\n                \"type\": \"string\"\n            },\n            \"dirFileList\": {\n                \"type\": \"array\",\n                \"items\": {\n                    \"type\": \"object\",\n                    \"properties\": {\n                        \"elementType\": {\n                            \"type\": \"string\"\n                        },\n                        \"elementName\": {\n                            \"type\": \"string\"\n                        }\n                    }\n                }\n            },\n            \"description\": {\n                \"type\": \"string\"\n            },\n            \"availableDate\": {\n                \"type\": \"string\"\n            },\n            \"validDays\": {\n                \"type\": \"string\"\n            },\n            \"validStartTime\": {\n                \"type\": \"string\"\n            },\n            \"validEndTime\": {\n                \"type\": \"string\"\n            },\n            \"sshKeyOrCertificate\": {\n                \"type\": \"string\"\n            },\n            \"sshSystemKey\": {\n                \"type\": \"string\"\n            },\n            \"enableClientCompression\": {\n                \"type\": \"string\"\n            },\n            \"truncateFlag\": {\n                \"type\": \"string\"\n            },\n            \"checkpointRestart\": {\n                \"type\": \"string\"\n            },\n            \"checkpointInterval\": {\n                \"type\": \"string\"\n            },\n            \"virtualAlias\": {\n                \"type\": \"string\"\n            },\n            \"clientProtocolsAllowed\": {\n                \"type\": \"string\"\n            },\n            \"pgpPrivateKey\": {\n                \"type\": \"string\"\n            },\n            \"pgpEncrypt\": {\n                \"type\": \"string\"\n            },\n            \"pgpSign\": {\n                \"type\": \"string\"\n            },\n            \"pgpASCIIArmor\": {\n                \"type\": \"string\"\n            },\n            \"pgpEncryptionAlgorithm\": {\n                \"type\": \"string\"\n            },\n            \"pgpHashingAlgorithm\": {\n                \"type\": \"string\"\n            },\n            \"pgpCompressAlgorithm\": {\n                \"type\": \"string\"\n            },\n            \"pgpDecrypt\": {\n                \"type\": \"string\"\n            },\n            \"pgpVerifySignature\": {\n                \"type\": \"string\"\n            },\n            \"pgpVerifyUserSignature\": {\n                \"type\": \"string\"\n            },\n            \"allowDelete\": {\n                \"type\": \"string\"\n            },\n            \"allowRename\": {\n                \"type\": \"string\"\n            },\n            \"allowCreateDirectory\": {\n                \"type\": \"string\"\n            },\n            \"allowRemoveDirectory\": {\n                \"type\": \"string\"\n            },\n            \"allowClientTransferMode\": {\n                \"type\": \"string\"\n            },\n            \"credentialPassthrough\": {\n                \"type\": \"string\"\n            },\n            \"viewFilesOrDirectories\": {\n                \"type\": \"string\"\n            },\n            \"allowFTPSiteCmdPassThrough\": {\n                \"type\": \"string\"\n            },\n            \"jmsMaxMessageSize\": {\n                \"type\": \"string\"\n            },\n            \"jmsWriteEOFMessage\": {\n                \"type\": \"string\"\n            },\n            \"uploadRules\": {\n                \"type\": \"string\"\n            },\n            \"downloadRules\": {\n                \"type\": \"string\"\n            },\n            \"httpTransferType\": {\n                \"type\": \"string\"\n            },\n            \"emailUseClientAddr\": {\n                \"type\": \"string\"\n            },\n            \"mailboxUseClientAddr\": {\n                \"type\": \"string\"\n            },\n            \"mailboxExpireOnDownload\": {\n                \"type\": \"string\"\n            },\n            \"avScanDirection\": {\n                \"type\": \"string\"\n            },\n            \"avMode\": {\n                \"type\": \"string\"\n            },\n            \"restrictIPFlag\": {\n                \"type\": \"string\"\n            },\n            \"OFTP2RecordFormat\": {\n                \"type\": \"string\"\n            },\n            \"dlpScanDirection\": {\n                \"type\": \"string\"\n            },\n            \"dlpMode\": {\n                \"type\": \"string\"\n            },\n            \"dlpFileRegex\": {\n                \"type\": \"string\"\n            },\n            \"computeHash\": {\n                \"type\": \"string\"\n            },\n            \"uploadTmpNameFlag\": {\n                \"type\": \"string\"\n            }\n        },\n        \"required\": [\n            \"transferId\",\n            \"clientFileName\",\n            \"transferDirection\",\n            \"directoryTransfer\",\n            \"description\",\n            \"availableDate\",\n            \"validDays\",\n            \"validStartTime\",\n            \"validEndTime\",\n            \"sshKeyOrCertificate\",\n            \"sshSystemKey\",\n            \"enableClientCompression\",\n            \"truncateFlag\",\n            \"checkpointRestart\",\n            \"checkpointInterval\",\n            \"virtualAlias\",\n            \"clientProtocolsAllowed\",\n            \"pgpPrivateKey\",\n            \"pgpEncrypt\",\n            \"pgpSign\",\n            \"pgpASCIIArmor\",\n            \"pgpEncryptionAlgorithm\",\n            \"pgpHashingAlgorithm\",\n            \"pgpCompressAlgorithm\",\n            \"pgpDecrypt\",\n            \"pgpVerifySignature\",\n            \"pgpVerifyUserSignature\",\n            \"allowDelete\",\n            \"allowRename\",\n            \"allowCreateDirectory\",\n            \"allowRemoveDirectory\",\n            \"allowClientTransferMode\",\n            \"credentialPassthrough\",\n            \"viewFilesOrDirectories\",\n            \"allowFTPSiteCmdPassThrough\",\n            \"jmsMaxMessageSize\",\n            \"jmsWriteEOFMessage\",\n            \"uploadRules\",\n            \"downloadRules\",\n            \"httpTransferType\",\n            \"emailUseClientAddr\",\n            \"mailboxUseClientAddr\",\n            \"mailboxExpireOnDownload\",\n            \"avScanDirection\",\n            \"avMode\",\n            \"restrictIPFlag\",\n            \"OFTP2RecordFormat\",\n            \"dlpScanDirection\",\n            \"dlpMode\",\n            \"dlpFileRegex\",\n            \"computeHash\",\n            \"uploadTmpNameFlag\"\n        ]\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"array\",\n    \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"transferId\": {\n                \"type\": \"string\"\n            },\n            \"clientFileName\": {\n                \"type\": \"string\"\n            },\n            \"transferDirection\": {\n                \"type\": \"string\"\n            },\n            \"directoryTransfer\": {\n                \"type\": \"string\"\n            },\n            \"dirFileList\": {\n                \"type\": \"array\",\n                \"items\": {\n                    \"type\": \"object\",\n                    \"properties\": {\n                        \"elementType\": {\n                            \"type\": \"string\"\n                        },\n                        \"elementName\": {\n                            \"type\": \"string\"\n                        }\n                    }\n                }\n            },\n            \"description\": {\n                \"type\": \"string\"\n            },\n            \"availableDate\": {\n                \"type\": \"string\"\n            },\n            \"validDays\": {\n                \"type\": \"string\"\n            },\n            \"validStartTime\": {\n                \"type\": \"string\"\n            },\n            \"validEndTime\": {\n                \"type\": \"string\"\n            },\n            \"sshKeyOrCertificate\": {\n                \"type\": \"string\"\n            },\n            \"sshSystemKey\": {\n                \"type\": \"string\"\n            },\n            \"enableClientCompression\": {\n                \"type\": \"string\"\n            },\n            \"truncateFlag\": {\n                \"type\": \"string\"\n            },\n            \"checkpointRestart\": {\n                \"type\": \"string\"\n            },\n            \"checkpointInterval\": {\n                \"type\": \"string\"\n            },\n            \"virtualAlias\": {\n                \"type\": \"string\"\n            },\n            \"clientProtocolsAllowed\": {\n                \"type\": \"string\"\n            },\n            \"pgpPrivateKey\": {\n                \"type\": \"string\"\n            },\n            \"pgpEncrypt\": {\n                \"type\": \"string\"\n            },\n            \"pgpSign\": {\n                \"type\": \"string\"\n            },\n            \"pgpASCIIArmor\": {\n                \"type\": \"string\"\n            },\n            \"pgpEncryptionAlgorithm\": {\n                \"type\": \"string\"\n            },\n            \"pgpHashingAlgorithm\": {\n                \"type\": \"string\"\n            },\n            \"pgpCompressAlgorithm\": {\n                \"type\": \"string\"\n            },\n            \"pgpDecrypt\": {\n                \"type\": \"string\"\n            },\n            \"pgpVerifySignature\": {\n                \"type\": \"string\"\n            },\n            \"pgpVerifyUserSignature\": {\n                \"type\": \"string\"\n            },\n            \"allowDelete\": {\n                \"type\": \"string\"\n            },\n            \"allowRename\": {\n                \"type\": \"string\"\n            },\n            \"allowCreateDirectory\": {\n                \"type\": \"string\"\n            },\n            \"allowRemoveDirectory\": {\n                \"type\": \"string\"\n            },\n            \"allowClientTransferMode\": {\n                \"type\": \"string\"\n            },\n            \"credentialPassthrough\": {\n                \"type\": \"string\"\n            },\n            \"viewFilesOrDirectories\": {\n                \"type\": \"string\"\n            },\n            \"allowFTPSiteCmdPassThrough\": {\n                \"type\": \"string\"\n            },\n            \"jmsMaxMessageSize\": {\n                \"type\": \"string\"\n            },\n            \"jmsWriteEOFMessage\": {\n                \"type\": \"string\"\n            },\n            \"uploadRules\": {\n                \"type\": \"string\"\n            },\n            \"downloadRules\": {\n                \"type\": \"string\"\n            },\n            \"httpTransferType\": {\n                \"type\": \"string\"\n            },\n            \"emailUseClientAddr\": {\n                \"type\": \"string\"\n            },\n            \"mailboxUseClientAddr\": {\n                \"type\": \"string\"\n            },\n            \"mailboxExpireOnDownload\": {\n                \"type\": \"string\"\n            },\n            \"avScanDirection\": {\n                \"type\": \"string\"\n            },\n            \"avMode\": {\n                \"type\": \"string\"\n            },\n            \"restrictIPFlag\": {\n                \"type\": \"string\"\n            },\n            \"OFTP2RecordFormat\": {\n                \"type\": \"string\"\n            },\n            \"dlpScanDirection\": {\n                \"type\": \"string\"\n            },\n            \"dlpMode\": {\n                \"type\": \"string\"\n            },\n            \"dlpFileRegex\": {\n                \"type\": \"string\"\n            },\n            \"computeHash\": {\n                \"type\": \"string\"\n            },\n            \"uploadTmpNameFlag\": {\n                \"type\": \"string\"\n            }\n        },\n        \"required\": [\n            \"transferId\",\n            \"clientFileName\",\n            \"transferDirection\",\n            \"directoryTransfer\",\n            \"description\",\n            \"availableDate\",\n            \"validDays\",\n            \"validStartTime\",\n            \"validEndTime\",\n            \"sshKeyOrCertificate\",\n            \"sshSystemKey\",\n            \"enableClientCompression\",\n            \"truncateFlag\",\n            \"checkpointRestart\",\n            \"checkpointInterval\",\n            \"virtualAlias\",\n            \"clientProtocolsAllowed\",\n            \"pgpPrivateKey\",\n            \"pgpEncrypt\",\n            \"pgpSign\",\n            \"pgpASCIIArmor\",\n            \"pgpEncryptionAlgorithm\",\n            \"pgpHashingAlgorithm\",\n            \"pgpCompressAlgorithm\",\n            \"pgpDecrypt\",\n            \"pgpVerifySignature\",\n            \"pgpVerifyUserSignature\",\n            \"allowDelete\",\n            \"allowRename\",\n            \"allowCreateDirectory\",\n            \"allowRemoveDirectory\",\n            \"allowClientTransferMode\",\n            \"credentialPassthrough\",\n            \"viewFilesOrDirectories\",\n            \"allowFTPSiteCmdPassThrough\",\n            \"jmsMaxMessageSize\",\n            \"jmsWriteEOFMessage\",\n            \"uploadRules\",\n            \"downloadRules\",\n            \"httpTransferType\",\n            \"emailUseClientAddr\",\n            \"mailboxUseClientAddr\",\n            \"mailboxExpireOnDownload\",\n            \"avScanDirection\",\n            \"avMode\",\n            \"restrictIPFlag\",\n            \"OFTP2RecordFormat\",\n            \"dlpScanDirection\",\n            \"dlpMode\",\n            \"dlpFileRegex\",\n            \"computeHash\",\n            \"uploadTmpNameFlag\"\n        ]\n    }\n}"
+    },
+    "getUserResponse": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"array\",\n    \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"userId\": {\n                \"type\": \"string\"\n            },\n            \"fullName\": {\n                \"type\": \"string\"\n            },\n            \"userType\": {\n                \"type\": \"string\"\n            },\n            \"expirationDate\": {\n                \"type\": \"string\"\n            },\n            \"lockUser\": {\n                \"type\": \"string\"\n            },\n            \"dateCreated\": {\n                \"type\": \"string\"\n            },\n            \"createdBy\": {\n                \"type\": \"string\"\n            },\n            \"validDays\": {\n                \"type\": \"string\"\n            },\n            \"validStartTime\": {\n                \"type\": \"string\"\n            },\n            \"validEndTime\": {\n                \"type\": \"string\"\n            },\n            \"dateLastAccess\": {\n                \"type\": \"string\"\n            },\n            \"disableUser\": {\n                \"type\": \"string\"\n            },\n            \"emailAddress\": {\n                \"type\": \"string\"\n            },\n            \"visibility\": {\n                \"type\": \"string\"\n            },\n            \"canChangeOwnPasswordFlag\": {\n                \"type\": \"string\"\n            },\n            \"changePasswordAtNextLoginFlag\": {\n                \"type\": \"string\"\n            },\n            \"HistoricIPs\": {\n                \"type\": \"string\"\n            },\n            \"clientProtocolsAllowed\": {\n                \"type\": \"string\"\n            },\n            \"pwdLastChangeDate\": {\n                \"type\": \"string\"\n            },\n            \"passwordNeverExpiresFlag\": {\n                \"type\": \"string\"\n            },\n            \"pgpAllowUserAddKey\": {\n                \"type\": \"string\"\n            },\n            \"restrictUser\": {\n                \"type\": \"string\"\n            },\n            \"ftpClientAuthMethod\": {\n                \"type\": \"string\"\n            },\n            \"sshClientAuthMethod\": {\n                \"type\": \"string\"\n            },\n            \"httpsClientAuthMethod\": {\n                \"type\": \"string\"\n            },\n            \"psClientAuthMethod\": {\n                \"type\": \"string\"\n            }\n        },\n        \"required\": [\n            \"userId\",\n            \"fullName\",\n            \"userType\",\n            \"expirationDate\",\n            \"lockUser\",\n            \"dateCreated\",\n            \"createdBy\",\n            \"validDays\",\n            \"validStartTime\",\n            \"validEndTime\",\n            \"disableUser\",\n            \"visibility\",\n            \"canChangeOwnPasswordFlag\",\n            \"changePasswordAtNextLoginFlag\",\n            \"dateLastAccess\",\n            \"emailAddress\",\n            \"HistoricIPs\"\n        ]\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"array\",\n    \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"userId\": {\n                \"type\": \"string\"\n            },\n            \"fullName\": {\n                \"type\": \"string\"\n            },\n            \"userType\": {\n                \"type\": \"string\"\n            },\n            \"expirationDate\": {\n                \"type\": \"string\"\n            },\n            \"lockUser\": {\n                \"type\": \"string\"\n            },\n            \"dateCreated\": {\n                \"type\": \"string\"\n            },\n            \"createdBy\": {\n                \"type\": \"string\"\n            },\n            \"validDays\": {\n                \"type\": \"string\"\n            },\n            \"validStartTime\": {\n                \"type\": \"string\"\n            },\n            \"validEndTime\": {\n                \"type\": \"string\"\n            },\n            \"dateLastAccess\": {\n                \"type\": \"string\"\n            },\n            \"disableUser\": {\n                \"type\": \"string\"\n            },\n            \"emailAddress\": {\n                \"type\": \"string\"\n            },\n            \"visibility\": {\n                \"type\": \"string\"\n            },\n            \"canChangeOwnPasswordFlag\": {\n                \"type\": \"string\"\n            },\n            \"changePasswordAtNextLoginFlag\": {\n                \"type\": \"string\"\n            },\n            \"HistoricIPs\": {\n                \"type\": \"string\"\n            },\n            \"clientProtocolsAllowed\": {\n                \"type\": \"string\"\n            },\n            \"pwdLastChangeDate\": {\n                \"type\": \"string\"\n            },\n            \"passwordNeverExpiresFlag\": {\n                \"type\": \"string\"\n            },\n            \"pgpAllowUserAddKey\": {\n                \"type\": \"string\"\n            },\n            \"restrictUser\": {\n                \"type\": \"string\"\n            },\n            \"ftpClientAuthMethod\": {\n                \"type\": \"string\"\n            },\n            \"sshClientAuthMethod\": {\n                \"type\": \"string\"\n            },\n            \"httpsClientAuthMethod\": {\n                \"type\": \"string\"\n            },\n            \"psClientAuthMethod\": {\n                \"type\": \"string\"\n            }\n        },\n        \"required\": [\n            \"userId\",\n            \"fullName\",\n            \"userType\",\n            \"expirationDate\",\n            \"lockUser\",\n            \"dateCreated\",\n            \"createdBy\",\n            \"validDays\",\n            \"validStartTime\",\n            \"validEndTime\",\n            \"disableUser\",\n            \"visibility\",\n            \"canChangeOwnPasswordFlag\",\n            \"changePasswordAtNextLoginFlag\",\n            \"dateLastAccess\",\n            \"emailAddress\",\n            \"HistoricIPs\"\n        ]\n    }\n}"
+    }
+  },
+  "connections": {
+    "77abb1b2-98d0-450d-9c5b-af670814d6dc": {
+      "id": "77abb1b2-98d0-450d-9c5b-af670814d6dc",
+      "name": "MFT_Internet",
+      "ref": "#authorization",
+      "isGlobal": false,
+      "settings": {
+        "name": "MFT_Internet",
+        "description": "",
+        "type": "Basic",
+        "userName": "=$property[\"General.MFT_Internet.User_Name\"]",
+        "password": "=$property[\"General.MFT_Internet.Password\"]",
+        "token": "",
+        "grantType": "Authorization Code",
+        "callbackURL": "https://localdev-integration.cloud.tibco.com/wistudio/connectiondetails",
+        "authURL": "",
+        "authQueryParameters": "",
+        "accessTokenURL": "",
+        "clientId": "",
+        "clientSecret": "",
+        "scope": "",
+        "audience": "",
+        "clientAuthentication": "Body",
+        "method": "GET",
+        "WI_STUDIO_OAUTH_CONNECTOR_INFO": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIwLjkuMCIsInRhZyI6IjAuOS4wLWIxNSIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIERldmVsb3BlciBQcmV2aWV3IiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuOSIsInRhZyI6IjEuNi45LWIwNCIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9098",
+        "title": "MCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.25.9"
+  }
+}

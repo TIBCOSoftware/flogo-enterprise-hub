@@ -1,0 +1,557 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "ProductCatalogMCPServer",
+  "description": "Stateless MCP server for a product catalog. No session ID; each request is self-contained.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Stateless MCP server — no session management, each tool call is independent.",
+      "settings": {
+        "serverName": "ProductCatalogMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": true,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "ProductCatalogMCPServer",
+      "handlers": [
+        {
+          "description": "Read-only product catalog search. Stateless — no session context needed.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "search_products",
+            "handlerDescription": "Searches the product catalog by keyword, category, or price range. Returns a list of matching products with key attributes. Safe read-only lookup — no state is modified.",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:search_products_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"query\": {\n      \"type\": \"string\",\n      \"description\": \"Keyword to search for (e.g. 'laptop', 'wireless headphones')\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"description\": \"Optional product category filter (e.g. Electronics, Furniture, Sports)\"\n    },\n    \"max_price\": {\n      \"type\": \"number\",\n      \"description\": \"Optional maximum price in USD\"\n    },\n    \"in_stock_only\": {\n      \"type\": \"boolean\",\n      \"description\": \"If true, only return products currently in stock. Default false.\"\n    }\n  },\n  \"required\": [\"query\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"query\": {\n      \"type\": \"string\",\n      \"description\": \"Keyword to search for (e.g. 'laptop', 'wireless headphones')\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"description\": \"Optional product category filter (e.g. Electronics, Furniture, Sports)\"\n    },\n    \"max_price\": {\n      \"type\": \"number\",\n      \"description\": \"Optional maximum price in USD\"\n    },\n    \"in_stock_only\": {\n      \"type\": \"boolean\",\n      \"description\": \"If true, only return products currently in stock. Default false.\"\n    }\n  },\n  \"required\": [\"query\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "search_products_flow"
+        },
+        {
+          "description": "Read-only product detail lookup. Stateless — no session context needed.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_product_details",
+            "handlerDescription": "Returns full product details for a specific product ID, including description, specifications, price, images, and customer rating. Read-only, closed-domain — queries internal product database only.",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_product_details_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"product_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique product identifier (e.g. PROD-4421)\"\n    }\n  },\n  \"required\": [\"product_id\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"product_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique product identifier (e.g. PROD-4421)\"\n    }\n  },\n  \"required\": [\"product_id\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "get_product_details_flow"
+        },
+        {
+          "description": "Read-only stock availability check. Stateless — no session context needed.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "check_stock",
+            "handlerDescription": "Checks current stock availability for a product across one or all warehouse regions. Returns available quantity and expected restock date if out of stock. Read-only, closed-domain.",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:check_stock_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"product_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique product identifier\"\n    },\n    \"warehouse_region\": {\n      \"type\": \"string\",\n      \"description\": \"Optional warehouse region to check (US-EAST, US-WEST, EU, APAC). Omit for all regions.\"\n    }\n  },\n  \"required\": [\"product_id\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"product_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique product identifier\"\n    },\n    \"warehouse_region\": {\n      \"type\": \"string\",\n      \"description\": \"Optional warehouse region to check (US-EAST, US-WEST, EU, APAC). Omit for all regions.\"\n    }\n  },\n  \"required\": [\"product_id\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "check_stock_flow"
+        },
+        {
+          "description": "Read-only promotions lookup. Stateless — no session context needed.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_active_promotions",
+            "handlerDescription": "Returns all active promotional offers for a product or category, including discount percentage, coupon codes, and expiry dates. Read-only, closed-domain — queries internal promotions engine.",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_active_promotions_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"product_id\": {\n      \"type\": \"string\",\n      \"description\": \"Optional product ID to filter promotions for a specific product\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"description\": \"Optional category to filter promotions (e.g. Electronics, Furniture)\"\n    }\n  },\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"product_id\": {\n      \"type\": \"string\",\n      \"description\": \"Optional product ID to filter promotions for a specific product\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"description\": \"Optional category to filter promotions (e.g. Electronics, Furniture)\"\n    }\n  },\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "get_active_promotions_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:search_products_flow",
+      "data": {
+        "name": "search_products_flow",
+        "description": "Read-only product catalog search. Stateless — no session context needed.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock search results. Replace with catalog API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.query != ''": {
+                          "data": "=string.concat(\"Search results for: '\",$flow.arguments.query,\"' | Found 3 products | [{\\\"product_id\\\":\\\"PROD-4421\\\",\\\"name\\\":\\\"UltraBook Pro 15\\\",\\\"category\\\":\\\"Electronics\\\",\\\"price_usd\\\":1299.99,\\\"in_stock\\\":true,\\\"rating\\\":4.7},{\\\"product_id\\\":\\\"PROD-4422\\\",\\\"name\\\":\\\"UltraBook Air 13\\\",\\\"category\\\":\\\"Electronics\\\",\\\"price_usd\\\":999.99,\\\"in_stock\\\":true,\\\"rating\\\":4.5},{\\\"product_id\\\":\\\"PROD-4423\\\",\\\"name\\\":\\\"UltraBook Gaming 17\\\",\\\"category\\\":\\\"Electronics\\\",\\\"price_usd\\\":1799.99,\\\"in_stock\\\":false,\\\"rating\\\":4.8}]\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "query is required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTcsInkiOjU4fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"query\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"},\"max_price\":{\"type\":\"number\"},\"in_stock_only\":{\"type\":\"boolean\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"},\"max_price\":{\"type\":\"number\"},\"in_stock_only\":{\"type\":\"boolean\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_product_details_flow",
+      "data": {
+        "name": "get_product_details_flow",
+        "description": "Read-only product detail lookup. Stateless — no session context needed.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock product details. Replace with product management API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.product_id != ''": {
+                          "data": "=string.concat(\"Product: \",$flow.arguments.product_id,\" | Name: UltraBook Pro 15 | Category: Electronics | Price: $1,299.99 USD | SKU: UBP15-2026-SLV | Brand: TechPro | Description: 15-inch premium laptop with Intel Core i9, 32GB RAM, 1TB NVMe SSD, OLED display | Weight: 1.6kg | Warranty: 3 years | Rating: 4.7/5 (2,841 reviews) | Compatible accessories: USB-C dock, leather sleeve, wireless mouse\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "product_id is required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:check_stock_flow",
+      "data": {
+        "name": "check_stock_flow",
+        "description": "Read-only stock availability check. Stateless — no session context needed.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock stock availability. Replace with WMS API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "@conditional": [
+                      {
+                        "$flow.arguments.product_id != '' && $flow.arguments.warehouse_region != ''": {
+                          "data": "=string.concat(\"Stock for \",$flow.arguments.product_id,\" in \",$flow.arguments.warehouse_region,\": 47 units available | Status: IN STOCK | Next restock: N/A\")"
+                        }
+                      },
+                      {
+                        "$flow.arguments.product_id != ''": {
+                          "data": "=string.concat(\"Stock for \",$flow.arguments.product_id,\" across all regions: US-EAST=47 units, US-WEST=12 units, EU=0 units (restock: 2026-04-21), APAC=8 units | Total available: 67 units\")"
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "error": "product_id is required"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_id\":{\"type\":\"string\"},\"warehouse_region\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\"},\"warehouse_region\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_active_promotions_flow",
+      "data": {
+        "name": "get_active_promotions_flow",
+        "description": "Read-only promotions lookup. Stateless — no session context needed.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock promotions. Replace with promotions API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"promotions\":[{\"promo_id\":\"PROMO-SPRING26\",\"name\":\"Spring Sale\",\"discount_pct\":15,\"coupon_code\":\"SPRING15\",\"applies_to\":\"Electronics\",\"min_purchase_usd\":800,\"expires\":\"2026-04-30\"},{\"promo_id\":\"PROMO-BUNDLE01\",\"name\":\"Laptop + Accessories Bundle\",\"discount_pct\":20,\"coupon_code\":\"BUNDLE20\",\"applies_to\":\"PROD-4421\",\"min_purchase_usd\":0,\"expires\":\"2026-05-15\"},{\"promo_id\":\"PROMO-STUDENT\",\"name\":\"Student Discount\",\"discount_pct\":10,\"coupon_code\":\"STUDENT10\",\"applies_to\":\"All\",\"min_purchase_usd\":0,\"expires\":\"2026-12-31\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_id\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9094"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMiIsInRhZyI6IjEuMC4yLWIwMSIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9094",
+        "title": "ProductCatalogMCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.3"
+  }
+}

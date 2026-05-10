@@ -2,8 +2,7 @@
 
 ## Overview
 
-This sample demonstrates how to use **TIBCO Flogo® Connector for Model Context Protocol (MCP)
-Developer Preview** to expose **Customer 360 data** — including **customers**, **products**, and **sales** — using the **Model Context Protocol (MCP)**. Once deployed, the Flogo MCP Server acts as an intelligent data orchestrator, enabling **AI agents** to query the data using **natural language (NLP)** without requiring any manual orchestration logic from the user.
+This sample demonstrates how to use **TIBCO Flogo® Connector for Model Context Protocol (MCP)** to expose **Customer 360 data** — including **customers**, **products**, and **sales** — using the **Model Context Protocol (MCP)**. Once deployed, the Flogo MCP Server acts as an intelligent data orchestrator, enabling **AI agents** to query the data using **natural language (NLP)** without requiring any manual orchestration logic from the user.
 
 ## ✨ Key Features
 
@@ -27,28 +26,40 @@ Developer Preview** to expose **Customer 360 data** — including **customers**,
 
 ### Prerequisites
 
-- TIBCO Flogo® Extension for Visual Studio Code 1.3.2 and above
+- TIBCO Flogo® Extension for Visual Studio Code 2.26.1 and above
 - Any AI agent client capable of interacting with MCP Servers like Claude Desktop, GitHub Copilot etc
 
 
 ## Import the sample apps in the Workspace
-   Import CustProdSaleAPI.flogo, Customer360MCPServer.flogo apps in VS Code.
+  Import `CustProdSaleAPI.flogo` and `Customer360MCPServer.flogo` apps in VS Code.
+
+  If you want to run the MCP Server over **HTTPS (TLS) with Authentication**, see the [Customer360WithAuth](../Customer360WithAuth/README.md) sample.
    
 ## Understanding the configuration
-   - CustProdSaleAPI.flogo app is a REST API server which will return dummy customers, products, sales data.
-   - Customer360MCPServer.flogo app is a FLOGO MCP server app which will expose these customers, products, sales data as MCP server tools to AI Agents.
+  - CustProdSaleAPI.flogo app is a REST API server which will return dummy customers, products, sales data.
+  - Customer360MCPServer.flogo app is a FLOGO MCP server app (HTTP) which will expose these customers, products, sales data as MCP server tools to AI Agents.
    
 <img width="1377" height="577" alt="Screenshot 2025-08-01 at 12 48 56 AM" src="https://github.com/user-attachments/assets/43c03f72-d890-4bf0-a3a7-816c719f9336" />
 
 <img width="1322" height="588" alt="Screenshot 2025-08-01 at 12 49 20 AM" src="https://github.com/user-attachments/assets/2885b657-0b45-49ab-b3e3-465894eece6d" />
 
 ## Run the application
-  - Run CustProdSaleAPI.flogo app from VsCode which will start the API server and you can access these endpoints - http://localhost:18080/products, http://localhost:18080/customers, http://localhost:18080/sales
-  - Make sure to check and update the app property CustInvokeRESTServiceURL, ProdInvokeRESTServiceURL, SaleInvokeRESTServiceURL in Customer360MCPServer app to point to url where your CustProdSaleAPI flogo app is running.
-  - Run Customer360MCPServer.flogo app from VsCode which will start FLOGO MCP Server at http://localhost:9091/mcp.
-  - You can configure this MCP Server url with Claude Desktop or GitHub Copilot in VS Code and send querries in natural language and get the response as shown below.
+  - Run CustProdSaleAPI.flogo app from VsCode which will start the API server and you can access these endpoints:
+    - `GET http://localhost:18080/customers` — returns all customers
+    - `GET http://localhost:18080/products` — returns all products
+    - `GET http://localhost:18080/sales` — returns all sales
+    - `GET http://localhost:18080/customers/:id` — returns a single customer by ID (also used by the [Customer360WithPromptsAndResources](../Customer360WithPromptsAndResources/README.md) sample)
+  - Make sure to check and update the app property CustInvokeRESTServiceURL, ProdInvokeRESTServiceURL, SaleInvokeRESTServiceURL in the `Customer360MCPServer.flogo` app to point to url where your CustProdSaleAPI flogo app is running.
+  - Run `Customer360MCPServer.flogo` app from VsCode which will start FLOGO MCP Server over HTTP at http://localhost:9091/mcp.
+  - You can configure this MCP Server url with Claude Desktop or GitHub Copilot in VS Code and send queries in natural language and get the response as shown below.
   - You can send a query like "Show me sales for Q1 2025" or "List customer names who have purchased more than 2 products and their details" and you will get the result in AI Agent as shown below.
   - As you can see, you dont need to write any specific business logic to query data which spans across different tools like customer, product, sales
+
+> For the **HTTPS (TLS) with Authentication** variant, see the [Customer360WithAuth](../Customer360WithAuth/README.md) sample.
+
+## 🔐 TLS (HTTPS) with Authentication
+
+For the **HTTPS (TLS) + Authentication** variant of this sample, see the [Customer360WithAuth](../Customer360WithAuth/README.md) sample which uses `Customer360MCPServerWithAuth.flogo`.
 
 <img width="1663" height="846" alt="Screenshot 2025-08-01 at 12 43 04 AM" src="https://github.com/user-attachments/assets/7b3d6c5b-8956-4dfb-bb31-f3df865c300a" />
 
@@ -58,14 +69,14 @@ Developer Preview** to expose **Customer 360 data** — including **customers**,
 > **Note:** In order to run the query in Claude Desktop, you will need to configure MCP Server url in > claude_desktop_config.json like below - 
 
 ```
- {
+{
   "mcpServers": {
     "FLOGO:CustomerProductSalesData": {
       "command": "npx",
       "args": ["mcp-remote", "http://localhost:9091/mcp"]
     }
   }
- }
+}
 ```
 
 > You would also need to install npm and mcp-remote package in order for Claude Desktop to connect to MCP server.

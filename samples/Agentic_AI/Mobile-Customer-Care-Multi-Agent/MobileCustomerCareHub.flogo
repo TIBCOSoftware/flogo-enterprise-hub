@@ -1,0 +1,1452 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+    "github.com/project-flogo/websocket/activity/wswritedata",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/callagent",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/websocket/trigger/wsserver",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider"
+  ],
+  "name": "MobileCustomerCareHub",
+  "description": "Multi-agent Mobile customer care hub. Demonstrates List of Agents for Handoff using AIAgent Activity with agentHandoffs and InvokeAIAgentTrigger for deterministic routing.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#wsserver",
+      "name": "wsserver",
+      "description": "WebSocket server for AI-powered customer support on port 9998.",
+      "settings": {
+        "port": 9998,
+        "enableTLS": false,
+        "serverCert": "",
+        "serverKey": "",
+        "enableClientAuth": false,
+        "trustStore": ""
+      },
+      "id": "WebsocketServer",
+      "handlers": [
+        {
+          "description": "Customer care flow using AIAgent Activity with agentHandoffs for non-deterministic routing to specialist agents.",
+          "settings": {
+            "method": "GET",
+            "path": "/customer-care",
+            "mode": "Data",
+            "format": "String",
+            "jsonSchema": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:customerCare_flow"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "queryParams": "=$.queryParams",
+              "headers": "=$.headers",
+              "content": "=$.content",
+              "wsconnection": "=$.wsconnection"
+            }
+          },
+          "schemas": {
+            "output": {
+              "queryParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"sessionId\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"sessionId\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Key\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Version\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Upgrade\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "customerCare_flow"
+        },
+        {
+          "description": "Billing flow using InvokeAIAgentTrigger to call BillingSpecialistAgent directly.",
+          "settings": {
+            "method": "GET",
+            "path": "/billing",
+            "mode": "Data",
+            "format": "String",
+            "jsonSchema": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:directBilling_flow"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "queryParams": "=$.queryParams",
+              "headers": "=$.headers",
+              "content": "=$.content",
+              "wsconnection": "=$.wsconnection"
+            }
+          },
+          "schemas": {
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Key\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Version\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Upgrade\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "directBilling_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Billing specialist agent for charge disputes, payment history and account credits.",
+      "settings": {
+        "llmProviderConnection": "conn://22222222-2222-2222-2222-222222222222",
+        "agentName": "=$property[\"BillingSpecialistAgent.Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"BillingSpecialistAgent.Trigger_Settings.AgentDescription\"]",
+        "agentType": "Local",
+        "agentPort": 8081,
+        "model": "=$property[\"BillingSpecialistAgent.Trigger_Settings.LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "=$property[\"BillingSpecialistAgent.Trigger_Settings.LLM_temperature\"]",
+        "enableGuardrails": true,
+        "rateLimit": "=$property[\"BillingSpecialistAgent.Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"BillingSpecialistAgent.Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": "=$property[\"BillingSpecialistAgent.Trigger_Settings.Redact_Sensitive_Data\"]",
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 20,
+        "systemPrompt": "You are a Mobile Billing Specialist AI. You are the authoritative source for all billing, payment, and account charge questions.\n\n## Your Expertise\n- Monthly bill breakdown and itemized charges\n- Payment history and current balance\n- International roaming and add-on charges\n- Goodwill credits and billing adjustments\n- Late payment fees and promotional discounts\n- Plan pricing questions\n\n## Your Tools\n- **GetBillDetails**: Retrieves the full itemized bill for a customer's account and billing period. Call this first whenever the customer mentions their bill, charges, or payment amount.\n- **ApplyBillCredit**: Applies a credit or adjustment to a customer's account after verifying legitimacy of the claim.\n\n## Credit Approval Policy\n- Goodwill credits up to $25.00: approve directly\n- Credits $25.01–$100.00: approve with customer acknowledgment of issue resolution\n- Credits over $100.00: inform customer it requires supervisor review within 24 hours\n\n## Response Style\n- Empathetic and reassuring — billing issues are stressful\n- Be precise with dollar amounts and due dates\n- Always confirm the action taken: 'I have applied a $12.00 credit — your new balance is $97.98'\n- Never repeat back full payment card numbers or government ID numbers"
+      },
+      "id": "BillingSpecialistAgent",
+      "handlers": [
+        {
+          "description": "GetBillDetails tool flow for BillingSpecialistAgent. Returns itemized bill data.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "GetBillDetails",
+            "agentToolDescription": "Retrieves the complete itemized bill for a Mobile account for a specific billing period. Returns plan charges, additional charges (roaming, add-ons), total amount due, due date, last payment info, and data/voice/SMS usage summary. Always call this first when the customer asks about their bill, a specific charge, or their current balance.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_bill_details_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"billingPeriod\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"billingPeriod\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "get_bill_details_flow"
+        },
+        {
+          "description": "ApplyBillCredit tool flow for BillingSpecialistAgent. Applies a billing credit to the account.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "ApplyBillCredit",
+            "agentToolDescription": "Applies a credit or monetary adjustment to a Mobile customer account. Use when the customer has a legitimate billing dispute, was incorrectly charged, or qualifies for a goodwill credit. Always call GetBillDetails first to confirm the disputed charge before applying a credit.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:apply_bill_credit_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"creditAmount\": {\"type\": \"number\"},\n    \"creditReason\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\", \"creditAmount\", \"creditReason\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"creditAmount\": {\"type\": \"number\"},\n    \"creditReason\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\", \"creditAmount\", \"creditReason\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "apply_bill_credit_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Technical support agent for connectivity issues, diagnostics and technician scheduling. Can hand off to UpgradeAdvisorAgent.",
+      "settings": {
+        "llmProviderConnection": "conn://22222222-2222-2222-2222-222222222222",
+        "agentName": "=$property[\"TechnicalSupportAgent.Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"TechnicalSupportAgent.Trigger_Settings.AgentDescription\"]",
+        "agentType": "Local",
+        "agentPort": 8082,
+        "model": "=$property[\"TechnicalSupportAgent.Trigger_Settings.LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "=$property[\"TechnicalSupportAgent.Trigger_Settings.LLM_temperature\"]",
+        "enableGuardrails": false,
+        "rateLimit": "=$property[\"TechnicalSupportAgent.Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"TechnicalSupportAgent.Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": "=$property[\"TechnicalSupportAgent.Trigger_Settings.Redact_Sensitive_Data\"]",
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 20,
+        "systemPrompt": "You are a Mobile Technical Support Specialist AI. You diagnose network and device issues and coordinate field technician visits.\n\n## Your Expertise\n- Mobile and home internet connectivity troubleshooting\n- 5G/LTE/4G signal strength and coverage issues\n- SIM card and device compatibility problems\n- Router and modem configuration\n- Network outage identification\n- Scheduling field technician home visits\n\n## Your Tools\n- **RunLineDiagnostics**: Runs a real-time network diagnostic on the customer's line. Always run this first when the customer reports connectivity problems. Returns signal strength, download/upload speeds, detected issues, and recommendations.\n- **ScheduleTechnicianVisit**: Books a field technician to visit the customer's address for hands-on repair. Use when remote diagnostics cannot resolve the issue, or hardware replacement is needed.\n\n## Handoff to UpgradeAdvisorAgent\nIf RunLineDiagnostics reveals the customer's device is incompatible with 5G or is more than 3 years old, and a device upgrade would resolve the issue — hand off to UpgradeAdvisorAgent. Frame it positively: 'Your device may be limiting your experience — let me connect you with our Upgrade Advisor to explore modern options.'\n\n## Escalation Path\n1. Run diagnostics first\n2. Try guided remote fixes (SIM refresh, settings change)\n3. Schedule technician visit if remote fix fails\n4. Suggest device upgrade if device is the root cause\n\n## Tone\n- Patient and methodical — customers are frustrated when things don't work\n- Explain what you're doing: 'I'm running a diagnostic on your line now...'\n- Give concrete next steps, not vague advice"
+      },
+      "id": "TechnicalSupportAgent",
+      "handlers": [
+        {
+          "description": "RunLineDiagnostics tool flow for TechnicalSupportAgent. Runs network diagnostics on the customer line.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "RunLineDiagnostics",
+            "agentToolDescription": "Runs a real-time network diagnostic on the customer's Mobile line. Returns signal strength, network type (5G/LTE/4G), download and upload speeds, latency, packet loss percentage, a list of detected issues, and recommended next steps. Always call this first when a customer reports connectivity problems, slow data, dropped calls, or no signal.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:run_line_diagnostics_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"serviceType\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"serviceType\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "run_line_diagnostics_flow"
+        },
+        {
+          "description": "ScheduleTechnicianVisit tool flow for TechnicalSupportAgent. Books a field technician visit.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "ScheduleTechnicianVisit",
+            "agentToolDescription": "Books a Mobile field technician to visit the customer's registered address for hands-on diagnosis and repair. Use when RunLineDiagnostics reveals an issue that cannot be resolved remotely (e.g., hardware fault, cable damage, signal amplifier needed). Returns a ticket number, confirmed appointment slot, and technician assignment.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:schedule_tech_visit_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"preferredDate\": {\"type\": \"string\"},\n    \"issueDescription\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\", \"preferredDate\", \"issueDescription\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"preferredDate\": {\"type\": \"string\"},\n    \"issueDescription\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\", \"preferredDate\", \"issueDescription\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "schedule_tech_visit_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Upgrade advisor agent for plan and device upgrades, eligibility checks and order processing.",
+      "settings": {
+        "llmProviderConnection": "conn://22222222-2222-2222-2222-222222222222",
+        "agentName": "=$property[\"UpgradeAdvisorAgent.Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"UpgradeAdvisorAgent.Trigger_Settings.AgentDescription\"]",
+        "agentType": "Local",
+        "agentPort": 8083,
+        "model": "=$property[\"UpgradeAdvisorAgent.Trigger_Settings.LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "=$property[\"UpgradeAdvisorAgent.Trigger_Settings.LLM_temperature\"]",
+        "enableGuardrails": false,
+        "rateLimit": "=$property[\"UpgradeAdvisorAgent.Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"UpgradeAdvisorAgent.Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": "=$property[\"UpgradeAdvisorAgent.Trigger_Settings.Redact_Sensitive_Data\"]",
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 20,
+        "systemPrompt": "You are a Mobile Upgrade Advisor AI. You help customers discover and activate the best plan or device upgrade for their needs.\n\n## Your Expertise\n- Plan upgrade eligibility (contract dates, early upgrade terms)\n- Device upgrade eligibility and trade-in values\n- Feature comparison between current and new plans\n- Promotional offers (bill credits, free months, device deals)\n- Order submission and activation timelines\n- Understanding what drove the upgrade need (cost savings vs. faster speeds vs. device age)\n\n## Your Tools\n- **GetEligibleUpgrades**: Retrieves all plan and device upgrade options the customer is eligible for, including pricing, features, promotional bonuses, and contract terms.\n- **SubmitUpgradeOrder**: Submits a confirmed upgrade order for the customer's selected plan or device. Only call this after the customer has explicitly confirmed their choice.\n\n## Sales Approach\n- Lead with the customer's stated need (e.g., 'You mentioned 5G speed is important — here is our top 5G plan')\n- Present at most 2–3 options clearly; don't overwhelm\n- Highlight savings or bonuses specific to the customer\n- Never pressure — always let the customer decide\n- Confirm all order details before calling SubmitUpgradeOrder\n\n## Tone\n- Enthusiastic but not pushy\n- Focus on value, not upselling for its own sake\n- Congratulate the customer when they place an order: 'Excellent choice — your upgrade is confirmed!'"
+      },
+      "id": "UpgradeAdvisorAgent",
+      "handlers": [
+        {
+          "description": "GetEligibleUpgrades tool flow for UpgradeAdvisorAgent. Returns eligible upgrade options for the account.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "GetEligibleUpgrades",
+            "agentToolDescription": "Retrieves the full list of plan and device upgrade options that a Mobile customer is eligible for based on their account tenure, current plan, and contract status. Returns pricing, key features, promotional credits, and contract length options for each upgrade path. Call this first to present options before the customer commits.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_eligible_upgrades_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"currentPlan\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"currentPlan\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "get_eligible_upgrades_flow"
+        },
+        {
+          "description": "SubmitUpgradeOrder tool flow for UpgradeAdvisorAgent. Submits a confirmed upgrade order.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "SubmitUpgradeOrder",
+            "agentToolDescription": "Submits a confirmed upgrade order for a customer's selected plan or device. Only call this after the customer has explicitly confirmed their upgrade choice. Returns an order confirmation number, activation date, proration details, and next steps.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:submit_upgrade_order_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"newPlan\": {\"type\": \"string\"},\n    \"effectiveDate\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\", \"newPlan\"]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"newPlan\": {\"type\": \"string\"},\n    \"effectiveDate\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\", \"newPlan\"]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "submit_upgrade_order_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:customerCare_flow",
+      "data": {
+        "name": "customerCare_flow",
+        "description": "Customer care flow using AIAgent Activity with agentHandoffs for non-deterministic routing to specialist agents.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "CustomerSupportDispatcher",
+            "type": "label",
+            "label": "StartActivity to CustomerSupportDispatcher"
+          },
+          {
+            "id": 2,
+            "from": "CustomerSupportDispatcher",
+            "to": "WebsocketWriteData",
+            "type": "label",
+            "label": "CustomerSupportDispatcher to WebsocketWriteData"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "CustomerSupportDispatcher",
+            "name": "CustomerSupportDispatcher",
+            "description": "AIAgent Activity dispatcher. Routes customer messages to specialist agents using agentHandoffs.",
+            "activity": {
+              "ref": "#agentactivity",
+              "settings": {
+                "llmProviderConnection": "conn://22222222-2222-2222-2222-222222222222",
+                "model": "=$property[\"CustomerSupportDispatcher.Activity_Settings.LLM_Model\"]",
+                "reasoning": "",
+                "temperature": 1,
+                "enableGuardrails": true,
+                "rateLimit": "=$property[\"CustomerSupportDispatcher.Activity_Settings.Rate_Limit\"]",
+                "tokenLimit": "=$property[\"CustomerSupportDispatcher.Activity_Settings.Token_Limit\"]",
+                "redactSensitiveData": "=$property[\"CustomerSupportDispatcher.Activity_Settings.Redact_Sensitive_Data\"]",
+                "responseType": "Text",
+                "agentHandoffs": "=$property[\"CustomerSupportDispatcher.Activity_Settings.Agents_Handoff\"]",
+                "mcpServers": [],
+                "conversationStoreType": "Memory",
+                "memoryMaxSize": 20,
+                "systemPrompt": "You are Alex, a friendly and highly efficient AI customer care dispatcher for Mobile — a leading Mobile provider.\n\n## Your Role\nYou are the first point of contact for Mobile customers. Your job is to greet the customer, understand their issue, and route them to the right specialist — or handle simple inquiries yourself.\n\n## Routing Rules\n- **Billing questions** (charges, payment, statements, credits, refunds, incorrect charges) → hand off to BillingSpecialistAgent\n- **Technical issues** (no signal, slow data, dropped calls, router problems, device connectivity, internet outages) → hand off to TechnicalSupportAgent\n- **Plan or device upgrades** (new plan options, device upgrade, better 5G coverage, faster speeds) → hand off to UpgradeAdvisorAgent\n- **Simple questions** (store hours, general account info, contact numbers) → handle directly\n\n## Handoff Style\n- Announce handoffs naturally: 'Let me connect you with our Billing Specialist right away...'\n- Never say 'I am transferring you to another AI system' — frame it as connecting to a team member\n- Briefly summarize the customer's issue when handing off so the specialist has immediate context\n- If the request spans multiple domains, prioritize the most urgent issue first\n\n## Tone\n- Warm, patient, and professional\n- Acknowledge frustration empathetically before routing: 'I understand how frustrating that can be — let me get the right person on this for you.'\n- Keep your own responses brief; let the specialists handle the depth"
+              },
+              "input": {
+                "userPrompt": "=coerce.toString($flow.content)",
+                "conversationId": "=string.concat(\"care-session-\", coerce.toString($flow.queryParams.sessionId))"
+              }
+            }
+          },
+          {
+            "id": "WebsocketWriteData",
+            "name": "WebsocketWriteData",
+            "description": "Writes the agent response back to the customer over WebSocket.",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "=$activity[CustomerSupportDispatcher].response",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkN1c3RvbWVyU3VwcG9ydERpc3BhdGNoZXIiOnsieCI6MjQyLCJ5Ijo0NX0sIldlYnNvY2tldFdyaXRlRGF0YSI6eyJ4Ijo0NjMsInkiOjQ3fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "params"
+            },
+            {
+              "name": "queryParams",
+              "type": "params"
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "content",
+              "type": "any"
+            },
+            {
+              "name": "wsconnection",
+              "type": "any"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"WebsocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"params\"},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:directBilling_flow",
+      "data": {
+        "name": "directBilling_flow",
+        "description": "Billing flow using InvokeAIAgentTrigger to call BillingSpecialistAgent directly.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "InvokeBillingAgentDirect",
+            "type": "label",
+            "label": "StartActivity to InvokeBillingAgentDirect"
+          },
+          {
+            "id": 2,
+            "from": "InvokeBillingAgentDirect",
+            "to": "WebsocketWriteData",
+            "type": "label",
+            "label": "InvokeBillingAgentDirect to WebsocketWriteData"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "InvokeBillingAgentDirect",
+            "name": "InvokeBillingAgentDirect",
+            "description": "InvokeAIAgentTrigger activity that calls BillingSpecialistAgent directly by name.",
+            "activity": {
+              "ref": "#callagent",
+              "settings": {
+                "agentType": "Local"
+              },
+              "input": {
+                "agentName": "BillingSpecialistAgent",
+                "agentBaseUrl": "",
+                "prompt": "=coerce.toString($flow.content)",
+                "structuredOutput": false,
+                "conversationId": "=string.concat(\"billing-direct-\", coerce.toString($flow.queryParams.sessionId))"
+              }
+            }
+          },
+          {
+            "id": "WebsocketWriteData",
+            "name": "WebsocketWriteData",
+            "description": "Writes the BillingSpecialistAgent response back to the customer over WebSocket.",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "=$activity[InvokeBillingAgentDirect].response",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkludm9rZUJpbGxpbmdBZ2VudERpcmVjdCI6eyJ4IjoyMzAsInkiOjExNH0sIldlYnNvY2tldFdyaXRlRGF0YSI6eyJ4Ijo0NzAsInkiOjExNH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "params"
+            },
+            {
+              "name": "queryParams",
+              "type": "params"
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "content",
+              "type": "any"
+            },
+            {
+              "name": "wsconnection",
+              "type": "any"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"WebsocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"params\"},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_bill_details_flow",
+      "data": {
+        "name": "get_bill_details_flow",
+        "description": "GetBillDetails tool flow for BillingSpecialistAgent. Returns itemized bill data.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogBillDetails",
+            "type": "label",
+            "label": "StartActivity to LogBillDetails"
+          },
+          {
+            "id": 2,
+            "from": "LogBillDetails",
+            "to": "ReturnBillDetails",
+            "type": "label",
+            "label": "LogBillDetails to ReturnBillDetails"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogBillDetails",
+            "name": "LogBillDetails",
+            "description": "",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[GetBillDetails] accountId=\", coerce.toString($flow.toolParams.accountId), \" period=\", coerce.toString($flow.toolParams.billingPeriod))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnBillDetails",
+            "name": "ReturnBillDetails",
+            "description": "Returns mock billing data.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"accountId\":\"ACC-10045\",\"customerName\":\"Sarah Johnson\",\"billingPeriod\":\"March 2026\",\"planName\":\"Unlimited Pro 5G\",\"planCharge\":89.99,\"additionalCharges\":[{\"description\":\"International roaming - 3 days UK\",\"amount\":12.00},{\"description\":\"Premium streaming add-on\",\"amount\":7.99}],\"totalDue\":109.98,\"dueDate\":\"2026-04-15\",\"previousBalance\":0.00,\"lastPayment\":{\"date\":\"2026-03-10\",\"amount\":92.47},\"usageSummary\":{\"data\":\"Unlimited (5G)\",\"calls\":\"2,347 mins\",\"sms\":\"589 messages\"}}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ0JpbGxEZXRhaWxzIjp7IngiOjIwNCwieSI6NDF9LCJSZXR1cm5CaWxsRGV0YWlscyI6eyJ4Ijo0NDgsInkiOjQxfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"accountId\":{\"type\":\"string\"},\"billingPeriod\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"},\"billingPeriod\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:apply_bill_credit_flow",
+      "data": {
+        "name": "apply_bill_credit_flow",
+        "description": "ApplyBillCredit tool flow for BillingSpecialistAgent. Applies a billing credit to the account.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogCredit",
+            "type": "label",
+            "label": "StartActivity to LogCredit"
+          },
+          {
+            "id": 2,
+            "from": "LogCredit",
+            "to": "ReturnCredit",
+            "type": "label",
+            "label": "LogCredit to ReturnCredit"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogCredit",
+            "name": "LogCredit",
+            "description": "",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[ApplyBillCredit] accountId=\", coerce.toString($flow.toolParams.accountId), \" amount=$\", coerce.toString($flow.toolParams.creditAmount))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnCredit",
+            "name": "ReturnCredit",
+            "description": "Returns mock credit confirmation.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"accountId\":\"ACC-10045\",\"creditApplied\":true,\"creditAmount\":12.00,\"creditReason\":\"International roaming charge dispute - goodwill credit\",\"newBalance\":97.98,\"confirmationNumber\":\"CRD-78234\",\"effectiveDate\":\"2026-04-03\",\"message\":\"Credit of $12.00 has been applied to your account. New balance due is $97.98 by 2026-04-15.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nQ3JlZGl0Ijp7IngiOjI4MCwieSI6MTAwfSwiUmV0dXJuQ3JlZGl0Ijp7IngiOjQ4MCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"accountId\":{\"type\":\"string\"},\"creditAmount\":{\"type\":\"number\"},\"creditReason\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"},\"creditAmount\":{\"type\":\"number\"},\"creditReason\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:run_line_diagnostics_flow",
+      "data": {
+        "name": "run_line_diagnostics_flow",
+        "description": "RunLineDiagnostics tool flow for TechnicalSupportAgent. Runs network diagnostics on the customer line.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogDiagnostics",
+            "type": "label",
+            "label": "StartActivity to LogDiagnostics"
+          },
+          {
+            "id": 2,
+            "from": "LogDiagnostics",
+            "to": "ReturnDiagnostics",
+            "type": "label",
+            "label": "LogDiagnostics to ReturnDiagnostics"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogDiagnostics",
+            "name": "LogDiagnostics",
+            "description": "",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[RunLineDiagnostics] accountId=\", coerce.toString($flow.toolParams.accountId), \" serviceType=\", coerce.toString($flow.toolParams.serviceType))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnDiagnostics",
+            "name": "ReturnDiagnostics",
+            "description": "Returns mock network diagnostics data.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"accountId\":\"ACC-10045\",\"serviceType\":\"Mobile 5G\",\"diagnosticsTimestamp\":\"2026-04-03T14:22:31Z\",\"signalStrength\":-85,\"signalQuality\":\"Poor\",\"networkType\":\"LTE (5G unavailable at registered address)\",\"downloadSpeed\":8.4,\"uploadSpeed\":2.1,\"latency\":67,\"packetLoss\":2.3,\"issues\":[\"5G signal not available at registered address — nearest 5G tower is 3.2km away\",\"Intermittent LTE signal degradation detected (last 48 hours)\",\"SIM card provisioning date: 847 days ago — refresh recommended\"],\"recommendations\":[\"Refresh SIM provisioning (can be done remotely — takes 2 minutes)\",\"Check device 5G band compatibility settings\",\"Consider a network signal extender for home coverage\"],\"deviceInfo\":{\"model\":\"iPhone 12\",\"releaseYear\":2020,\"5gCompatible\":true,\"firmwareUpToDate\":false},\"summary\":\"Signal issues detected. SIM refresh and firmware update likely to resolve. Device is 5G-capable but 5G is not available at the address.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nRGlhZ25vc3RpY3MiOnsieCI6MjgwLCJ5IjoxMDB9LCJSZXR1cm5EaWFnbm9zdGljcyI6eyJ4Ijo0ODAsInkiOjEwMH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"accountId\":{\"type\":\"string\"},\"serviceType\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"},\"serviceType\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:schedule_tech_visit_flow",
+      "data": {
+        "name": "schedule_tech_visit_flow",
+        "description": "ScheduleTechnicianVisit tool flow for TechnicalSupportAgent. Books a field technician visit.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogVisit",
+            "type": "label",
+            "label": "StartActivity to LogVisit"
+          },
+          {
+            "id": 2,
+            "from": "LogVisit",
+            "to": "ReturnVisit",
+            "type": "label",
+            "label": "LogVisit to ReturnVisit"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogVisit",
+            "name": "LogVisit",
+            "description": "",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[ScheduleTechnicianVisit] accountId=\", coerce.toString($flow.toolParams.accountId), \" preferredDate=\", coerce.toString($flow.toolParams.preferredDate))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnVisit",
+            "name": "ReturnVisit",
+            "description": "Returns mock technician booking confirmation.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"accountId\":\"ACC-10045\",\"ticketNumber\":\"TKT-2026-04-18943\",\"status\":\"Scheduled\",\"scheduledDate\":\"2026-04-08\",\"timeSlot\":\"10:00 AM - 12:00 PM\",\"technicianId\":\"TECH-0234\",\"technicianName\":\"Carlos Rivera\",\"issueDescription\":\"Intermittent LTE connectivity and SIM provisioning issue\",\"notes\":\"Technician will inspect SIM provisioning, run on-site network tests, and verify device settings. Please keep device on and accessible.\",\"confirmationSentTo\":\"sarah.johnson@email.com\",\"cancellationDeadline\":\"2026-04-07T18:00:00Z\",\"rescheduleUrl\":\"https://myaccount.Mobile.example.com/tech-visit/TKT-2026-04-18943\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nVmlzaXQiOnsieCI6MjgwLCJ5IjoxMDB9LCJSZXR1cm5WaXNpdCI6eyJ4Ijo0ODAsInkiOjEwMH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"accountId\":{\"type\":\"string\"},\"preferredDate\":{\"type\":\"string\"},\"issueDescription\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"},\"preferredDate\":{\"type\":\"string\"},\"issueDescription\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_eligible_upgrades_flow",
+      "data": {
+        "name": "get_eligible_upgrades_flow",
+        "description": "GetEligibleUpgrades tool flow for UpgradeAdvisorAgent. Returns eligible upgrade options for the account.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogUpgrades",
+            "type": "label",
+            "label": "StartActivity to LogUpgrades"
+          },
+          {
+            "id": 2,
+            "from": "LogUpgrades",
+            "to": "ReturnUpgrades",
+            "type": "label",
+            "label": "LogUpgrades to ReturnUpgrades"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogUpgrades",
+            "name": "LogUpgrades",
+            "description": "",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[GetEligibleUpgrades] accountId=\", coerce.toString($flow.toolParams.accountId), \" currentPlan=\", coerce.toString($flow.toolParams.currentPlan))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnUpgrades",
+            "name": "ReturnUpgrades",
+            "description": "Returns mock upgrade options.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"accountId\":\"ACC-10045\",\"currentPlan\":{\"name\":\"Unlimited Pro 5G\",\"monthlyRate\":89.99,\"contractEnd\":\"2026-07-31\"},\"upgradeEligible\":true,\"earlyUpgradeAvailable\":true,\"planUpgrades\":[{\"planName\":\"Unlimited Premium 5G+\",\"monthlyRate\":109.99,\"features\":[\"Unlimited 5G+ priority data (never throttled)\",\"4K streaming on all devices\",\"International calling to 50 countries\",\"Wi-Fi calling included\",\"500GB cloud backup\"],\"upgradeBonus\":\"$150 bill credit applied to first invoice\"},{\"planName\":\"Unlimited Elite 5G\",\"monthlyRate\":129.99,\"features\":[\"Everything in Premium 5G+\",\"Apple One or Google One bundle included\",\"International data roaming in 30 countries\",\"Hotspot 100GB/month at 5G speeds\"],\"upgradeBonus\":\"$200 bill credit + free Apple Watch SE\"}],\"deviceUpgradeEligible\":true,\"tradeinCreditAvailable\":\"Up to $400 for your iPhone 12\",\"message\":\"You are eligible for an early 5G+ upgrade. 2-year contract required for bonus credits.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nVXBncmFkZXMiOnsieCI6MjgwLCJ5IjoxMDB9LCJSZXR1cm5VcGdyYWRlcyI6eyJ4Ijo0ODAsInkiOjEwMH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"accountId\":{\"type\":\"string\"},\"currentPlan\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"},\"currentPlan\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:submit_upgrade_order_flow",
+      "data": {
+        "name": "submit_upgrade_order_flow",
+        "description": "SubmitUpgradeOrder tool flow for UpgradeAdvisorAgent. Submits a confirmed upgrade order.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogOrder",
+            "type": "label",
+            "label": "StartActivity to LogOrder"
+          },
+          {
+            "id": 2,
+            "from": "LogOrder",
+            "to": "ReturnOrder",
+            "type": "label",
+            "label": "LogOrder to ReturnOrder"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogOrder",
+            "name": "LogOrder",
+            "description": "",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[SubmitUpgradeOrder] accountId=\", coerce.toString($flow.toolParams.accountId), \" newPlan=\", coerce.toString($flow.toolParams.newPlan))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnOrder",
+            "name": "ReturnOrder",
+            "description": "Returns mock order confirmation.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"accountId\":\"ACC-10045\",\"orderConfirmation\":\"ORD-2026-04-9921\",\"status\":\"Confirmed\",\"newPlan\":{\"name\":\"Unlimited Premium 5G+\",\"monthlyRate\":109.99},\"effectiveDate\":\"2026-04-08\",\"orderDetails\":{\"upgradeCredit\":150.00,\"proratedCredit\":18.33,\"firstMonthTotal\":91.66,\"note\":\"First bill reflects proration + $150 upgrade credit\"},\"nextSteps\":[\"Your new plan activates automatically on 2026-04-08 — no action needed\",\"A confirmation email has been sent to sarah.johnson@email.com\",\"Your $150 upgrade credit will appear on your next invoice\",\"SIM refresh will be sent automatically to enable 5G+ features\"],\"trackingUrl\":\"https://myaccount.Mobile.example.com/orders/ORD-2026-04-9921\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nT3JkZXIiOnsieCI6MjgwLCJ5IjoxMDB9LCJSZXR1cm5PcmRlciI6eyJ4Ijo0ODAsInkiOjEwMH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"accountId\":{\"type\":\"string\"},\"newPlan\":{\"type\":\"string\"},\"effectiveDate\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"},\"newPlan\":{\"type\":\"string\"},\"effectiveDate\":{\"type\":\"string\"}}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.openai-Mobile.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.openai-Mobile.API_Key",
+      "type": "string",
+      "value": "SECRET:RNh1N3TfQ8RQdBbRYCBt4NdUaBwdLc9V2YJEymxNh+Cdiuq9seU4RKTSVloO28PjhN8LgeJyXdekE71ONy3skxYEE1zdtf0n3f9X/zlFe4fgUq9oI8I1fvB1JQ8zdjgp0D9/mZF+zQyAOfIy3kwiM5JQ2gliNpRR6ZzYOVJVXyU6GsnfvK+ZZ6RTVLTnABOzZYdusx+dsmLEuoPF3hcZKlqUdpxhoAUwRRTfjxYWErD1xbTu"
+    },
+    {
+      "name": "AgenticAI.openai-Mobile.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "BillingSpecialistAgent.Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "BillingSpecialistAgent"
+    },
+    {
+      "name": "BillingSpecialistAgent.Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "A Mobile billing specialist AI that handles charge explanations, payment history review, billing disputes, and goodwill credit applications."
+    },
+    {
+      "name": "BillingSpecialistAgent.Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-4o"
+    },
+    {
+      "name": "BillingSpecialistAgent.Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 4096
+    },
+    {
+      "name": "BillingSpecialistAgent.Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 30
+    },
+    {
+      "name": "BillingSpecialistAgent.Trigger_Settings.Redact_Sensitive_Data",
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "name": "TechnicalSupportAgent.Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "TechnicalSupportAgent"
+    },
+    {
+      "name": "TechnicalSupportAgent.Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "A Mobile technical support specialist AI that runs network diagnostics, troubleshoots connectivity issues, and schedules technician visits. Can hand off to UpgradeAdvisorAgent when device upgrade is needed."
+    },
+    {
+      "name": "TechnicalSupportAgent.Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-4o"
+    },
+    {
+      "name": "TechnicalSupportAgent.Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 4096
+    },
+    {
+      "name": "TechnicalSupportAgent.Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 30
+    },
+    {
+      "name": "TechnicalSupportAgent.Trigger_Settings.Redact_Sensitive_Data",
+      "type": "boolean",
+      "value": false
+    },
+    {
+      "name": "UpgradeAdvisorAgent.Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "UpgradeAdvisorAgent"
+    },
+    {
+      "name": "UpgradeAdvisorAgent.Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "A Mobile upgrade advisor AI that presents eligible plan and device upgrade options and processes upgrade orders. Receives handoffs from both CustomerSupportDispatcher and TechnicalSupportAgent."
+    },
+    {
+      "name": "UpgradeAdvisorAgent.Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-4o"
+    },
+    {
+      "name": "UpgradeAdvisorAgent.Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 4096
+    },
+    {
+      "name": "UpgradeAdvisorAgent.Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 30
+    },
+    {
+      "name": "UpgradeAdvisorAgent.Trigger_Settings.Redact_Sensitive_Data",
+      "type": "boolean",
+      "value": false
+    },
+    {
+      "name": "CustomerSupportDispatcher.Activity_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-4o"
+    },
+    {
+      "name": "CustomerSupportDispatcher.Activity_Settings.Token_Limit",
+      "type": "float64",
+      "value": 4096
+    },
+    {
+      "name": "CustomerSupportDispatcher.Activity_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 30
+    },
+    {
+      "name": "CustomerSupportDispatcher.Activity_Settings.Redact_Sensitive_Data",
+      "type": "boolean",
+      "value": false
+    },
+    {
+      "name": "BillingSpecialistAgent.Trigger_Settings.LLM_temperature",
+      "type": "float64",
+      "value": 1
+    },
+    {
+      "name": "TechnicalSupportAgent.Trigger_Settings.LLM_temperature",
+      "type": "float64",
+      "value": 1
+    },
+    {
+      "name": "UpgradeAdvisorAgent.Trigger_Settings.LLM_temperature",
+      "type": "float64",
+      "value": 0.6
+    },
+    {
+      "name": "CustomerSupportDispatcher.Activity_Settings.Agents_Handoff",
+      "type": "string",
+      "value": "BillingSpecialistAgent,TechnicalSupportAgent,UpgradeAdvisorAgent"
+    }
+  ],
+  "connections": {
+    "22222222-2222-2222-2222-222222222222": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "openai-Mobile",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "openai-Mobile",
+        "description": "OpenAI LLM provider connection for the Mobile Customer Care Hub.",
+        "llmProvider": "=$property[\"AgenticAI.openai-Mobile.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.openai-Mobile.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.openai-Mobile.LLM_Base_URL\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9wcm9qZWN0LWZsb2dvL3dlYnNvY2tldCIsImlkIjoid2Vic29ja2V0IiwidmVyc2lvbiI6IjEuMC4xIiwidGFnIjoiMS4wLjEtYjAzLWZsb2dvLTIuMjUuMCIsIm5hbWUiOiJXZWJzb2NrZXQiLCJzM2xvY2F0aW9uIjoiVGliY28vd2Vic29ja2V0IiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWFpLWFnZW50L3NyYy9hcHAvQWdlbnRpY0FJIiwiaWQiOiJBZ2VudGljQUkiLCJ2ZXJzaW9uIjoiMC45LjAiLCJ0YWciOiIwLjkuMC1iMDMiLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInMzbG9jYXRpb24iOiJUaWJjby9BZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJpZCI6IkdlbmVyYWwiLCJ2ZXJzaW9uIjoiMS42LjEyIiwidGFnIjoiMS42LjEyLWIwNiIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9998",
+        "title": "WebsocketServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.2"
+  }
+}

@@ -1,0 +1,553 @@
+{
+    "imports": [
+        "github.com/project-flogo/flow",
+        "github.com/tibco/flogo-general/src/app/General/activity/mapper",
+        "github.com/tibco/flogo-general/src/app/General/activity/log",
+        "github.com/project-flogo/contrib/activity/actreturn",
+        "github.com/tibco/flogo-general/src/app/General/trigger/timer",
+        "git.tibco.com/git/product/ipaas/wi-contrib.git/function/utility",
+        "github.com/project-flogo/contrib/function/string",
+        "github.com/project-flogo/contrib/function/array"
+    ],
+    "name": "HowTo_Handle_NullEmptyJSON_ObjArray",
+    "description": "This will demo how user can handle empty/null obj in condition path ",
+    "version": "1.0.0",
+    "type": "flogo:app",
+    "appModel": "1.1.1",
+    "tags": [],
+    "triggers": [
+        {
+            "ref": "#timer",
+            "name": "tibco-wi-timer",
+            "description": "Simple Timer trigger",
+            "settings": {},
+            "id": "TimerTrigger",
+            "handlers": [
+                {
+                    "description": "This flow will demonstrate how to handle empty or null JSON object in the condition path.",
+                    "settings": {
+                        "Scheduler Options": "Timer",
+                        "Start Time": "",
+                        "Repeating": false,
+                        "Delayed Start": false,
+                        "Time Interval": 1,
+                        "Interval Unit": "Second",
+                        "Cron Expression": "CRON_TZ=Asia/Calcutta * * * * *"
+                    },
+                    "action": {
+                        "ref": "github.com/project-flogo/flow",
+                        "settings": {
+                            "flowURI": "res://flow:Handle_EmptyNull_In_JSONArrayObject"
+                        }
+                    },
+                    "name": "Handle_EmptyNull_In_JSONArrayObject"
+                },
+                {
+                    "description": "This flow will demonstrate how to handle empty or null JSON object in the condition path.",
+                    "settings": {
+                        "Scheduler Options": "Timer",
+                        "Repeating": false,
+                        "Delayed Start": false,
+                        "Time Interval": 1,
+                        "Interval Unit": "Second",
+                        "Cron Expression": ""
+                    },
+                    "action": {
+                        "ref": "github.com/project-flogo/flow",
+                        "settings": {
+                            "flowURI": "res://flow:Handle_EmptyNull_In_JSONObject_1"
+                        }
+                    },
+                    "name": "Handle_EmptyNull_In_JSONObject_1"
+                },
+                {
+                    "description": "This flow will demonstrate how to handle empty or null JSON object in the condition path.",
+                    "settings": {
+                        "Scheduler Options": "Timer",
+                        "Repeating": false,
+                        "Delayed Start": false,
+                        "Time Interval": 1,
+                        "Interval Unit": "Second",
+                        "Cron Expression": ""
+                    },
+                    "action": {
+                        "ref": "github.com/project-flogo/flow",
+                        "settings": {
+                            "flowURI": "res://flow:Handle_EmptyNull_In_JSONObject_2"
+                        }
+                    },
+                    "name": "Handle_EmptyNull_In_JSONObject_2"
+                }
+            ]
+        }
+    ],
+    "resources": [
+        {
+            "id": "flow:Handle_EmptyNull_In_JSONObject_1",
+            "data": {
+                "name": "Handle_EmptyNull_In_JSONObject_1",
+                "description": "This flow will demonstrate how to handle empty or null JSON object in the condition path.",
+                "links": [
+                    {
+                        "id": 1,
+                        "from": "set_Input",
+                        "to": "Mapper",
+                        "type": "label",
+                        "label": "set_Input to Mapper"
+                    },
+                    {
+                        "id": 2,
+                        "from": "Mapper",
+                        "to": "LogMessage",
+                        "type": "expression",
+                        "label": "MappertoLogMessage",
+                        "value": "utility.renderJSON($activity[set_Input].output.book, false)=='null'"
+                    },
+                    {
+                        "id": 3,
+                        "from": "LogMessage",
+                        "to": "Return",
+                        "type": "label",
+                        "label": "LogMessage to Return"
+                    },
+                    {
+                        "id": 4,
+                        "from": "Mapper",
+                        "to": "LogMessage1",
+                        "type": "exprOtherwise",
+                        "label": "Mapper to LogMessage1"
+                    },
+                    {
+                        "id": 5,
+                        "from": "LogMessage1",
+                        "to": "Return1",
+                        "type": "label",
+                        "label": "LogMessage1 to Return1"
+                    }
+                ],
+                "tasks": [
+                    {
+                        "id": "set_Input",
+                        "name": "set_Input",
+                        "description": "Mapper Activity",
+                        "activity": {
+                            "ref": "#mapper",
+                            "schemas": {
+                                "input": {
+                                    "input": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}",
+                                        "fe_metadata": "{\n    \"book\":{\n        \"name\":\"\",\n        \"isbn\":\"\",\n        \"author\":\"\",\n        \"price\":\"\"\n    }\n}"
+                                    }
+                                },
+                                "output": {
+                                    "output": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}",
+                                        "fe_metadata": "{\n  \"book\": {\n    \"name\": \"\",\n    \"isbn\": \"\",\n    \"author\": \"\",\n    \"price\": \"\"\n  }\n}"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "Mapper",
+                        "name": "Mapper",
+                        "description": "Mapper Activity",
+                        "activity": {
+                            "ref": "#mapper",
+                            "input": {
+                                "input": {
+                                    "mapping": {
+                                        "book": "=$activity[set_Input].output.book"
+                                    }
+                                }
+                            },
+                            "schemas": {
+                                "input": {
+                                    "input": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}",
+                                        "fe_metadata": "{\n    \"book\":{\n        \"name\":\"\",\n        \"isbn\":\"\",\n        \"author\":\"\",\n        \"price\":\"\"\n    }\n}"
+                                    }
+                                },
+                                "output": {
+                                    "output": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}",
+                                        "fe_metadata": "{\n  \"book\": {\n    \"name\": \"\",\n    \"isbn\": \"\",\n    \"author\": \"\",\n    \"price\": \"\"\n  }\n}"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "LogMessage",
+                        "name": "LogMessage",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "##### THE BOOKS HAS EMPTY OR NULL VALUE ####"
+                            }
+                        }
+                    },
+                    {
+                        "id": "Return",
+                        "name": "Return",
+                        "description": "Simple Return Activity",
+                        "activity": {
+                            "ref": "#actreturn"
+                        }
+                    },
+                    {
+                        "id": "LogMessage1",
+                        "name": "LogMessage1",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "=string.concat(\"#### INCOMING MSG : \", utility.renderJSON($activity[Mapper].output.book, false))"
+                            }
+                        }
+                    },
+                    {
+                        "id": "Return1",
+                        "name": "Return1",
+                        "description": "Simple Return Activity",
+                        "activity": {
+                            "ref": "#actreturn"
+                        }
+                    }
+                ],
+                "fe_metadata": "eyJzZXRfSW5wdXQiOnsieCI6NTAsInkiOjUwfSwiTWFwcGVyIjp7IngiOjI1MCwieSI6NTB9LCJMb2dNZXNzYWdlIjp7IngiOjQ1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6MTUwfSwiTG9nTWVzc2FnZTEiOnsieCI6NDUwLCJ5IjoyNTB9LCJSZXR1cm4xIjp7IngiOjY1MCwieSI6MjUwfX0=",
+                "metadata": {
+                    "input": [],
+                    "output": [],
+                    "fe_metadata": {}
+                }
+            }
+        },
+        {
+            "id": "flow:Handle_EmptyNull_In_JSONObject_2",
+            "data": {
+                "name": "Handle_EmptyNull_In_JSONObject_2",
+                "description": "This flow will demonstrate how to handle empty or null JSON object in the condition path.",
+                "links": [
+                    {
+                        "id": 1,
+                        "from": "set_Input",
+                        "to": "Mapper",
+                        "type": "label",
+                        "label": "set_Input to Mapper"
+                    },
+                    {
+                        "id": 2,
+                        "from": "Mapper",
+                        "to": "LogMessage",
+                        "type": "expression",
+                        "label": "MappertoLogMessage",
+                        "value": "utility.renderJSON($activity[Mapper].output, false) == '{\"book\":null}'"
+                    },
+                    {
+                        "id": 3,
+                        "from": "LogMessage",
+                        "to": "Return",
+                        "type": "label",
+                        "label": "LogMessage to Return"
+                    },
+                    {
+                        "id": 4,
+                        "from": "Mapper",
+                        "to": "LogMessage1",
+                        "type": "exprOtherwise",
+                        "label": "Mapper to LogMessage1"
+                    },
+                    {
+                        "id": 5,
+                        "from": "LogMessage1",
+                        "to": "Return1",
+                        "type": "label",
+                        "label": "LogMessage1 to Return1"
+                    }
+                ],
+                "tasks": [
+                    {
+                        "id": "set_Input",
+                        "name": "set_Input",
+                        "description": "Mapper Activity",
+                        "activity": {
+                            "ref": "#mapper",
+                            "schemas": {
+                                "input": {
+                                    "input": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}",
+                                        "fe_metadata": "{\n    \"book\":{\n        \"name\":\"\",\n        \"isbn\":\"\",\n        \"author\":\"\",\n        \"price\":\"\"\n    }\n}"
+                                    }
+                                },
+                                "output": {
+                                    "output": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}",
+                                        "fe_metadata": "{\n  \"book\": {\n    \"name\": \"\",\n    \"isbn\": \"\",\n    \"author\": \"\",\n    \"price\": \"\"\n  }\n}"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "Mapper",
+                        "name": "Mapper",
+                        "description": "Mapper Activity",
+                        "activity": {
+                            "ref": "#mapper",
+                            "input": {
+                                "input": {
+                                    "mapping": {
+                                        "book": "=$activity[set_Input].output.book"
+                                    }
+                                }
+                            },
+                            "schemas": {
+                                "input": {
+                                    "input": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}",
+                                        "fe_metadata": "{\n    \"book\":{\n        \"name\":\"\",\n        \"isbn\":\"\",\n        \"author\":\"\",\n        \"price\":\"\"\n    }\n}"
+                                    }
+                                },
+                                "output": {
+                                    "output": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}",
+                                        "fe_metadata": "{\n  \"book\": {\n    \"name\": \"\",\n    \"isbn\": \"\",\n    \"author\": \"\",\n    \"price\": \"\"\n  }\n}"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "LogMessage",
+                        "name": "LogMessage",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "##### THE BOOKS HAS EMPTY OR NULL VALUE ####"
+                            }
+                        }
+                    },
+                    {
+                        "id": "Return",
+                        "name": "Return",
+                        "description": "Simple Return Activity",
+                        "activity": {
+                            "ref": "#actreturn"
+                        }
+                    },
+                    {
+                        "id": "LogMessage1",
+                        "name": "LogMessage1",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "=string.concat(\"#### INCOMING MSG : \", utility.renderJSON($activity[Mapper].output.book, false))"
+                            }
+                        }
+                    },
+                    {
+                        "id": "Return1",
+                        "name": "Return1",
+                        "description": "Simple Return Activity",
+                        "activity": {
+                            "ref": "#actreturn"
+                        }
+                    }
+                ],
+                "fe_metadata": "eyJzZXRfSW5wdXQiOnsieCI6NTAsInkiOjUwfSwiTWFwcGVyIjp7IngiOjI1MCwieSI6NTB9LCJMb2dNZXNzYWdlIjp7IngiOjQ1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6MTUwfSwiTG9nTWVzc2FnZTEiOnsieCI6NDUwLCJ5IjoyNTB9LCJSZXR1cm4xIjp7IngiOjY1MCwieSI6MjUwfX0=",
+                "metadata": {
+                    "input": [],
+                    "output": [],
+                    "fe_metadata": {}
+                }
+            }
+        },
+        {
+            "id": "flow:Handle_EmptyNull_In_JSONArrayObject",
+            "data": {
+                "name": "Handle_EmptyNull_In_JSONArrayObject",
+                "description": "This flow will demonstrate how to handle empty or null JSON object in the condition path.",
+                "links": [
+                    {
+                        "id": 1,
+                        "from": "set_Input",
+                        "to": "Mapper",
+                        "type": "label",
+                        "label": "set_Input to Mapper"
+                    },
+                    {
+                        "id": 2,
+                        "from": "Mapper",
+                        "to": "LogMessage",
+                        "type": "expression",
+                        "label": "MappertoLogMessage",
+                        "value": "array.count($activity[Mapper].output.book)==0"
+                    },
+                    {
+                        "id": 3,
+                        "from": "LogMessage",
+                        "to": "Return",
+                        "type": "label",
+                        "label": "LogMessage to Return"
+                    },
+                    {
+                        "id": 4,
+                        "from": "Mapper",
+                        "to": "LogMessage1",
+                        "type": "exprOtherwise",
+                        "label": "Mapper to LogMessage1"
+                    },
+                    {
+                        "id": 5,
+                        "from": "LogMessage1",
+                        "to": "Return1",
+                        "type": "label",
+                        "label": "LogMessage1 to Return1"
+                    }
+                ],
+                "tasks": [
+                    {
+                        "id": "set_Input",
+                        "name": "set_Input",
+                        "description": "Mapper Activity",
+                        "activity": {
+                            "ref": "#mapper",
+                            "schemas": {
+                                "input": {
+                                    "input": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}}",
+                                        "fe_metadata": "{\n    \"book\":[{\n        \"name\":\"\",\n        \"isbn\":\"\",\n        \"author\":\"\",\n        \"price\":\"\"\n    }]\n}"
+                                    }
+                                },
+                                "output": {
+                                    "output": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}}",
+                                        "fe_metadata": "{\n  \"book\": [\n    {\n      \"name\": \"\",\n      \"isbn\": \"\",\n      \"author\": \"\",\n      \"price\": \"\"\n    }\n  ]\n}"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "Mapper",
+                        "name": "Mapper",
+                        "description": "Mapper Activity",
+                        "activity": {
+                            "ref": "#mapper",
+                            "input": {
+                                "input": {
+                                    "mapping": {
+                                        "book": {
+                                            "@foreach($activity[set_Input].output.book,book)": {
+                                                "=": "$loop"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "schemas": {
+                                "input": {
+                                    "input": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}}",
+                                        "fe_metadata": "{\n    \"book\":[{\n        \"name\":\"\",\n        \"isbn\":\"\",\n        \"author\":\"\",\n        \"price\":\"\"\n    }]\n}"
+                                    }
+                                },
+                                "output": {
+                                    "output": {
+                                        "type": "json",
+                                        "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"book\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"isbn\":{\"type\":\"string\"},\"author\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"}}}}}}",
+                                        "fe_metadata": "{\n  \"book\": [\n    {\n      \"name\": \"\",\n      \"isbn\": \"\",\n      \"author\": \"\",\n      \"price\": \"\"\n    }\n  ]\n}"
+                                    }
+                                }
+                            },
+                            "feSchemaMap": {}
+                        }
+                    },
+                    {
+                        "id": "LogMessage",
+                        "name": "LogMessage",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "##### THE BOOKS HAS EMPTY OR NULL VALUE ####"
+                            }
+                        }
+                    },
+                    {
+                        "id": "Return",
+                        "name": "Return",
+                        "description": "Simple Return Activity",
+                        "activity": {
+                            "ref": "#actreturn"
+                        }
+                    },
+                    {
+                        "id": "LogMessage1",
+                        "name": "LogMessage1",
+                        "description": "Simple Log Message Activity",
+                        "activity": {
+                            "ref": "#log",
+                            "input": {
+                                "Log Level": "INFO",
+                                "flowInfo": false,
+                                "message": "=string.concat(\"#### INCOMING MSG : \", utility.renderJSON($activity[Mapper].output.book, false))"
+                            }
+                        }
+                    },
+                    {
+                        "id": "Return1",
+                        "name": "Return1",
+                        "description": "Simple Return Activity",
+                        "activity": {
+                            "ref": "#actreturn"
+                        }
+                    }
+                ],
+                "fe_metadata": "eyJzZXRfSW5wdXQiOnsieCI6NTAsInkiOjUwfSwiTWFwcGVyIjp7IngiOjI1MCwieSI6NTB9LCJMb2dNZXNzYWdlIjp7IngiOjQ1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6MTUwfSwiTG9nTWVzc2FnZTEiOnsieCI6NDUwLCJ5IjoyNTB9LCJSZXR1cm4xIjp7IngiOjY1MCwieSI6MjUwfX0=",
+                "metadata": {
+                    "input": [],
+                    "output": [],
+                    "fe_metadata": {}
+                }
+            }
+        }
+    ],
+    "properties": [],
+    "connections": {},
+    "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+    "metadata": {
+        "endpoints": [],
+        "flogoVersion": "2.25.11"
+    }
+}

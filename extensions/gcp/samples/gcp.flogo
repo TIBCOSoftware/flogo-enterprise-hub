@@ -1,0 +1,93 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/mmussett/extensions/gcp/activity/getidtoken",
+    "github.com/tibco/flogo-general/src/app/General/trigger/timer"
+  ],
+  "name": "gcp",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#timer",
+      "name": "tibco-wi-timer",
+      "description": "Simple Timer trigger",
+      "settings": {},
+      "id": "TimerTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Scheduler Options": "Timer",
+            "Repeating": false,
+            "Delayed Start": false,
+            "Time Interval": 1,
+            "Interval Unit": "Second",
+            "Cron Expression": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetIDTokenFromGCP"
+            }
+          },
+          "name": "GetIDTokenFromGCP"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GetIDTokenFromGCP",
+      "data": {
+        "name": "GetIDTokenFromGCP",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GetIDTokenActivity",
+            "type": "label",
+            "label": "StartActivity to GetIDTokenActivity"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "GetIDTokenActivity",
+            "name": "GetIDTokenActivity",
+            "description": "This activity gets an id token from gcp",
+            "activity": {
+              "ref": "#getidtoken",
+              "input": {}
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiR2V0SURUb2tlbkFjdGl2aXR5Ijp7IngiOjMyMCwieSI6OTJ9fQ==",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9tbXVzc2V0dC9leHRlbnNpb25zL2djcCIsImlkIjoiZ2NwIiwidmVyc2lvbiI6IjEuMC4wIiwidGFnIjoiMS4wLjAiLCJuYW1lIjoiR0NQIiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L2djcCIsImlzVXNlckV4dGVuc2lvbiI6dHJ1ZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiaWQiOiJHZW5lcmFsIiwidmVyc2lvbiI6IjEuNi44IiwidGFnIjoiMS42LjgtYjAxIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.25.8"
+  }
+}
