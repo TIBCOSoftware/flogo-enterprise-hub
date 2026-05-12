@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
+<title> AI Triage Agent— Live</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { min-height:100%; }
+  body { font: 14px/1.45 -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+         background:#080b10; color:#e6e8eb; margin:0; padding:24px;
+         position:relative; overflow-x:hidden; }
+  #bg-canvas { position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.7; }
+  body > *:not(#bg-canvas):not(.drawer-overlay):not(.drawer) { position:relative; z-index:1; }
+  h1 { font-size: 22px; margin: 0 0 4px; display:flex; align-items:center; gap:10px; }
+  .live-dot { width:9px; height:9px; border-radius:50%; background:#4ade80; flex-shrink:0;
+              box-shadow:0 0 0 0 rgba(74,222,128,0.6); animation:pulse 2s infinite; }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
+    70%  { box-shadow: 0 0 0 7px rgba(74,222,128,0); }
+    100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+  }
+  .sub { color:#8a94a3; margin-bottom: 20px; font-size: 13px; display:flex; align-items:center; gap:12px; }
+  .last-updated { margin-left:auto; font-size:11px; color:#545d6b; }
+  .stats { display:grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+  .card { background:#171b21; border:1px solid #232831; border-radius:10px; padding:14px 16px; }
+  .card .lbl { color:#8a94a3; font-size: 11px; text-transform: uppercase; letter-spacing:.06em; }
+  .card .val { font-size: 28px; font-weight: 600; margin-top: 4px; }
+  .card.good .val { color:#4ade80; }
+  .card.warn .val { color:#f59e0b; }
+  .card.bad  .val { color:#ef4444; }
+  .card.info .val { color:#60a5fa; }
+  .card.neutral .val { color:#e6e8eb; }
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse: collapse; background:#171b21; border:1px solid #232831; border-radius:10px; overflow:hidden; }
+  th, td { text-align:left; padding:8px 12px; border-bottom:1px solid #232831; font-size: 13px; vertical-align: top; }
+  th { background:#1d222a; color:#c3c9d2; font-weight:600; position: sticky; top:0; white-space:nowrap; }
+  tbody tr:hover td { background:#1a1f28; }
+  tr:last-child td { border-bottom:0; }
+  .pill { display:inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space:nowrap; }
+  .pill.new      { background:#143d22; color:#4ade80; }
+  .pill.dup      { background:#3b2e0b; color:#f59e0b; }
+  .pill.lowc     { background:#2a1a3d; color:#c084fc; }
+  .pill.bypass   { background:#1a2030; color:#7dd3fc; }
+  .pill.p1       { background:#3d1414; color:#ef4444; }
+  .pill.p2       { background:#2b2410; color:#fbbf24; }
+  .pill.p3       { background:#17262e; color:#60a5fa; }
+  .pill.p4       { background:#1d222a; color:#8a94a3; }
+  /* confidence bar */
+  .conf-wrap { display:flex; align-items:center; gap:6px; }
+  .conf-bar  { width:48px; height:5px; border-radius:3px; background:#232831; overflow:hidden; }
+  .conf-fill { height:100%; border-radius:3px; }
+  .conf-high { background:#4ade80; }
+  .conf-mid  { background:#f59e0b; }
+  .conf-low  { background:#ef4444; }
+  .conf-val  { font-size:12px; font-weight:600; color:#e6e8eb; }
+  .muted { color:#8a94a3; }
+  .row { display:flex; gap:20px; }
+  .col { flex:1; min-width:0; }
+  .col h2 { font-size: 14px; margin:0 0 8px; color:#c3c9d2; }
+  code { background:#0b0d11; padding:1px 6px; border-radius:4px; color:#c3c9d2; }
+  button { background:#1f2937; color:#e6e8eb; border:1px solid #2b3543; padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px; }
+  button:hover { background:#293342; }
+  /* work-notes timeline */
+  .notes-toggle { background:none; border:none; color:#60a5fa; cursor:pointer; font-size:11px; padding:0; margin-top:3px; }
+  .notes-toggle:hover { color:#93c5fd; }
+  .notes-list { margin:6px 0 0 0; padding:0; list-style:none; display:none; }
+  .notes-list.open { display:block; }
+  .notes-list li { position:relative; padding: 5px 8px 5px 18px; margin-bottom:4px;
+                   background:#0f1216; border-left: 2px solid #2d3748; border-radius:0 6px 6px 0; font-size:12px; }
+  .notes-list li::before { content:''; position:absolute; left:-5px; top:10px;
+                            width:7px; height:7px; border-radius:50%; background:#374151; }
+  .notes-list li.note-new::before  { background:#4ade80; }
+  .notes-list li.note-dup::before  { background:#f59e0b; }
+  .notes-list li.note-lowc::before { background:#c084fc; }
+  .notes-list li.note-bad::before  { background:#ef4444; }
+  .note-time { color:#8a94a3; font-size:11px; margin-right:6px; }
+  .note-text  { color:#c3c9d2; }
+  /* ---- Incident detail drawer ---- */
+  .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100; opacity:0;
+    transition:opacity .25s; pointer-events:none; }
+  .drawer-overlay.open { opacity:1; pointer-events:all; }
+  .drawer { position:fixed; top:0; right:0; width:min(540px,92vw); height:100vh; overflow-y:auto;
+    background:#111520; border-left:1px solid #232831; z-index:101; padding:0;
+    transform:translateX(100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+    display:flex; flex-direction:column; }
+  .drawer.open { transform:translateX(0); }
+  .drawer-header { display:flex; align-items:flex-start; gap:12px; padding:20px 24px 16px;
+    border-bottom:1px solid #232831; position:sticky; top:0; background:#111520; z-index:1; }
+  .drawer-header-info { flex:1; min-width:0; }
+  .drawer-inc-num { font-size:18px; font-weight:700; color:#e6e8eb; font-family:ui-monospace,monospace; }
+  .drawer-short-desc { font-size:12px; color:#8a94a3; margin-top:3px; word-break:break-all; }
+  .drawer-close { background:none; border:none; color:#545d6b; font-size:20px; cursor:pointer;
+    padding:0; line-height:1; flex-shrink:0; margin-top:2px; }
+  .drawer-close:hover { color:#e6e8eb; }
+  .drawer-body { padding:20px 24px; flex:1; }
+  .drawer-section { margin-bottom:22px; }
+  .drawer-section-title { font-size:11px; font-weight:600; color:#545d6b; text-transform:uppercase;
+    letter-spacing:.08em; margin-bottom:10px; }
+  .drawer-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .drawer-field { background:#171b21; border:1px solid #1d2430; border-radius:8px; padding:10px 12px; }
+  .drawer-field .lbl { font-size:10px; color:#545d6b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+  .drawer-field .val { font-size:13px; color:#e6e8eb; word-break:break-all; }
+  .drawer-field .val.mono { font-family:ui-monospace,monospace; font-size:12px; }
+  .drawer-field.full { grid-column:1/-1; }
+  .conf-big { display:flex; align-items:center; gap:10px; }
+  .conf-bar-big { flex:1; height:8px; border-radius:4px; background:#232831; overflow:hidden; }
+  .conf-fill-big { height:100%; border-radius:4px; }
+  .conf-score { font-size:22px; font-weight:700; color:#e6e8eb; }
+  .drawer-notes-list { list-style:none; padding:0; margin:0; }
+  .drawer-notes-list li { position:relative; padding:10px 12px 10px 22px;
+    margin-bottom:6px; background:#0f1216; border-left:3px solid #2d3748;
+    border-radius:0 8px 8px 0; font-size:12px; line-height:1.5; }
+  .drawer-notes-list li::before { content:''; position:absolute; left:-6px; top:14px;
+    width:8px; height:8px; border-radius:50%; background:#374151; }
+  .drawer-notes-list li.note-new::before  { background:#4ade80; }
+  .drawer-notes-list li.note-dup::before  { background:#f59e0b; }
+  .drawer-notes-list li.note-lowc::before { background:#c084fc; }
+  .drawer-notes-list li.note-bad::before  { background:#ef4444; }
+  .stack-trace { background:#0b0d11; border:1px solid #1d2430; border-radius:8px; padding:12px;
+    font-family:ui-monospace,monospace; font-size:11px; color:#8a94a3; white-space:pre-wrap;
+    word-break:break-all; max-height:200px; overflow-y:auto; line-height:1.6; }
+  .inc-link { color:#60a5fa; text-decoration:none; font-family:ui-monospace,monospace; cursor:pointer; }
+  .inc-link:hover { text-decoration:underline; color:#93c5fd; }
+  /* ---- Resolution recommendation ---- */
+  .resolution-box { background:#0d1520; border:1px solid #1e3a5f; border-radius:8px; padding:14px 16px; }
+  .resolution-cause { font-size:12px; color:#c3c9d2; line-height:1.6; margin-bottom:10px; }
+  .resolution-steps { list-style:none; padding:0; margin:0 0 10px; }
+  .resolution-steps li { position:relative; padding:5px 8px 5px 20px; margin-bottom:4px;
+    background:#111a28; border-left:2px solid #1e4a7a; border-radius:0 6px 6px 0; font-size:12px; color:#c3c9d2; line-height:1.5; }
+  .resolution-steps li::before { content:counter(step); counter-increment:step; position:absolute;
+    left:-10px; top:6px; width:16px; height:16px; border-radius:50%; background:#1e4a7a;
+    color:#7dd3fc; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; line-height:16px; text-align:center; }
+  .resolution-steps { counter-reset:step; }
+  .resolution-meta { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  .resolution-meta-item { font-size:11px; color:#545d6b; }
+  .resolution-meta-item span { color:#8a94a3; }
+  .resolution-disclaimer { font-size:10px; color:#545d6b; font-style:italic; border-top:1px solid #1d2430; padding-top:6px; margin-top:4px; }
+  .past-fix-badge { display:inline-block; padding:1px 7px; border-radius:999px; font-size:10px;
+    font-weight:600; background:#1a2030; color:#7dd3fc; margin-left:6px; vertical-align:middle; }
+  /* ---- Simulator panel ---- */
+  .sim-panel { background:#171b21; border:1px solid #232831; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
+  .sim-panel-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; cursor:pointer; user-select:none; }
+  .sim-panel-header:hover h2 { color:#e6e8eb; }
+  .sim-panel-header h2 { font-size:14px; color:#c3c9d2; margin:0; transition:color .15s; }
+  .sim-collapse-btn { margin-left:auto; background:none; border:none; color:#545d6b; font-size:15px;
+    cursor:pointer; padding:0 4px; line-height:1; transition:transform .25s, color .15s; }
+  .sim-panel-header:hover .sim-collapse-btn { color:#c3c9d2; }
+  .sim-panel.collapsed .sim-collapse-btn { transform:rotate(-90deg); }
+  .sim-body { overflow:hidden; transition:max-height .3s ease, opacity .2s ease; max-height:800px; opacity:1; }
+  .sim-panel.collapsed .sim-body { max-height:0; opacity:0; pointer-events:none; }
+  .sim-panel.collapsed .sim-panel-header { margin-bottom:0; }
+  .sim-status { font-size:11px; padding:2px 8px; border-radius:999px; }
+  .sim-status.running { background:#1a3010; color:#4ade80; animation:pulse 2s infinite; }
+  .sim-status.idle    { color:#545d6b; }
+  .sim-controls { display:flex; flex-wrap:wrap; align-items:flex-end; gap:16px; margin-bottom:12px; }
+  .sim-group { display:flex; flex-direction:column; gap:5px; }
+  .sim-group > label { font-size:11px; color:#8a94a3; text-transform:uppercase; letter-spacing:.06em; }
+  .sim-group input[type=number] { background:#0f1216; border:1px solid #2b3543; color:#e6e8eb;
+    padding:5px 8px; border-radius:6px; font-size:13px; width:80px; }
+  .seg-ctrl { display:flex; border:1px solid #2b3543; border-radius:8px; overflow:hidden; }
+  .seg { background:#0f1216; color:#8a94a3; border:none; padding:6px 16px; cursor:pointer; font-size:12px; font-weight:500; }
+  .seg:not(:last-child) { border-right:1px solid #2b3543; }
+  .seg:hover { background:#1a1f28; color:#e6e8eb; }
+  .seg.active { background:#1e3a5f; color:#60a5fa; }
+  .bypass-row { display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .bypass-row input[type=checkbox] { width:15px; height:15px; accent-color:#60a5fa; cursor:pointer; }
+  .bypass-hint { font-size:11px; color:#545d6b; }
+  .btn-run  { background:#143d22; color:#4ade80; border:1px solid #1e5230; padding:7px 18px;
+    border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; }
+  .btn-run:hover:not(:disabled) { background:#1a5030; }
+  .btn-run:disabled { opacity:.4; cursor:default; }
+  .btn-stop { background:#3d1414; color:#ef4444; border:1px solid #5a1c1c; padding:7px 18px;
+    border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; }
+  .sim-log { background:#0b0d11; border:1px solid #1d2430; border-radius:8px; padding:8px 14px;
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; line-height:1.7;
+    min-height:32px; }
+  .sim-log .l-info   { color:#8a94a3; }
+  .sim-log .l-out    { color:#c3c9d2; }
+  .sim-log .l-ok     { color:#4ade80; }
+  .sim-log .l-bypass { color:#7dd3fc; }
+  .sim-log .l-err    { color:#ef4444; }
+  .sim-log .l-done   { color:#f59e0b; font-weight:600; }
+  .sim-log .l-placeholder { color:#545d6b; font-style:italic; }
+  .sim-endpoint-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .sim-endpoint-label { font-size:11px; color:#8a94a3; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
+  .sim-endpoint-presets { display:flex; border:1px solid #2b3543; border-radius:8px; overflow:hidden; flex-shrink:0; }
+  .sim-endpoint-input { flex:1; min-width:260px; background:#0f1216; border:1px solid #2b3543; color:#e6e8eb;
+    padding:5px 10px; border-radius:6px; font-size:12px; font-family:ui-monospace,monospace; }
+</style>
+</head>
+<body>
+  <h1><span class="live-dot"></span>AI Triage Agent</h1>
+  <div class="sub">
+    Polling <code id="sn-url">http://localhost:8081</code> every 2s —
+    <button onclick="resetAll()">Reset demo</button>
+    <span class="last-updated">Last updated: <span id="last-updated">—</span></span>
+  </div>
+
+  <!-- ====== Simulator Control Panel ====== -->
+  <div class="sim-panel" id="sim-panel" style="margin-bottom:20px">
+    <div class="sim-panel-header" onclick="toggleSimPanel()">
+      <h2>Error Simulator</h2>
+      <span class="sim-status idle" id="sim-status">idle</span>
+      <button class="sim-collapse-btn" id="sim-collapse-btn" title="Collapse simulator">&#x25BE;</button>
+    </div>
+    <div class="sim-body" id="sim-body">
+    <div class="sim-controls">
+      <div class="sim-group">
+        <label>Mode</label>
+        <div class="seg-ctrl">
+          <button class="seg active" id="seg-storm"  onclick="setSimMode('storm')">Storm</button>
+          <button class="seg"        id="seg-edge"   onclick="setSimMode('edge')">Edge</button>
+          <button class="seg"        id="seg-single" onclick="setSimMode('single')">Single</button>
+        </div>
+      </div>
+      <div class="sim-group" id="grp-count">
+        <label for="sim-count">Count</label>
+        <input id="sim-count" type="number" value="50" min="1" max="200" />
+      </div>
+      <div class="sim-group">
+        <label for="sim-delay">Delay (ms)</label>
+        <input id="sim-delay" type="number" value="100" min="0" max="5000" />
+      </div>
+      <div class="sim-group">
+        <label>&nbsp;</label>
+        <label class="bypass-row">
+          <input type="checkbox" id="sim-bypass" onchange="onBypassChange()" />
+          <span style="font-size:13px;color:#e6e8eb;">Bypass agent</span>
+          <span class="bypass-hint">— sends directly to ServiceNow (baseline noise)</span>
+        </label>
+      </div>
+      <div class="sim-group">
+        <label>&nbsp;</label>
+        <div style="display:flex;gap:8px">
+          <button class="btn-run"  id="sim-run-btn"  onclick="runSimulator()">▶ Run</button>
+          <button class="btn-stop" id="sim-stop-btn" onclick="stopSimulator()" style="display:none">■ Stop</button>
+        </div>
+      </div>
+    </div>
+    <div class="sim-endpoint-row">
+      <label class="sim-endpoint-label" for="sim-endpoint">Target endpoint</label>
+      <div class="sim-endpoint-presets">
+        <button class="seg active" id="preset-agent" onclick="setEndpointPreset('agent')">Agent :8080</button>
+        <button class="seg"        id="preset-sn"    onclick="setEndpointPreset('sn')">ServiceNow :8081</button>
+      </div>
+      <input id="sim-endpoint" class="sim-endpoint-input" type="text" value="http://localhost:8080/triage"
+             placeholder="http://localhost:8080/triage" />
+    </div>
+    <div class="sim-log" id="sim-log"><span class="l-placeholder">Output will appear here…</span></div>
+    </div><!-- /sim-body -->
+  </div>
+
+  <h2 style="font-size:22px;color:#c3c9d2;margin:0 0 12px">Live Dashboard</h2>
+
+  <div class="stats">
+    <div class="card info"><div class="lbl">Events received</div><div class="val" id="v-total">0</div></div>
+    <div class="card good"><div class="lbl">Created (unique)</div><div class="val" id="v-created">0</div></div>
+    <div class="card warn"><div class="lbl">Duplicates merged</div><div class="val" id="v-merged">0</div></div>
+    <div class="card bad"><div class="lbl">Bad data rejected</div><div class="val" id="v-rejected">0</div></div>
+    <div class="card neutral" id="card-reduction"><div class="lbl">Noise reduction</div><div class="val" id="v-reduction">—</div></div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Number</th><th>Severity</th><th>Error Code</th><th>App</th><th>Node / Process</th><th>Occurrences</th><th>Confidence</th><th>Decision</th><th>Last Seen</th><th>Work Notes</th>
+        </tr></thead>
+        <tbody id="tbody-incidents"><tr><td colspan="10" class="muted">No incidents yet.</td></tr></tbody>
+      </table>
+      </div>
+    </div>
+    <div class="col" style="max-width:420px">
+      <h2>Rejected (bad data)</h2>
+      <table>
+        <thead><tr><th>Timestamp</th><th>Reason</th><th>Correlation ID</th></tr></thead>
+        <tbody id="tbody-rejected"><tr><td colspan="3" class="muted">None.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const SN = location.search.includes('sn=') ? decodeURIComponent(location.search.split('sn=')[1]) : 'http://localhost:8081';
+document.getElementById('sn-url').textContent = SN;
+
+function sevClass(s) {
+  if (!s) return 'p4';
+  if (s.startsWith('1')) return 'p1';
+  if (s.startsWith('2')) return 'p2';
+  if (s.startsWith('3')) return 'p3';
+  return 'p4';
+}
+
+function sevLabel(s) {
+  if (!s) return '-';
+  const n = s.split(' ')[0];
+  if (n === '1' || n === '2' || n === '3' || n === '4') return 'P' + n;
+  return s;
+}
+
+function renderConf(val) {
+  if (val == null) return '<span class="muted">—</span>';
+  const c = Number(val);
+  const cls = c >= 0.85 ? 'conf-high' : c >= 0.75 ? 'conf-mid' : 'conf-low';
+  return `<div class="conf-wrap">
+    <div class="conf-bar"><div class="conf-fill ${cls}" style="width:${Math.round(c*100)}%"></div></div>
+    <span class="conf-val">${c.toFixed(2)}</span>
+  </div>`;
+}
+
+function decisionPill(src) {
+  if (!src) return '<span class="muted">—</span>';
+  if (src === 'agent-new')            return '<span class="pill new">agent · new</span>';
+  if (src === 'agent-low-confidence') return '<span class="pill lowc">agent · low-conf</span>';
+  if (src === 'bypass-baseline')      return '<span class="pill bypass">bypass · baseline</span>';
+  return `<span class="pill p4">${escHtml(src)}</span>`;
+}
+
+function noteClass(text) {
+  const t = (text || '').toLowerCase();
+  if (t.includes('low conf') || t.includes('human') || t.includes('flagged')) return 'note-lowc';
+  if (t.includes('merged') || t.includes('duplicate') || t.includes('occurrence')) return 'note-dup';
+  if (t.includes('created') || t.includes('new incident')) return 'note-new';
+  if (t.includes('reject') || t.includes('bad data') || t.includes('invalid')) return 'note-bad';
+  return '';
+}
+
+function renderNotes(notes, incNum) {
+  if (!notes || !notes.length) return '<span class="muted" style="font-size:11px">—</span>';
+  const id = 'notes-' + incNum;
+  const latest = notes[notes.length - 1];
+  const items = [...notes].reverse().map(n => {
+    const cls = noteClass(n.note);
+    return `<li class="${cls}"><span class="note-time">${new Date(n.at).toLocaleTimeString()}</span><span class="note-text">${escHtml(n.note)}</span></li>`;
+  }).join('');
+  return `
+    <div>
+      <span class="pill ${notes.length > 1 ? 'dup' : 'new'}" style="margin-right:4px">${notes.length} note${notes.length > 1 ? 's' : ''}</span>
+      <button class="notes-toggle" onclick="toggleNotes('${id}')">▶ show</button>
+      <div style="font-size:11px;color:#8a94a3;margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(latest.note)}</div>
+      <ul id="${id}" class="notes-list">${items}</ul>
+    </div>`;
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleNotes(id) {
+  const el = document.getElementById(id);
+  const btn = el.previousElementSibling.previousElementSibling;
+  if (!el) return;
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? '▼ hide' : '▶ show';
+}
+
+async function load() {
+  try {
+    const [stats, incRes, rejRes] = await Promise.all([
+      fetch(`${SN}/api/now/stats`).then(r => r.json()),
+      fetch(`${SN}/api/now/table/incident?sysparm_limit=50`).then(r => r.json()),
+      fetch(`${SN}/api/now/rejected`).then(r => r.json())
+    ]);
+    document.getElementById('v-total').textContent = stats.events_received ?? stats.incidents_total;
+    document.getElementById('v-created').textContent = stats.incidents_created;
+    document.getElementById('v-merged').textContent = stats.duplicates_merged;
+    document.getElementById('v-rejected').textContent = stats.bad_data_rejected;
+    const pct = stats.noise_reduction_pct;
+    document.getElementById('v-reduction').textContent = pct != null ? pct + '%' : '—';
+    const cardEl = document.getElementById('card-reduction');
+    cardEl.className = 'card ' + (pct >= 80 ? 'good' : pct >= 40 ? 'warn' : pct > 0 ? 'bad' : 'neutral');
+    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+
+    const tb = document.getElementById('tbody-incidents');
+    // preserve which note lists are currently expanded
+    const openIds = new Set([...tb.querySelectorAll('.notes-list.open')].map(el => el.id));
+
+    const rows = (incRes.result || []).map(i => `
+      <tr>
+        <td><a class="inc-link" onclick="showIncident('${escHtml(i.sys_id)}')">${escHtml(i.number)}</a></td>
+        <td><span class="pill ${sevClass(i.severity)}">${sevLabel(i.severity)}</span></td>
+        <td>${i.u_error_code||'-'}</td>
+        <td>${i.u_app_name||'-'}</td>
+        <td class="muted">${i.u_app_node||'-'}<br>${i.u_process_name||''}</td>
+        <td>${i.u_occurrence_count}${i.u_occurrence_count > 1 ? ' <span class="pill dup">dup</span>' : ' <span class="pill new">new</span>'}</td>
+        <td>${renderConf(i.u_agent_confidence)}</td>
+        <td>${decisionPill(i.u_decision_source)}</td>
+        <td class="muted">${new Date(i.u_last_seen).toLocaleTimeString()}</td>
+        <td>${renderNotes(i.work_notes, i.number)}</td>
+      </tr>`).join('');
+    tb.innerHTML = rows || `<tr><td colspan="10" class="muted">No incidents yet.</td></tr>`;
+    // restore expanded state after DOM rebuild
+    openIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('open');
+      const btn = el.previousElementSibling.previousElementSibling;
+      if (btn) btn.textContent = '▼ hide';
+    });
+
+    const rt = document.getElementById('tbody-rejected');
+    const rrows = (rejRes.result || []).slice().reverse().map(r => `
+      <tr>
+        <td class="muted">${new Date(r.at).toLocaleTimeString()}</td>
+        <td>${r.reason||'-'}</td>
+        <td class="muted">${(r.event && r.event.correlationId) || '-'}</td>
+      </tr>`).join('');
+    rt.innerHTML = rrows || `<tr><td colspan="3" class="muted">None.</td></tr>`;
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+async function resetAll() {
+  await fetch(`${SN}/api/now/reset`, { method:'POST' });
+  load();
+}
+
+load();
+setInterval(load, 2000);
+
+// ---- Incident detail drawer ----
+async function showIncident(sysId) {
+  const overlay = document.getElementById('drawer-overlay');
+  const drawer  = document.getElementById('incident-drawer');
+  const body    = document.getElementById('drawer-body');
+
+  // open immediately with loading state
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+  document.getElementById('d-number').textContent = '…';
+  document.getElementById('d-short-desc').textContent = '';
+  body.innerHTML = '<div class="muted" style="text-align:center;padding:40px 0">Loading…</div>';
+
+  try {
+    const res = await fetch(`${SN}/api/now/table/incident/${encodeURIComponent(sysId)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { result: i } = await res.json();
+    renderDrawer(i);
+  } catch (e) {
+    body.innerHTML = `<div class="muted" style="padding:20px">Failed to load incident: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('incident-drawer').classList.remove('open');
+}
+
+// close on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+function renderDrawer(i) {
+  document.getElementById('d-number').textContent = i.number;
+  document.getElementById('d-short-desc').textContent = i.short_description || '';
+
+  const conf = i.u_agent_confidence != null ? Number(i.u_agent_confidence) : null;
+  const confCls = conf == null ? '' : conf >= 0.85 ? 'conf-high' : conf >= 0.75 ? 'conf-mid' : 'conf-low';
+
+  const notes = (i.work_notes || []);
+  const notesHtml = notes.length
+    ? `<ul class="drawer-notes-list">${[...notes].reverse().map(n => {
+        const cls = noteClass(n.note);
+        const ts  = new Date(n.at).toLocaleTimeString();
+        return `<li class="${cls}"><span class="note-time">${ts}</span> ${escHtml(n.note)}</li>`;
+      }).join('')}</ul>`
+    : '<span class="muted" style="font-size:12px">No work notes.</span>';
+
+  const stackTrace = i.u_stack_trace
+    ? `<div class="drawer-section">
+        <div class="drawer-section-title">Stack Trace</div>
+        <div class="stack-trace">${escHtml(i.u_stack_trace)}</div>
+       </div>`
+    : '';
+
+  document.getElementById('drawer-body').innerHTML = `
+    <!-- Status row -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+      <span class="pill ${sevClass(i.severity)}">${sevLabel(i.severity)}</span>
+      ${decisionPill(i.u_decision_source)}
+      <span class="pill ${i.state === 'New' ? 'new' : 'p4'}">${escHtml(i.state)}</span>
+      <span class="muted" style="font-size:11px;margin-left:auto">Opened ${new Date(i.opened_at).toLocaleString()}</span>
+    </div>
+
+    <!-- AI confidence -->
+    ${conf != null ? `
+    <div class="drawer-section">
+      <div class="drawer-section-title">AI Confidence</div>
+      <div class="conf-big">
+        <span class="conf-score">${(conf * 100).toFixed(0)}%</span>
+        <div class="conf-bar-big"><div class="conf-fill-big ${confCls}" style="width:${(conf*100).toFixed(0)}%"></div></div>
+      </div>
+    </div>` : ''}
+
+    <!-- Core fields -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Incident Details</div>
+      <div class="drawer-grid">
+        <div class="drawer-field">
+          <div class="lbl">Error Code</div>
+          <div class="val mono">${escHtml(i.u_error_code || '—')}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">Occurrences</div>
+          <div class="val">${i.u_occurrence_count}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">Application</div>
+          <div class="val">${escHtml(i.u_app_name || '—')}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">App Node</div>
+          <div class="val mono">${escHtml(i.u_app_node || '—')}</div>
+        </div>
+        <div class="drawer-field full">
+          <div class="lbl">Process / Activity</div>
+          <div class="val mono">${escHtml(i.u_process_name || '—')} › ${escHtml(i.u_activity_name || '—')}</div>
+        </div>
+        <div class="drawer-field full">
+          <div class="lbl">Error Message</div>
+          <div class="val">${escHtml(i.description || '—')}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">First Seen</div>
+          <div class="val">${new Date(i.u_first_seen || i.opened_at).toLocaleString()}</div>
+        </div>
+        <div class="drawer-field">
+          <div class="lbl">Last Seen</div>
+          <div class="val">${new Date(i.u_last_seen || i.sys_updated_on).toLocaleString()}</div>
+        </div>
+        <div class="drawer-field full">
+          <div class="lbl">Correlation ID</div>
+          <div class="val mono">${escHtml(i.u_correlation_id || '—')}</div>
+        </div>
+      </div>
+    </div>
+
+    ${stackTrace}
+
+    <!-- Resolution recommendation -->
+    ${renderResolution(i.u_resolution_recommendation)}
+
+    <!-- Work notes / AI reasoning -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Work Notes &amp; AI Reasoning (${notes.length})</div>
+      ${notesHtml}
+    </div>
+  `;
+}
+
+function renderResolution(raw) {
+  if (!raw) return '';
+  let r;
+  try { r = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return ''; }
+  if (!r || !r.likely_cause) return '';
+  const steps = (r.recommended_steps || []).map(s =>
+    `<li>${escHtml(s)}</li>`
+  ).join('');
+  const pastBadge = r.based_on_past_fix
+    ? '<span class="past-fix-badge">&#x27F3; based on past fix</span>' : '';
+  const runbook = r.runbook_ref
+    ? `<span class="resolution-meta-item">Runbook: <span>${escHtml(r.runbook_ref)}</span></span>` : '';
+  const effort = r.estimated_effort
+    ? `<span class="resolution-meta-item">Est. effort: <span>${escHtml(r.estimated_effort)}</span></span>` : '';
+  return `
+    <div class="drawer-section">
+      <div class="drawer-section-title">AI Resolution Recommendation${pastBadge}</div>
+      <div class="resolution-box">
+        <div class="resolution-cause">${escHtml(r.likely_cause)}</div>
+        <ol class="resolution-steps">${steps}</ol>
+        <div class="resolution-meta">${runbook}${effort}</div>
+        <div class="resolution-disclaimer">${escHtml(r.disclaimer || 'AI-suggested — verify before applying in production.')}</div>
+      </div>
+    </div>`;
+}
+
+// ---- Simulator UI ----
+let simMode = 'storm';
+let simAbortCtrl = null;
+
+function toggleSimPanel() {
+  const panel = document.getElementById('sim-panel');
+  panel.classList.toggle('collapsed');
+}
+
+function setSimMode(m) {
+  simMode = m;
+  ['storm', 'edge', 'single'].forEach(id =>
+    document.getElementById('seg-' + id).classList.toggle('active', id === m));
+  document.getElementById('grp-count').style.display = m === 'storm' ? '' : '';
+  const countInput = document.getElementById('sim-count');
+  countInput.setAttribute('max', '200');
+  countInput.setAttribute('min', '1');
+  countInput.title = m === 'edge' ? 'Edge: 7 scripted events cycle repeatedly to fill count' : '';
+  if (parseInt(countInput.value) < 1) countInput.value = '1';
+}
+
+const ENDPOINT_PRESETS = {
+  agent: 'http://localhost:8080/triage',
+  sn:    'http://localhost:8081/api/now/table/incident'
+};
+
+function setEndpointPreset(p) {
+  document.getElementById('sim-endpoint').value = ENDPOINT_PRESETS[p];
+  document.getElementById('preset-agent').classList.toggle('active', p === 'agent');
+  document.getElementById('preset-sn').classList.toggle('active',    p === 'sn');
+  // auto-set bypass checkbox to match intent
+  if (p === 'sn') document.getElementById('sim-bypass').checked = true;
+  if (p === 'agent') document.getElementById('sim-bypass').checked = false;
+}
+
+function onBypassChange() {
+  const bypass = document.getElementById('sim-bypass').checked;
+  // sync preset highlight and endpoint when checkbox is toggled directly
+  const current = document.getElementById('sim-endpoint').value.trim();
+  if (bypass && (current === ENDPOINT_PRESETS.agent || current === '')) {
+    document.getElementById('sim-endpoint').value = ENDPOINT_PRESETS.sn;
+    document.getElementById('preset-agent').classList.remove('active');
+    document.getElementById('preset-sn').classList.add('active');
+  } else if (!bypass && (current === ENDPOINT_PRESETS.sn || current === '')) {
+    document.getElementById('sim-endpoint').value = ENDPOINT_PRESETS.agent;
+    document.getElementById('preset-agent').classList.add('active');
+    document.getElementById('preset-sn').classList.remove('active');
+  }
+}
+
+function appendSimLog(msg) {
+  // no-op: we use the compact progress renderer instead
+}
+
+let simStats = { sent: 0, failed: 0, total: 0, startMs: 0 };
+
+function simLogReset(total) {
+  simStats = { sent: 0, failed: 0, total, startMs: Date.now() };
+  const log = document.getElementById('sim-log');
+  log.innerHTML = '';
+  simLogRender();
+}
+
+function simLogTick(ok) {
+  if (ok) simStats.sent++; else simStats.failed++;
+  simLogRender();
+}
+
+function simLogRender() {
+  const log = document.getElementById('sim-log');
+  const { sent, failed, total } = simStats;
+  const done = sent + failed;
+  const pct  = total ? Math.round((done / total) * 100) : 0;
+  const bar  = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
+  log.innerHTML = `<span class="l-info">${bar} ${pct}% &nbsp; ${done}/${total} sent`
+    + (failed ? ` &nbsp;<span class="l-err">${failed} failed</span>` : '') + `</span>`;
+}
+
+function simLogDone(exitInfo) {
+  const log = document.getElementById('sim-log');
+  const elapsed = ((Date.now() - simStats.startMs) / 1000).toFixed(1);
+  const { sent, failed, total } = simStats;
+  const ok = exitInfo.includes('code 0') || exitInfo.includes('null');
+  log.innerHTML = `<span class="${ok && !failed ? 'l-done' : 'l-err'}">`
+    + `${ok ? '✓' : '✗'} ${sent} sent`
+    + (failed ? ` · <span class="l-err">${failed} failed</span>` : '')
+    + ` · ${elapsed}s`
+    + `</span>`;
+  // Auto-collapse the simulator panel so the dashboard comes into focus
+  setTimeout(() => document.getElementById('sim-panel').classList.add('collapsed'), 1200);
+}
+
+async function runSimulator() {
+  const count    = parseInt(document.getElementById('sim-count').value,    10) || 50;
+  const delayMs  = parseInt(document.getElementById('sim-delay').value,    10) || 100;
+  const bypass   = document.getElementById('sim-bypass').checked;
+  const endpoint = document.getElementById('sim-endpoint').value.trim() || ENDPOINT_PRESETS.agent;
+
+  document.getElementById('sim-run-btn').style.display  = 'none';
+  document.getElementById('sim-stop-btn').style.display = '';
+  const statusEl = document.getElementById('sim-status');
+  statusEl.className   = 'sim-status running';
+  statusEl.textContent = 'running…';
+  simLogReset(count);
+
+  simAbortCtrl = new AbortController();
+  try {
+    const res = await fetch(`${SN}/api/simulator/run`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ mode: simMode, count, delayMs, bypass, target: endpoint }),
+      signal:  simAbortCtrl.signal
+    });
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for (const part of parts) {
+        for (const line of part.split('\n')) {
+          if (line.startsWith('data: ')) {
+            try {
+              const msg = JSON.parse(line.slice(6));
+              const t = msg.text || '';
+              if (msg.type === 'done') {
+                simLogDone(t);
+              } else if (t.match(/-> HTTP 2\d\d/)) {
+                simLogTick(true);
+              } else if (t.includes('! send failed') || t.match(/-> HTTP [45]\d\d/)) {
+                simLogTick(false);
+              }
+            } catch {}
+          }
+        }
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') appendSimLog({ type: 'err', text: 'Connection error: ' + e.message });
+  } finally {
+    document.getElementById('sim-run-btn').style.display  = '';
+    document.getElementById('sim-stop-btn').style.display = 'none';
+    statusEl.className   = 'sim-status idle';
+    statusEl.textContent = 'idle';
+    simAbortCtrl = null;
+  }
+}
+
+function stopSimulator() {
+  if (simAbortCtrl) simAbortCtrl.abort();
+}
+</script>
+
+<!-- Incident detail drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="incident-drawer">
+  <div class="drawer-header">
+    <div class="drawer-header-info">
+      <div class="drawer-inc-num" id="d-number">—</div>
+      <div class="drawer-short-desc" id="d-short-desc"></div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()" title="Close">&#x2715;</button>
+  </div>
+  <div class="drawer-body" id="drawer-body">
+    <div class="muted" style="text-align:center;padding:40px 0">Loading…</div>
+  </div>
+</div>
+
+<!-- Neural-network background -->
+<canvas id="bg-canvas"></canvas>
+<script>
+(function () {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx    = canvas.getContext('2d');
+  const NODE_COUNT    = 60;
+  const CONNECT_DIST  = 180;
+  const PULSE_SPEED   = 0.014;
+
+  let W, H, nodes;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function mkNode() {
+    return {
+      x:  Math.random() * W,
+      y:  Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
+      r:  1.5 + Math.random() * 1.8,
+      phase: Math.random() * Math.PI * 2
+    };
+  }
+
+  function init() { nodes = Array.from({ length: NODE_COUNT }, mkNode); }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+
+    // update positions
+    for (const n of nodes) {
+      n.x += n.vx;  n.y += n.vy;
+      if (n.x < 0)  { n.x = 0;  n.vx *= -1; }
+      if (n.x > W)  { n.x = W;  n.vx *= -1; }
+      if (n.y < 0)  { n.y = 0;  n.vy *= -1; }
+      if (n.y > H)  { n.y = H;  n.vy *= -1; }
+      n.phase += PULSE_SPEED;
+    }
+
+    // edges
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > CONNECT_DIST) continue;
+        const alpha = (1 - dist / CONNECT_DIST) * 0.9;
+        // animate a travelling pulse along the edge
+        const pulse = (Math.sin(t * 0.001 + a.phase) + 1) / 2;
+        ctx.beginPath();
+        const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+        grad.addColorStop(0,           `rgba(56,189,248,${alpha * (0.4 + 0.6 * pulse)})`);
+        grad.addColorStop(Math.min(0.99, pulse), `rgba(192,132,252,${alpha})`);
+        grad.addColorStop(1,           `rgba(56,189,248,${alpha * 0.4})`);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth   = 1.2;
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    }
+
+    // nodes
+    for (const n of nodes) {
+      const glow = (Math.sin(n.phase) + 1) / 2;
+      // outer halo
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r + glow * 7, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(56,189,248,${0.06 + glow * 0.1})`;
+      ctx.fill();
+      // mid glow
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r + glow * 3, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(192,132,252,${0.25 + glow * 0.25})`;
+      ctx.fill();
+      // core
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(224,200,255,${0.8 + glow * 0.2})`;
+      ctx.fill();
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', () => { resize(); });
+  resize();
+  init();
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
