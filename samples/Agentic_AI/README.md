@@ -61,6 +61,15 @@ A procurement intelligence assistant demonstrating two key features working toge
 
 ---
 
+### 4. [AI-Powered Incident Triage Agent](./Ai-Triage-Agent/)
+**AI Agent Activity + MCP Tools + ServiceNow Integration + Real-Time Dashboard**
+
+An intelligent incident triage system that watches an integration middleware error stream and slashes ServiceNow ticket noise by ~90%. Each incoming error event is validated, reasoned over by a Flogo AI Agent, then acted on: the LLM decides whether the event is a new unique incident, a duplicate of an existing open ticket, or bad data — and calls the right MCP tool accordingly. For every new incident it also synthesises a resolution recommendation from past resolved tickets and attaches it immediately.
+
+**Highlights**: AI Agent Activity with MCP tools for ServiceNow access · Semantic duplicate detection (not string matching) · Low-confidence guardrail (< 0.75 → new ticket + possible-duplicate note) · Resolution recommendations from historical tickets · Live browser dashboard with built-in error simulator · Supports Ollama (local), OpenAI, and Azure OpenAI · Pre-built binaries included — no Go or Flogo CLI needed
+
+---
+
 ## Prerequisites
 
 - **TIBCO Flogo® 2.26.2 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
