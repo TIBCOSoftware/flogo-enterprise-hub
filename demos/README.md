@@ -1,18 +1,47 @@
 # **TIBCO Flogo® Demos**
 
-This folder contains demos for FLOGO.
+End-to-end proof-of-concept demonstrations showcasing **TIBCO Flogo®** as a **low-code iPaaS** for **AI-powered services**, **MCP server integration**, **GraphQL APIs**, and **real-time machine learning inference** — ready to clone, run, and explore.
+
+---
 
 ## Index
 
-| Demo | About |
-|------|-------|
-| [ai-powered-customer-service](./ai-powered-customer-service/README.md) | AI-powered customer service demo showcasing Flogo's Model Context Protocol (MCP) implementation with enterprise system integration |
-| [ai-powered-MFT](./flogo-mcp-mft/README.md) | AI-powered Managed File Transfer demo showcasing Flogo's Model Context Protocol (MCP) implementation with enterprise system integration |
-| [flogo-graphql](./flogo-graphql/README.md) | Demonstrates GraphQL trigger and MongoDB activity to implement a number of resolvers |
-| [flogo-machine-learning-anomaly-detection](./flogo-machine-learning-anomaly-detection/README.md) | Demonstrates Artificial Intelligence Machine Learning (AI-ML) in a real-time eventing scenario with TIBCO Flogo in tandem with Python Scikit-learn open-source machine learning library deployable into the TIBCO Platform. |
+| Demo | Category | Description |
+|------|----------|-------------|
+| [AI-Powered Customer Service](./ai-powered-customer-service/) | AI & MCP | MCP server integrating CRM, order management, and notifications for AI agents (Claude Desktop, Cursor, VS Code) |
+| [AI-Powered MFT](./flogo-mcp-mft/) | AI & MCP | MCP server for TIBCO Managed File Transfer — AI-powered B2B file transfer, user management, and audit trails |
+| [GraphQL](./flogo-graphql/) | Integration | GraphQL trigger with MongoDB resolvers for device data queries, with Docker Compose deployment |
+| [ML Anomaly Detection](./flogo-machine-learning-anomaly-detection/) | AI & ML | Real-time temperature anomaly detection using Python scikit-learn Isolation Forest, deployable to TIBCO Platform |
 
-----------
+---
 
-## Feedback ##
+## Prerequisites
 
-Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback or comments.
+All demos require:
+- **Microsoft Visual Studio Code** with the **TIBCO Flogo® Extension** installed
+- **TIBCO Flogo® 2.26.x** or later
+
+Additional requirements per demo:
+
+| Demo | Additional Prerequisites |
+|------|------------------------|
+| AI-Powered Customer Service | Node.js v16+, Go v1.19+, MCP-compatible AI client |
+| AI-Powered MFT | TIBCO MFT environment, Claude Desktop, Docker Desktop |
+| GraphQL | Docker, Docker Compose, MongoDB |
+| ML Anomaly Detection | Python 3.x with scikit-learn, numpy, fastapi |
+
+See each demo's `README.md` for detailed setup and run instructions.
+
+---
+
+## Feedback
+
+Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback, or comments.
+
+---
+
+<sub>
+
+`#TIBCOFlogo` `#AIAgents` `#MCP` `#MCPServer` `#GraphQL` `#MachineLearning` `#AnomalyDetection` `#LowCode` `#NoCode` `#iPaaS` `#EnterpriseAI` `#Demo`
+
+</sub>

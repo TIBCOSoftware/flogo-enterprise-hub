@@ -1,32 +1,41 @@
 # **TIBCO Flogo® Extensions**
 
-This folder contains custom extensions developed for FLOGO.
+Custom-built activities and connectors extending **TIBCO Flogo®** capabilities — SSH remote execution, GCP cloud authentication, OpenPGP encryption, dynamic **AI prompt engineering**, and structured logging. Build your own Flogo extensions to add custom functionality to the low-code integration platform.
 
-## Activities
+---
 
-- [SSH](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/ssh/README.md): Execute commands over SSH connection
-- [GCP](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/gcp/README.md): Generates ID Tokens from GCP OIDC API
-- [Pongo2](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/pongo2/docs/README.md): Pongo2 template processor activity for dynamic prompt engineering to expose via MCP Trigger
-- [openpgp](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/openpgp/README.md): Encrypt and decrypt openpgp messages
-- [custom-log-palette](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/custom-log-palette/README.md):Provides custom logging activities with a structured log format (Contributed by [P4Future](https://www.p4future.com/en/))
+## Extensions
 
-## Triggers
+| Extension | Type | Description |
+|-----------|------|-------------|
+| [SSH](./ssh/) | Connector + Activity | Execute commands over SSH with password or public key authentication |
+| [GCP](./gcp/) | Activity | Generate OIDC ID tokens from GCP metadata server for service-to-service auth |
+| [Pongo2](./pongo2/docs/) | Activity | Dynamic prompt engineering using Django/Jinja2-style templates for LLMs |
+| [OpenPGP](./openpgp/) | Activity | Encrypt, decrypt, and generate OpenPGP key pairs |
+| [Custom Log Palette](./custom-log-palette/) | Connector | Structured logging activities with text and JSON output. Contributed by [P4Future](https://www.p4future.com/en/) |
 
-## Functions
+---
 
 ## Version History
 
-| Extension Name | Version | Last Change             |
-| -------------- | ------- | ----------------------- |
-| ssh            | 1.0.0   | 24th July 2025, New     |
-| gcp            | 1.0.0   | 24th July 2025, New     |
-| pongo2         | 1.0.0   | 18th December 2025, New |
-| openpgp        | 1.0.0   | 18th March 2026, New    |
+| Extension | Version | Last Change |
+|-----------|---------|-------------|
+| ssh | 1.0.0 | 24th July 2025, New |
+| gcp | 1.0.0 | 24th July 2025, New |
+| pongo2 | 1.0.0 | 18th December 2025, New |
+| openpgp | 1.0.0 | 18th March 2026, New |
+| custom-log-palette | 1.0.0 | Contributed by P4Future |
 
 ---
 
 ## Feedback
 
-Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback or comments.
+Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback, or comments.
 
 ---
+
+<sub>
+
+`#TIBCOFlogo` `#FlogoExtensions` `#SSH` `#GCP` `#OpenPGP` `#PromptEngineering` `#LowCode` `#CustomActivities` `#iPaaS` `#GoLang` `#EnterpriseIntegration`
+
+</sub>

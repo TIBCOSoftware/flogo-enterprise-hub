@@ -1,123 +1,63 @@
 # **Hub for TIBCO Flogo®**
 
 Welcome to the **Hub for TIBCO Flogo®** — your community-driven space for sharing FLOGO samples, demos, and custom contributions for TIBCO Flogo®.
-TIBCO Flogo® (formerly known as TIBCO Flogo® Enterprise) enables AI orchestration and intelligent automation through a visual flow designer integrated into Visual Studio Code. Built on a high-performance Go (Golang) engine, it delivers superior runtime efficiency, an ultra-light memory footprint, fast startup, and low-latency processing across edge, cloud, serverless, and on-premises environments. With its AI-ready architecture and powerful set of connectors, Flogo® transforms enterprise data into intelligent, event-driven, AI-ready workflows.
-For more information, please refer [documentation](https://docs.tibco.com/products/tibco-flogo-latest)
+
+TIBCO Flogo® is a **low-code / no-code integration platform (iPaaS)** for building **AI agents**, **MCP servers**, and **enterprise integration flows** — all from a visual flow designer inside Visual Studio Code. Powered by a high-performance **Go (Golang)** engine, Flogo® delivers ultra-light memory footprint, fast startup, and low-latency processing across **edge, cloud, serverless, and on-premises** environments. With native support for **Agentic AI orchestration**, the **Model Context Protocol (MCP)**, and 40+ enterprise connectors, Flogo® transforms business data into intelligent, event-driven, AI-ready workflows — no heavy coding required.
+
 If you have purchased commercial support for TIBCO Flogo®, please create a Service Request using your TIBCO Support credentials at [https://support.tibco.com/](https://support.tibco.com/).
 
 ---
 
-## **TIBCO Flogo® Extension for Visual Studio Code**
+## **Quick Navigation**
 
-The TIBCO Flogo® Extension for Visual Studio Code helps you design, build, and test Flogo® applications locally within VS Code. Take advantage of the full Visual Studio Code ecosystem, then deploy your apps anywhere — on-premises, in private or public clouds, or on edge devices.
-For more information, please refer [documentation](https://docs.tibco.com/products/tibco-flogo-extension-for-visual-studio-code-latest)
-
----
-
-## **About this Repository**
-
-This repository contains docs, samples, and tools to help you build Flogo® applications and extensions for Visual Studio Code. Here’s how you can help:
-- Try out the [samples](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension) provided here.
-- Contribute new samples,activities, demos, or projects to help the community.
+| Section | What You'll Find |
+|---------|-----------------|
+| [AI & Agents](#ai--agents) | Agentic AI samples, MCP servers, AI-powered demos, prompt engineering |
+| [Integration & Connectors](#integration--connectors) | REST/gRPC/GraphQL, database/messaging/CRM connectors, flow patterns |
+| [Deployment & DevOps](#deployment--devops) | Docker images, TIBCO Platform deployment, ML inference |
+| [Flogo Skill Library](#flogo-skill-library) | AI coding agent skills for Claude Code |
+| [Flogo Resources](#flogo-resources) | Documentation, downloads, blogs, and video tutorials |
 
 ---
 
-## **Product Samples**
+## **AI & Agents**
 
-Try out the Flogo application samples that help you build and deploy Flogo® applications for Visual Studio Code and Tibco Control Plane.  
-- **Samples for [Agentic AI with TIBCO Flogo®](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Agentic_AI)**
-    - **Agentic AI** <img width="30" height="30" alt="image" src="https://github.com/user-attachments/assets/7eb4d12a-e825-4356-993f-91659da1d57a" />
-        - [Healthcare Compliance Agent](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Agentic_AI/Healthcare-Compliance-Agent) : This sample demonstrates an AI-powered patient support assistant built with the TIBCO Flogo® AI Agent Trigger. It enforces HIPAA compliance guardrails (PHI detection), supports multi-turn conversations via a custom conversation store, and exposes custom tool schemas — all running on OpenAI GPT models.
-        - [Mobile Customer Care Multi-Agent Hub](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Agentic_AI/Mobile-Customer-Care-Multi-Agent) : This sample demonstrates the **List of Agents for Handoff** capability of the TIBCO Flogo® AI Agent Activity. A single Flogo application hosts four cooperating AI agents — a dispatcher (AI Agent Activity) that intelligently routes customer interactions to three specialist Agent Triggers (Billing, Technical, Upgrade) — with the LLM deciding in real time which agent handles each request.
-        - [Smart Supply Chain Assistant](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Agentic_AI/Smart-Supply-Chain-Assistant) : This sample demonstrates the **List of MCP Servers** feature of the TIBCO Flogo® AI Agent Trigger alongside a custom `CreatePurchaseOrder` tool. The AI agent queries real-time inventory and supplier data from two Flogo-hosted MCP servers and autonomously creates purchase orders — orchestrated end-to-end via WebSocket with `callagent` routing.
+Build AI-powered agents, expose business data via MCP, and orchestrate intelligent workflows.
 
-- **Samples for [TIBCO Flogo® Extension for Visual Studio Code](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension)**
-    - **Model Context Protocol(MCP)**<img width="30" height="30" alt="image" src="https://github.com/user-attachments/assets/7eb4d12a-e825-4356-993f-91659da1d57a" />
-         - [Customer 360](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Model_Context_Protocol(MCP)/Customer360) : This sample demonstrates how to use FLOGO MCP Connector and expose your customers, products, sales data as MCP server tools and query using natural language from AI Agent.
-         - [Customer 360 with Auth](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Model_Context_Protocol(MCP)/Customer360WithAuth) : This sample demonstrates how to run the TIBCO Flogo® MCP Customer 360 Server over HTTPS (TLS) with JWT Token authentication, exposing customer, product, and sales data as secured MCP tools.
-         - [Customer 360 with Prompts & Resources](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Model_Context_Protocol(MCP)/Customer360WithPromptsAndResources) : This sample extends the Customer 360 MCP server to demonstrate all three MCP primitive types — **Tools**, **Resources**, and **Prompts** — working together. It exposes static and dynamic Resources for zero-cost context pre-loading, and server-managed Prompt templates for consistent, structured AI analysis and cross-sell recommendations.
-         - [MCP Stateless Server — Product Catalog](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Model_Context_Protocol(MCP)/MCP_Stateless_Server) : This sample demonstrates how to configure a **stateless Flogo MCP server** (`statelessServer = true`) using a realistic e-commerce product catalog scenario. Every tool call is fully self-contained — the server holds no per-client session state — making it ideal for read-only lookups, horizontally scalable deployments, and serverless hosting.
-         - [MCP Stateful Server — Loan Application Wizard](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Model_Context_Protocol(MCP)/MCP_Stateful_Server) : This sample demonstrates how to configure a **stateful Flogo MCP server** (`statelessServer = false`) using a realistic multi-step loan application wizard. The server issues a unique `Mcp-Session-Id` and uses file-based state persistence to accumulate wizard context across four ordered tool calls — `start_loan_application` → `submit_financial_profile` → `review_application` → `submit_application` — with per-applicant session isolation.
-         - [MCP Tool Annotations — Banking Operations](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Model_Context_Protocol(MCP)/MCP_Tool_Annotations) : This sample demonstrates how to configure all four **MCP Tool Annotation hints** (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) in a Flogo MCP server trigger using a banking operations scenario. Six banking tools cover every annotation combination — from safe read-only balance lookups to destructive, idempotent account closures — showing AI clients how to make informed decisions about confirmation, retry safety, and external service reach.
-         - [Smart Incident Response Assistant](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Model_Context_Protocol(MCP)/Smart_Incident_Response_Assistant) : This sample demonstrates three advanced MCP features — **MCP Elicitation**, **MCP Logging**, and **MCP Sampling** — working together in a single realistic workflow. It exposes an `incident_response` tool that interactively collects incident details via a form, emits structured audit log messages, delegates root-cause analysis to the LLM via MCP Sampling, and returns a complete AI-generated triage report.
-         - [Customer Health Monitor](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Model_Context_Protocol(MCP)/customer-health-monitor) : Demo showcasing Flogo's Model Context Protocol (MCP) integration with data from Salesforce, Google Sheets and Postgres.
+- **[Agentic AI Samples](./samples/Agentic_AI/)** (4 samples) — AI agents with custom guardrails, multi-agent handoff, MCP server integration, and incident triage. Supports OpenAI, Gemini, Anthropic, Ollama, and vLLM.
+- **[Model Context Protocol (MCP) Samples](./samples/Model_Context_Protocol(MCP)/)** (8 samples) — MCP servers exposing business data as AI-accessible tools: stateless, stateful, authenticated, annotated, and advanced primitives (elicitation, logging, sampling).
+- **[AI-Powered Customer Service Demo](./demos/ai-powered-customer-service/)** — End-to-end demo integrating CRM, orders, and notifications as MCP tools for AI agents.
+- **[AI-Powered MFT Demo](./demos/flogo-mcp-mft/)** — MCP server for TIBCO Managed File Transfer — AI-powered B2B file transfer management.
+- **[Pongo2 Prompt Engine Extension](./extensions/pongo2/)** — Dynamic prompt engineering activity using Django/Jinja2-style templates for LLMs.
 
-    - **API Development**
-       - **REST** 
-           - [Rest Basic](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/API-Development/REST/Basic) :  This sample demonstrates some of the REST features present in the FLOGO ReceiveHTTPMessage trigger and InvokeRestService activity
-       - **gRPC**
-           - [all-tls](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/API-Development/gRPC/all-tls) : This sample demonstrates how to configure a gRPC server with mutual TLS authentication in Flogo and how to use the app-level spec to load the proto file for defining the gRPC service methods.
-       - **graphQL**
-           - [Basic](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/API-Development/graphQL/Basic) : This sample demonstrates how to build a GraphQL server in Flogo using the GraphQL Trigger, with the schema defined via App-Level Spec support. It enables handling GraphQL queries effortlessly through a REST-like endpoint.
-
-    - **Connectors**
-       - **Azure**
-           - [AzureDataFactory](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Azure/AzureDataFactory) :  This sample demonstrates how to create and use the AzureDataFactory activity in Azure Data Factory (ADF), a cloud-based data integration and orchestration service.
-        - **CRM**
-            - **Salesforce**
-                - [Salesforce Bulk](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/CRM/Salesforce/Salesforce_BulkAPISample) :  The sample demonstrates Salesforce bulk query operation and checks the status of the Job ID created earlier in the flow.
-                - [Salesforce Upsert and Change Data Capture](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/CRM/Salesforce/SalesforceUpsertAndChangeDataCapture) : This sample demonstrates Salesforce Upsert on bulk records and the Salesforce Trigger with Change Data Capture feature.
-       - **Database Connectors**
-            - [Oracle Database CRUD](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDB_clusterDeployment) : This sample demonstrates how to create and use Oracle Database Call stored procedure and CRUD activities.
-            - [Oracle DB Container Deployment](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/OracleDatabase) : This sample demonstrates how to deploy and run Flogo Oracle DB app in Docker container and local kubernetes cluster using minikube. Flogo Oracle DB app need runtime oracle client libraries to run app. In the attached Docker file, we are installing the runtime dependencies for Flogo Oracle DB app.
-            - [PostgreSQL Basic CRUD](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/PostgreSQL-CRUD) : This sample demonstrate how to create and use PostgreSQL CRUD activities with TLS/SSL Authentication. PostgreSQL CRUD app bascially contains 4 activities. The main purpose of these activities are to insert data, update the data, delete the data and then finally perform query to fetch data from PostgreSQL database.
-            - [Redis](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Databases/Redis) : The sample demonstrates the basic usage of commands of the Redis Sets group.
-        - **Messaging Connectors**
-           - **Enterprise Messaging Service**
-                - [Request-Reply](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/Messaging/EMS/RequestReply): This sample illustrates a basic workflow demonstrating how EMS (Enterprise Message Service) provides activities and triggers for sending and receiving messages. You can establish a connection to your EMS broker using Transport Layer Security (TLS). The configuration includes setting up triggers to subscribe to messages published to queues and topics.
-        - **SAP_Connectors**
-           - [SAPS4HANA](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Connectors/SAP_Connectors/SAPS4HANA) : This sample demonstrates about the configuring and using the CRUD activities in the SAP S/4HANA connector.
-
-    - **Flow design concepts**
-       - **hello-world**
-           - [hello-world](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/hello-world) : This sample demonstrates a simple Flogo app that prints and returns a greeting based on the input you provide.
-       - **appHooks**
-           - [appHooks](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/appHooks) :  This sample demonstrates the features present in the Flogo application used before and after the ReceiveHTTPMessage trigger.
-       - **branching-errorhandling**
-           - [branching-errorhandling](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/branching-errorhandling) : This sample demonstrates how to handle branch-level error handling of null, empty, and invalid JSON objects within condition paths.
-        - **shared-data**
-           - [shared-data](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/shared-data) : This sample demonstrates the SharedData activity, which enables sharing runtime data within a flow or across flows in a Flogo app.
-        - **subflow-basic**
-           - [subflow-basic](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Flow-design-concepts/subflow-basic) : This sample demonstrates how we can call simple subflows and detached invocation subflows using the Subflow activity.
- 
-    - **Mapping-Arrays**
-       - **conditional mappings** 
-           - [if-else](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Mapping-Arrays/if-else) :  This sample demonstrates conditional data mappings using if-else blocks, with an app containing two flows and a subflow.
-
-   - **Unit-Testing**
-       - **Play Testcase - flow debugger** 
-           - [Play Testcase flow debugger](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Unit-Testing/PlayTestcase-flowDebugger) :  This sample demonstrates unit testing for Flogo app flows using play mode feature, where you can test/debug the activities inside the each flow looking at its input and output data , and detect errors at the flow or activity level without building the app.
-       - **Unit Testing**
-           - [Unit Testing basic](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/VSCode_Extension/Unit-Testing/UnitTesting-basic) : This sample demonstrates that unit testing is a technique where individual components or flows of an application are tested in isolation to verify they work as intended and catch issues early.
-
-- **Samples for [Flogo Capability on TIBCO® Control Plane](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane)**
-    - **Application Deployment**
-        - [Deploy and Run Custom App Image for Flogo Oracle DB Application](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane/App_Deployment/Custom_App_Image) : This sample demonstrates how to create Flogo application build with all dependencies preinstalled outside TIBCO Platform by using custom Docker images
-        - [Deploy and Run Custom App Image for TIBCO ActiveSpaces connector]( https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane/App_Deployment/Custom_App_Image/ActiveSpaces) <img width="30" height="30" alt="image" src="https://github.com/user-attachments/assets/7eb4d12a-e825-4356-993f-91659da1d57a" /> : This sample demonstrates how to deploy a TIBCO Flogo® ActiveSpaces application using a custom Docker image in TIBCO Control Plane.The Flogo ActiveSpaces application requires ActiveSpaces runtime libraries to connect to an ActiveSpaces cluster and perform data operations.The provided Dockerfile installs all required ActiveSpaces runtime dependencies needed to successfully run the Flogo ActiveSpaces application.
-        - [Enable TLS at Ingress for Flogo Apps with Custom Certificates](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/samples/Tibco_Control_Plane/Enable_TLS_At_Ingress%20) <img width="30" height="30" alt="image" src="https://github.com/user-attachments/assets/7eb4d12a-e825-4356-993f-91659da1d57a" /> : This sample demonstrates how to configure ingress controllers (Traefik, NGINX, and Kong) to make HTTPS requests to Flogo application pods deployed with custom TLS certificates on TIBCO Control Plane. When SSL is terminated at the load balancer, the ingress controller must be configured to forward HTTPS traffic to the backend pod.
 ---
 
-# Flogo Skill Library
+## **Integration & Connectors**
+
+Design Flogo applications with enterprise connectors, API protocols, and flow patterns.
+
+- **[VS Code Extension Samples](./samples/VSCode_Extension/)** (30+ samples) — REST, gRPC, GraphQL API development; connectors for Azure, Salesforce, Oracle, PostgreSQL, Redis, EMS, Kafka, SAP; flow design concepts; unit testing.
+- **[GraphQL Demo](./demos/flogo-graphql/)** — GraphQL trigger with MongoDB resolvers for device data queries, with Docker Compose and Postman collection.
+- **[SSH Extension](./extensions/ssh/)** — Execute commands over SSH with password or key-based authentication.
+- **[GCP Extension](./extensions/gcp/)** — Generate OIDC ID tokens from GCP metadata server.
+- **[OpenPGP Extension](./extensions/openpgp/)** — Encrypt, decrypt, and generate OpenPGP key pairs.
+- **[Custom Log Palette Extension](./extensions/custom-log-palette/)** — Structured logging activities with text and JSON output formats. Contributed by [P4Future](https://www.p4future.com/en/).
+
+---
+
+## **Deployment & DevOps**
+
+Deploy Flogo applications to production with Docker, Kubernetes, and TIBCO Platform.
+
+- **[TIBCO Control Plane Samples](./samples/Tibco_Control_Plane/)** (3 samples) — Custom Docker image deployment for ActiveSpaces and Oracle connectors, plus TLS ingress configuration.
+- **[Dockerfile Examples](./samples/DockerFiles/)** — Multi-stage Dockerfiles for 7 Linux distributions and 4 supplemental connector types (EMS, IBM MQ, Oracle, SAP) with compatibility matrices.
+- **[ML Anomaly Detection Demo](./demos/flogo-machine-learning-anomaly-detection/)** — Real-time temperature anomaly detection using Python scikit-learn Isolation Forest, deployable to TIBCO Platform.
+
+---
+
+## **Flogo Skill Library**
 
 A library of **skills for AI coding agents** (such as **Claude Code**) to design, build, test, and deploy TIBCO Flogo integration applications. Drop these skills into the `.claude/skills/` directory of any project and the agent will use them to drive the Flogo, build, and platform CLIs end-to-end.
-
----
-
-## What's a Skill?
-
-A **skill** is a Markdown file with frontmatter that documents a specific capability for an AI coding agent. The agent reads the skill on demand when the user's request matches its description. Skills make the agent reliable and repeatable on domain-specific tasks (like building a Flogo flow) — without you having to explain the same patterns over and over.
-
-Each skill in this library lives in `.claude/skills/<skill-name>/SKILL.md` and follows this shape:
-
-```markdown
----
-name: <skill-name>
-description: <when the agent should use this skill>
-user-invocable: true
----
-```
-
-## Skills overview
 
 | Skill | Purpose |
 |---|---|
@@ -127,6 +67,47 @@ user-invocable: true
 | `flogo-deploy` | End-to-end recipe to deploy a `.flogo` app to a TIBCO Platform dataplane. |
 | `mapping-from-excel` | Recipe to build a Flogo flow from an Excel mapping spec (input fields → output fields with rules). |
 | `rest-to-database-app` | Recipe to scaffold a REST API Flogo app that queries a database. |
+
+For full details, see the [Flogo Skill Library README](./skills-library/README.md).
+
+---
+
+## **Flogo Resources**
+
+| Resource | Link |
+|----------|------|
+| Documentation | [TIBCO Flogo® Product Documentation](https://docs.tibco.com/products/tibco-flogo-latest) |
+| Download | [TIBCO Flogo® Extension for VS Code](https://www.tibco.com/downloads/11810) |
+| Blogs | [TIBCO Flogo® Blog Posts](https://www.tibco.com/blog/?s=flogo) |
+| Video Tutorials | [TIBCO Flogo® YouTube Playlist](https://www.youtube.com/watch?v=jKYethPuYcg&list=PLnmoGGHHJldiGPd8r3n657cAX3i7V9hMz&index=1) |
+
+### Video Tutorials
+
+Short video walkthroughs to get you started:
+
+1. **Installing TIBCO Flogo Extension for VS Code and Creating Your First Flogo App** — Setup, configuration, and hello-world walkthrough
+2. **Creation of Unit Testing & Play Test Case in Flogo** — Test and debug flows without building the app
+3. **Building AI Agents in Minutes: Agentic AI Orchestration for the Modern Enterprise using TIBCO Flogo®** — Configure LLM providers, build custom tools, and deploy AI agents
+4. **Build Integration Flows in Minutes Using Natural Language Prompts | TIBCO Flogo® AI Design Assistant** — Use the AI Design Assistant to generate flows from plain English
+
+Watch the full playlist: [TIBCO Flogo® Short Videos on YouTube](https://www.youtube.com/watch?v=jKYethPuYcg&list=PLnmoGGHHJldiGPd8r3n657cAX3i7V9hMz&index=1)
+
+---
+
+## **Repository Structure**
+
+```
+flogo-enterprise-hub/
+├── samples/                  # Ready-to-run product samples
+│   ├── Agentic_AI/           #   AI agent samples (4)
+│   ├── Model_Context_Protocol(MCP)/  #   MCP server samples (8)
+│   ├── VSCode_Extension/     #   VS Code extension samples (30+)
+│   ├── Tibco_Control_Plane/  #   Platform deployment samples (3)
+│   └── DockerFiles/          #   Multi-distro Dockerfile examples
+├── demos/                    # Proof-of-concept demonstrations (4)
+├── extensions/               # Custom-built Flogo extensions (5)
+└── skills-library/           # AI coding agent skills (6)
+```
 
 ---
 
@@ -149,9 +130,19 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ## **License**
 
-Copyright 2025 Cloud Software Group, Inc.
+Copyright 2026 Cloud Software Group, Inc.
 This project is Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
 ---
 
 Thank you for being part of the Flogo® community!
+
+---
+
+<sub>
+
+**Keywords:** TIBCO Flogo, MCP Server, Model Context Protocol, AI Agents, Agentic AI, LLM Orchestration, Low-Code Integration, No-Code Integration, iPaaS, Integration Platform as a Service, Enterprise Integration, API Development, REST API, gRPC, GraphQL, Visual Flow Designer, Event-Driven Architecture, Microservices, Edge Computing, Serverless Integration, AI Workflow Automation, Prompt Engineering, OpenAI, Anthropic Claude, Google Gemini, Ollama, Enterprise Connectors, Salesforce Integration, SAP Integration, Kafka, PostgreSQL, Oracle Database, Redis, Azure Service Bus, Docker Deployment, Kubernetes, TIBCO Platform, Go Golang, VS Code Extension, AI Design Assistant, MCP Tools, MCP Resources, MCP Prompts, Custom AI Guardrails, Multi-Agent Systems, AI-Powered Automation, B2B Integration, Machine Learning Integration, Real-Time Processing, Cloud-Native Integration
+
+`#MCP` `#MCPServer` `#ModelContextProtocol` `#AIAgents` `#AgenticAI` `#LLM` `#LowCode` `#NoCode` `#iPaaS` `#Integration` `#TIBCOFlogo` `#Flogo` `#EnterpriseAI` `#APIFirst` `#Microservices` `#EdgeComputing` `#Serverless` `#PromptEngineering` `#OpenAI` `#Claude` `#Gemini` `#Ollama` `#Docker` `#Kubernetes` `#GoLang` `#VSCode` `#AIWorkflow` `#EventDriven` `#RealTimeProcessing` `#CloudNative` `#EnterpriseIntegration`
+
+</sub>
