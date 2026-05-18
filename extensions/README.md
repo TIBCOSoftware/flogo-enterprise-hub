@@ -34,8 +34,6 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<sub>
+<!-- SEO Keywords: TIBCO Flogo, Flogo Extensions, SSH, GCP, OpenPGP, Prompt Engineering, Low-Code, Custom Activities, iPaaS, GoLang, Enterprise Integration, Custom Connector -->
 
-`#TIBCOFlogo` `#FlogoExtensions` `#SSH` `#GCP` `#OpenPGP` `#PromptEngineering` `#LowCode` `#CustomActivities` `#iPaaS` `#GoLang` `#EnterpriseIntegration`
-
-</sub>
+**Topics:** `Flogo Extensions` · `SSH` · `Prompt Engineering` · `Low-Code` · `GoLang`

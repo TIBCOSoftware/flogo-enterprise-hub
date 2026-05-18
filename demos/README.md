@@ -40,8 +40,6 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<sub>
+<!-- SEO Keywords: TIBCO Flogo, AI Agents, MCP, MCP Server, GraphQL, Machine Learning, Anomaly Detection, Low-Code, No-Code, iPaaS, Enterprise AI, Demo, AI-Powered Automation, B2B Integration -->
 
-`#TIBCOFlogo` `#AIAgents` `#MCP` `#MCPServer` `#GraphQL` `#MachineLearning` `#AnomalyDetection` `#LowCode` `#NoCode` `#iPaaS` `#EnterpriseAI` `#Demo`
-
-</sub>
+**Topics:** `AI Agents` · `MCP Server` · `GraphQL` · `Machine Learning` · `Low-Code` · `iPaaS`

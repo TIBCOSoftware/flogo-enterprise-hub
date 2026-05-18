@@ -59,10 +59,6 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<sub>
+<!-- SEO Keywords: MCP Server, Model Context Protocol, Build MCP Server, MCP Tools, MCP Resources, MCP Prompts, MCP Authentication, MCP Elicitation, MCP Sampling, Stateless MCP, Stateful MCP, Tool Annotations, AI Agent Tools, LLM Integration, Claude Desktop MCP, GitHub Copilot MCP, Low-Code MCP Server, Enterprise AI, TIBCO Flogo, iPaaS, No-Code AI Integration -->
 
-**Keywords:** MCP Server, Model Context Protocol, Build MCP Server, MCP Tools, MCP Resources, MCP Prompts, MCP Authentication, MCP Elicitation, MCP Sampling, Stateless MCP, Stateful MCP, Tool Annotations, AI Agent Tools, LLM Integration, Claude Desktop MCP, GitHub Copilot MCP, Low-Code MCP Server, Enterprise AI, TIBCO Flogo, iPaaS, No-Code AI Integration
-
-`#MCP` `#MCPServer` `#ModelContextProtocol` `#BuildMCPServer` `#AIAgents` `#LLM` `#ClaudeDesktop` `#GitHubCopilot` `#TIBCOFlogo` `#LowCode` `#NoCode` `#EnterpriseAI`
-
-</sub>
+**Topics:** `MCP Server` · `Model Context Protocol` · `AI Agent Tools` · `Low-Code` · `Claude Desktop` · `GitHub Copilot`

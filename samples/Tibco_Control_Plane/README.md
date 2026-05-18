@@ -45,8 +45,6 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<sub>
+<!-- SEO Keywords: TIBCO Flogo, Docker, Kubernetes, Cloud-Native, TIBCO Platform, iPaaS, TLS, Enterprise Deployment, Container Orchestration, Custom Docker Image, Ingress Controller -->
 
-`#TIBCOFlogo` `#Docker` `#Kubernetes` `#CloudNative` `#TIBCOPlatform` `#iPaaS` `#TLS` `#EnterpriseDeployment` `#ContainerOrchestration`
-
-</sub>
+**Topics:** `Docker` · `Kubernetes` · `TIBCO Platform` · `Cloud-Native` · `Enterprise Deployment`

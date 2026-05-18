@@ -1,6 +1,6 @@
-# **TIBCO Flogo® Extension for VS Code — Samples**
+# **TIBCO Flogo® Core Samples**
 
-Build **enterprise integration flows** visually with **TIBCO Flogo®** — the low-code / no-code iPaaS inside VS Code. These samples cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, and more; flow design patterns; and unit testing — all without writing boilerplate code.
+Build **enterprise integration flows** visually with **TIBCO Flogo®** — the low-code / no-code iPaaS inside VS Code. These core samples cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, and more; flow design patterns; and unit testing — all without writing boilerplate code.
 
 ---
 
@@ -110,10 +110,6 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<sub>
+<!-- SEO Keywords: Integration Flows, REST API, gRPC, GraphQL, Enterprise Connectors, Low-Code Integration, No-Code iPaaS, Visual Flow Designer, Salesforce Connector, SAP S/4HANA, Oracle Database, PostgreSQL, Redis, Kafka, Azure Service Bus, TIBCO EMS, API Development, Microservices, Event-Driven Architecture, Unit Testing, VS Code Extension, TIBCO Flogo -->
 
-**Keywords:** Integration Flows, REST API, gRPC, GraphQL, Enterprise Connectors, Low-Code Integration, No-Code iPaaS, Visual Flow Designer, Salesforce Connector, SAP S/4HANA, Oracle Database, PostgreSQL, Redis, Kafka, Azure Service Bus, TIBCO EMS, API Development, Microservices, Event-Driven Architecture, Unit Testing, VS Code Extension, TIBCO Flogo
-
-`#Integration` `#RESTAPI` `#gRPC` `#GraphQL` `#LowCode` `#NoCode` `#iPaaS` `#TIBCOFlogo` `#Salesforce` `#SAP` `#Oracle` `#PostgreSQL` `#Kafka` `#VSCode` `#EnterpriseConnectors` `#Microservices`
-
-</sub>
+**Topics:** `REST API` · `gRPC` · `GraphQL` · `Enterprise Connectors` · `Low-Code` · `iPaaS`

@@ -6,13 +6,13 @@ Ready-to-run sample applications for **TIBCO Flogo®** — the low-code / no-cod
 
 ## Sample Categories
 
-| Category | Samples | Description |
-|----------|:-------:|-------------|
-| [Agentic AI](./Agentic_AI/) | 4 | AI-powered agents with custom guardrails, multi-agent handoff, MCP server integration, and incident triage |
-| [Model Context Protocol (MCP)](./Model_Context_Protocol(MCP)/) | 8 | MCP servers exposing business data as AI-accessible tools — stateless, stateful, authenticated, annotated, and advanced primitives |
-| [VS Code Extension](./VSCode_Extension/) | 30+ | API development (REST, gRPC, GraphQL), enterprise connectors, flow design concepts, mapping, and unit testing |
-| [TIBCO Control Plane](./Tibco_Control_Plane/) | 3 | Custom Docker image deployment and TLS ingress configuration for TIBCO Platform |
-| [DockerFiles](./DockerFiles/) | Multi-distro | Dockerfile examples for 7 Linux distributions and 4 supplemental connector types (EMS, IBM MQ, Oracle, SAP) |
+| Category | Description |
+|----------|-------------|
+| [Agentic AI](./Agentic_AI/) | AI-powered agents with custom guardrails, multi-agent handoff, MCP server integration, and incident triage |
+| [Model Context Protocol (MCP)](./Model_Context_Protocol(MCP)/) | MCP servers exposing business data as AI-accessible tools — stateless, stateful, authenticated, annotated, and advanced primitives |
+| [Flogo Core Samples](./VSCode_Extension/) | API development (REST, gRPC, GraphQL), enterprise connectors, flow design concepts, mapping, and unit testing |
+| [TIBCO Control Plane](./Tibco_Control_Plane/) | Custom Docker image deployment and TLS ingress configuration for TIBCO Platform |
+| [DockerFiles](./DockerFiles/) | Dockerfile examples for multiple Linux distributions and supplemental connector types (EMS, IBM MQ, Oracle, SAP) |
 
 ---
 
@@ -40,8 +40,6 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<sub>
+<!-- SEO Keywords: TIBCO Flogo, MCP Server, Model Context Protocol, AI Agents, Agentic AI, Low-Code, No-Code, iPaaS, Enterprise Integration, Enterprise AI, MCP Server, GoLang, VS Code, Docker, Kubernetes, Integration Flows, Event-Driven Microservices -->
 
-`#TIBCOFlogo` `#MCP` `#AIAgents` `#AgenticAI` `#LowCode` `#NoCode` `#iPaaS` `#Integration` `#EnterpriseAI` `#MCPServer` `#ModelContextProtocol` `#GoLang` `#VSCode` `#Docker` `#Kubernetes`
-
-</sub>
+**Topics:** `MCP Server` · `AI Agents` · `Low-Code` · `iPaaS` · `Enterprise Integration`
