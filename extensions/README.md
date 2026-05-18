@@ -8,6 +8,7 @@ This folder contains custom extensions developed for FLOGO.
 - [GCP](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/gcp/README.md): Generates ID Tokens from GCP OIDC API
 - [Pongo2](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/pongo2/docs/README.md): Pongo2 template processor activity for dynamic prompt engineering to expose via MCP Trigger
 - [openpgp](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/openpgp/README.md): Encrypt and decrypt openpgp messages
+- [custom-log-palette](https://github.com/TIBCOSoftware/flogo-enterprise-hub/tree/master/extensions/custom-log-palette/README.md):Provides custom logging activities with a structured log format (Contributed by [P4Future](https://www.p4future.com/en/))
 
 ## Triggers
 
