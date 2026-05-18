@@ -1,6 +1,6 @@
-# **TIBCO Flogo® Core Samples**
+# **TIBCO Flogo® Core & Connector Samples**
 
-Build **enterprise integration flows** visually with **TIBCO Flogo®** — the low-code / no-code iPaaS inside VS Code. These core samples cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, and more; flow design patterns; and unit testing — all without writing boilerplate code.
+Build **enterprise integration flows** visually with **TIBCO Flogo®** — the low-code / no-code iPaaS inside VS Code. These samples cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, and more; flow design patterns; and unit testing — all without writing boilerplate code.
 
 ---
 

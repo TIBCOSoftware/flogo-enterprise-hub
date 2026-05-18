@@ -256,3 +256,9 @@ The skills reference a few placeholder values that you should set once in your p
 - **Iterate in small steps.** Ask for a flow first, then add activities, then add the trigger, then build & test.
 - **Always run a local test before deploying.** The `mapping-from-excel` and `rest-to-database-app` recipes both include a build + 5-second-run step.
 - **Check the agent's commands.** The `fda` and `tibcop` commands are well-documented in the skills — if the agent does something unexpected, ask it to explain which skill it used and which command it ran.
+
+---
+
+<!-- SEO Keywords: TIBCO Flogo, AI Coding Agent, Claude Code, AI Skills, Flogo Design Assistant, FDA CLI, Flogobuild, TIBCO Platform CLI, Low-Code, No-Code, iPaaS, Integration Automation, Excel to Flogo, REST API Scaffolding, Flogo Deployment, AI-Powered Development, Visual Flow Designer, Enterprise Integration, GoLang, VS Code Extension -->
+
+**Topics:** `AI Coding Agent` · `Claude Code` · `Flogo Skills` · `Low-Code` · `iPaaS` · `Enterprise Integration`

@@ -36,7 +36,7 @@ Build AI-powered agents, expose business data via MCP, and orchestrate intellige
 
 Design Flogo applications with enterprise connectors, API protocols, and flow patterns.
 
-- **[Flogo Core Samples](./samples/VSCode_Extension/)** — REST, gRPC, GraphQL API development; connectors for Azure, Salesforce, Oracle, PostgreSQL, Redis, EMS, Kafka, SAP; flow design concepts; unit testing.
+- **[Flogo Core & Connector Samples](./samples/VSCode_Extension/)** — REST, gRPC, GraphQL API development; connectors for Azure, Salesforce, Oracle, PostgreSQL, Redis, EMS, Kafka, SAP; flow design concepts; unit testing.
 - **[GraphQL Demo](./demos/flogo-graphql/)** — GraphQL trigger with MongoDB resolvers for device data queries, with Docker Compose and Postman collection.
 - **[SSH Extension](./extensions/ssh/)** — Execute commands over SSH with password or key-based authentication.
 - **[GCP Extension](./extensions/gcp/)** — Generate OIDC ID tokens from GCP metadata server.
