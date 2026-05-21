@@ -3,7 +3,7 @@ module github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transfor
 go 1.23.0
 
 require (
-	github.com/davewins/xslt v0.1.2
+	github.com/davewins/xslt v0.1.3
 	github.com/project-flogo/core v1.6.18
 	github.com/stretchr/testify v1.4.0
 )
