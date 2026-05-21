@@ -8,9 +8,9 @@ type Settings struct {
 
 type Input struct {
 
-	Xslt []byte `md:"XSLT,required"`
-
-	Xml []byte `md:"XML,required"`
+	Xslt   []byte                 `md:"XSLT,required"`
+	Xml    []byte                 `md:"XML,required"`
+	Params map[string]interface{} `md:"Params"`
 }
 
 type Output struct {
@@ -32,6 +32,11 @@ func (i *Input) FromMap(values map[string]interface{}) error {
 		return err
 	}
 
+	i.Params, err = coerce.ToObject(values["Params"])
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -39,8 +44,9 @@ func (i *Input) ToMap() map[string]interface{} {
 
 	return map[string]interface{}{
 
-		"XSLT": i.Xslt,
-		"XML": i.Xml,
+		"XSLT":   i.Xslt,
+		"XML":    i.Xml,
+		"Params": i.Params,
 	}
 
 }

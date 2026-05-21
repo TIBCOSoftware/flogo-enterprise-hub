@@ -66,10 +66,23 @@ func (a *Activity) Eval(ctx activity.Context) (done bool, err error) {
 	}
 	ctx.Logger().Infof("Input XSLT (%d bytes): %s", len(input.Xslt), string(input.Xslt))
 	ctx.Logger().Infof("Input XML (%d bytes): %s", len(input.Xml), string(input.Xml))
+	ctx.Logger().Infof("Input Params: %v", input.Params)
+
+	processor, err := xslt.New(input.Xslt)
+	if err != nil {
+		return false, fmt.Errorf("XSLT stylesheet compilation failed: %s", err.Error())
+	}
+
+	params := make(map[string]interface{}, len(input.Params))
+	for k, v := range input.Params {
+		if v != nil {
+			params[k] = v
+		}
+	}
 
 	output := &Output{}
 
-	output.Transformedxml, err = xslt.Transform(input.Xml, input.Xslt)
+	output.Transformedxml, err = processor.TransformWithParams(input.Xml, params)
 	if err != nil {
 		return false, fmt.Errorf("XSLT transformation failed: %s", err.Error())
 	}
