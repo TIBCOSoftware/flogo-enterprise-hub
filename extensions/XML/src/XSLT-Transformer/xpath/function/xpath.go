@@ -1,6 +1,8 @@
 package xml
 
 import (
+	"bytes"
+	"encoding/xml"
 	"fmt"
 	"strings"
 
@@ -75,7 +77,11 @@ func (s *fnXPATH) Eval(in ...interface{}) (interface{}, error) {
 				parts = append(parts, n.StringValue())
 			}
 		} else {
-			parts = append(parts, item.StringValue())
+			if returnAsXML {
+				parts = append(parts, xmlEscape(item.StringValue()))
+			} else {
+				parts = append(parts, item.StringValue())
+			}
 		}
 	}
 
@@ -83,4 +89,10 @@ func (s *fnXPATH) Eval(in ...interface{}) (interface{}, error) {
 		return "<results>" + strings.Join(parts, "") + "</results>", nil
 	}
 	return strings.Join(parts, "\n"), nil
+}
+
+func xmlEscape(s string) string {
+	var b bytes.Buffer
+	xml.EscapeText(&b, []byte(s))
+	return b.String()
 }

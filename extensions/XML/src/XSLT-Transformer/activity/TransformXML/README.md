@@ -1,6 +1,6 @@
 # Transform XML Activity
 
-Part of the [XML Extension](../../../../../../README.md). See that file for full usage guidance, mapper examples, and the sample app.
+Part of the [XML Extension](../../../../README.md). See that file for full usage guidance, mapper examples, and the sample app.
 
 ## Inputs
 
