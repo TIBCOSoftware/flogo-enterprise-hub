@@ -54,7 +54,7 @@ func evalOK(t *testing.T, input *Input) string {
 	assert.True(t, ok)
 	output := &Output{}
 	require.NoError(t, tc.GetOutputObject(output))
-	return string(output.Transformedxml)
+	return string(output.TransformedXML)
 }
 
 func TestRegister(t *testing.T) {
@@ -66,14 +66,14 @@ func TestRegister(t *testing.T) {
 // TestEval_NoParams verifies a basic transformation with no parameters.
 func TestEval_NoParams(t *testing.T) {
 	result := evalOK(t, &Input{
-		Xslt: []byte(`<?xml version='1.0'?>
+		XSLT:[]byte(`<?xml version='1.0'?>
 <xsl:stylesheet version='2.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
   <xsl:output method='xml'/>
   <xsl:template match='/'>
     <output><xsl:value-of select='root/message'/></output>
   </xsl:template>
 </xsl:stylesheet>`),
-		Xml: []byte(`<?xml version='1.0'?><root><message>Hello, World</message></root>`),
+		XML: []byte(`<?xml version='1.0'?><root><message>Hello, World</message></root>`),
 	})
 	assert.Contains(t, result, "Hello, World")
 }
@@ -82,8 +82,8 @@ func TestEval_NoParams(t *testing.T) {
 // and the stylesheet defaults apply.
 func TestEval_DefaultParams(t *testing.T) {
 	result := evalOK(t, &Input{
-		Xslt:   catalogXSLT,
-		Xml:    catalogXML,
+		XSLT:  catalogXSLT,
+		XML:  catalogXML,
 		Params: nil,
 	})
 	assert.Contains(t, result, "Widget A")
@@ -95,8 +95,8 @@ func TestEval_DefaultParams(t *testing.T) {
 // that were defined in the schema but absent from the request) do not override XSLT defaults.
 func TestEval_NilParams(t *testing.T) {
 	result := evalOK(t, &Input{
-		Xslt: catalogXSLT,
-		Xml:  catalogXML,
+		XSLT:catalogXSLT,
+		XML:catalogXML,
 		Params: map[string]interface{}{
 			"category": nil,
 			"maxPrice": nil,
@@ -111,8 +111,8 @@ func TestEval_NilParams(t *testing.T) {
 // when maxPrice is explicitly provided.
 func TestEval_PartialNilParams(t *testing.T) {
 	result := evalOK(t, &Input{
-		Xslt: catalogXSLT,
-		Xml:  catalogXML,
+		XSLT:catalogXSLT,
+		XML:catalogXML,
 		Params: map[string]interface{}{
 			"category": nil,
 			"maxPrice": 99.0,
@@ -126,8 +126,8 @@ func TestEval_PartialNilParams(t *testing.T) {
 // TestEval_StringParam filters the catalog to a single category via a string parameter.
 func TestEval_StringParam(t *testing.T) {
 	result := evalOK(t, &Input{
-		Xslt:   catalogXSLT,
-		Xml:    catalogXML,
+		XSLT:  catalogXSLT,
+		XML:  catalogXML,
 		Params: map[string]interface{}{"category": "Electronics"},
 	})
 	assert.Contains(t, result, "Widget A")
@@ -138,8 +138,8 @@ func TestEval_StringParam(t *testing.T) {
 // TestEval_NumericParam filters the catalog by maximum price via a numeric parameter.
 func TestEval_NumericParam(t *testing.T) {
 	result := evalOK(t, &Input{
-		Xslt:   catalogXSLT,
-		Xml:    catalogXML,
+		XSLT:  catalogXSLT,
+		XML:  catalogXML,
 		Params: map[string]interface{}{"maxPrice": 50.0},
 	})
 	assert.Contains(t, result, "Widget A")    // 29.99 — under limit
@@ -150,8 +150,8 @@ func TestEval_NumericParam(t *testing.T) {
 // TestEval_MultipleParams combines both parameters so only Electronics under $50 are returned.
 func TestEval_MultipleParams(t *testing.T) {
 	result := evalOK(t, &Input{
-		Xslt: catalogXSLT,
-		Xml:  catalogXML,
+		XSLT:catalogXSLT,
+		XML:catalogXML,
 		Params: map[string]interface{}{
 			"category": "Electronics",
 			"maxPrice": 50.0,
@@ -166,8 +166,8 @@ func TestEval_MultipleParams(t *testing.T) {
 func TestEval_InvalidXSLT(t *testing.T) {
 	tc := test.NewActivityContext(myActivity.Metadata())
 	tc.SetInputObject(&Input{
-		Xslt: []byte(`this is not valid xslt`),
-		Xml:  []byte(`<?xml version='1.0'?><root/>`),
+		XSLT:[]byte(`this is not valid xslt`),
+		XML:[]byte(`<?xml version='1.0'?><root/>`),
 	})
 	_, err := myActivity.Eval(tc)
 	assert.Error(t, err)
@@ -178,8 +178,8 @@ func TestEval_InvalidXSLT(t *testing.T) {
 // input that is not well-formed XML still produces output rather than returning an error.
 func TestEval_InvalidXML(t *testing.T) {
 	result := evalOK(t, &Input{
-		Xslt: catalogXSLT,
-		Xml:  []byte(`this is not valid xml`),
+		XSLT:catalogXSLT,
+		XML:[]byte(`this is not valid xml`),
 	})
 	assert.NotEmpty(t, result)
 }

@@ -1,10 +1,10 @@
-module github.com/davewins/FlogoWorkspace/extensions/xml
+module github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/xpath/function
 
 go 1.23.2
 
 require (
 	github.com/davewins/xslt v0.1.3
-	github.com/project-flogo/core v1.6.11
+	github.com/project-flogo/core v1.6.18
 )
 
 require (
