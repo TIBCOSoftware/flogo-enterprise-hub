@@ -8,6 +8,12 @@ Provides XML transformation capability using XSLT 2.0 stylesheets and XPath 2.0 
 |----------|-------------|
 | [Transform XML](#transform-xml) | Transforms an XML document using an XSLT 2.0 stylesheet, with optional runtime parameters |
 
+## Functions
+
+| Function | Description |
+|----------|-------------|
+| [xml.xpath](#xpath-function) | Evaluates an XPath 2.0 expression against an XML string and returns the matching values |
+
 ---
 
 ## Transform XML
@@ -27,6 +33,78 @@ Applies an XSLT 2.0 stylesheet to an XML document and returns the transformed re
 | Field | Type | Description |
 |-------|------|-------------|
 | TransformedXML | bytes | The result of the transformation |
+
+---
+
+## xpath Function
+
+Evaluates an XPath 2.0 expression against an XML document string and returns the matching content.
+
+### Signature
+
+```
+xml.xpath(xpath string, xml string, asXML boolean) string
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `xpath` | string | The XPath 2.0 expression to evaluate |
+| `xml` | string | The XML document to query |
+| `asXML` | boolean | `true` to return results as XML markup; `false` to return plain text content |
+
+### Return value
+
+| Condition | `asXML = true` | `asXML = false` |
+|-----------|---------------|-----------------|
+| No match | `""` (empty string) | `""` (empty string) |
+| Single match | The matched node serialised as XML | The XPath string-value of the node (all descendant text concatenated) |
+| Multiple matches | `<results>` wrapping all matched nodes | Each node's string-value joined by `\n` |
+| Atomic result (e.g. `count()`, `string()`) | The value as a string | The value as a string |
+
+### Usage notes
+
+**Use `asXML=true` for element nodes.** When querying element nodes that contain child elements, `asXML=false` returns all descendant text concatenated with no separator, which is rarely useful. Target leaf nodes explicitly if you need plain text:
+
+```
+# asXML=false is fine for leaf nodes
+xml.xpath("//product[category='Electronics']/name", $flow.xml, boolean.false())
+# → Widget A\nGadget B
+
+# asXML=true for whole elements
+xml.xpath("//product[category='Electronics']", $flow.xml, boolean.true())
+# → <results><product>...</product><product>...</product></results>
+```
+
+**Building dynamic XPath expressions.** Use `string.concat` to inject runtime values. The injected value must be wrapped in single quotes inside the XPath predicate:
+
+```
+xml.xpath(string.concat("//product[category='", $flow.queryParams.category, "']"), $flow.xml, boolean.true())
+```
+
+Do not place the value outside the predicate brackets — `string.concat("//product[category]=", $flow.queryParams.category)` produces a boolean comparison, not a node selection, and will return `"false"`.
+
+### Examples
+
+Given this XML:
+
+```xml
+<?xml version='1.0'?>
+<catalog>
+  <product><name>Widget A</name><category>Electronics</category><price>29.99</price></product>
+  <product><name>Gadget B</name><category>Electronics</category><price>99.99</price></product>
+  <product><name>Gizmo C</name><category>Tools</category><price>15.00</price></product>
+</catalog>
+```
+
+| Expression | `asXML` | Result |
+|------------|---------|--------|
+| `//product[category='Electronics']` | `true` | `<results><product>...</product><product>...</product></results>` |
+| `//product[category='Electronics']/name` | `false` | `Widget A\nGadget B` |
+| `//product[category='Electronics']/price` | `false` | `29.99\n99.99` |
+| `count(//product)` | `false` | `3` |
+| `//product[category='Tools']` | `true` | `<product><name>Gizmo C</name>...</product>` |
 
 ---
 
@@ -150,6 +228,12 @@ curl "http://localhost:9999/product?category=Electronics&maxPrice=50"
 
 ## Extension Reference
 
+**Transform XML activity**
 ```
 github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/activity/TransformXML
+```
+
+**xpath function**
+```
+github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/xpath/function
 ```
