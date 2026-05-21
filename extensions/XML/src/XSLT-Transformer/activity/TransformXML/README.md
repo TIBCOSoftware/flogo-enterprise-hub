@@ -1,40 +1,23 @@
-# TIBCO Flogo® Extension for XSLT-Transformer - Provides an XML Mapping capability through the use of XSLT 2.0 Stylesheets
+# Transform XML Activity
 
-Provides an XML Mapping capability through the use of XSLT 2.0 Stylesheets
+Part of the [XML Extension](../../../../../../README.md). See that file for full usage guidance, mapper examples, and the sample app.
 
-## Activity Transform XML
+## Inputs
 
-Transforms XML through the use of a Stylsheet
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| XSLT | bytes | Yes | The XSLT 2.0 stylesheet to apply |
+| XML | bytes | Yes | The XML document to transform |
+| Params | object | No | Runtime XSLT parameter values. Absent or `null` values fall back to the stylesheet's `select=` defaults. |
 
-Accepts an XML Document and an XSLT Document as []byte and provides the result. Provides support for XSLT 2.0 and XPATH 2.0
+## Output
 
+| Field | Type | Description |
+|-------|------|-------------|
+| TransformedXML | bytes | The transformed result |
 
-### Input Settings
+## Module
 
-The Input tab has the following fields:
-
-| Field	| Type | Required	| Description |
-|-------|------|-----------|-------------|
-| XSLT | bytes | true | The XSLT to apply |
-| XML | bytes | true | The XML to transform |
-
-
-
-
-### Input
-
-None
-
-
-### Output Settings
-The Output Settings tab has the following field:
-
-| Field	| Type | Description |
-|-------|-----------|-------------|
-| TransformedXML | object | The result of the transformation |
-
-
-
-## Loop
-
-Refer to the section on "Using the Loop Feature in an Activity" in the TIBCO Flogo® Enterprise User's Guide for information on the Loop tab.
+```
+github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/activity/TransformXML
+```
