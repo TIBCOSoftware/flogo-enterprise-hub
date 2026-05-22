@@ -2,7 +2,7 @@ package xml
 
 import (
 	"bytes"
-	"encoding/xml"
+	stdxml "encoding/xml"
 	"fmt"
 	"strings"
 
@@ -93,6 +93,6 @@ func (s *fnXPATH) Eval(in ...interface{}) (interface{}, error) {
 
 func xmlEscape(s string) string {
 	var b bytes.Buffer
-	xml.EscapeText(&b, []byte(s))
+	stdxml.EscapeText(&b, []byte(s))
 	return b.String()
 }

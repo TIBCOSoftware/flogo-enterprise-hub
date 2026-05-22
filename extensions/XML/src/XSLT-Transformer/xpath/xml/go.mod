@@ -1,4 +1,4 @@
-module github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/xpath/function
+module github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/xpath/xml
 
 go 1.23.2
 
