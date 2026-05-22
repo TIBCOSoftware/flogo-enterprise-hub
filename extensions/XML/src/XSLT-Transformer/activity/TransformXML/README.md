@@ -16,6 +16,17 @@ Part of the [XML Extension](../../../../README.md). See that file for full usage
 |-------|------|-------------|
 | TransformedXML | bytes | The transformed result |
 
+## Deploying to TIBCO Platform
+
+Package this activity as a zip file with `TransformXML/` as the root entry, then upload it to the **Custom Extensions** section of the TIBCO Flogo capability page before importing any sample apps that use it.
+
+```bash
+cd extensions/XML/src/XSLT-Transformer/activity
+zip -r ../../XSLT.zip TransformXML/
+```
+
+See the [XML Extension README](../../../../README.md) for the full deployment walkthrough.
+
 ## Module
 
 ```

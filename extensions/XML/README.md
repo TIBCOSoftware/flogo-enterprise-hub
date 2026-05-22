@@ -199,11 +199,14 @@ XPath comparison operators inside XML attributes must be XML-escaped:
 
 ---
 
-## Sample Application
+## Sample Applications
 
-A working sample Flogo app is provided in [`samples/XSLT-Transform.flogo`](samples/XSLT-Transform.flogo).
+Working sample Flogo apps are provided in the [`samples/`](samples/) directory:
 
-It demonstrates two flows:
+- [`samples/XSLT-Transform.flogo`](samples/XSLT-Transform.flogo) — demonstrates the Transform XML activity
+- [`samples/xpath.flogo`](samples/xpath.flogo) — demonstrates the `xml.xpath` function
+
+The XSLT-Transform sample exposes two flows:
 
 - **TransformationFlow** — a startup flow that applies a static XSLT to a hardcoded XML catalog and logs the result.
 - **Parameterised** — a REST flow (`GET /product`) that accepts optional `category` (string) and `maxPrice` (number) query parameters and filters a product catalog accordingly.
@@ -226,6 +229,45 @@ curl "http://localhost:9999/product?category=Electronics&maxPrice=50"
 
 ---
 
+## Deploying to TIBCO Platform
+
+Before uploading the sample Flogo applications, the extensions must first be uploaded to the **Custom Extensions** section of the TIBCO Flogo capability page on the TIBCO Platform.
+
+### 1. Create the extension zip files
+
+Each extension must be packaged as a zip file with the extension directory as the root entry.
+
+**XSLT Transform activity — `XSLT.zip`**
+
+```bash
+cd extensions/XML/src/XSLT-Transformer/activity
+zip -r ../../XSLT.zip TransformXML/
+```
+
+The zip root must be `TransformXML/`.
+
+**XPath function — `XPATH.zip`**
+
+```bash
+cd extensions/XML/src/XSLT-Transformer/xpath
+zip -r ../../XPATH.zip xml/
+```
+
+The zip root must be `xml/`.
+
+### 2. Upload the extensions
+
+1. Log in to the TIBCO Platform and open the **Flogo** capability page.
+2. Navigate to **Custom Extensions**.
+3. Upload `XSLT.zip` and `XPATH.zip`.
+4. Wait until both extensions show as active.
+
+### 3. Upload the sample applications
+
+Once both extensions are active you can upload the sample `.flogo` files from the [`samples/`](samples/) directory.
+
+---
+
 ## Extension Reference
 
 **Transform XML activity**
@@ -235,5 +277,5 @@ github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/act
 
 **xpath function**
 ```
-github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/xpath/function
+github.com/davewins/flogo-enterprise-hub/extensions/XML/src/XSLT-Transformer/xpath/xml
 ```
