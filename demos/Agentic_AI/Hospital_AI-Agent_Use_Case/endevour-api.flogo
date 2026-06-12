@@ -1,0 +1,2772 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/tibco/flogo-general/src/app/General/activity/parsejson",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/insert",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "endevour-api",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": "=$property[\"PORT\"]",
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/api/v1/patients/{patient_id}/discharge-summary",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:discharge-summary"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"follow_up_required\":{\"type\":\"boolean\"},\"specialty\":{\"type\":\"string\"},\"medications\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"medication_code\":{\"type\":\"string\"},\"days_supply\":{\"type\":\"number\"}}}},\"discharge_date\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"patient_id\": \"P-2024-00123\",\n    \"follow_up_required\": true,\n    \"specialty\": \"CARDIOLOGY\",\n    \"medications\": [\n      {\"medication_code\": \"MED001\", \"days_supply\": 30}\n    ],\n    \"discharge_date\": \"2026-01-20\"\n  }"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "pathParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"patient_id\",\"type\":\"string\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "discharge-summary"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/api/v1/appointments",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:appointment-booking"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"appointment_id\":{\"type\":\"number\"},\"patient_id\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"scheduled_time\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"appointment_id\": 3,\n    \"patient_id\": \"P-2024-00123\",\n    \"scheduled_date\": \"2026-01-28\",\n    \"scheduled_time\": \"10:30\",\n    \"status\": \"CONFIRMED\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"date\":{\"type\":\"string\"},\"time\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"patient_id\": \"P-2024-00123\",\n    \"specialty\": \"CARDIOLOGY\",\n    \"date\": \"2026-01-28\",\n    \"time\": \"10:30\"\n}"
+              }
+            }
+          },
+          "name": "appointment-booking"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/api/v1/pharmacy/orders",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:pharmacy-order"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"order_id\":{\"type\":\"number\"},\"patient_id\":{\"type\":\"string\"},\"medication_name\":{\"type\":\"string\"},\"ready_by\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"order_id\": 3,\n    \"patient_id\": \"P-2024-00123\",\n    \"medication_name\": \"Aspirin 100mg\",\n    \"ready_by\": \"2026-01-21 14:00\",\n    \"status\": \"PROCESSING\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"medication_code\":{\"type\":\"string\"},\"days_supply\":{\"type\":\"string\"},\"pickup_location\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"patient_id\": \"P-2024-00123\",\n    \"medication_code\": \"MED001\",\n    \"days_supply\": \"30\",\n    \"pickup_location\": \"PHARMACY_A\"\n}"
+              }
+            }
+          },
+          "name": "pharmacy-order"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/api/v1/beds/actions",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:bed-management"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"bed_id\": \"BED-4A-012\",\n    \"ward_id\": \"WARD-4A\",\n    \"status\": \"CLEANING_REQUESTED\",\n    \"updated_at\": \"2026-01-20 15:30\",\n    \"estimated_ready\": \"2026-01-20 16:00\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"bed_id\": \"BED-4A-012\",\n    \"ward_id\": \"WARD-4A\"\n}"
+              }
+            }
+          },
+          "name": "bed-management"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/api/v1/beds/update-status",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:update-bed-status"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"bed_id\": \"BED-4A-012\",\n    \"ward_id\": \"WARD-4A\",\n    \"status\": \"AVAILABLE\",\n    \"updated_at\": \"2026-01-20 16:00\",\n    \"estimated_ready\": \"NA\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"bed_id\": \"BED-4A-012\",\n    \"status\": \"AVAILABLE\"\n}"
+              }
+            }
+          },
+          "name": "update-bed-status"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/patient-details",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:patient_details"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "requestURI": "=$.requestURI",
+              "method": "=$.method"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": "schema://patient",
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "patient_details"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/patient_details_by_id/{patient_id}",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:patient_details_by_id"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "headers": "=$.headers",
+              "requestURI": "=$.requestURI",
+              "method": "=$.method"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": "schema://patient",
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "pathParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"patient_id\",\"type\":\"string\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "patient_details_by_id"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:discharge-summary",
+      "data": {
+        "name": "discharge-summary",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "LogMessage to PostgreSQLQuery"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLQuery",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "PostgreSQLQuery to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "ParseJSON",
+            "type": "label",
+            "label": "LogMessage1 to ParseJSON"
+          },
+          {
+            "id": 5,
+            "from": "ParseJSON",
+            "to": "Return",
+            "type": "label",
+            "label": "ParseJSON to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Request has been received for discharge summary for patient\",$flow.pathParams.patient_id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT \n    p.patient_id,\n    pd.follow_up_required,\n    pd.specialty_code AS specialty,\n    pd.discharge_date,\n    pd.ward_id,\n    pd.bed_id,\n    COALESCE(\n        json_agg(\n            json_build_object(\n                'medication_code', dm.medication_code,\n                'days_supply', dm.days_supply\n            )\n        ) FILTER (WHERE dm.medication_code IS NOT NULL),\n        '[]'::json\n    ) AS medications\nFROM patients p\nJOIN patient_discharges pd ON p.patient_id = pd.patient_id\nLEFT JOIN discharge_medications dm ON pd.discharge_id = dm.discharge_id\nWHERE p.patient_id = $1\n  AND pd.discharge_date = (\n      SELECT MAX(discharge_date) \n      FROM patient_discharges \n      WHERE patient_id = ?patient_id\n  )\nGROUP BY p.patient_id, pd.follow_up_required, pd.specialty_code, pd.discharge_date, pd.ward_id, pd.bed_id;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "patient_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "follow_up_required",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "specialty",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "discharge_date",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "ward_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "bed_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "medications",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "bf80b873-92b8-4b48-89b1-742afd60951dSELECT \n    p.patient_id,\n    pd.follow_up_required,\n    pd.specialty_code AS specialty,\n    pd.discharge_date,\n    pd.ward_id,\n    pd.bed_id,\n    COALESCE(\n        json_agg(\n            json_build_object(\n                'medication_code', dm.medication_code,\n                'days_supply', dm.days_supply\n            )\n        ) FILTER (WHERE dm.medication_code IS NOT NULL),\n        '[]'::json\n    ) AS medications\nFROM patients p\nJOIN patient_discharges pd ON p.patient_id = pd.patient_id\nLEFT JOIN discharge_medications dm ON pd.discharge_id = dm.discharge_id\nWHERE p.patient_id = $1\n  AND pd.discharge_date = (\n      SELECT MAX(discharge_date) \n      FROM patient_discharges \n      WHERE patient_id = ?patient_id\n  )\nGROUP BY p.patient_id, pd.follow_up_required, pd.specialty_code, pd.discharge_date, pd.ward_id, pd.bed_id;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "patient_id": "=$flow.pathParams.patient_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"follow_up_required\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"discharge_date\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"bed_id\":{\"type\":\"string\"},\"medications\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"follow_up_required\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"discharge_date\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"bed_id\":{\"type\":\"string\"},\"medications\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Discharge summary Records found for patient id\" ,$flow.pathParams.patient_id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ParseJSON",
+            "name": "ParseJSON",
+            "description": "Parses JSON string into JSON object",
+            "activity": {
+              "ref": "#parsejson",
+              "input": {
+                "validate": false,
+                "jsonString": "=$activity[PostgreSQLQuery].Output.records[0].medications"
+              },
+              "schemas": {
+                "output": {
+                  "jsonObject": "schema://medication"
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "patient_id": "=$activity[PostgreSQLQuery].Output.records[0].patient_id",
+                      "specialty": "=$activity[PostgreSQLQuery].Output.records[0].specialty",
+                      "discharge_date": "=coerce.toString($activity[PostgreSQLQuery].Output.records[0].discharge_date)",
+                      "medications": {
+                        "@foreach($activity[ParseJSON].jsonObject,jsonObject)": {
+                          "medication_code": "=$loop[jsonObject].medication_code",
+                          "days_supply": "=$loop[jsonObject].days_supply"
+                        }
+                      },
+                      "follow_up_required": {
+                        "@conditional": [
+                          {
+                            "string.equals($activity[PostgreSQLQuery].Output.records[0].follow_up_required,'true')": true
+                          },
+                          {
+                            "@otherwise": false
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMTgsInkiOjkyfSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjQwMSwieSI6OTJ9LCJMb2dNZXNzYWdlMSI6eyJ4Ijo1ODgsInkiOjkxfSwiUGFyc2VKU09OIjp7IngiOjg1OSwieSI6OTR9LCJSZXR1cm4iOnsieCI6MTEwMywieSI6OTd9fQ==",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "Return1",
+              "name": "Return1",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn",
+                "settings": {
+                  "mappings": {
+                    "code": 500,
+                    "data": {
+                      "mapping": {
+                        "patient_id": "Not Found",
+                        "specialty": "Not Found",
+                        "discharge_date": "Not Found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "links": [],
+          "fe_metadata": "eyJSZXR1cm4xIjp7IngiOjM5MCwieSI6OTd9fQ=="
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"patient_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"patient_id\":{\"type\":\"string\"},\"follow_up_required\":{\"type\":\"boolean\"},\"specialty\":{\"type\":\"string\"},\"medications\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"medication_code\":{\"type\":\"string\"},\"days_supply\":{\"type\":\"number\"}}}},\"discharge_date\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"pathParams\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"follow_up_required\":{\"type\":\"boolean\"},\"specialty\":{\"type\":\"string\"},\"medications\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"medication_code\":{\"type\":\"string\"},\"days_supply\":{\"type\":\"number\"}}}},\"discharge_date\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:appointment-booking",
+      "data": {
+        "name": "appointment-booking",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "PostgreSQLInsert",
+            "type": "label",
+            "label": "LogMessage to PostgreSQLInsert"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLInsert",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "PostgreSQLInsert to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Request received for appointments for patiend\",$flow.body.patient_id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "PostgreSQLInsert",
+            "name": "PostgreSQLInsert",
+            "description": "This activity executes insert on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO appointments (patient_id, specialty, scheduled_date, scheduled_time)\nVALUES (?patient_id, ?specialty, ?scheduled_date, ?scheduled_time) \nRETURNING appointment_id, patient_id, scheduled_date, scheduled_time, status;;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "patient_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "specialty",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "scheduled_date",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "scheduled_time",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "appointment_id",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "4eaad678-a15e-4dfa-a56f-bceac371166eINSERT INTO appointments (patient_id, specialty, scheduled_date, scheduled_time)\nVALUES (?patient_id, ?specialty, ?scheduled_date, ?scheduled_time) \nRETURNING appointment_id, patient_id, scheduled_date, scheduled_time, status;;",
+                "input": {
+                  "mapping": {
+                    "values": [
+                      {
+                        "patient_id": "=$flow.body.patient_id",
+                        "specialty": "=$flow.body.specialty",
+                        "scheduled_date": "=$flow.body.date",
+                        "scheduled_time": "=$flow.body.time"
+                      }
+                    ]
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"scheduled_time\":{\"type\":\"string\"}}}},\"parameters\":{\"type\":\"object\",\"properties\":{}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"scheduled_time\":{\"type\":\"string\"}}}},\"parameters\":{\"type\":\"object\",\"properties\":{}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"scheduled_time\":{\"type\":\"string\"},\"appointment_id\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"scheduled_time\":{\"type\":\"string\"},\"appointment_id\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Appointment confirmed for patiet \",$flow.body.patient_id , \" on \", $activity[PostgreSQLInsert].Output.records[0].scheduled_date )",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "patient_id": "=$activity[PostgreSQLInsert].Output.records[0].patient_id",
+                      "scheduled_date": "=$activity[PostgreSQLInsert].Output.records[0].scheduled_date",
+                      "scheduled_time": "=$activity[PostgreSQLInsert].Output.records[0].scheduled_time",
+                      "status": "=$activity[PostgreSQLInsert].Output.records[0].status",
+                      "appointment_id": "=$activity[PostgreSQLInsert].Output.records[0].appointment_id"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMTYsInkiOjg4fSwiUG9zdGdyZVNRTEluc2VydCI6eyJ4Ijo0MzQsInkiOjg1fSwiTG9nTWVzc2FnZTEiOnsieCI6NjY1LCJ5Ijo4OH0sIlJldHVybiI6eyJ4Ijo4NDcsInkiOjg3fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"patient_id\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"date\":{\"type\":\"string\"},\"time\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"appointment_id\":{\"type\":\"number\"},\"patient_id\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"scheduled_time\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"specialty\":{\"type\":\"string\"},\"date\":{\"type\":\"string\"},\"time\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"appointment_id\":{\"type\":\"number\"},\"patient_id\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"scheduled_time\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:pharmacy-order",
+      "data": {
+        "name": "pharmacy-order",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "LogMessage to PostgreSQLQuery"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLQuery",
+            "to": "PostgreSQLInsert",
+            "type": "label",
+            "label": "PostgreSQLQuery to PostgreSQLInsert"
+          },
+          {
+            "id": 4,
+            "from": "PostgreSQLInsert",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "PostgreSQLInsert to LogMessage1"
+          },
+          {
+            "id": 5,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Request received for pharmacy order for patient\",$flow.body.patient_id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT medication_name, ready_hours \nFROM medication_catalog \nWHERE medication_code = ?medication_code;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "medication_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "medication_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "ready_hours",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "06a18dc2-8727-4d30-98bd-c6ef2e0d2121SELECT medication_name, ready_hours \nFROM medication_catalog \nWHERE medication_code = ?medication_code;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "medication_code": "=$flow.body.medication_code"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"medication_code\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"medication_code\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"medication_name\":{\"type\":\"string\"},\"ready_hours\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"medication_name\":{\"type\":\"string\"},\"ready_hours\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "PostgreSQLInsert",
+            "name": "PostgreSQLInsert",
+            "description": "This activity executes insert on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO pharmacy_orders (patient_id, medication_code, medication_name, days_supply, pickup_location, ready_by)\nVALUES (?patient_id, ?medication_code, ?medication_name, ?days_supply, ?pickup_location, ?ready_by)\nRETURNING order_id, patient_id, medication_name, ready_by, status;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "patient_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "medication_code",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "medication_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "days_supply",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "pickup_location",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "ready_by",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": true
+                  },
+                  {
+                    "FieldName": "order_id",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "ec74b631-0501-4a74-82e3-16a49882229dINSERT INTO pharmacy_orders (patient_id, medication_code, medication_name, days_supply, pickup_location, ready_by)\nVALUES (?patient_id, ?medication_code, ?medication_name, ?days_supply, ?pickup_location, ?ready_by)\nRETURNING order_id, patient_id, medication_name, ready_by, status;",
+                "input": {
+                  "mapping": {
+                    "values": [
+                      {
+                        "patient_id": "=$flow.body.patient_id",
+                        "medication_code": "=$flow.body.medication_code",
+                        "medication_name": "=$activity[PostgreSQLQuery].Output.records[0].medication_name",
+                        "days_supply": "=$flow.body.days_supply",
+                        "pickup_location": "=$flow.body.pickup_location",
+                        "ready_by": "=$activity[PostgreSQLQuery].Output.records[0].ready_hours"
+                      }
+                    ]
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"medication_code\":{\"type\":\"string\"},\"medication_name\":{\"type\":\"string\"},\"days_supply\":{\"type\":\"string\"},\"pickup_location\":{\"type\":\"string\"},\"ready_by\":{\"type\":\"string\"}}}},\"parameters\":{\"type\":\"object\",\"properties\":{}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"medication_code\":{\"type\":\"string\"},\"medication_name\":{\"type\":\"string\"},\"days_supply\":{\"type\":\"string\"},\"pickup_location\":{\"type\":\"string\"},\"ready_by\":{\"type\":\"string\"}}}},\"parameters\":{\"type\":\"object\",\"properties\":{}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"medication_name\":{\"type\":\"string\"},\"ready_by\":{\"type\":\"string\"},\"order_id\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"medication_name\":{\"type\":\"string\"},\"ready_by\":{\"type\":\"string\"},\"order_id\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Pharmacy order for patient \",$flow.body.patient_id,\" is created\")",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "patient_id": "=$activity[PostgreSQLInsert].Output.records[0].patient_id",
+                      "order_id": "=$activity[PostgreSQLInsert].Output.records[0].order_id",
+                      "medication_name": "=$activity[PostgreSQLInsert].Output.records[0].medication_name",
+                      "ready_by": "=$activity[PostgreSQLInsert].Output.records[0].ready_by",
+                      "status": "=$activity[PostgreSQLInsert].Output.records[0].status"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMTcsInkiOjk2fSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjM5OCwieSI6OTl9LCJQb3N0Z3JlU1FMSW5zZXJ0Ijp7IngiOjU3MywieSI6MTAwfSwiTG9nTWVzc2FnZTEiOnsieCI6NzU4LCJ5Ijo5OH0sIlJldHVybiI6eyJ4Ijo5NjMsInkiOjk2fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"patient_id\":{\"type\":\"string\"},\"medication_code\":{\"type\":\"string\"},\"days_supply\":{\"type\":\"string\"},\"pickup_location\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"order_id\":{\"type\":\"number\"},\"patient_id\":{\"type\":\"string\"},\"medication_name\":{\"type\":\"string\"},\"ready_by\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"medication_code\":{\"type\":\"string\"},\"days_supply\":{\"type\":\"string\"},\"pickup_location\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"order_id\":{\"type\":\"number\"},\"patient_id\":{\"type\":\"string\"},\"medication_name\":{\"type\":\"string\"},\"ready_by\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:bed-management",
+      "data": {
+        "name": "bed-management",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "PostgreSQLInsert",
+            "type": "label",
+            "label": "LogMessage to PostgreSQLInsert"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLInsert",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "PostgreSQLInsert to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Cleaning request is raised for Bed\", $flow.body.bed_id,\" In Ward \", $flow.body.ward_id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "PostgreSQLInsert",
+            "name": "PostgreSQLInsert",
+            "description": "This activity executes insert on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "UPDATE beds \nSET status = 'CLEANING_REQUESTED', \n    patient_id = NULL, \n    updated_at = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI'), \n    estimated_ready = TO_CHAR(NOW() + INTERVAL '20 minutes', 'YYYY-MM-DD HH24:MI')\nWHERE bed_id = ?bed_id\nRETURNING bed_id, ward_id, patient_id, status, updated_at, estimated_ready;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "bed_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "ward_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "patient_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "updated_at",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "estimated_ready",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "f066870a-a01b-4fae-be02-fa6a7ee3144aUPDATE beds \nSET status = 'CLEANING_REQUESTED', \n    patient_id = NULL, \n    updated_at = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI'), \n    estimated_ready = TO_CHAR(NOW() + INTERVAL '20 minutes', 'YYYY-MM-DD HH24:MI')\nWHERE bed_id = ?bed_id\nRETURNING bed_id, ward_id, patient_id, status, updated_at, estimated_ready;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "bed_id": "=$flow.body.bed_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"patient_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"patient_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Cleaning requested for Bed\", $flow.body.bed_id,\" In Ward \", $flow.body.ward_id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "bed_id": "=$activity[PostgreSQLInsert].Output.records[0].bed_id",
+                      "ward_id": "=$activity[PostgreSQLInsert].Output.records[0].ward_id",
+                      "status": "=$activity[PostgreSQLInsert].Output.records[0].status",
+                      "updated_at": "=$activity[PostgreSQLInsert].Output.records[0].updated_at",
+                      "estimated_ready": "=$activity[PostgreSQLInsert].Output.records[0].estimated_ready"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMzMsInkiOjk2fSwiUG9zdGdyZVNRTEluc2VydCI6eyJ4Ijo0NDMsInkiOjk4fSwiTG9nTWVzc2FnZTEiOnsieCI6NjQwLCJ5IjoxMDB9LCJSZXR1cm4iOnsieCI6ODE5LCJ5IjoxMDJ9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:update-bed-status",
+      "data": {
+        "name": "update-bed-status",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "PostgreSQLInsert",
+            "type": "label",
+            "label": "StartActivity to PostgreSQLInsert"
+          },
+          {
+            "id": 2,
+            "from": "PostgreSQLInsert",
+            "to": "Return",
+            "type": "label",
+            "label": "PostgreSQLInsert to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "PostgreSQLInsert",
+            "name": "PostgreSQLInsert",
+            "description": "This activity executes insert on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "UPDATE beds \nSET status = 'AVAILABLE', \n    updated_at = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI'), \n    estimated_ready = NULL\nWHERE bed_id = ?bed_id\nRETURNING bed_id, ward_id, patient_id, status, updated_at, estimated_ready;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "bed_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "ward_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "patient_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "updated_at",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "estimated_ready",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "261357be-9817-4839-b626-4eae2a3c3b6bUPDATE beds \nSET status = 'AVAILABLE', \n    updated_at = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI'), \n    estimated_ready = NULL\nWHERE bed_id = ?bed_id\nRETURNING bed_id, ward_id, patient_id, status, updated_at, estimated_ready;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "bed_id": "=$flow.body.bed_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"patient_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"patient_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "bed_id": "=$activity[PostgreSQLInsert].Output.records[0].bed_id",
+                      "ward_id": "=$activity[PostgreSQLInsert].Output.records[0].ward_id",
+                      "status": "=$activity[PostgreSQLInsert].Output.records[0].status",
+                      "updated_at": "=$activity[PostgreSQLInsert].Output.records[0].updated_at",
+                      "estimated_ready": "NA"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUG9zdGdyZVNRTEluc2VydCI6eyJ4IjoyNTMsInkiOjk0fSwiUmV0dXJuIjp7IngiOjQ3NCwieSI6OTZ9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"bed_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"bed_id\":{\"type\":\"string\"},\"ward_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"updated_at\":{\"type\":\"string\"},\"estimated_ready\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:patient_details",
+      "data": {
+        "name": "patient_details",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "LogMessage to PostgreSQLQuery"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLQuery",
+            "to": "ParseJSON",
+            "type": "label",
+            "label": "PostgreSQLQuery to ParseJSON"
+          },
+          {
+            "id": 4,
+            "from": "ParseJSON",
+            "to": "Return",
+            "type": "label",
+            "label": "ParseJSON to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "Request has been received for patient details",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM patients p;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "patient_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "first_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "last_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "phone_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "email",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "4dede8e6-397b-4524-b737-f4e7c03078c3SELECT * FROM patients p;"
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"first_name\":{\"type\":\"string\"},\"last_name\":{\"type\":\"string\"},\"phone_number\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"first_name\":{\"type\":\"string\"},\"last_name\":{\"type\":\"string\"},\"phone_number\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ParseJSON",
+            "name": "ParseJSON",
+            "description": "Parses JSON string into JSON object",
+            "activity": {
+              "ref": "#parsejson",
+              "input": {
+                "validate": false,
+                "jsonString": "=coerce.toString($activity[PostgreSQLQuery].Output)"
+              },
+              "schemas": {
+                "output": {
+                  "jsonObject": "schema://medication"
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[PostgreSQLQuery].Output"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMTgsInkiOjkyfSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjQwMSwieSI6OTJ9LCJQYXJzZUpTT04iOnsieCI6NjIwLCJ5Ijo5M30sIlJldHVybiI6eyJ4Ijo4NzAsInkiOjEwMX19",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "Return1",
+              "name": "Return1",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn",
+                "settings": {
+                  "mappings": {
+                    "code": 500,
+                    "data": {
+                      "mapping": {
+                        "patient_id": "Not Found",
+                        "specialty": "Not Found",
+                        "discharge_date": "Not Found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "links": [],
+          "fe_metadata": "eyJSZXR1cm4xIjp7IngiOjM5MCwieSI6OTd9fQ=="
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"patient_id\":{\"type\":\"string\"},\"first_name\":{\"type\":\"string\"},\"last_name\":{\"type\":\"string\"},\"phone_number\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"first_name\":{\"type\":\"string\"},\"last_name\":{\"type\":\"string\"},\"phone_number\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:patient_details_by_id",
+      "data": {
+        "name": "patient_details_by_id",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "LogMessage to PostgreSQLQuery"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLQuery",
+            "to": "ParseJSON",
+            "type": "label",
+            "label": "PostgreSQLQuery to ParseJSON"
+          },
+          {
+            "id": 4,
+            "from": "ParseJSON",
+            "to": "Return",
+            "type": "label",
+            "label": "ParseJSON to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "Request has been received for patient details",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM patients p where patient_id = ?patientId;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "patientId",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "patient_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "first_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "last_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "phone_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "email",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "36bca625-ff62-4408-bc72-a9ceadd4ebdfSELECT * FROM patients p where patient_id = ?patientId;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "patientId": "=$flow.pathParams.patient_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"patientId\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"patientId\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"first_name\":{\"type\":\"string\"},\"last_name\":{\"type\":\"string\"},\"phone_number\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"first_name\":{\"type\":\"string\"},\"last_name\":{\"type\":\"string\"},\"phone_number\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ParseJSON",
+            "name": "ParseJSON",
+            "description": "Parses JSON string into JSON object",
+            "activity": {
+              "ref": "#parsejson",
+              "input": {
+                "validate": false,
+                "jsonString": "=coerce.toString($activity[PostgreSQLQuery].Output)"
+              },
+              "schemas": {
+                "output": {
+                  "jsonObject": "schema://medication"
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[PostgreSQLQuery].Output"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMTgsInkiOjkyfSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjQwMSwieSI6OTJ9LCJQYXJzZUpTT04iOnsieCI6NjIwLCJ5Ijo5M30sIlJldHVybiI6eyJ4Ijo4NzAsInkiOjEwMX19",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "Return1",
+              "name": "Return1",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn",
+                "settings": {
+                  "mappings": {
+                    "code": 500,
+                    "data": {
+                      "mapping": {
+                        "patient_id": "Not Found",
+                        "specialty": "Not Found",
+                        "discharge_date": "Not Found"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "links": [],
+          "fe_metadata": "eyJSZXR1cm4xIjp7IngiOjM5MCwieSI6OTd9fQ=="
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"patient_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"patient_id\":{\"type\":\"string\"},\"first_name\":{\"type\":\"string\"},\"last_name\":{\"type\":\"string\"},\"phone_number\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"pathParams\":{\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\"},\"first_name\":{\"type\":\"string\"},\"last_name\":{\"type\":\"string\"},\"phone_number\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PostgreSQL.postgreslocal.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Database_Name",
+      "type": "string",
+      "value": "hospital"
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Password",
+      "type": "string",
+      "value": "SECRET:azibQGEDL/VQrJN05x9pVfviy8j6"
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.postgreslocal.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    },
+    {
+      "name": "PORT",
+      "type": "float64",
+      "value": 9095
+    }
+  ],
+  "schemas": {
+    "medication": {
+      "type": "json",
+      "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"medication_code\": {\n        \"type\": \"string\"\n      },\n      \"days_supply\": {\n        \"type\": \"integer\"\n      }\n    },\n    \"required\": [\n      \"medication_code\"\n    ]\n  }\n}",
+      "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"medication_code\": {\n        \"type\": \"string\"\n      },\n      \"days_supply\": {\n        \"type\": \"integer\"\n      }\n    },\n    \"required\": [\n      \"medication_code\"\n    ]\n  }\n}"
+    },
+    "patient": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"patient_id\": {\n            \"type\": \"string\"\n        },\n        \"first_name\": {\n            \"type\": \"string\"\n        },\n        \"last_name\": {\n            \"type\": \"string\"\n        },\n        \"phone_number\": {\n            \"type\": \"string\"\n        },\n        \"email\": {\n            \"type\": \"string\"\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"patient_id\": {\n            \"type\": \"string\"\n        },\n        \"first_name\": {\n            \"type\": \"string\"\n        },\n        \"last_name\": {\n            \"type\": \"string\"\n        },\n        \"phone_number\": {\n            \"type\": \"string\"\n        },\n        \"email\": {\n            \"type\": \"string\"\n        }\n    }\n}"
+    }
+  },
+  "connections": {
+    "e3c455be-4ee3-4b77-8c98-db7b09e81f7d": {
+      "id": "e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+      "name": "postgreslocal",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "postgreslocal",
+        "description": "",
+        "host": "=$property[\"PostgreSQL.postgreslocal.Host\"]",
+        "port": "=$property[\"PostgreSQL.postgreslocal.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.postgreslocal.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.postgreslocal.User\"]",
+        "password": "=$property[\"PostgreSQL.postgreslocal.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.postgreslocal.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.postgreslocal.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.postgreslocal.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.postgreslocal.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.postgreslocal.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.postgreslocal.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTQiLCJ0YWciOiIxLjYuMTQtYjA0IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjEiLCJ0YWciOiIyLjcuMS1iMDEiLCJuYW1lIjoiUG9zdGdyZVNRTCIsInMzbG9jYXRpb24iOiJUaWJjby9Qb3N0Z3JlU1FMIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9095",
+        "spec": {
+          "name": "endevour-api",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "endevour-api",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/api/v1/patients/{patient_id}/discharge-summary": {
+              "get": {
+                "summary": "discharge-summary",
+                "operationId": "get_api_v1_patients_patient_id_discharge-summary",
+                "parameters": [
+                  {
+                    "name": "patient_id",
+                    "in": "path",
+                    "description": "Request parameter",
+                    "required": true,
+                    "type": "string"
+                  },
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                }
+              }
+            },
+            "/api/v1/appointments": {
+              "post": {
+                "summary": "appointment-booking",
+                "operationId": "post_api_v1_appointments",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  },
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema2"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema3"
+                    }
+                  }
+                },
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            },
+            "/api/v1/pharmacy/orders": {
+              "post": {
+                "summary": "pharmacy-order",
+                "operationId": "post_api_v1_pharmacy_orders",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  },
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema4"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema5"
+                    }
+                  }
+                },
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            },
+            "/api/v1/beds/actions": {
+              "post": {
+                "summary": "bed-management",
+                "operationId": "post_api_v1_beds_actions",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  },
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema6"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema7"
+                    }
+                  }
+                },
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            },
+            "/api/v1/beds/update-status": {
+              "post": {
+                "summary": "update-bed-status",
+                "operationId": "post_api_v1_beds_update-status",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  },
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema8"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema7"
+                    }
+                  }
+                },
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            },
+            "/patient-details": {
+              "get": {
+                "summary": "patient_details",
+                "operationId": "get_patient-details",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema9"
+                    }
+                  }
+                }
+              }
+            },
+            "/patient_details_by_id/{patient_id}": {
+              "get": {
+                "summary": "patient_details_by_id",
+                "operationId": "get_patient_details_by_id_patient_id",
+                "parameters": [
+                  {
+                    "name": "patient_id",
+                    "in": "path",
+                    "description": "Request parameter",
+                    "required": true,
+                    "type": "string"
+                  },
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema9"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "patient_id": {
+                  "type": "string"
+                },
+                "follow_up_required": {
+                  "type": "boolean"
+                },
+                "specialty": {
+                  "type": "string"
+                },
+                "medications": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "medication_code": {
+                        "type": "string"
+                      },
+                      "days_supply": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                },
+                "discharge_date": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema2": {
+              "type": "object",
+              "properties": {
+                "patient_id": {
+                  "type": "string"
+                },
+                "specialty": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "time": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema3": {
+              "type": "object",
+              "properties": {
+                "appointment_id": {
+                  "type": "number"
+                },
+                "patient_id": {
+                  "type": "string"
+                },
+                "scheduled_date": {
+                  "type": "string"
+                },
+                "scheduled_time": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema4": {
+              "type": "object",
+              "properties": {
+                "patient_id": {
+                  "type": "string"
+                },
+                "medication_code": {
+                  "type": "string"
+                },
+                "days_supply": {
+                  "type": "string"
+                },
+                "pickup_location": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema5": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "type": "number"
+                },
+                "patient_id": {
+                  "type": "string"
+                },
+                "medication_name": {
+                  "type": "string"
+                },
+                "ready_by": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema6": {
+              "type": "object",
+              "properties": {
+                "bed_id": {
+                  "type": "string"
+                },
+                "ward_id": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema7": {
+              "type": "object",
+              "properties": {
+                "bed_id": {
+                  "type": "string"
+                },
+                "ward_id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                },
+                "estimated_ready": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema8": {
+              "type": "object",
+              "properties": {
+                "bed_id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema9": {
+              "type": "object",
+              "properties": {
+                "patient_id": {
+                  "type": "string"
+                },
+                "first_name": {
+                  "type": "string"
+                },
+                "last_name": {
+                  "type": "string"
+                },
+                "phone_number": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.26.4"
+  }
+}

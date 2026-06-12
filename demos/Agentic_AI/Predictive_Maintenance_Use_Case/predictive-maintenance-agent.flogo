@@ -1,0 +1,1403 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+    "github.com/project-flogo/websocket/activity/wswritedata",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/websocket/trigger/wsserver",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
+  ],
+  "name": "PredictiveMaintenance_AI_Agent",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "AI Agent trigger for Agentic AI. This agent must be invoked within the app using 'Invoke AI Agent Trigger' activity",
+      "settings": {
+        "llmProviderConnection": "conn://adf21c4c-67e1-4c78-9487-b2cacff04d63",
+        "agentName": "sensor_analysis_agent",
+        "agentDescription": "Retrieves latest sensor readings and asset details for a given asset from the sensor data API. Returns raw sensor data including vibration, temperature, pressure, flow rate, and power consumption to the orchestrator for AI analysis.",
+        "agentType": "Local",
+        "agentPort": 8080,
+        "model": "claude-sonnet-4-5-20250929",
+        "reasoning": "",
+        "temperature": 0.7,
+        "enableGuardrails": false,
+        "rateLimit": 25,
+        "tokenLimit": 2048,
+        "redactSensitiveData": false,
+        "mcpServers": [],
+        "conversationStoreType": "None",
+        "memoryMaxSize": 10,
+        "systemPrompt": "You are the Sensor Analysis Agent responsible for retrieving the latest sensor readings for an oilfield asset. You have access to one API: GET /api/v1/assets/{asset_id}/sensor-data to retrieve asset details and latest sensor readings including vibration_rms, temperature_c, pressure_psi, flow_rate, and power_consumption.\n\nYour workflow: Receive the asset_id from the orchestrator. Call the sensor data API to retrieve the latest readings. Return the complete sensor data to the orchestrator including asset_id, asset_type, well_site_id, description, status, and all sensor values.\n\nDo not analyze or classify the sensor readings. Do not invoke or hand over to any other agents. Simply retrieve and return the data."
+      },
+      "id": "sensor_analysis_agent_trigger",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "sensor_analysis_agent",
+            "agentToolDescription": "Retrieves latest sensor readings for an asset. Provide asset_id to get vibration, temperature, pressure, flow rate data. Returns raw sensor data for analysis.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:sensor_analysis_agent"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"asset_id\": \"PUMP-W47-TX\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "sensor_analysis_agent"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "AI Agent trigger for Agentic AI. This agent must be invoked within the app using 'Invoke AI Agent Trigger' activity",
+      "settings": {
+        "llmProviderConnection": "conn://adf21c4c-67e1-4c78-9487-b2cacff04d63",
+        "agentName": "prediction_agent",
+        "agentDescription": "Stores AI-generated health predictions for oilfield assets including status classification, confidence score, days to failure estimate, failure mode identification, and recommended maintenance actions.",
+        "agentType": "Local",
+        "agentPort": 8080,
+        "model": "claude-sonnet-4-5-20250929",
+        "reasoning": "",
+        "temperature": 0.7,
+        "enableGuardrails": false,
+        "rateLimit": 25,
+        "tokenLimit": 2048,
+        "redactSensitiveData": false,
+        "mcpServers": [],
+        "conversationStoreType": "None",
+        "memoryMaxSize": 10,
+        "systemPrompt": "You are the Prediction Agent responsible for storing AI-generated health predictions for oilfield assets. You have access to one API: POST /api/v1/predictions to store predictions with fields asset_id, status, confidence, days_to_failure, failure_mode, recommended_action, and sensor_anomalies.\n\nYour workflow: Receive the prediction parameters from the orchestrator. Call the predictions API with all provided fields. Return the prediction_id and confirmation to the orchestrator.\n\nDo not invoke or hand over to any other agents."
+      },
+      "id": "prediction_agent_trigger",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "prediction_agent",
+            "agentToolDescription": "Stores an AI health prediction for an asset. Provide asset_id, status, confidence, days_to_failure, failure_mode, recommended_action, and sensor_anomalies. Returns prediction_id confirmation.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:prediction_agent"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"asset_id\":\"PUMP-W47-TX\",\"status\":\"WARNING\",\"confidence\":\"0.91\",\"days_to_failure\":\"12\",\"failure_mode\":\"bearing_wear\",\"recommended_action\":\"Schedule inspection\",\"sensor_anomalies\":\"vibration high\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "prediction_agent"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "AI Agent trigger for Agentic AI. This agent must be invoked within the app using 'Invoke AI Agent Trigger' activity",
+      "settings": {
+        "llmProviderConnection": "conn://adf21c4c-67e1-4c78-9487-b2cacff04d63",
+        "agentName": "work_order_agent",
+        "agentDescription": "Creates maintenance work orders for oilfield assets that require inspection, repair, or replacement based on predictive analysis results.",
+        "agentType": "Local",
+        "agentPort": 8080,
+        "model": "claude-sonnet-4-5-20250929",
+        "reasoning": "",
+        "temperature": 0.7,
+        "enableGuardrails": false,
+        "rateLimit": 25,
+        "tokenLimit": 2048,
+        "redactSensitiveData": false,
+        "mcpServers": [],
+        "conversationStoreType": "None",
+        "memoryMaxSize": 10,
+        "systemPrompt": "You are the Work Order Agent responsible for creating maintenance work orders for oilfield assets. You have access to one API: POST /api/v1/work-orders to create work orders with fields asset_id, priority, description, assigned_to, and scheduled_date.\n\nYour workflow: Receive the work order parameters from the orchestrator. Call the work orders API with all provided fields. Return the work_order_id and confirmation to the orchestrator.\n\nDo not invoke or hand over to any other agents."
+      },
+      "id": "work_order_agent_trigger",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "work_order_agent",
+            "agentToolDescription": "Creates a maintenance work order. Provide asset_id, priority, description, assigned_to, and scheduled_date. Returns work_order_id confirmation.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:work_order_agent"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"asset_id\":\"PUMP-W47-TX\",\"priority\":\"HIGH\",\"description\":\"Bearing wear detected\",\"assigned_to\":\"Field Tech Team A\",\"scheduled_date\":\"2026-04-20\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "work_order_agent"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "AI Agent trigger for Agentic AI. This agent must be invoked within the app using 'Invoke AI Agent Trigger' activity",
+      "settings": {
+        "llmProviderConnection": "conn://adf21c4c-67e1-4c78-9487-b2cacff04d63",
+        "agentName": "alert_notification_agent",
+        "agentDescription": "Sends alert notifications for assets with WARNING or CRITICAL health status. Must only be invoked after sensor analysis and prediction storage are complete.",
+        "agentType": "Local",
+        "agentPort": 8080,
+        "model": "claude-sonnet-4-5-20250929",
+        "reasoning": "",
+        "temperature": 0.7,
+        "enableGuardrails": false,
+        "rateLimit": 25,
+        "tokenLimit": 2048,
+        "redactSensitiveData": false,
+        "mcpServers": [],
+        "conversationStoreType": "None",
+        "memoryMaxSize": 10,
+        "systemPrompt": "You are the Alert Notification Agent responsible for logging alert notifications for oilfield assets with WARNING or CRITICAL health status. You have access to one API: POST /api/v1/alerts to log alerts with fields asset_id, severity, and message.\n\nYour workflow: Receive the alert parameters from the orchestrator. Call the alerts API with the provided fields. Return the alert_id and confirmation to the orchestrator.\n\nSend the alert exactly once. Do not send multiple alerts. Do not invoke or hand over to any other agents."
+      },
+      "id": "alert_notification_agent_trigger",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "alert_notification_agent",
+            "agentToolDescription": "Logs an alert notification for an asset. Provide asset_id, severity, and message. Returns alert_id confirmation. Invoke only ONCE per conversation.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:alert_notification_agent"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"asset_id\":\"PUMP-W47-TX\",\"severity\":\"WARNING\",\"message\":\"Bearing wear detected\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "alert_notification_agent"
+        }
+      ]
+    },
+    {
+      "ref": "#wsserver",
+      "name": "wsserver",
+      "description": "Websocket server listens for connection request from the client",
+      "settings": {
+        "port": 8083,
+        "enableTLS": false,
+        "serverCert": "",
+        "serverKey": "",
+        "enableClientAuth": false,
+        "trustStore": ""
+      },
+      "id": "WebsocketServer",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "method": "GET",
+            "path": "/ws/chat",
+            "mode": "Data",
+            "format": "String",
+            "jsonSchema": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Orchestrator-Agent"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "queryParams": "=$.queryParams",
+              "headers": "=$.headers",
+              "content": "=$.content",
+              "wsconnection": "=$.wsconnection"
+            }
+          },
+          "schemas": {
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Key\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Version\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Upgrade\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "Orchestrator-Agent"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:sensor_analysis_agent",
+      "data": {
+        "name": "sensor_analysis_agent",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "LogMessage to InvokeRESTService"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "InvokeRESTService to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation Started : \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"Sensor_Data_URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "pathParams": {
+                  "mapping": {
+                    "asset_id": "=$flow.toolParams.asset_id"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "pathParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"asset_id\",\"type\":\"string\"}]"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"asset_type\":{\"type\":\"string\"},\"well_site_id\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"reading_timestamp\":{\"type\":\"string\"},\"vibration_rms\":{\"type\":\"number\"},\"temperature_c\":{\"type\":\"number\"},\"pressure_psi\":{\"type\":\"number\"},\"flow_rate\":{\"type\":\"number\"},\"power_consumption\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\n    \"asset_id\": \"PUMP-W47-TX\",\n    \"asset_type\": \"pump\",\n    \"well_site_id\": \"WS-PERMIAN-047\",\n    \"description\": \"Main injection pump\",\n    \"status\": \"ACTIVE\",\n    \"reading_timestamp\": \"2026-04-17T10:00:00Z\",\n    \"vibration_rms\": 4.2,\n    \"temperature_c\": 92.5,\n    \"pressure_psi\": 1050,\n    \"flow_rate\": 95.0,\n    \"power_consumption\": 45.8\n}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation Completed : \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat(\"Sensor Data: \",coerce.toString($activity[InvokeRESTService].responseBody))"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoxOTIsInkiOjg5fSwiSW52b2tlUkVTVFNlcnZpY2UiOnsieCI6Mzc2LCJ5Ijo4OX0sIkxvZ01lc3NhZ2UxIjp7IngiOjU3MCwieSI6ODd9LCJSZXR1cm4iOnsieCI6NzQzLCJ5Ijo5MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"sensor_analysis_agent_trigger\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:prediction_agent",
+      "data": {
+        "name": "prediction_agent",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "LogMessage to InvokeRESTService"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "InvokeRESTService to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation Started : \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "POST",
+                "Uri": "=$property[\"Predictions_URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "body": {
+                  "mapping": {
+                    "asset_id": "=$flow.toolParams.asset_id",
+                    "status": "=$flow.toolParams.status",
+                    "confidence": "=$flow.toolParams.confidence",
+                    "days_to_failure": "=$flow.toolParams.days_to_failure",
+                    "failure_mode": "=$flow.toolParams.failure_mode",
+                    "recommended_action": "=$flow.toolParams.recommended_action",
+                    "sensor_anomalies": "=$flow.toolParams.sensor_anomalies"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  },
+                  "body": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\n    \"asset_id\": \"PUMP-W47-TX\",\n    \"status\": \"WARNING\",\n    \"confidence\": \"0.91\",\n    \"days_to_failure\": \"12\",\n    \"failure_mode\": \"bearing_wear\",\n    \"recommended_action\": \"Schedule inspection\",\n    \"sensor_anomalies\": \"vibration high\"\n}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"prediction_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\n    \"prediction_id\": 1,\n    \"asset_id\": \"PUMP-W47-TX\",\n    \"status\": \"WARNING\",\n    \"confidence\": \"0.91\",\n    \"created_at\": \"2026-04-17T10:00:00Z\"\n}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation Completed : \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat(\"Prediction Stored: \",coerce.toString($activity[InvokeRESTService].responseBody))"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoxOTIsInkiOjg5fSwiSW52b2tlUkVTVFNlcnZpY2UiOnsieCI6Mzc2LCJ5Ijo4OX0sIkxvZ01lc3NhZ2UxIjp7IngiOjU3MCwieSI6ODd9LCJSZXR1cm4iOnsieCI6NzQzLCJ5Ijo5MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"prediction_agent_trigger\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:work_order_agent",
+      "data": {
+        "name": "work_order_agent",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "LogMessage to InvokeRESTService"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "InvokeRESTService to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation Started : \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "POST",
+                "Uri": "=$property[\"WorkOrders_URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "body": {
+                  "mapping": {
+                    "asset_id": "=$flow.toolParams.asset_id",
+                    "priority": "=$flow.toolParams.priority",
+                    "description": "=$flow.toolParams.description",
+                    "assigned_to": "=$flow.toolParams.assigned_to",
+                    "scheduled_date": "=$flow.toolParams.scheduled_date"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  },
+                  "body": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\n    \"asset_id\": \"PUMP-W47-TX\",\n    \"priority\": \"HIGH\",\n    \"description\": \"Bearing wear detected\",\n    \"assigned_to\": \"Field Tech Team A\",\n    \"scheduled_date\": \"2026-04-20\"\n}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"work_order_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\n    \"work_order_id\": 1,\n    \"asset_id\": \"PUMP-W47-TX\",\n    \"priority\": \"HIGH\",\n    \"status\": \"OPEN\",\n    \"created_at\": \"2026-04-17T10:00:00Z\"\n}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation Completed : \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat(\"Work Order Created: \",coerce.toString($activity[InvokeRESTService].responseBody))"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoxOTIsInkiOjg5fSwiSW52b2tlUkVTVFNlcnZpY2UiOnsieCI6Mzc2LCJ5Ijo4OX0sIkxvZ01lc3NhZ2UxIjp7IngiOjU3MCwieSI6ODd9LCJSZXR1cm4iOnsieCI6NzQzLCJ5Ijo5MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"work_order_agent_trigger\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:alert_notification_agent",
+      "data": {
+        "name": "alert_notification_agent",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "InvokeRESTService",
+            "type": "label",
+            "label": "LogMessage to InvokeRESTService"
+          },
+          {
+            "id": 3,
+            "from": "InvokeRESTService",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "InvokeRESTService to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation Started : \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InvokeRESTService",
+            "name": "InvokeRESTService",
+            "description": "Simple REST Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "POST",
+                "Uri": "=$property[\"Alerts_URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 0,
+                "proxy": "",
+                "host": "",
+                "body": {
+                  "mapping": {
+                    "asset_id": "=$flow.toolParams.asset_id",
+                    "severity": "=$flow.toolParams.severity",
+                    "message": "=$flow.toolParams.message"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  },
+                  "body": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\n    \"asset_id\": \"PUMP-W47-TX\",\n    \"severity\": \"WARNING\",\n    \"message\": \"Bearing wear detected\"\n}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"alert_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\n    \"alert_id\": 1,\n    \"asset_id\": \"PUMP-W47-TX\",\n    \"severity\": \"WARNING\",\n    \"status\": \"ACTIVE\",\n    \"created_at\": \"2026-04-17T10:00:00Z\"\n}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation Completed : \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat(\"Alert Notification Sent: \",coerce.toString($activity[InvokeRESTService].responseBody))"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoxOTIsInkiOjg5fSwiSW52b2tlUkVTVFNlcnZpY2UiOnsieCI6Mzc2LCJ5Ijo4OX0sIkxvZ01lc3NhZ2UxIjp7IngiOjU3MCwieSI6ODd9LCJSZXR1cm4iOnsieCI6NzQzLCJ5Ijo5MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"alert_notification_agent_trigger\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:Orchestrator-Agent",
+      "data": {
+        "name": "Orchestrator-Agent",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "AIAgent",
+            "type": "label",
+            "label": "StartActivity to AIAgent"
+          },
+          {
+            "id": 2,
+            "from": "AIAgent",
+            "to": "WebsocketWriteData",
+            "type": "label",
+            "label": "AIAgent to WebsocketWriteData"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "AIAgent",
+            "name": "AIAgent",
+            "description": "Configure AI Agent in the flow",
+            "activity": {
+              "ref": "#agentactivity",
+              "settings": {
+                "llmProviderConnection": "conn://adf21c4c-67e1-4c78-9487-b2cacff04d63",
+                "model": "claude-sonnet-4-5-20250929",
+                "reasoning": "",
+                "temperature": 0.7,
+                "enableGuardrails": true,
+                "rateLimit": 25,
+                "tokenLimit": 4096,
+                "redactSensitiveData": true,
+                "responseType": "Text",
+                "agentHandoffs": "sensor_analysis_agent,prediction_agent,work_order_agent,alert_notification_agent",
+                "mcpServers": [
+                  "65b8b2d5-6ce2-48b2-bbae-17d9fb360d56"
+                ],
+                "conversationStoreType": "Memory",
+                "memoryMaxSize": 100,
+                "systemPrompt": "You are the Predictive Maintenance Orchestrator Agent for oilfield operations. You coordinate asset health monitoring across distributed well sites with pumps, compressors, and wellhead valves.\n\nYou manage four sub-agents:\n- sensor_analysis_agent: retrieves latest sensor readings for an asset\n- prediction_agent: stores AI health predictions\n- work_order_agent: creates maintenance work orders\n- alert_notification_agent: sends alert notifications\n\nINTENT ANALYSIS:\nBefore invoking any sub-agent, analyze the operator's request to determine which tasks are needed. If the operator asks to show sensor readings for an asset, invoke only sensor_analysis_agent. If the operator asks to list all assets, predictions, or work orders, use MCP tools only for read-only queries. If the operator asks to analyze and predict health of an asset, invoke sensor_analysis_agent then analyze the data yourself then invoke prediction_agent. If the operator asks to create a work order, invoke only work_order_agent. If the operator asks to send an alert, invoke only alert_notification_agent. If the operator asks for a full health check, invoke sensor_analysis_agent then analyze then prediction_agent then work_order_agent if WARNING or CRITICAL then alert_notification_agent if WARNING or CRITICAL.\n\nSENSOR ANALYSIS:\nWhen you receive sensor readings from sensor_analysis_agent, YOU must analyze them using these thresholds:\n\nVibration RMS: NORMAL below 3.5g, WARNING 3.5 to 6.0g, CRITICAL above 6.0g\nTemperature: NORMAL below 85C, WARNING 85 to 105C, CRITICAL above 105C\nPressure PSI: NORMAL 800 to 1200, WARNING 600 to 800 or 1200 to 1500, CRITICAL below 600 or above 1500\nFlow Rate: NORMAL 80 to 120 bbl per hr, WARNING 60 to 80 or 120 to 140, CRITICAL below 60 or above 140\n\nClassification: Use the WORST single sensor reading to determine overall status.\nConfidence: Base on how many sensors are anomalous. 1 sensor = 0.75, 2 sensors = 0.85, 3 sensors = 0.92, 4 sensors = 0.97.\nDays to failure: CRITICAL = 3 to 7 days, WARNING = 10 to 21 days, NORMAL = 90 plus days.\nFailure modes: bearing_wear, overheating, seal_leak, pressure_anomaly, flow_blockage, electrical_fault.\n\nWORKFLOW FOR FULL HEALTH CHECK:\nStep 1: Invoke sensor_analysis_agent with asset_id. Wait for completion.\nStep 2: Analyze the returned sensor data using the thresholds above. Determine status, confidence, days_to_failure, failure_mode, recommended_action, and sensor_anomalies.\nStep 3: Invoke prediction_agent to store your analysis with all fields. Wait for completion.\nStep 4: If status is WARNING or CRITICAL, invoke work_order_agent. Set priority URGENT for CRITICAL, HIGH for WARNING. Schedule 1 to 3 days out for CRITICAL, 3 to 7 days for WARNING. Assign to Field Tech Team A for Permian Basin, Field Tech Team B for Bakken, Field Tech Team C for Eagle Ford. Wait for completion.\nStep 5: If status is WARNING or CRITICAL, invoke alert_notification_agent with severity and a detailed message including asset_id, failure mode, days to failure, and confidence. Wait for completion.\n\nCRITICAL RULES:\n- Never invoke alert_notification_agent for NORMAL status assets.\n- Never invoke work_order_agent for NORMAL status assets.\n- Invoke alert_notification_agent at most ONCE per conversation.\n- Always store a prediction via prediction_agent after analyzing sensors.\n- Do not skip the analysis step. Always apply thresholds before storing predictions.\n\nMCP TOOLS:\nYou have access to PredictiveMaintenanceMCPServer tools for read-only data queries including GetAssets, GetSensorReadings, GetPredictions, GetWorkOrders, GetAlertHistory, and GetWellSites. Use these tools only for reading and retrieving data. Never use MCP tools to create, update, or modify records.\n\nRESPONSE FORMATTING:\nStructure your final response using clearly labeled sections with double asterisks for section headers. Use the following sections based on what was completed:\n\n**Asset Sensor Data** - Asset ID, type, well site, latest sensor readings with values and units.\n**Health Analysis** - Status classification, confidence percentage, estimated days to failure, identified failure mode, specific anomalies detected with threshold comparisons.\n**Prediction Stored** - Prediction ID and confirmation.\n**Work Order Created** - Work order ID, priority, assigned technician, scheduled date. Only include if WARNING or CRITICAL.\n**Alert Sent** - Alert ID, severity, confirmation. Only include if WARNING or CRITICAL.\n\nFor NORMAL status, clearly state that all sensors are within normal operating range and no maintenance action is required.\n\nUse professional, concise language suitable for field operations. Include specific sensor values and threshold comparisons.\n\nTERMINATION RULES:\nComplete each sub-agent task within a maximum of 3 attempts. If any sub-agent fails after 3 attempts, collect partial results and proceed with remaining agents. Never retry indefinitely.\n\nSCOPE:\nYou only handle predictive maintenance including sensor analysis, health predictions, work orders, and alerts. Politely decline requests about oil prices, billing, HR, production quotas, or anything outside asset health monitoring. Clearly state what you can and cannot assist with."
+              },
+              "input": {
+                "userPrompt": "=coerce.toString($flow.content)",
+                "conversationId": ""
+              }
+            }
+          },
+          {
+            "id": "WebsocketWriteData",
+            "name": "WebsocketWriteData",
+            "description": "Websocket Write Data Activity will write data to existing Websocket connection",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "=$activity[AIAgent].response",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiQUlBZ2VudCI6eyJ4IjoyMzYsInkiOjkzfSwiV2Vic29ja2V0V3JpdGVEYXRhIjp7IngiOjQ2OCwieSI6OTV9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "params"
+            },
+            {
+              "name": "queryParams",
+              "type": "params"
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "content",
+              "type": "any"
+            },
+            {
+              "name": "wsconnection",
+              "type": "any"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"WebsocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"params\"},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.Anthropic.LLM_Provider",
+      "type": "string",
+      "value": "Anthropic"
+    },
+    {
+      "name": "AgenticAI.Anthropic.Anthropic_Provider",
+      "type": "string",
+      "value": "Default"
+    },
+    {
+      "name": "AgenticAI.Anthropic.API_Key",
+      "type": "string",
+      "value": "SECRET:beidS8Cl4z/xB5pZNnxenMrQzZ/w2GNlAujxSJHI1RGpp2ms/HU/LtWJwuAF1SwjO0WXn4dlPCaQyo8cZZl3DUP4WFiz5K0RkwCIEr153TvgUluji0DWj6OGYABDQMWoo6hCAOFZFOw3iZZFqjmFqPuHEcjk0H2RyH2Y8A=="
+    },
+    {
+      "name": "AgenticAI.Anthropic.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "LLM_Model",
+      "type": "string",
+      "value": "claude-sonnet-4-5-20250929"
+    },
+    {
+      "name": "Sensor_Data_URL",
+      "type": "string",
+      "value": "http://localhost:9095/api/v1/assets/{asset_id}/sensor-data"
+    },
+    {
+      "name": "Predictions_URL",
+      "type": "string",
+      "value": "http://localhost:9095/api/v1/predictions"
+    },
+    {
+      "name": "WorkOrders_URL",
+      "type": "string",
+      "value": "http://localhost:9095/api/v1/work-orders"
+    },
+    {
+      "name": "Alerts_URL",
+      "type": "string",
+      "value": "http://localhost:9095/api/v1/alerts"
+    }
+  ],
+  "connections": {
+    "adf21c4c-67e1-4c78-9487-b2cacff04d63": {
+      "id": "adf21c4c-67e1-4c78-9487-b2cacff04d63",
+      "name": "Anthropic",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "Anthropic",
+        "description": "Key to use with claude ",
+        "llmProvider": "=$property[\"AgenticAI.Anthropic.LLM_Provider\"]",
+        "anthropicProvider": "=$property[\"AgenticAI.Anthropic.Anthropic_Provider\"]",
+        "apiKey": "=$property[\"AgenticAI.Anthropic.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.Anthropic.LLM_Base_URL\"]"
+      }
+    },
+    "65b8b2d5-6ce2-48b2-bbae-17d9fb360d56": {
+      "id": "65b8b2d5-6ce2-48b2-bbae-17d9fb360d56",
+      "name": "PredMaintMCPServer",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "PredMaintMCPServer",
+        "description": "",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9093/predmaintmcpserver",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS4xIiwidGFnIjoiMC45LjEtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiaWQiOiJHZW5lcmFsIiwidmVyc2lvbiI6IjEuNi4xMyIsInRhZyI6IjEuNi4xMy1iMDMiLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3Byb2plY3QtZmxvZ28vd2Vic29ja2V0IiwiaWQiOiJ3ZWJzb2NrZXQiLCJ2ZXJzaW9uIjoiMS4wLjEiLCJ0YWciOiIxLjAuMS1iMDMtZmxvZ28tMi4yNS4wIiwibmFtZSI6IldlYnNvY2tldCIsInMzbG9jYXRpb24iOiJUaWJjby93ZWJzb2NrZXQiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "8083",
+        "title": "WebsocketServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.3"
+  }
+}

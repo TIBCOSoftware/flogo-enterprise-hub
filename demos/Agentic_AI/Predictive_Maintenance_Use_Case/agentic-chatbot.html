@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Maintenance - Agentic Chatbot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-blue: #1a5276;
+            --primary-blue-dark: #0e3d5c;
+            --primary-orange: #d35400;
+            --primary-orange-dark: #a04000;
+            --background-white: #ffffff;
+            --background-light: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --success-green: #10b981;
+            --error-red: #ef4444;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background-white);
+            color: var(--text-primary);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--background-white);
+            border-bottom: 2px solid var(--border-color);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo i {
+            font-size: 1.5rem;
+            color: var(--primary-orange);
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .connection-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--background-light);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--error-red);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background-color: var(--success-green);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-blue-dark);
+        }
+
+        .btn-secondary {
+            background-color: var(--error-red);
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #dc2626;
+        }
+
+        .btn-icon {
+            background-color: transparent;
+            color: var(--text-secondary);
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-icon:hover:not(:disabled) {
+            background-color: var(--background-light);
+            color: var(--text-primary);
+        }
+
+        .btn-small {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-send {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+        }
+
+        .btn-send:hover:not(:disabled) {
+            background-color: var(--primary-blue-dark);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background-color: var(--background-light);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar-header i {
+            color: var(--primary-blue);
+        }
+
+        .chat-sessions {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .chat-session {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--background-white);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-session:hover {
+            background-color: var(--background-light);
+            border-color: var(--primary-blue);
+        }
+
+        .chat-session.active {
+            background-color: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        .chat-session-title {
+            flex: 1;
+            font-size: 0.875rem;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-session-delete {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0.25rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .chat-session-delete:hover {
+            opacity: 1;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--background-white);
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .chat-title i {
+            color: var(--primary-orange);
+        }
+
+        .ws-config {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .ws-config input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            width: 300px;
+        }
+
+        .ws-config input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+        }
+
+        /* Messages */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background-color: var(--background-white);
+        }
+
+        .welcome-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .welcome-message i {
+            font-size: 4rem;
+            color: var(--primary-orange);
+            margin-bottom: 1rem;
+        }
+
+        .welcome-message h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .message.user .message-avatar {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+
+        .message.bot .message-avatar {
+            background-color: var(--primary-orange);
+            color: white;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-left: auto;
+        }
+
+        .message-content {
+            margin-left: 42px;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            max-width: 80%;
+            word-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.8;
+            font-size: 0.9375rem;
+        }
+
+        .message-content p {
+            margin: 0.875rem 0;
+            line-height: 1.8;
+        }
+
+        .message-content p:first-child { margin-top: 0; }
+        .message-content p:last-child { margin-bottom: 0; }
+        .message-content p + p { margin-top: 1rem; }
+
+        .message.user .message-content {
+            background-color: var(--primary-blue);
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .message.bot .message-content {
+            background-color: var(--background-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--background-white);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .input-container textarea {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+            resize: none;
+            max-height: 120px;
+            min-height: 44px;
+        }
+
+        .input-container textarea:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+        }
+
+        .input-container textarea:disabled {
+            background-color: var(--background-light);
+            cursor: not-allowed;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--background-light); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+        @media (max-width: 768px) {
+            .header-content { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .main-content { flex-direction: column; }
+            .sidebar { width: 100%; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .ws-config input { width: 200px; }
+            .message-content { max-width: 90%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-cogs"></i>
+                    <h1>Predictive Maintenance Chatbot</h1>
+                </div>
+                <div class="connection-controls">
+                    <div class="connection-status" id="connectionStatus">
+                        <span class="status-indicator" id="statusIndicator"></span>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                    <button class="btn btn-primary" id="connectBtn">
+                        <i class="fas fa-plug"></i> Connect
+                    </button>
+                    <button class="btn btn-secondary" id="disconnectBtn" disabled>
+                        <i class="fas fa-unlink"></i> Disconnect
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2><i class="fas fa-comments"></i> Chat Sessions</h2>
+                    <button class="btn btn-icon" id="newChatBtn" title="New Chat">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="chat-sessions" id="chatSessions"></div>
+            </aside>
+
+            <!-- Chat Area -->
+            <main class="chat-area">
+                <div class="chat-header">
+                    <div class="chat-title">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span id="currentChatTitle">Select or create a chat</span>
+                    </div>
+                    <div class="ws-config">
+                        <input type="text" id="wsUrlInput" placeholder="WebSocket URL"
+                               value="ws://localhost:8083/ws/chat">
+                        <button class="btn btn-small" id="updateWsUrlBtn" title="Update WebSocket URL">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="messagesContainer">
+                    <div class="welcome-message">
+                        <i class="fas fa-oil-well"></i>
+                        <h2>Predictive Maintenance Assistant</h2>
+                        <p>Create a new chat session to get started</p>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="input-container">
+                        <textarea id="messageInput" placeholder="e.g. Run a full health check on PUMP-W47-TX"
+                                  rows="1" disabled></textarea>
+                        <button class="btn btn-send" id="sendBtn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        class PredMaintenanceChatbot {
+            constructor() {
+                this.ws = null;
+                this.wsUrl = 'ws://localhost:8083/ws/chat';
+                this.isConnected = false;
+                this.chats = new Map();
+                this.currentChatId = null;
+                this.chatCounter = 0;
+
+                this.elements = {
+                    connectBtn: document.getElementById('connectBtn'),
+                    disconnectBtn: document.getElementById('disconnectBtn'),
+                    statusIndicator: document.getElementById('statusIndicator'),
+                    statusText: document.getElementById('statusText'),
+                    wsUrlInput: document.getElementById('wsUrlInput'),
+                    updateWsUrlBtn: document.getElementById('updateWsUrlBtn'),
+                    newChatBtn: document.getElementById('newChatBtn'),
+                    chatSessions: document.getElementById('chatSessions'),
+                    messagesContainer: document.getElementById('messagesContainer'),
+                    messageInput: document.getElementById('messageInput'),
+                    sendBtn: document.getElementById('sendBtn'),
+                    currentChatTitle: document.getElementById('currentChatTitle')
+                };
+
+                this.init();
+            }
+
+            init() {
+                this.loadChatsFromStorage();
+                this.setupEventListeners();
+                this.updateUI();
+            }
+
+            setupEventListeners() {
+                this.elements.connectBtn.addEventListener('click', () => this.connect());
+                this.elements.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.elements.updateWsUrlBtn.addEventListener('click', () => this.updateWsUrl());
+                this.elements.newChatBtn.addEventListener('click', () => this.createNewChat());
+                this.elements.sendBtn.addEventListener('click', () => this.sendMessage());
+                this.elements.messageInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                this.elements.messageInput.addEventListener('input', () => {
+                    this.elements.messageInput.style.height = 'auto';
+                    this.elements.messageInput.style.height = this.elements.messageInput.scrollHeight + 'px';
+                });
+            }
+
+            updateWsUrl() {
+                const newUrl = this.elements.wsUrlInput.value.trim();
+                if (newUrl && (newUrl.startsWith('ws://') || newUrl.startsWith('wss://'))) {
+                    if (this.isConnected) {
+                        alert('Please disconnect before changing the WebSocket URL');
+                        return;
+                    }
+                    this.wsUrl = newUrl;
+                    alert('WebSocket URL updated. Click Connect to use the new URL.');
+                } else {
+                    alert('Please enter a valid WebSocket URL (starting with ws:// or wss://)');
+                }
+            }
+
+            connect() {
+                if (this.isConnected) return;
+
+                try {
+                    this.ws = new WebSocket(this.wsUrl);
+
+                    this.ws.onopen = () => {
+                        this.isConnected = true;
+                        this.updateConnectionStatus(true);
+                        this.addSystemMessage('Connected to server');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.handleIncomingMessage(data);
+                        } catch (e) {
+                            this.handleIncomingMessage({ message: event.data });
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.isConnected = false;
+                        this.updateConnectionStatus(false);
+                        this.addSystemMessage('Disconnected from server');
+                    };
+
+                    this.ws.onerror = (error) => {
+                        this.addSystemMessage('Connection error. Please check the WebSocket URL and try again.');
+                        this.isConnected = false;
+                        this.updateConnectionStatus(false);
+                    };
+                } catch (error) {
+                    alert('Failed to connect. Check if the server is running.');
+                    this.isConnected = false;
+                    this.updateConnectionStatus(false);
+                }
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+                this.isConnected = false;
+                this.updateConnectionStatus(false);
+            }
+
+            updateConnectionStatus(connected) {
+                if (connected) {
+                    this.elements.statusIndicator.classList.add('connected');
+                    this.elements.statusText.textContent = 'Connected';
+                    this.elements.connectBtn.disabled = true;
+                    this.elements.disconnectBtn.disabled = false;
+                    this.elements.messageInput.disabled = false;
+                    this.elements.sendBtn.disabled = false;
+                } else {
+                    this.elements.statusIndicator.classList.remove('connected');
+                    this.elements.statusText.textContent = 'Disconnected';
+                    this.elements.connectBtn.disabled = false;
+                    this.elements.disconnectBtn.disabled = true;
+                    this.elements.messageInput.disabled = true;
+                    this.elements.sendBtn.disabled = true;
+                }
+            }
+
+            handleIncomingMessage(data) {
+                if (!this.currentChatId) {
+                    this.createNewChat();
+                }
+
+                const message = {
+                    type: 'bot',
+                    content: data.message || data.text || JSON.stringify(data),
+                    timestamp: new Date()
+                };
+
+                this.addMessageToChat(this.currentChatId, message);
+                this.saveChatsToStorage();
+            }
+
+            sendMessage() {
+                const input = this.elements.messageInput;
+                const message = input.value.trim();
+
+                if (!message || !this.isConnected || !this.ws) return;
+
+                if (!this.currentChatId) {
+                    this.createNewChat();
+                }
+
+                const userMessage = {
+                    type: 'user',
+                    content: message,
+                    timestamp: new Date()
+                };
+
+                this.addMessageToChat(this.currentChatId, userMessage);
+
+                try {
+                    if (this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify({ message: message }));
+                    } else {
+                        this.addSystemMessage('Connection lost. Please reconnect.');
+                    }
+                } catch (error) {
+                    this.addSystemMessage('Error sending message. Please try again.');
+                }
+
+                input.value = '';
+                input.style.height = 'auto';
+                this.saveChatsToStorage();
+            }
+
+            createNewChat() {
+                this.chatCounter++;
+                const chatId = `chat-${this.chatCounter}`;
+
+                const chat = {
+                    id: chatId,
+                    title: `Chat ${this.chatCounter}`,
+                    messages: [],
+                    createdAt: new Date()
+                };
+
+                this.chats.set(chatId, chat);
+                this.currentChatId = chatId;
+
+                this.updateChatSessionsList();
+                this.displayChat(chatId);
+                this.saveChatsToStorage();
+            }
+
+            switchChat(chatId) {
+                if (this.chats.has(chatId)) {
+                    this.currentChatId = chatId;
+                    this.displayChat(chatId);
+                    this.updateChatSessionsList();
+                }
+            }
+
+            deleteChat(chatId) {
+                if (this.chats.size <= 1) {
+                    alert('Cannot delete the last chat session. Create a new one first.');
+                    return;
+                }
+
+                if (confirm('Are you sure you want to delete this chat session?')) {
+                    this.chats.delete(chatId);
+
+                    if (this.currentChatId === chatId) {
+                        const firstChatId = Array.from(this.chats.keys())[0];
+                        this.currentChatId = firstChatId;
+                        this.displayChat(firstChatId);
+                    }
+
+                    this.updateChatSessionsList();
+                    this.saveChatsToStorage();
+                }
+            }
+
+            displayChat(chatId) {
+                const chat = this.chats.get(chatId);
+                if (!chat) return;
+
+                this.elements.currentChatTitle.textContent = chat.title;
+                this.elements.messagesContainer.innerHTML = '';
+
+                if (chat.messages.length === 0) {
+                    this.showWelcomeMessage();
+                } else {
+                    chat.messages.forEach(msg => this.renderMessage(msg));
+                }
+
+                this.scrollToBottom();
+            }
+
+            addMessageToChat(chatId, message) {
+                const chat = this.chats.get(chatId);
+                if (!chat) return;
+
+                chat.messages.push(message);
+                this.renderMessage(message);
+                this.scrollToBottom();
+            }
+
+            addSystemMessage(content) {
+                if (!this.currentChatId) return;
+
+                const message = {
+                    type: 'system',
+                    content: content,
+                    timestamp: new Date()
+                };
+
+                this.addMessageToChat(this.currentChatId, message);
+            }
+
+            renderMessage(message) {
+                const container = this.elements.messagesContainer;
+
+                const welcomeMsg = container.querySelector('.welcome-message');
+                if (welcomeMsg) welcomeMsg.remove();
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${message.type}`;
+
+                const timeStr = this.formatTimestamp(message.timestamp);
+
+                if (message.type === 'system') {
+                    messageDiv.innerHTML = `
+                        <div class="message-content" style="margin-left: 0; background-color: #fef3c7; color: #92400e; text-align: center; font-size: 0.875rem; max-width: 100%;">
+                            <i class="fas fa-info-circle"></i> ${message.content}
+                        </div>
+                    `;
+                } else {
+                    const avatar = message.type === 'user' ? 'U' : 'AI';
+                    const sender = message.type === 'user' ? 'You' : 'Maintenance AI';
+
+                    messageDiv.innerHTML = `
+                        <div class="message-header">
+                            <div class="message-avatar">${avatar}</div>
+                            <span class="message-sender">${sender}</span>
+                            <span class="message-time">${timeStr}</span>
+                        </div>
+                        <div class="message-content">${this.formatMessageContent(message.content)}</div>
+                    `;
+                }
+
+                container.appendChild(messageDiv);
+            }
+
+            showWelcomeMessage() {
+                this.elements.messagesContainer.innerHTML = `
+                    <div class="welcome-message">
+                        <i class="fas fa-oil-well"></i>
+                        <h2>Predictive Maintenance Assistant</h2>
+                        <p>Start a conversation by typing a message below</p>
+                    </div>
+                `;
+            }
+
+            updateChatSessionsList() {
+                const container = this.elements.chatSessions;
+                container.innerHTML = '';
+
+                this.chats.forEach((chat, chatId) => {
+                    const sessionDiv = document.createElement('div');
+                    sessionDiv.className = `chat-session ${chatId === this.currentChatId ? 'active' : ''}`;
+                    sessionDiv.innerHTML = `
+                        <span class="chat-session-title" title="${chat.title}">${chat.title}</span>
+                        <button class="chat-session-delete" onclick="event.stopPropagation(); chatbot.deleteChat('${chatId}')" title="Delete chat">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+
+                    sessionDiv.addEventListener('click', () => this.switchChat(chatId));
+                    container.appendChild(sessionDiv);
+                });
+            }
+
+            updateUI() {
+                this.updateConnectionStatus(this.isConnected);
+                this.updateChatSessionsList();
+
+                if (this.currentChatId) {
+                    this.displayChat(this.currentChatId);
+                } else {
+                    this.elements.messagesContainer.innerHTML = `
+                        <div class="welcome-message">
+                            <i class="fas fa-oil-well"></i>
+                            <h2>Predictive Maintenance Assistant</h2>
+                            <p>Create a new chat session to get started</p>
+                        </div>
+                    `;
+                }
+            }
+
+            scrollToBottom() {
+                const container = this.elements.messagesContainer;
+                container.scrollTop = container.scrollHeight;
+            }
+
+            formatTimestamp(date) {
+                const d = new Date(date);
+                return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            }
+
+            formatMessageContent(text) {
+                if (!text) return '';
+
+                const div = document.createElement('div');
+                div.textContent = text;
+                let escaped = div.innerHTML;
+
+                escaped = escaped.replace(/\n{3,}/g, '\n\n');
+
+                const paragraphs = escaped.split(/\n\n/);
+                const formatted = paragraphs.map(para => {
+                    const trimmed = para.trim();
+                    if (!trimmed) return '';
+                    return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+                }).filter(p => p !== '');
+
+                if (formatted.length > 1) return formatted.join('');
+                if (formatted.length === 1) return formatted[0];
+                return escaped.replace(/\n/g, '<br>');
+            }
+
+            saveChatsToStorage() {
+                try {
+                    const chatsData = Array.from(this.chats.entries()).map(([id, chat]) => ({
+                        id: chat.id,
+                        title: chat.title,
+                        messages: chat.messages.map(msg => ({
+                            type: msg.type,
+                            content: msg.content,
+                            timestamp: msg.timestamp.toISOString()
+                        })),
+                        createdAt: chat.createdAt.toISOString()
+                    }));
+
+                    localStorage.setItem('predMaintChatbot_chats', JSON.stringify(chatsData));
+                    localStorage.setItem('predMaintChatbot_currentChatId', this.currentChatId);
+                    localStorage.setItem('predMaintChatbot_chatCounter', this.chatCounter.toString());
+                    localStorage.setItem('predMaintChatbot_wsUrl', this.wsUrl);
+                } catch (error) {
+                    console.error('Error saving chats:', error);
+                }
+            }
+
+            loadChatsFromStorage() {
+                try {
+                    const chatsData = localStorage.getItem('predMaintChatbot_chats');
+                    const currentChatId = localStorage.getItem('predMaintChatbot_currentChatId');
+                    const chatCounter = localStorage.getItem('predMaintChatbot_chatCounter');
+                    const wsUrl = localStorage.getItem('predMaintChatbot_wsUrl');
+
+                    if (chatCounter) this.chatCounter = parseInt(chatCounter, 10);
+
+                    if (wsUrl) {
+                        this.wsUrl = wsUrl;
+                        this.elements.wsUrlInput.value = wsUrl;
+                    }
+
+                    if (chatsData) {
+                        const parsed = JSON.parse(chatsData);
+                        parsed.forEach(chatData => {
+                            this.chats.set(chatData.id, {
+                                id: chatData.id,
+                                title: chatData.title,
+                                messages: chatData.messages.map(msg => ({
+                                    type: msg.type,
+                                    content: msg.content,
+                                    timestamp: new Date(msg.timestamp)
+                                })),
+                                createdAt: new Date(chatData.createdAt)
+                            });
+                        });
+
+                        if (currentChatId && this.chats.has(currentChatId)) {
+                            this.currentChatId = currentChatId;
+                        } else if (this.chats.size > 0) {
+                            this.currentChatId = Array.from(this.chats.keys())[0];
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading chats:', error);
+                }
+            }
+        }
+
+        let chatbot;
+        document.addEventListener('DOMContentLoaded', () => {
+            chatbot = new PredMaintenanceChatbot();
+        });
+    </script>
+</body>
+</html>

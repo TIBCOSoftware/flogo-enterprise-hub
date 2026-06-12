@@ -1,0 +1,255 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+    "github.com/project-flogo/websocket/activity/wswritedata",
+    "github.com/project-flogo/websocket/trigger/wsserver",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
+  ],
+  "name": "copa-agent",
+  "description": "COPA Airlines Passenger Services AI Agent — Disruption rebooking via WebSocket chat",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#wsserver",
+      "name": "wsserver",
+      "description": "WebSocket server for passenger chat",
+      "settings": {
+        "port": "=$property[\"AGENT_PORT\"]",
+        "enableTLS": false,
+        "serverCert": "",
+        "serverKey": "",
+        "enableClientAuth": false,
+        "trustStore": ""
+      },
+      "id": "WebsocketServer",
+      "handlers": [
+        {
+          "description": "Chat endpoint for passenger interactions",
+          "settings": {
+            "method": "GET",
+            "path": "/ws/chat",
+            "mode": "Data",
+            "format": "String",
+            "jsonSchema": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:PassengerServiceAgent"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "queryParams": "=$.queryParams",
+              "headers": "=$.headers",
+              "content": "=$.content",
+              "wsconnection": "=$.wsconnection"
+            }
+          },
+          "schemas": {
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Key\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Version\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Upgrade\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "PassengerServiceAgent"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:PassengerServiceAgent",
+      "data": {
+        "name": "PassengerServiceAgent",
+        "description": "WebSocket → AI Agent → WebSocket response",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "AIAgent",
+            "type": "label",
+            "label": "StartActivity to AIAgent"
+          },
+          {
+            "id": 2,
+            "from": "AIAgent",
+            "to": "WebsocketWriteData",
+            "type": "label",
+            "label": "AIAgent to WebsocketWriteData"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "AIAgent",
+            "name": "AIAgent",
+            "description": "COPA Passenger Services AI Agent",
+            "activity": {
+              "ref": "#agentactivity",
+              "settings": {
+                "llmProviderConnection": "conn://a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+                "model": "gpt-4o",
+                "reasoning": "",
+                "temperature": 0.3,
+                "enableGuardrails": false,
+                "rateLimit": 25,
+                "tokenLimit": 4096,
+                "redactSensitiveData": false,
+                "responseType": "Text",
+                "agentHandoffs": "",
+                "mcpServers": [
+                  "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+                ],
+                "conversationStoreType": "Memory",
+                "memoryMaxSize": 20,
+                "systemPrompt": "You are a COPA Airlines customer service agent specializing in flight disruptions and passenger rebooking at the Panama (PTY) hub.\n\nCAPABILITIES (via MCP tools):\n- CheckFlightStatus: Look up any COPA flight by flight number (e.g., CM801)\n- GetBooking: Retrieve passenger booking by PNR confirmation code\n- RebookPassenger: Rebook a passenger to an alternative flight\n\nWORKFLOW:\n1. When a passenger asks about a flight, ALWAYS check flight status first\n2. If the flight is delayed and they have a connection, check their booking\n3. Calculate if they'll miss their connection (< 60 min connection = at risk)\n4. If at risk, suggest rebooking and offer the next available flight\n5. Only rebook after the passenger confirms\n\nRULES:\n- Be empathetic — disruptions are stressful\n- Always address the passenger by name after looking up their booking\n- Mention their ConnectMiles tier if Gold or Presidential (VIP treatment)\n- Reference the Panama hub (PTY) — passengers connect through Tocumen\n- NEVER fabricate flight numbers — only use data from CheckFlightStatus\n- If you cannot find a flight or booking, say so honestly\n\nCOPA CONTEXT:\n- Hub: Tocumen International Airport (PTY), Panama City\n- Alliance: Star Alliance member\n- Loyalty: ConnectMiles (PreferMember, Silver, Gold, Presidential)\n- Network: 80+ destinations across North, Central, South America & Caribbean\n- Fleet: Boeing 737 MAX 9 and Boeing 737-800"
+              },
+              "input": {
+                "userPrompt": "=coerce.toString($flow.content)",
+                "conversationId": ""
+              }
+            }
+          },
+          {
+            "id": "WebsocketWriteData",
+            "name": "WebsocketWriteData",
+            "description": "Send AI response back to WebSocket client",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "=$activity[AIAgent].response",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          }
+        ],
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "params"
+            },
+            {
+              "name": "queryParams",
+              "type": "params"
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "content",
+              "type": "any"
+            },
+            {
+              "name": "wsconnection",
+              "type": "any"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"WebsocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"params\"},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AGENT_PORT",
+      "type": "float64",
+      "value": 8082
+    },
+    {
+      "name": "AgenticAI.OpenAI.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAI.OpenAI_Provider",
+      "type": "string",
+      "value": "Default"
+    },
+    {
+      "name": "AgenticAI.OpenAI.API_Key",
+      "type": "string",
+      "value": "YOUR_OPENAI_API_KEY"
+    },
+    {
+      "name": "AgenticAI.OpenAI.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    }
+  ],
+  "connections": {
+    "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d": {
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "OpenAI",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "OpenAI",
+        "description": "OpenAI GPT-4o for COPA Passenger Services Agent",
+        "llmProvider": "=$property[\"AgenticAI.OpenAI.LLM_Provider\"]",
+        "openAIProvider": "=$property[\"AgenticAI.OpenAI.OpenAI_Provider\"]",
+        "apiKey": "=$property[\"AgenticAI.OpenAI.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAI.LLM_Base_URL\"]"
+      }
+    },
+    "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e": {
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "name": "COPAMCPServer",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "COPAMCPServer",
+        "description": "COPA Airlines MCP Server with flight status, booking, and rebooking tools",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9091/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": ""
+      }
+    }
+  },
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "8082",
+        "title": "COPA Agent WebSocket",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.3"
+  }
+}

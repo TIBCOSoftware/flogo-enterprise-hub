@@ -1,0 +1,213 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Predictive Maintenance API",
+    "description": "REST API for predictive maintenance write operations",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:9095"
+    }
+  ],
+  "paths": {
+    "/api/v1/assets/{asset_id}/sensor-data": {
+      "get": {
+        "summary": "Get asset sensor data",
+        "description": "Returns asset details joined with latest sensor readings",
+        "operationId": "getAssetSensorData",
+        "parameters": [
+          {
+            "name": "asset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset sensor data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetSensorData"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/predictions": {
+      "post": {
+        "summary": "Store prediction",
+        "description": "Stores a new AI-generated health prediction",
+        "operationId": "storePrediction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prediction stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/work-orders": {
+      "post": {
+        "summary": "Create work order",
+        "description": "Creates a maintenance work order",
+        "operationId": "createWorkOrder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Work order created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/alerts": {
+      "post": {
+        "summary": "Log alert",
+        "description": "Logs an alert notification",
+        "operationId": "logAlert",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Alert logged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AssetSensorData": {
+        "type": "object",
+        "properties": {
+          "asset_id": { "type": "string" },
+          "asset_type": { "type": "string" },
+          "well_site_id": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "type": "string" },
+          "reading_timestamp": { "type": "string" },
+          "vibration_rms": { "type": "number" },
+          "temperature_c": { "type": "number" },
+          "pressure_psi": { "type": "number" },
+          "flow_rate": { "type": "number" },
+          "power_consumption": { "type": "number" }
+        }
+      },
+      "PredictionRequest": {
+        "type": "object",
+        "properties": {
+          "asset_id": { "type": "string" },
+          "status": { "type": "string" },
+          "confidence": { "type": "string" },
+          "days_to_failure": { "type": "string" },
+          "failure_mode": { "type": "string" },
+          "recommended_action": { "type": "string" },
+          "sensor_anomalies": { "type": "string" }
+        }
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "prediction_id": { "type": "number" },
+          "asset_id": { "type": "string" },
+          "predicted_at": { "type": "string" },
+          "status": { "type": "string" },
+          "confidence": { "type": "number" },
+          "days_to_failure": { "type": "number" }
+        }
+      },
+      "WorkOrderRequest": {
+        "type": "object",
+        "properties": {
+          "asset_id": { "type": "string" },
+          "priority": { "type": "string" },
+          "description": { "type": "string" },
+          "assigned_to": { "type": "string" },
+          "scheduled_date": { "type": "string" }
+        }
+      },
+      "WorkOrderResponse": {
+        "type": "object",
+        "properties": {
+          "work_order_id": { "type": "number" },
+          "asset_id": { "type": "string" },
+          "priority": { "type": "string" },
+          "assigned_to": { "type": "string" },
+          "scheduled_date": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      },
+      "AlertRequest": {
+        "type": "object",
+        "properties": {
+          "asset_id": { "type": "string" },
+          "severity": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "AlertResponse": {
+        "type": "object",
+        "properties": {
+          "alert_id": { "type": "number" },
+          "asset_id": { "type": "string" },
+          "severity": { "type": "string" },
+          "sent_at": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    }
+  }
+}

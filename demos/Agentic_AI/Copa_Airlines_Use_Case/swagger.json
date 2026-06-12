@@ -1,0 +1,456 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "COPA Airlines Passenger Services API",
+    "description": "Mock API for COPA Airlines flight status, bookings, and passenger rebooking through the Panama (PTY) hub.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "COPA Airlines IT",
+      "email": "api@copaair.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/flights/{flightNumber}": {
+      "get": {
+        "operationId": "getFlightStatus",
+        "summary": "Get flight status",
+        "description": "Returns the current status of a COPA Airlines flight including delay information, gate assignment, and aircraft type.",
+        "tags": ["Flights"],
+        "parameters": [
+          {
+            "name": "flightNumber",
+            "in": "path",
+            "required": true,
+            "description": "COPA flight number (e.g., CM801)",
+            "schema": {
+              "type": "string",
+              "pattern": "^CM\\d{3,4}$",
+              "example": "CM801"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flight status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlightStatus"
+                },
+                "example": {
+                  "flightNumber": "CM801",
+                  "origin": "BOG",
+                  "originCity": "Bogota",
+                  "destination": "PTY",
+                  "destinationCity": "Panama City",
+                  "scheduledDeparture": "2026-05-21T08:30:00-05:00",
+                  "estimatedDeparture": "2026-05-21T10:00:00-05:00",
+                  "scheduledArrival": "2026-05-21T11:15:00-05:00",
+                  "estimatedArrival": "2026-05-21T12:45:00-05:00",
+                  "status": "DELAYED",
+                  "gate": "B12",
+                  "delayMinutes": 90,
+                  "delayReason": "Late arriving aircraft from GYE",
+                  "aircraft": "Boeing 737 MAX 9"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Flight not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Flight not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{pnr}": {
+      "get": {
+        "operationId": "getBooking",
+        "summary": "Get booking details",
+        "description": "Returns passenger booking details by PNR confirmation code, including passenger information, ConnectMiles loyalty tier, and all flight segments.",
+        "tags": ["Bookings"],
+        "parameters": [
+          {
+            "name": "pnr",
+            "in": "path",
+            "required": true,
+            "description": "6-character PNR confirmation code",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z0-9]{6}$",
+              "example": "ABCDE1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                },
+                "example": {
+                  "pnr": "ABCDE1",
+                  "passenger": {
+                    "name": "Carlos Martinez",
+                    "passengerId": "PAX-2026-00101",
+                    "email": "carlos.martinez@email.com",
+                    "phone": "+57-310-555-0101",
+                    "connectMilesTier": "Gold",
+                    "connectMilesNumber": "CM-98765432"
+                  },
+                  "segments": [
+                    {
+                      "flightNumber": "CM801",
+                      "origin": "BOG",
+                      "destination": "PTY",
+                      "departureTime": "2026-05-21T08:30:00-05:00",
+                      "arrivalTime": "2026-05-21T11:15:00-05:00",
+                      "seatNumber": "4A",
+                      "cabin": "Business",
+                      "status": "CHECKED_IN"
+                    },
+                    {
+                      "flightNumber": "CM445",
+                      "origin": "PTY",
+                      "destination": "MIA",
+                      "departureTime": "2026-05-21T12:30:00-05:00",
+                      "arrivalTime": "2026-05-21T16:45:00-04:00",
+                      "seatNumber": "3C",
+                      "cabin": "Business",
+                      "status": "CONFIRMED"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Booking not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{pnr}/rebook": {
+      "post": {
+        "operationId": "rebookPassenger",
+        "summary": "Rebook passenger to alternative flight",
+        "description": "Rebooks a disrupted passenger to an alternative flight. Updates the affected segment and returns the updated itinerary.",
+        "tags": ["Bookings"],
+        "parameters": [
+          {
+            "name": "pnr",
+            "in": "path",
+            "required": true,
+            "description": "PNR of the booking to modify",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z0-9]{6}$",
+              "example": "ABCDE1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RebookRequest"
+              },
+              "example": {
+                "newFlightNumber": "CM447"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Passenger rebooked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RebookResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Passenger Carlos Martinez rebooked from CM445 to CM447",
+                  "updatedSegments": [
+                    {
+                      "flightNumber": "CM801",
+                      "origin": "BOG",
+                      "destination": "PTY",
+                      "departureTime": "2026-05-21T08:30:00-05:00",
+                      "arrivalTime": "2026-05-21T12:45:00-05:00",
+                      "seatNumber": "4A",
+                      "cabin": "Business",
+                      "status": "CHECKED_IN"
+                    },
+                    {
+                      "flightNumber": "CM447",
+                      "origin": "PTY",
+                      "destination": "MIA",
+                      "departureTime": "2026-05-21T15:30:00-05:00",
+                      "arrivalTime": "2026-05-21T19:45:00-04:00",
+                      "seatNumber": "5A",
+                      "cabin": "Business",
+                      "status": "CONFIRMED"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Booking not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "FlightStatus": {
+        "type": "object",
+        "required": ["flightNumber", "origin", "destination", "scheduledDeparture", "scheduledArrival", "status"],
+        "properties": {
+          "flightNumber": {
+            "type": "string",
+            "description": "COPA flight number",
+            "example": "CM801"
+          },
+          "origin": {
+            "type": "string",
+            "description": "Origin IATA airport code",
+            "example": "BOG"
+          },
+          "originCity": {
+            "type": "string",
+            "description": "Origin city name",
+            "example": "Bogota"
+          },
+          "destination": {
+            "type": "string",
+            "description": "Destination IATA airport code",
+            "example": "PTY"
+          },
+          "destinationCity": {
+            "type": "string",
+            "description": "Destination city name",
+            "example": "Panama City"
+          },
+          "scheduledDeparture": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Scheduled departure time"
+          },
+          "estimatedDeparture": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Estimated departure time (null if on time)"
+          },
+          "scheduledArrival": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Scheduled arrival time"
+          },
+          "estimatedArrival": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Estimated arrival time (null if on time)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ON_TIME", "DELAYED", "BOARDING", "DEPARTED", "CANCELLED"],
+            "description": "Current flight status"
+          },
+          "gate": {
+            "type": "string",
+            "description": "Departure gate",
+            "example": "B12"
+          },
+          "delayMinutes": {
+            "type": "integer",
+            "description": "Delay in minutes (0 if on time)",
+            "example": 90
+          },
+          "delayReason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Reason for delay (null if on time)",
+            "example": "Late arriving aircraft from GYE"
+          },
+          "aircraft": {
+            "type": "string",
+            "description": "Aircraft type",
+            "example": "Boeing 737 MAX 9"
+          }
+        }
+      },
+      "Passenger": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Carlos Martinez"
+          },
+          "passengerId": {
+            "type": "string",
+            "example": "PAX-2026-00101"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "carlos.martinez@email.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+57-310-555-0101"
+          },
+          "connectMilesTier": {
+            "type": "string",
+            "enum": ["PreferMember", "Silver", "Gold", "Presidential"],
+            "example": "Gold"
+          },
+          "connectMilesNumber": {
+            "type": "string",
+            "example": "CM-98765432"
+          }
+        }
+      },
+      "Segment": {
+        "type": "object",
+        "properties": {
+          "flightNumber": {
+            "type": "string",
+            "example": "CM801"
+          },
+          "origin": {
+            "type": "string",
+            "example": "BOG"
+          },
+          "destination": {
+            "type": "string",
+            "example": "PTY"
+          },
+          "departureTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrivalTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "seatNumber": {
+            "type": "string",
+            "example": "4A"
+          },
+          "cabin": {
+            "type": "string",
+            "enum": ["Economy", "Business"],
+            "example": "Business"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["CONFIRMED", "CHECKED_IN", "BOARDED", "COMPLETED", "CANCELLED"],
+            "example": "CHECKED_IN"
+          }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "pnr": {
+            "type": "string",
+            "example": "ABCDE1"
+          },
+          "passenger": {
+            "$ref": "#/components/schemas/Passenger"
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Segment"
+            }
+          }
+        }
+      },
+      "RebookRequest": {
+        "type": "object",
+        "required": ["newFlightNumber"],
+        "properties": {
+          "newFlightNumber": {
+            "type": "string",
+            "description": "Flight number to rebook the passenger to",
+            "example": "CM447"
+          }
+        }
+      },
+      "RebookResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Passenger Carlos Martinez rebooked from CM445 to CM447"
+          },
+          "updatedSegments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Segment"
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Flight not found"
+          }
+        }
+      }
+    }
+  }
+}

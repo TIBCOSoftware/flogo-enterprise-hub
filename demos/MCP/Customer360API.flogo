@@ -1,0 +1,1206 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/activity/mapper",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "name": "Customer360API",
+  "description": "API to return customers, products, order data",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": "=$property[\"EntityAPI.HTTPPort\"]",
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "Get a list of customers.",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/customers",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Customers"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "requestURI": "=$.requestURI",
+              "method": "=$.method"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": "schema://CustomersSchema",
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "Get_Customers"
+        },
+        {
+          "description": "Get a list of products.",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/products",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Products"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "requestURI": "=$.method",
+              "method": "=$.method"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": "schema://ProductsSchema",
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "Get_Products"
+        },
+        {
+          "description": "Get a list of orders.",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/orders",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Orders"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "requestURI": "=$.requestURI",
+              "method": "=$.method"
+            },
+            "output": {
+              "data": "=$.data",
+              "code": "=$.code"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": "schema://OrdersSchema",
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "Get_Orders"
+        },
+        {
+          "description": "Get a list of order items",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/order_items",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Get_Order_items"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "requestURI": "=$.requestURI",
+              "method": "=$.method"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": "schema://OrderItemsSchema",
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "Get_Order_items"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:Get_Customers",
+      "data": {
+        "name": "Get_Customers",
+        "description": "Get a list of customers.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogMessage1"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Mapper",
+            "type": "label",
+            "label": "LogStart to Mapper"
+          },
+          {
+            "id": 3,
+            "from": "Mapper",
+            "to": "Return",
+            "type": "label",
+            "label": "Mapper to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Mapper",
+            "name": "Mapper",
+            "description": "Mapper Activity",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": "=coerce.toObject(\"{\\\"customers\\\":[{\\\"customer_id\\\":1,\\\"company_name\\\":\\\"QuantumLeap B.V.\\\",\\\"contact_email\\\":\\\"contact@quantumleap.nl\\\",\\\"contact_phone\\\":\\\"+31 6 12345678\\\",\\\"billing_address\\\":\\\"123 High Tech Campus, Eindhoven, Netherlands\\\",\\\"shipping_address\\\":\\\"123 High Tech Campus, Eindhoven, Netherlands\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":2,\\\"company_name\\\":\\\"Rhine Automata GmbH\\\",\\\"contact_email\\\":\\\"info@rhineauto.de\\\",\\\"contact_phone\\\":\\\"+49 30 98765432\\\",\\\"billing_address\\\":\\\"45 Schillerstra, Berlin, Germany\\\",\\\"shipping_address\\\":\\\"45 Schillerstra, Berlin, Germany\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":3,\\\"company_name\\\":\\\"Silicon Valley Robotics\\\",\\\"contact_email\\\":\\\"procurement@svrobotics.com\\\",\\\"contact_phone\\\":\\\"+1 415 555 0101\\\",\\\"billing_address\\\":\\\"789 Innovation Dr, Palo Alto, CA, USA\\\",\\\"shipping_address\\\":\\\"789 Innovation Dr, Palo Alto, CA, USA\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":4,\\\"company_name\\\":\\\"Kyoto Dynamics\\\",\\\"contact_email\\\":\\\"orders@kyotodynamics.jp\\\",\\\"contact_phone\\\":\\\"+81 75 234 5678\\\",\\\"billing_address\\\":\\\"321 Kiyamachi Dori, Kyoto, Japan\\\",\\\"shipping_address\\\":\\\"321 Kiyamachi Dori, Kyoto, Japan\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":5,\\\"company_name\\\":\\\"Seoul AI Systems\\\",\\\"contact_email\\\":\\\"sourcing@seoulaisys.kr\\\",\\\"contact_phone\\\":\\\"+82 2 1234 5678\\\",\\\"billing_address\\\":\\\"101 Gangnam-daero, Seoul, South Korea\\\",\\\"shipping_address\\\":\\\"101 Gangnam-daero, Seoul, South Korea\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":6,\\\"company_name\\\":\\\"Taipei Logic Inc.\\\",\\\"contact_email\\\":\\\"contact@taipeilogic.tw\\\",\\\"contact_phone\\\":\\\"+886 2 8765 4321\\\",\\\"billing_address\\\":\\\"55 Xinyi Rd, Taipei, Taiwan\\\",\\\"shipping_address\\\":\\\"55 Xinyi Rd, Taipei, Taiwan\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":7,\\\"company_name\\\":\\\"Britannic Circuits Ltd.\\\",\\\"contact_email\\\":\\\"accounts@britcircuits.co.uk\\\",\\\"contact_phone\\\":\\\"+44 20 7946 0123\\\",\\\"billing_address\\\":\\\"7 London Wall, London, UK\\\",\\\"shipping_address\\\":\\\"7 London Wall, London, UK\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":8,\\\"company_name\\\":\\\"Parisian Tech Group\\\",\\\"contact_email\\\":\\\"achats@paristech.fr\\\",\\\"contact_phone\\\":\\\"+33 1 9876 5432\\\",\\\"billing_address\\\":\\\"15 Rue de Rivoli, Paris, France\\\",\\\"shipping_address\\\":\\\"15 Rue de Rivoli, Paris, France\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":9,\\\"company_name\\\":\\\"Maple Innovations\\\",\\\"contact_email\\\":\\\"buy@mapleinnovations.ca\\\",\\\"contact_phone\\\":\\\"+1 416 555 0199\\\",\\\"billing_address\\\":\\\"200 University Ave, Toronto, ON, Canada\\\",\\\"shipping_address\\\":\\\"200 University Ave, Toronto, ON, Canada\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"},{\\\"customer_id\\\":10,\\\"company_name\\\":\\\"Dragon Chip Corp.\\\",\\\"contact_email\\\":\\\"admin@dragonchip.cn\\\",\\\"contact_phone\\\":\\\"+86 755 8888 9999\\\",\\\"billing_address\\\":\\\"8 Keji South Road, Shenzhen, China\\\",\\\"shipping_address\\\":\\\"8 Keji South Road, Shenzhen, China\\\",\\\"created_at\\\":\\\"2025-07-22 08:34:15.276517+00\\\"}]}\")"
+              },
+              "schemas": {
+                "input": {
+                  "input": "schema://CustomersSchema"
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"customers\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"customer_id\": {\n            \"type\": \"number\"\n          },\n          \"company_name\": {\n            \"type\": \"string\"\n          },\n          \"contact_email\": {\n            \"type\": \"string\"\n          },\n          \"contact_phone\": {\n            \"type\": \"string\"\n          },\n          \"billing_address\": {\n            \"type\": \"string\"\n          },\n          \"shipping_address\": {\n            \"type\": \"string\"\n          },\n          \"created_at\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"customer_id\",\n          \"company_name\",\n          \"contact_email\",\n          \"contact_phone\",\n          \"billing_address\",\n          \"shipping_address\",\n          \"created_at\"\n        ]\n      }\n    }\n  }\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"customers\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"customer_id\": {\n            \"type\": \"number\"\n          },\n          \"company_name\": {\n            \"type\": \"string\"\n          },\n          \"contact_email\": {\n            \"type\": \"string\"\n          },\n          \"contact_phone\": {\n            \"type\": \"string\"\n          },\n          \"billing_address\": {\n            \"type\": \"string\"\n          },\n          \"shipping_address\": {\n            \"type\": \"string\"\n          },\n          \"created_at\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"customer_id\",\n          \"company_name\",\n          \"contact_email\",\n          \"contact_phone\",\n          \"billing_address\",\n          \"shipping_address\",\n          \"created_at\"\n        ]\n      }\n    }\n  }\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[Mapper].output"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjQ3LCJ5IjoxMDd9LCJMb2dTdGFydCI6eyJ4IjoxNDksInkiOjk2fSwiTWFwcGVyIjp7IngiOjMyOSwieSI6OTh9LCJSZXR1cm4iOnsieCI6NTE4LCJ5Ijo5OX19",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "LogError",
+              "name": "LogError",
+              "description": "Simple Log Message Activity",
+              "activity": {
+                "ref": "#log",
+                "input": {
+                  "Log Level": "ERROR",
+                  "flowInfo": false,
+                  "message": "=string.concat(\"FlowName:\", $flowctx[\"FlowName\"],\"activity:\", $error.activity,\"message:\", $error.message, \"data:\", $error.data)",
+                  "logLevel": ""
+                }
+              }
+            },
+            {
+              "id": "ReturnError",
+              "name": "ReturnError",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn",
+                "settings": {
+                  "mappings": {
+                    "code": 500
+                  }
+                }
+              }
+            }
+          ],
+          "links": [
+            {
+              "id": 4,
+              "from": "LogError",
+              "to": "ReturnError",
+              "type": "label",
+              "label": "LogError to Return1"
+            }
+          ],
+          "fe_metadata": "eyJMb2dFcnJvciI6eyJ4IjoyOTksInkiOjk5fSwiUmV0dXJuRXJyb3IiOnsieCI6NDk0LCJ5Ijo5OH19"
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"customers\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"number\"},\"company_name\":{\"type\":\"string\"},\"contact_email\":{\"type\":\"string\"},\"contact_phone\":{\"type\":\"string\"},\"billing_address\":{\"type\":\"string\"},\"shipping_address\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\"}},\"required\":[\"customer_id\",\"company_name\",\"contact_email\",\"contact_phone\",\"billing_address\",\"shipping_address\",\"created_at\"]}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customers\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"number\"},\"company_name\":{\"type\":\"string\"},\"contact_email\":{\"type\":\"string\"},\"contact_phone\":{\"type\":\"string\"},\"billing_address\":{\"type\":\"string\"},\"shipping_address\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\"}},\"required\":[\"customer_id\",\"company_name\",\"contact_email\",\"contact_phone\",\"billing_address\",\"shipping_address\",\"created_at\"]}}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:Get_Products",
+      "data": {
+        "name": "Get_Products",
+        "description": "Get a list of products.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogMessage1"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Mapper",
+            "type": "label",
+            "label": "LogStart to Mapper"
+          },
+          {
+            "id": 3,
+            "from": "Mapper",
+            "to": "Return",
+            "type": "label",
+            "label": "Mapper to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Mapper",
+            "name": "Mapper",
+            "description": "Mapper Activity",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": "=coerce.toObject(\"{\\\"products\\\":[{\\\"product_id\\\":1,\\\"chip_model\\\":\\\"PROC-X100\\\",\\\"description\\\":\\\"Quad-Core General Purpose CPU\\\",\\\"price\\\":180.0,\\\"stock_quantity\\\":5500,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":2,\\\"chip_model\\\":\\\"PROC-X200\\\",\\\"description\\\":\\\"8-Core High-Performance CPU\\\",\\\"price\\\":350.5,\\\"stock_quantity\\\":3200,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":3,\\\"chip_model\\\":\\\"PROC-Z900-AI\\\",\\\"description\\\":\\\"16-Core AI Acceleration Processor\\\",\\\"price\\\":950.0,\\\"stock_quantity\\\":1500,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":4,\\\"chip_model\\\":\\\"GPU-V1\\\",\\\"description\\\":\\\"Entry-Level Graphics Processing Unit\\\",\\\"price\\\":210.0,\\\"stock_quantity\\\":4100,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":5,\\\"chip_model\\\":\\\"GPU-V5-RT\\\",\\\"description\\\":\\\"High-End Ray-Tracing GPU\\\",\\\"price\\\":780.75,\\\"stock_quantity\\\":1800,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":6,\\\"chip_model\\\":\\\"MEM-DDR5-8GB\\\",\\\"description\\\":\\\"8GB DDR5 RAM Module\\\",\\\"price\\\":45.0,\\\"stock_quantity\\\":12000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":7,\\\"chip_model\\\":\\\"MEM-DDR5-16GB\\\",\\\"description\\\":\\\"16GB DDR5 RAM Module\\\",\\\"price\\\":85.5,\\\"stock_quantity\\\":9500,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":8,\\\"chip_model\\\":\\\"NET-ETH-1G\\\",\\\"description\\\":\\\"1Gbps Ethernet Controller Chip\\\",\\\"price\\\":15.25,\\\"stock_quantity\\\":25000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":9,\\\"chip_model\\\":\\\"NET-ETH-10G\\\",\\\"description\\\":\\\"10Gbps Ethernet Controller Chip\\\",\\\"price\\\":65.0,\\\"stock_quantity\\\":8000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":10,\\\"chip_model\\\":\\\"SND-HD-71\\\",\\\"description\\\":\\\"7.1 Channel HD Audio Codec\\\",\\\"price\\\":12.5,\\\"stock_quantity\\\":18000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":11,\\\"chip_model\\\":\\\"CTRL-USB4\\\",\\\"description\\\":\\\"USB 4.0 Controller Hub\\\",\\\"price\\\":22.8,\\\"stock_quantity\\\":11500,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":12,\\\"chip_model\\\":\\\"CTRL-SATA3\\\",\\\"description\\\":\\\"SATA III 6Gbps Host Controller\\\",\\\"price\\\":9.75,\\\"stock_quantity\\\":30000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":13,\\\"chip_model\\\":\\\"FPGA-L100\\\",\\\"description\\\":\\\"Low-Power Field-Programmable Gate Array\\\",\\\"price\\\":110.0,\\\"stock_quantity\\\":2800,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":14,\\\"chip_model\\\":\\\"FPGA-H500\\\",\\\"description\\\":\\\"High-Density Field-Programmable Gate Array\\\",\\\"price\\\":450.25,\\\"stock_quantity\\\":950,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":15,\\\"chip_model\\\":\\\"TPM-20\\\",\\\"description\\\":\\\"Trusted Platform Module 2.0 Security Chip\\\",\\\"price\\\":8.5,\\\"stock_quantity\\\":50000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":16,\\\"chip_model\\\":\\\"MCU-ARM-CORTEX-M4\\\",\\\"description\\\":\\\"ARM Cortex-M4 Microcontroller\\\",\\\"price\\\":7.2,\\\"stock_quantity\\\":45000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":17,\\\"chip_model\\\":\\\"DSP-A1\\\",\\\"description\\\":\\\"Audio Digital Signal Processor\\\",\\\"price\\\":35.8,\\\"stock_quantity\\\":7800,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":18,\\\"chip_model\\\":\\\"NPU-T1\\\",\\\"description\\\":\\\"Tensor Neural Processing Unit\\\",\\\"price\\\":620.0,\\\"stock_quantity\\\":2100,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":19,\\\"chip_model\\\":\\\"PMIC-12V\\\",\\\"description\\\":\\\"Power Management IC for 12V Rails\\\",\\\"price\\\":5.5,\\\"stock_quantity\\\":60000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"},{\\\"product_id\\\":20,\\\"chip_model\\\":\\\"BIOS-UEFI-F1\\\",\\\"description\\\":\\\"16MB UEFI BIOS Flash Chip\\\",\\\"price\\\":4.1,\\\"stock_quantity\\\":85000,\\\"created_at\\\":\\\"2025-07-22 08:35:02.428886+00\\\"}]}\")"
+              },
+              "schemas": {
+                "input": {
+                  "input": "schema://ProductsSchema"
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"products\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"product_id\": {\n            \"type\": \"number\"\n          },\n          \"chip_model\": {\n            \"type\": \"string\"\n          },\n          \"description\": {\n            \"type\": \"string\"\n          },\n          \"price\": {\n            \"type\": \"number\"\n          },\n          \"stock_quantity\": {\n            \"type\": \"number\"\n          },\n          \"created_at\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"product_id\",\n          \"chip_model\",\n          \"description\",\n          \"price\",\n          \"stock_quantity\",\n          \"created_at\"\n        ]\n      }\n    }\n  }\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"products\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"product_id\": {\n            \"type\": \"number\"\n          },\n          \"chip_model\": {\n            \"type\": \"string\"\n          },\n          \"description\": {\n            \"type\": \"string\"\n          },\n          \"price\": {\n            \"type\": \"number\"\n          },\n          \"stock_quantity\": {\n            \"type\": \"number\"\n          },\n          \"created_at\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"product_id\",\n          \"chip_model\",\n          \"description\",\n          \"price\",\n          \"stock_quantity\",\n          \"created_at\"\n        ]\n      }\n    }\n  }\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[Mapper].output"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjQ3LCJ5IjoxMDd9LCJMb2dTdGFydCI6eyJ4IjoxNDksInkiOjk2fSwiTWFwcGVyIjp7IngiOjMzNSwieSI6OTd9LCJSZXR1cm4iOnsieCI6NTQwLCJ5Ijo5OX19",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "LogError",
+              "name": "LogError",
+              "description": "Simple Log Message Activity",
+              "activity": {
+                "ref": "#log",
+                "input": {
+                  "Log Level": "ERROR",
+                  "flowInfo": false,
+                  "message": "=string.concat(\"FlowName:\", $flowctx[\"FlowName\"],\"activity:\", $error.activity,\"message:\", $error.message, \"data:\", $error.data)",
+                  "logLevel": ""
+                }
+              }
+            },
+            {
+              "id": "ReturnError",
+              "name": "ReturnError",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn",
+                "settings": {
+                  "mappings": {
+                    "code": 500
+                  }
+                }
+              }
+            }
+          ],
+          "links": [
+            {
+              "id": 4,
+              "from": "LogError",
+              "to": "ReturnError",
+              "type": "label",
+              "label": "LogError to Return1"
+            }
+          ],
+          "fe_metadata": "eyJMb2dFcnJvciI6eyJ4IjoyOTksInkiOjk5fSwiUmV0dXJuRXJyb3IiOnsieCI6NDk0LCJ5Ijo5OH19"
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"products\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"number\"},\"chip_model\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"price\":{\"type\":\"number\"},\"stock_quantity\":{\"type\":\"number\"},\"created_at\":{\"type\":\"string\"}},\"required\":[\"product_id\",\"chip_model\",\"description\",\"price\",\"stock_quantity\",\"created_at\"]}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"products\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"number\"},\"chip_model\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"price\":{\"type\":\"number\"},\"stock_quantity\":{\"type\":\"number\"},\"created_at\":{\"type\":\"string\"}},\"required\":[\"product_id\",\"chip_model\",\"description\",\"price\",\"stock_quantity\",\"created_at\"]}}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:Get_Orders",
+      "data": {
+        "name": "Get_Orders",
+        "description": "Get a list of orders.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogMessage1"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Mapper",
+            "type": "label",
+            "label": "LogStart to Mapper"
+          },
+          {
+            "id": 3,
+            "from": "Mapper",
+            "to": "Return",
+            "type": "label",
+            "label": "Mapper to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Mapper",
+            "name": "Mapper",
+            "description": "Mapper Activity",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": "=coerce.toObject(\"{\\\"orders\\\":[{\\\"order_id\\\":1,\\\"customer_id\\\":4,\\\"order_date\\\":\\\"2021-03-15\\\",\\\"total_amount\\\":1357.5,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 08:58:45.607158+00\\\"},{\\\"order_id\\\":2,\\\"customer_id\\\":2,\\\"order_date\\\":\\\"2022-08-02\\\",\\\"total_amount\\\":3770.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 08:59:47.602587+00\\\"},{\\\"order_id\\\":3,\\\"customer_id\\\":3,\\\"order_date\\\":\\\"2024-01-20\\\",\\\"total_amount\\\":11330.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 08:59:47.602587+00\\\"},{\\\"order_id\\\":4,\\\"customer_id\\\":1,\\\"order_date\\\":\\\"2025-06-05\\\",\\\"total_amount\\\":13800.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 08:59:47.602587+00\\\"},{\\\"order_id\\\":5,\\\"customer_id\\\":9,\\\"order_date\\\":\\\"2025-07-18\\\",\\\"total_amount\\\":2112.5,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 08:59:47.602587+00\\\"},{\\\"order_id\\\":6,\\\"customer_id\\\":7,\\\"order_date\\\":\\\"2023-11-08\\\",\\\"total_amount\\\":2905.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:33.716247+00\\\"},{\\\"order_id\\\":7,\\\"customer_id\\\":2,\\\"order_date\\\":\\\"2024-01-22\\\",\\\"total_amount\\\":17010.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":8,\\\"customer_id\\\":10,\\\"order_date\\\":\\\"2022-05-14\\\",\\\"total_amount\\\":1015.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":9,\\\"customer_id\\\":5,\\\"order_date\\\":\\\"2025-02-19\\\",\\\"total_amount\\\":16905.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":10,\\\"customer_id\\\":8,\\\"order_date\\\":\\\"2021-09-01\\\",\\\"total_amount\\\":3090.25,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":11,\\\"customer_id\\\":1,\\\"order_date\\\":\\\"2024-08-30\\\",\\\"total_amount\\\":4890.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":12,\\\"customer_id\\\":9,\\\"order_date\\\":\\\"2023-04-11\\\",\\\"total_amount\\\":10800.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":13,\\\"customer_id\\\":3,\\\"order_date\\\":\\\"2025-07-07\\\",\\\"total_amount\\\":8550.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":14,\\\"customer_id\\\":6,\\\"order_date\\\":\\\"2022-12-01\\\",\\\"total_amount\\\":5250.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":15,\\\"customer_id\\\":4,\\\"order_date\\\":\\\"2024-03-25\\\",\\\"total_amount\\\":1335.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:00:43.598317+00\\\"},{\\\"order_id\\\":16,\\\"customer_id\\\":3,\\\"order_date\\\":\\\"2024-05-10\\\",\\\"total_amount\\\":1980.5,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":17,\\\"customer_id\\\":8,\\\"order_date\\\":\\\"2022-11-22\\\",\\\"total_amount\\\":9000.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":18,\\\"customer_id\\\":1,\\\"order_date\\\":\\\"2023-02-18\\\",\\\"total_amount\\\":4800.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":19,\\\"customer_id\\\":9,\\\"order_date\\\":\\\"2025-06-30\\\",\\\"total_amount\\\":900.5,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":20,\\\"customer_id\\\":4,\\\"order_date\\\":\\\"2021-08-15\\\",\\\"total_amount\\\":1816.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":21,\\\"customer_id\\\":6,\\\"order_date\\\":\\\"2024-10-01\\\",\\\"total_amount\\\":21000.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":22,\\\"customer_id\\\":2,\\\"order_date\\\":\\\"2023-07-19\\\",\\\"total_amount\\\":6525.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":23,\\\"customer_id\\\":10,\\\"order_date\\\":\\\"2022-03-05\\\",\\\"total_amount\\\":1860.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":24,\\\"customer_id\\\":5,\\\"order_date\\\":\\\"2021-12-12\\\",\\\"total_amount\\\":780.75,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":25,\\\"customer_id\\\":7,\\\"order_date\\\":\\\"2025-01-28\\\",\\\"total_amount\\\":15700.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:07:22.261364+00\\\"},{\\\"order_id\\\":26,\\\"customer_id\\\":1,\\\"order_date\\\":\\\"2024-06-12\\\",\\\"total_amount\\\":4505.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":27,\\\"customer_id\\\":9,\\\"order_date\\\":\\\"2023-09-05\\\",\\\"total_amount\\\":9500.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":28,\\\"customer_id\\\":3,\\\"order_date\\\":\\\"2025-04-21\\\",\\\"total_amount\\\":1240.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":29,\\\"customer_id\\\":8,\\\"order_date\\\":\\\"2022-02-14\\\",\\\"total_amount\\\":1561.5,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":30,\\\"customer_id\\\":5,\\\"order_date\\\":\\\"2024-08-01\\\",\\\"total_amount\\\":3600.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":31,\\\"customer_id\\\":2,\\\"order_date\\\":\\\"2023-05-16\\\",\\\"total_amount\\\":701.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":32,\\\"customer_id\\\":10,\\\"order_date\\\":\\\"2021-11-30\\\",\\\"total_amount\\\":2200.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":33,\\\"customer_id\\\":4,\\\"order_date\\\":\\\"2025-03-03\\\",\\\"total_amount\\\":4200.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":34,\\\"customer_id\\\":7,\\\"order_date\\\":\\\"2022-10-10\\\",\\\"total_amount\\\":12400.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":35,\\\"customer_id\\\":6,\\\"order_date\\\":\\\"2024-02-28\\\",\\\"total_amount\\\":1350.75,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":36,\\\"customer_id\\\":1,\\\"order_date\\\":\\\"2023-01-20\\\",\\\"total_amount\\\":1710.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":37,\\\"customer_id\\\":9,\\\"order_date\\\":\\\"2022-08-19\\\",\\\"total_amount\\\":180.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":38,\\\"customer_id\\\":3,\\\"order_date\\\":\\\"2024-12-01\\\",\\\"total_amount\\\":3505.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":39,\\\"customer_id\\\":8,\\\"order_date\\\":\\\"2021-07-25\\\",\\\"total_amount\\\":164.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":40,\\\"customer_id\\\":5,\\\"order_date\\\":\\\"2023-10-02\\\",\\\"total_amount\\\":2100.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":41,\\\"customer_id\\\":2,\\\"order_date\\\":\\\"2025-05-25\\\",\\\"total_amount\\\":19000.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":42,\\\"customer_id\\\":10,\\\"order_date\\\":\\\"2022-06-18\\\",\\\"total_amount\\\":228.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":43,\\\"customer_id\\\":4,\\\"order_date\\\":\\\"2024-04-04\\\",\\\"total_amount\\\":144.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":44,\\\"customer_id\\\":7,\\\"order_date\\\":\\\"2023-03-20\\\",\\\"total_amount\\\":780.75,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":45,\\\"customer_id\\\":1,\\\"order_date\\\":\\\"2025-02-10\\\",\\\"total_amount\\\":900.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:09:10.150215+00\\\"},{\\\"order_id\\\":46,\\\"customer_id\\\":8,\\\"order_date\\\":\\\"2023-06-22\\\",\\\"total_amount\\\":450.25,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":47,\\\"customer_id\\\":3,\\\"order_date\\\":\\\"2024-09-15\\\",\\\"total_amount\\\":305.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":48,\\\"customer_id\\\":9,\\\"order_date\\\":\\\"2022-01-10\\\",\\\"total_amount\\\":360.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":49,\\\"customer_id\\\":2,\\\"order_date\\\":\\\"2025-07-01\\\",\\\"total_amount\\\":35050.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":50,\\\"customer_id\\\":6,\\\"order_date\\\":\\\"2023-12-24\\\",\\\"total_amount\\\":210.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":51,\\\"customer_id\\\":5,\\\"order_date\\\":\\\"2024-01-15\\\",\\\"total_amount\\\":1710.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":52,\\\"customer_id\\\":1,\\\"order_date\\\":\\\"2022-04-01\\\",\\\"total_amount\\\":125.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":53,\\\"customer_id\\\":10,\\\"order_date\\\":\\\"2025-06-11\\\",\\\"total_amount\\\":6200.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":54,\\\"customer_id\\\":4,\\\"order_date\\\":\\\"2023-08-08\\\",\\\"total_amount\\\":450.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":55,\\\"customer_id\\\":7,\\\"order_date\\\":\\\"2024-05-09\\\",\\\"total_amount\\\":7807.5,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":56,\\\"customer_id\\\":8,\\\"order_date\\\":\\\"2022-09-13\\\",\\\"total_amount\\\":220.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":57,\\\"customer_id\\\":3,\\\"order_date\\\":\\\"2021-06-06\\\",\\\"total_amount\\\":97.5,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":58,\\\"customer_id\\\":9,\\\"order_date\\\":\\\"2024-11-11\\\",\\\"total_amount\\\":19000.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":59,\\\"customer_id\\\":2,\\\"order_date\\\":\\\"2023-02-02\\\",\\\"total_amount\\\":85.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":60,\\\"customer_id\\\":6,\\\"order_date\\\":\\\"2025-03-17\\\",\\\"total_amount\\\":716.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":61,\\\"customer_id\\\":5,\\\"order_date\\\":\\\"2022-05-20\\\",\\\"total_amount\\\":305.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":62,\\\"customer_id\\\":1,\\\"order_date\\\":\\\"2024-07-29\\\",\\\"total_amount\\\":55.0,\\\"status\\\":\\\"Shipped\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":63,\\\"customer_id\\\":10,\\\"order_date\\\":\\\"2023-11-01\\\",\\\"total_amount\\\":41.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":64,\\\"customer_id\\\":4,\\\"order_date\\\":\\\"2021-10-18\\\",\\\"total_amount\\\":72.0,\\\"status\\\":\\\"Delivered\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"},{\\\"order_id\\\":65,\\\"customer_id\\\":7,\\\"order_date\\\":\\\"2025-01-02\\\",\\\"total_amount\\\":650.0,\\\"status\\\":\\\"Pending\\\",\\\"created_at\\\":\\\"2025-07-22 09:13:17.772304+00\\\"}]}\")"
+              },
+              "schemas": {
+                "input": {
+                  "input": "schema://OrdersSchema"
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"orders\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"order_id\": {\n            \"type\": \"number\"\n          },\n          \"customer_id\": {\n            \"type\": \"number\"\n          },\n          \"order_date\": {\n            \"type\": \"string\"\n          },\n          \"total_amount\": {\n            \"type\": \"number\"\n          },\n          \"status\": {\n            \"type\": \"string\"\n          },\n          \"created_at\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"order_id\",\n          \"customer_id\",\n          \"order_date\",\n          \"total_amount\",\n          \"status\",\n          \"created_at\"\n        ]\n      }\n    }\n  }\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"orders\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"order_id\": {\n            \"type\": \"number\"\n          },\n          \"customer_id\": {\n            \"type\": \"number\"\n          },\n          \"order_date\": {\n            \"type\": \"string\"\n          },\n          \"total_amount\": {\n            \"type\": \"number\"\n          },\n          \"status\": {\n            \"type\": \"string\"\n          },\n          \"created_at\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"order_id\",\n          \"customer_id\",\n          \"order_date\",\n          \"total_amount\",\n          \"status\",\n          \"created_at\"\n        ]\n      }\n    }\n  }\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[Mapper].output"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjQ3LCJ5IjoxMDd9LCJMb2dTdGFydCI6eyJ4IjoxNDksInkiOjk2fSwiTWFwcGVyIjp7IngiOjMzMSwieSI6OTd9LCJSZXR1cm4iOnsieCI6NTYzLCJ5Ijo5OH19",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "LogError",
+              "name": "LogError",
+              "description": "Simple Log Message Activity",
+              "activity": {
+                "ref": "#log",
+                "input": {
+                  "Log Level": "ERROR",
+                  "flowInfo": false,
+                  "message": "=string.concat(\"FlowName:\", $flowctx[\"FlowName\"],\"activity:\", $error.activity,\"message:\", $error.message, \"data:\", $error.data)",
+                  "logLevel": ""
+                }
+              }
+            },
+            {
+              "id": "ReturnError",
+              "name": "ReturnError",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn",
+                "settings": {
+                  "mappings": {
+                    "code": 500
+                  }
+                }
+              }
+            }
+          ],
+          "links": [
+            {
+              "id": 4,
+              "from": "LogError",
+              "to": "ReturnError",
+              "type": "label",
+              "label": "LogError to Return1"
+            }
+          ],
+          "fe_metadata": "eyJMb2dFcnJvciI6eyJ4IjoyOTksInkiOjk5fSwiUmV0dXJuRXJyb3IiOnsieCI6NDk0LCJ5Ijo5OH19"
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"orders\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"order_id\":{\"type\":\"number\"},\"customer_id\":{\"type\":\"number\"},\"order_date\":{\"type\":\"string\"},\"total_amount\":{\"type\":\"number\"},\"status\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\"}},\"required\":[\"order_id\",\"customer_id\",\"order_date\",\"total_amount\",\"status\",\"created_at\"]}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"orders\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"order_id\":{\"type\":\"number\"},\"customer_id\":{\"type\":\"number\"},\"order_date\":{\"type\":\"string\"},\"total_amount\":{\"type\":\"number\"},\"status\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\"}},\"required\":[\"order_id\",\"customer_id\",\"order_date\",\"total_amount\",\"status\",\"created_at\"]}}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:Get_Order_items",
+      "data": {
+        "name": "Get_Order_items",
+        "description": "Get a list of order items",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogMessage1"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Mapper",
+            "type": "label",
+            "label": "LogStart to Mapper"
+          },
+          {
+            "id": 3,
+            "from": "Mapper",
+            "to": "Return",
+            "type": "label",
+            "label": "Mapper to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Mapper",
+            "name": "Mapper",
+            "description": "Mapper Activity",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": "=coerce.toObject(\"{\\\"order_items\\\":[{\\\"order_item_id\\\":1,\\\"order_id\\\":1,\\\"product_id\\\":3,\\\"quantity\\\":1,\\\"unit_price\\\":950.0},{\\\"order_item_id\\\":2,\\\"order_id\\\":1,\\\"product_id\\\":5,\\\"quantity\\\":1,\\\"unit_price\\\":407.5},{\\\"order_item_id\\\":3,\\\"order_id\\\":2,\\\"product_id\\\":8,\\\"quantity\\\":100,\\\"unit_price\\\":15.25},{\\\"order_item_id\\\":4,\\\"order_id\\\":2,\\\"product_id\\\":12,\\\"quantity\\\":100,\\\"unit_price\\\":9.75},{\\\"order_item_id\\\":5,\\\"order_id\\\":2,\\\"product_id\\\":16,\\\"quantity\\\":200,\\\"unit_price\\\":6.35},{\\\"order_item_id\\\":6,\\\"order_id\\\":3,\\\"product_id\\\":18,\\\"quantity\\\":10,\\\"unit_price\\\":620.0},{\\\"order_item_id\\\":7,\\\"order_id\\\":3,\\\"product_id\\\":14,\\\"quantity\\\":5,\\\"unit_price\\\":450.25},{\\\"order_item_id\\\":8,\\\"order_id\\\":3,\\\"product_id\\\":7,\\\"quantity\\\":35,\\\"unit_price\\\":82.0},{\\\"order_item_id\\\":9,\\\"order_id\\\":4,\\\"product_id\\\":3,\\\"quantity\\\":10,\\\"unit_price\\\":950.0},{\\\"order_item_id\\\":10,\\\"order_id\\\":4,\\\"product_id\\\":5,\\\"quantity\\\":5,\\\"unit_price\\\":780.75},{\\\"order_item_id\\\":11,\\\"order_id\\\":4,\\\"product_id\\\":7,\\\"quantity\\\":5,\\\"unit_price\\\":85.5},{\\\"order_item_id\\\":12,\\\"order_id\\\":5,\\\"product_id\\\":15,\\\"quantity\\\":250,\\\"unit_price\\\":8.45},{\\\"order_item_id\\\":13,\\\"order_id\\\":6,\\\"product_id\\\":13,\\\"quantity\\\":20,\\\"unit_price\\\":110.0},{\\\"order_item_id\\\":14,\\\"order_id\\\":6,\\\"product_id\\\":16,\\\"quantity\\\":100,\\\"unit_price\\\":7.05},{\\\"order_item_id\\\":15,\\\"order_id\\\":7,\\\"product_id\\\":2,\\\"quantity\\\":40,\\\"unit_price\\\":350.5},{\\\"order_item_id\\\":16,\\\"order_id\\\":7,\\\"product_id\\\":7,\\\"quantity\\\":30,\\\"unit_price\\\":85.5},{\\\"order_item_id\\\":17,\\\"order_id\\\":7,\\\"product_id\\\":11,\\\"quantity\\\":20,\\\"unit_price\\\":22.8},{\\\"order_item_id\\\":18,\\\"order_id\\\":8,\\\"product_id\\\":19,\\\"quantity\\\":150,\\\"unit_price\\\":5.5},{\\\"order_item_id\\\":19,\\\"order_id\\\":8,\\\"product_id\\\":20,\\\"quantity\\\":40,\\\"unit_price\\\":4.75},{\\\"order_item_id\\\":20,\\\"order_id\\\":9,\\\"product_id\\\":3,\\\"quantity\\\":15,\\\"unit_price\\\":950.0},{\\\"order_item_id\\\":21,\\\"order_id\\\":9,\\\"product_id\\\":18,\\\"quantity\\\":4,\\\"unit_price\\\":620.0},{\\\"order_item_id\\\":22,\\\"order_id\\\":10,\\\"product_id\\\":5,\\\"quantity\\\":1,\\\"unit_price\\\":780.75},{\\\"order_item_id\\\":23,\\\"order_id\\\":10,\\\"product_id\\\":14,\\\"quantity\\\":5,\\\"unit_price\\\":450.25},{\\\"order_item_id\\\":24,\\\"order_id\\\":10,\\\"product_id\\\":10,\\\"quantity\\\":5,\\\"unit_price\\\":12.5},{\\\"order_item_id\\\":25,\\\"order_id\\\":11,\\\"product_id\\\":1,\\\"quantity\\\":20,\\\"unit_price\\\":180.0},{\\\"order_item_id\\\":26,\\\"order_id\\\":11,\\\"product_id\\\":6,\\\"quantity\\\":20,\\\"unit_price\\\":45.0},{\\\"order_item_id\\\":27,\\\"order_id\\\":11,\\\"product_id\\\":8,\\\"quantity\\\":20,\\\"unit_price\\\":15.25},{\\\"order_item_id\\\":28,\\\"order_id\\\":11,\\\"product_id\\\":12,\\\"quantity\\\":10,\\\"unit_price\\\":9.75},{\\\"order_item_id\\\":29,\\\"order_id\\\":12,\\\"product_id\\\":1,\\\"quantity\\\":60,\\\"unit_price\\\":180.0},{\\\"order_item_id\\\":30,\\\"order_id\\\":13,\\\"product_id\\\":7,\\\"quantity\\\":100,\\\"unit_price\\\":85.5},{\\\"order_item_id\\\":31,\\\"order_id\\\":14,\\\"product_id\\\":4,\\\"quantity\\\":25,\\\"unit_price\\\":210.0},{\\\"order_item_id\\\":32,\\\"order_id\\\":15,\\\"product_id\\\":15,\\\"quantity\\\":100,\\\"unit_price\\\":8.5},{\\\"order_item_id\\\":33,\\\"order_id\\\":15,\\\"product_id\\\":19,\\\"quantity\\\":50,\\\"unit_price\\\":5.5},{\\\"order_item_id\\\":34,\\\"order_id\\\":15,\\\"product_id\\\":20,\\\"quantity\\\":50,\\\"unit_price\\\":4.1},{\\\"order_item_id\\\":35,\\\"order_id\\\":16,\\\"product_id\\\":2,\\\"quantity\\\":5,\\\"unit_price\\\":350.5},{\\\"order_item_id\\\":36,\\\"order_id\\\":16,\\\"product_id\\\":11,\\\"quantity\\\":10,\\\"unit_price\\\":22.8},{\\\"order_item_id\\\":37,\\\"order_id\\\":17,\\\"product_id\\\":1,\\\"quantity\\\":50,\\\"unit_price\\\":180.0},{\\\"order_item_id\\\":38,\\\"order_id\\\":18,\\\"product_id\\\":20,\\\"quantity\\\":500,\\\"unit_price\\\":4.1},{\\\"order_item_id\\\":39,\\\"order_id\\\":18,\\\"product_id\\\":19,\\\"quantity\\\":500,\\\"unit_price\\\":5.5},{\\\"order_item_id\\\":40,\\\"order_id\\\":19,\\\"product_id\\\":14,\\\"quantity\\\":2,\\\"unit_price\\\":450.25},{\\\"order_item_id\\\":41,\\\"order_id\\\":20,\\\"product_id\\\":13,\\\"quantity\\\":10,\\\"unit_price\\\":110.0},{\\\"order_item_id\\\":42,\\\"order_id\\\":20,\\\"product_id\\\":17,\\\"quantity\\\":20,\\\"unit_price\\\":35.8},{\\\"order_item_id\\\":43,\\\"order_id\\\":21,\\\"product_id\\\":4,\\\"quantity\\\":100,\\\"unit_price\\\":210.0},{\\\"order_item_id\\\":44,\\\"order_id\\\":22,\\\"product_id\\\":7,\\\"quantity\\\":50,\\\"unit_price\\\":85.5},{\\\"order_item_id\\\":45,\\\"order_id\\\":22,\\\"product_id\\\":6,\\\"quantity\\\":50,\\\"unit_price\\\":45.0},{\\\"order_item_id\\\":46,\\\"order_id\\\":23,\\\"product_id\\\":18,\\\"quantity\\\":3,\\\"unit_price\\\":620.0},{\\\"order_item_id\\\":47,\\\"order_id\\\":24,\\\"product_id\\\":5,\\\"quantity\\\":1,\\\"unit_price\\\":780.75},{\\\"order_item_id\\\":48,\\\"order_id\\\":25,\\\"product_id\\\":16,\\\"quantity\\\":1000,\\\"unit_price\\\":7.2},{\\\"order_item_id\\\":49,\\\"order_id\\\":25,\\\"product_id\\\":15,\\\"quantity\\\":1000,\\\"unit_price\\\":8.5},{\\\"order_item_id\\\":50,\\\"order_id\\\":26,\\\"product_id\\\":2,\\\"quantity\\\":10,\\\"unit_price\\\":350.5},{\\\"order_item_id\\\":51,\\\"order_id\\\":26,\\\"product_id\\\":7,\\\"quantity\\\":10,\\\"unit_price\\\":85.5},{\\\"order_item_id\\\":52,\\\"order_id\\\":26,\\\"product_id\\\":6,\\\"quantity\\\":10,\\\"unit_price\\\":45.0},{\\\"order_item_id\\\":53,\\\"order_id\\\":27,\\\"product_id\\\":3,\\\"quantity\\\":10,\\\"unit_price\\\":950.0},{\\\"order_item_id\\\":54,\\\"order_id\\\":28,\\\"product_id\\\":17,\\\"quantity\\\":25,\\\"unit_price\\\":35.8},{\\\"order_item_id\\\":55,\\\"order_id\\\":28,\\\"product_id\\\":10,\\\"quantity\\\":20,\\\"unit_price\\\":12.5},{\\\"order_item_id\\\":56,\\\"order_id\\\":28,\\\"product_id\\\":12,\\\"quantity\\\":10,\\\"unit_price\\\":9.75},{\\\"order_item_id\\\":57,\\\"order_id\\\":29,\\\"product_id\\\":5,\\\"quantity\\\":2,\\\"unit_price\\\":780.75},{\\\"order_item_id\\\":58,\\\"order_id\\\":30,\\\"product_id\\\":1,\\\"quantity\\\":20,\\\"unit_price\\\":180.0},{\\\"order_item_id\\\":59,\\\"order_id\\\":31,\\\"product_id\\\":8,\\\"quantity\\\":20,\\\"unit_price\\\":15.25},{\\\"order_item_id\\\":60,\\\"order_id\\\":31,\\\"product_id\\\":11,\\\"quantity\\\":10,\\\"unit_price\\\":22.8},{\\\"order_item_id\\\":61,\\\"order_id\\\":31,\\\"product_id\\\":12,\\\"quantity\\\":10,\\\"unit_price\\\":9.75},{\\\"order_item_id\\\":62,\\\"order_id\\\":31,\\\"product_id\\\":15,\\\"quantity\\\":10,\\\"unit_price\\\":8.5},{\\\"order_item_id\\\":63,\\\"order_id\\\":32,\\\"product_id\\\":13,\\\"quantity\\\":20,\\\"unit_price\\\":110.0},{\\\"order_item_id\\\":64,\\\"order_id\\\":33,\\\"product_id\\\":4,\\\"quantity\\\":20,\\\"unit_price\\\":210.0},{\\\"order_item_id\\\":65,\\\"order_id\\\":34,\\\"product_id\\\":18,\\\"quantity\\\":20,\\\"unit_price\\\":620.0},{\\\"order_item_id\\\":66,\\\"order_id\\\":35,\\\"product_id\\\":14,\\\"quantity\\\":3,\\\"unit_price\\\":450.25},{\\\"order_item_id\\\":67,\\\"order_id\\\":36,\\\"product_id\\\":7,\\\"quantity\\\":20,\\\"unit_price\\\":85.5},{\\\"order_item_id\\\":68,\\\"order_id\\\":37,\\\"product_id\\\":1,\\\"quantity\\\":1,\\\"unit_price\\\":180.0},{\\\"order_item_id\\\":69,\\\"order_id\\\":38,\\\"product_id\\\":2,\\\"quantity\\\":10,\\\"unit_price\\\":350.5},{\\\"order_item_id\\\":70,\\\"order_id\\\":39,\\\"product_id\\\":19,\\\"quantity\\\":10,\\\"unit_price\\\":5.5},{\\\"order_item_id\\\":71,\\\"order_id\\\":39,\\\"product_id\\\":20,\\\"quantity\\\":20,\\\"unit_price\\\":4.1},{\\\"order_item_id\\\":72,\\\"order_id\\\":39,\\\"product_id\\\":15,\\\"quantity\\\":3,\\\"unit_price\\\":8.5},{\\\"order_item_id\\\":73,\\\"order_id\\\":40,\\\"product_id\\\":4,\\\"quantity\\\":10,\\\"unit_price\\\":210.0},{\\\"order_item_id\\\":74,\\\"order_id\\\":41,\\\"product_id\\\":3,\\\"quantity\\\":20,\\\"unit_price\\\":950.0},{\\\"order_item_id\\\":75,\\\"order_id\\\":42,\\\"product_id\\\":11,\\\"quantity\\\":10,\\\"unit_price\\\":22.8},{\\\"order_item_id\\\":76,\\\"order_id\\\":43,\\\"product_id\\\":16,\\\"quantity\\\":20,\\\"unit_price\\\":7.2},{\\\"order_item_id\\\":77,\\\"order_id\\\":44,\\\"product_id\\\":5,\\\"quantity\\\":1,\\\"unit_price\\\":780.75},{\\\"order_item_id\\\":78,\\\"order_id\\\":45,\\\"product_id\\\":6,\\\"quantity\\\":20,\\\"unit_price\\\":45.0},{\\\"order_item_id\\\":79,\\\"order_id\\\":46,\\\"product_id\\\":14,\\\"quantity\\\":1,\\\"unit_price\\\":450.25},{\\\"order_item_id\\\":80,\\\"order_id\\\":47,\\\"product_id\\\":8,\\\"quantity\\\":20,\\\"unit_price\\\":15.25},{\\\"order_item_id\\\":81,\\\"order_id\\\":48,\\\"product_id\\\":1,\\\"quantity\\\":2,\\\"unit_price\\\":180.0},{\\\"order_item_id\\\":82,\\\"order_id\\\":49,\\\"product_id\\\":2,\\\"quantity\\\":100,\\\"unit_price\\\":350.5},{\\\"order_item_id\\\":83,\\\"order_id\\\":50,\\\"product_id\\\":4,\\\"quantity\\\":1,\\\"unit_price\\\":210.0},{\\\"order_item_id\\\":84,\\\"order_id\\\":51,\\\"product_id\\\":7,\\\"quantity\\\":20,\\\"unit_price\\\":85.5},{\\\"order_item_id\\\":85,\\\"order_id\\\":52,\\\"product_id\\\":10,\\\"quantity\\\":10,\\\"unit_price\\\":12.5},{\\\"order_item_id\\\":86,\\\"order_id\\\":53,\\\"product_id\\\":18,\\\"quantity\\\":10,\\\"unit_price\\\":620.0},{\\\"order_item_id\\\":87,\\\"order_id\\\":54,\\\"product_id\\\":6,\\\"quantity\\\":10,\\\"unit_price\\\":45.0},{\\\"order_item_id\\\":88,\\\"order_id\\\":55,\\\"product_id\\\":5,\\\"quantity\\\":10,\\\"unit_price\\\":780.75},{\\\"order_item_id\\\":89,\\\"order_id\\\":56,\\\"product_id\\\":13,\\\"quantity\\\":2,\\\"unit_price\\\":110.0},{\\\"order_item_id\\\":90,\\\"order_id\\\":57,\\\"product_id\\\":12,\\\"quantity\\\":10,\\\"unit_price\\\":9.75},{\\\"order_item_id\\\":91,\\\"order_id\\\":58,\\\"product_id\\\":3,\\\"quantity\\\":20,\\\"unit_price\\\":950.0},{\\\"order_item_id\\\":92,\\\"order_id\\\":59,\\\"product_id\\\":15,\\\"quantity\\\":10,\\\"unit_price\\\":8.5},{\\\"order_item_id\\\":93,\\\"order_id\\\":60,\\\"product_id\\\":17,\\\"quantity\\\":20,\\\"unit_price\\\":35.8},{\\\"order_item_id\\\":94,\\\"order_id\\\":61,\\\"product_id\\\":8,\\\"quantity\\\":20,\\\"unit_price\\\":15.25},{\\\"order_item_id\\\":95,\\\"order_id\\\":62,\\\"product_id\\\":19,\\\"quantity\\\":10,\\\"unit_price\\\":5.5},{\\\"order_item_id\\\":96,\\\"order_id\\\":63,\\\"product_id\\\":20,\\\"quantity\\\":10,\\\"unit_price\\\":4.1},{\\\"order_item_id\\\":97,\\\"order_id\\\":64,\\\"product_id\\\":16,\\\"quantity\\\":10,\\\"unit_price\\\":7.2},{\\\"order_item_id\\\":98,\\\"order_id\\\":65,\\\"product_id\\\":9,\\\"quantity\\\":10,\\\"unit_price\\\":65.0}]}\")"
+              },
+              "schemas": {
+                "input": {
+                  "input": "schema://OrderItemsSchema"
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_items\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"order_item_id\": {\n            \"type\": \"number\"\n          },\n          \"order_id\": {\n            \"type\": \"number\"\n          },\n          \"product_id\": {\n            \"type\": \"number\"\n          },\n          \"quantity\": {\n            \"type\": \"number\"\n          },\n          \"unit_price\": {\n            \"type\": \"number\"\n          }\n        },\n        \"required\": [\n          \"order_item_id\",\n          \"order_id\",\n          \"product_id\",\n          \"quantity\",\n          \"unit_price\"\n        ]\n      }\n    }\n  }\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_items\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"order_item_id\": {\n            \"type\": \"number\"\n          },\n          \"order_id\": {\n            \"type\": \"number\"\n          },\n          \"product_id\": {\n            \"type\": \"number\"\n          },\n          \"quantity\": {\n            \"type\": \"number\"\n          },\n          \"unit_price\": {\n            \"type\": \"number\"\n          }\n        },\n        \"required\": [\n          \"order_item_id\",\n          \"order_id\",\n          \"product_id\",\n          \"quantity\",\n          \"unit_price\"\n        ]\n      }\n    }\n  }\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[Mapper].output"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjQ3LCJ5IjoxMDd9LCJMb2dTdGFydCI6eyJ4IjoxNDksInkiOjk2fSwiTWFwcGVyIjp7IngiOjMzMSwieSI6OTd9LCJSZXR1cm4iOnsieCI6NTM1LCJ5Ijo5N319",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "LogError",
+              "name": "LogError",
+              "description": "Simple Log Message Activity",
+              "activity": {
+                "ref": "#log",
+                "input": {
+                  "Log Level": "ERROR",
+                  "flowInfo": false,
+                  "message": "=string.concat(\"FlowName:\", $flowctx[\"FlowName\"],\"activity:\", $error.activity,\"message:\", $error.message, \"data:\", $error.data)",
+                  "logLevel": ""
+                }
+              }
+            },
+            {
+              "id": "ReturnError",
+              "name": "ReturnError",
+              "description": "Simple Return Activity",
+              "activity": {
+                "ref": "#actreturn",
+                "settings": {
+                  "mappings": {
+                    "code": 500
+                  }
+                }
+              }
+            }
+          ],
+          "links": [
+            {
+              "id": 4,
+              "from": "LogError",
+              "to": "ReturnError",
+              "type": "label",
+              "label": "LogError to Return1"
+            }
+          ],
+          "fe_metadata": "eyJMb2dFcnJvciI6eyJ4IjoyOTksInkiOjk5fSwiUmV0dXJuRXJyb3IiOnsieCI6NDk0LCJ5Ijo5OH19"
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"order_items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"order_item_id\":{\"type\":\"number\"},\"order_id\":{\"type\":\"number\"},\"product_id\":{\"type\":\"number\"},\"quantity\":{\"type\":\"number\"},\"unit_price\":{\"type\":\"number\"}},\"required\":[\"order_item_id\",\"order_id\",\"product_id\",\"quantity\",\"unit_price\"]}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"order_items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"order_item_id\":{\"type\":\"number\"},\"order_id\":{\"type\":\"number\"},\"product_id\":{\"type\":\"number\"},\"quantity\":{\"type\":\"number\"},\"unit_price\":{\"type\":\"number\"}},\"required\":[\"order_item_id\",\"order_id\",\"product_id\",\"quantity\",\"unit_price\"]}}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "EntityAPI.HTTPPort",
+      "type": "float64",
+      "value": 18080
+    }
+  ],
+  "schemas": {
+    "CustomersSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"customers\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"customer_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"company_name\": {\n                        \"type\": \"string\"\n                    },\n                    \"contact_email\": {\n                        \"type\": \"string\"\n                    },\n                    \"contact_phone\": {\n                        \"type\": \"string\"\n                    },\n                    \"billing_address\": {\n                        \"type\": \"string\"\n                    },\n                    \"shipping_address\": {\n                        \"type\": \"string\"\n                    },\n                    \"created_at\": {\n                        \"type\": \"string\"\n                    }\n                },\n                \"required\": [\n                    \"customer_id\",\n                    \"company_name\",\n                    \"contact_email\",\n                    \"contact_phone\",\n                    \"billing_address\",\n                    \"shipping_address\",\n                    \"created_at\"\n                ]\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"customers\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"customer_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"company_name\": {\n                        \"type\": \"string\"\n                    },\n                    \"contact_email\": {\n                        \"type\": \"string\"\n                    },\n                    \"contact_phone\": {\n                        \"type\": \"string\"\n                    },\n                    \"billing_address\": {\n                        \"type\": \"string\"\n                    },\n                    \"shipping_address\": {\n                        \"type\": \"string\"\n                    },\n                    \"created_at\": {\n                        \"type\": \"string\"\n                    }\n                },\n                \"required\": [\n                    \"customer_id\",\n                    \"company_name\",\n                    \"contact_email\",\n                    \"contact_phone\",\n                    \"billing_address\",\n                    \"shipping_address\",\n                    \"created_at\"\n                ]\n            }\n        }\n    }\n}"
+    },
+    "ProductsSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"products\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"product_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"chip_model\": {\n                        \"type\": \"string\"\n                    },\n                    \"description\": {\n                        \"type\": \"string\"\n                    },\n                    \"price\": {\n                        \"type\": \"number\"\n                    },\n                    \"stock_quantity\": {\n                        \"type\": \"number\"\n                    },\n                    \"created_at\": {\n                        \"type\": \"string\"\n                    }\n                },\n                \"required\": [\n                    \"product_id\",\n                    \"chip_model\",\n                    \"description\",\n                    \"price\",\n                    \"stock_quantity\",\n                    \"created_at\"\n                ]\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"products\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"product_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"chip_model\": {\n                        \"type\": \"string\"\n                    },\n                    \"description\": {\n                        \"type\": \"string\"\n                    },\n                    \"price\": {\n                        \"type\": \"number\"\n                    },\n                    \"stock_quantity\": {\n                        \"type\": \"number\"\n                    },\n                    \"created_at\": {\n                        \"type\": \"string\"\n                    }\n                },\n                \"required\": [\n                    \"product_id\",\n                    \"chip_model\",\n                    \"description\",\n                    \"price\",\n                    \"stock_quantity\",\n                    \"created_at\"\n                ]\n            }\n        }\n    }\n}"
+    },
+    "OrdersSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"orders\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"order_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"customer_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"order_date\": {\n                        \"type\": \"string\"\n                    },\n                    \"total_amount\": {\n                        \"type\": \"number\"\n                    },\n                    \"status\": {\n                        \"type\": \"string\"\n                    },\n                    \"created_at\": {\n                        \"type\": \"string\"\n                    }\n                },\n                \"required\": [\n                    \"order_id\",\n                    \"customer_id\",\n                    \"order_date\",\n                    \"total_amount\",\n                    \"status\",\n                    \"created_at\"\n                ]\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"orders\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"order_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"customer_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"order_date\": {\n                        \"type\": \"string\"\n                    },\n                    \"total_amount\": {\n                        \"type\": \"number\"\n                    },\n                    \"status\": {\n                        \"type\": \"string\"\n                    },\n                    \"created_at\": {\n                        \"type\": \"string\"\n                    }\n                },\n                \"required\": [\n                    \"order_id\",\n                    \"customer_id\",\n                    \"order_date\",\n                    \"total_amount\",\n                    \"status\",\n                    \"created_at\"\n                ]\n            }\n        }\n    }\n}"
+    },
+    "OrderItemsSchema": {
+      "type": "json",
+      "value": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"order_items\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"order_item_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"order_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"product_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"quantity\": {\n                        \"type\": \"number\"\n                    },\n                    \"unit_price\": {\n                        \"type\": \"number\"\n                    }\n                },\n                \"required\": [\n                    \"order_item_id\",\n                    \"order_id\",\n                    \"product_id\",\n                    \"quantity\",\n                    \"unit_price\"\n                ]\n            }\n        }\n    }\n}",
+      "fe_metadata": "{\n    \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n    \"type\": \"object\",\n    \"properties\": {\n        \"order_items\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"order_item_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"order_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"product_id\": {\n                        \"type\": \"number\"\n                    },\n                    \"quantity\": {\n                        \"type\": \"number\"\n                    },\n                    \"unit_price\": {\n                        \"type\": \"number\"\n                    }\n                },\n                \"required\": [\n                    \"order_item_id\",\n                    \"order_id\",\n                    \"product_id\",\n                    \"quantity\",\n                    \"unit_price\"\n                ]\n            }\n        }\n    }\n}"
+    }
+  },
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTQiLCJ0YWciOiIxLjYuMTQtYjA0IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "18080",
+        "spec": {
+          "name": "Customer360API",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "Customer360API",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/customers": {
+              "get": {
+                "summary": "Get_Customers",
+                "operationId": "get_customers",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                },
+                "description": "Get a list of customers."
+              }
+            },
+            "/products": {
+              "get": {
+                "summary": "Get_Products",
+                "operationId": "get_products",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema2"
+                    }
+                  }
+                },
+                "description": "Get a list of products."
+              }
+            },
+            "/orders": {
+              "get": {
+                "summary": "Get_Orders",
+                "operationId": "get_orders",
+                "parameters": [],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema3"
+                    }
+                  }
+                },
+                "description": "Get a list of orders."
+              }
+            },
+            "/order_items": {
+              "get": {
+                "summary": "Get_Order_items",
+                "operationId": "get_order_items",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema4"
+                    }
+                  }
+                },
+                "description": "Get a list of order items"
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "customers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "customer_id": {
+                        "type": "number"
+                      },
+                      "company_name": {
+                        "type": "string"
+                      },
+                      "contact_email": {
+                        "type": "string"
+                      },
+                      "contact_phone": {
+                        "type": "string"
+                      },
+                      "billing_address": {
+                        "type": "string"
+                      },
+                      "shipping_address": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "customer_id",
+                      "company_name",
+                      "contact_email",
+                      "contact_phone",
+                      "billing_address",
+                      "shipping_address",
+                      "created_at"
+                    ]
+                  }
+                }
+              }
+            },
+            "schema2": {
+              "type": "object",
+              "properties": {
+                "products": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "product_id": {
+                        "type": "number"
+                      },
+                      "chip_model": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": "number"
+                      },
+                      "stock_quantity": {
+                        "type": "number"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "product_id",
+                      "chip_model",
+                      "description",
+                      "price",
+                      "stock_quantity",
+                      "created_at"
+                    ]
+                  }
+                }
+              }
+            },
+            "schema3": {
+              "type": "object",
+              "properties": {
+                "orders": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "order_id": {
+                        "type": "number"
+                      },
+                      "customer_id": {
+                        "type": "number"
+                      },
+                      "order_date": {
+                        "type": "string"
+                      },
+                      "total_amount": {
+                        "type": "number"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "order_id",
+                      "customer_id",
+                      "order_date",
+                      "total_amount",
+                      "status",
+                      "created_at"
+                    ]
+                  }
+                }
+              }
+            },
+            "schema4": {
+              "type": "object",
+              "properties": {
+                "order_items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "order_item_id": {
+                        "type": "number"
+                      },
+                      "order_id": {
+                        "type": "number"
+                      },
+                      "product_id": {
+                        "type": "number"
+                      },
+                      "quantity": {
+                        "type": "number"
+                      },
+                      "unit_price": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "order_item_id",
+                      "order_id",
+                      "product_id",
+                      "quantity",
+                      "unit_price"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.26.4"
+  }
+}

@@ -1,0 +1,1159 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/number",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "PredictiveMaintenanceAPI",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": "=$property[\"API_PORT\"]",
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v3",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/api/v1/assets/{asset_id}/sensor-data",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get-sensor-data"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": true,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"asset_type\":{\"type\":\"string\"},\"well_site_id\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"reading_timestamp\":{\"type\":\"string\"},\"vibration_rms\":{\"type\":\"string\"},\"temperature_c\":{\"type\":\"string\"},\"pressure_psi\":{\"type\":\"string\"},\"flow_rate\":{\"type\":\"string\"},\"power_consumption\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"asset_id\": \"ASSET-001\",\n    \"asset_type\": \"ESP\",\n    \"well_site_id\": \"WS-001\",\n    \"description\": \"Electric Submersible Pump\",\n    \"status\": \"ACTIVE\",\n    \"reading_timestamp\": \"2026-04-17 10:00\",\n    \"vibration_rms\": \"3.5\",\n    \"temperature_c\": \"85.2\",\n    \"pressure_psi\": \"2500\",\n    \"flow_rate\": \"150.0\",\n    \"power_consumption\": \"45.5\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "pathParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"asset_id\",\"type\":\"string\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "get-sensor-data"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/api/v1/predictions",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:create-prediction"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": true,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"prediction_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"predicted_at\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"number\"}}}",
+                "fe_metadata": "{\n    \"prediction_id\": 1,\n    \"asset_id\": \"ASSET-001\",\n    \"predicted_at\": \"2026-04-17 10:00\",\n    \"status\": \"WARNING\",\n    \"confidence\": \"0.85\",\n    \"days_to_failure\": 14\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"asset_id\": \"ASSET-001\",\n    \"status\": \"WARNING\",\n    \"confidence\": \"0.85\",\n    \"days_to_failure\": \"14\",\n    \"failure_mode\": \"BEARING_WEAR\",\n    \"recommended_action\": \"Schedule inspection\",\n    \"sensor_anomalies\": \"vibration_high\"\n}"
+              }
+            }
+          },
+          "name": "create-prediction"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/api/v1/work-orders",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:create-work-order"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": true,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"work_order_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"work_order_id\": 1,\n    \"asset_id\": \"ASSET-001\",\n    \"priority\": \"HIGH\",\n    \"assigned_to\": \"John Smith\",\n    \"scheduled_date\": \"2026-04-20\",\n    \"status\": \"OPEN\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"asset_id\": \"ASSET-001\",\n    \"priority\": \"HIGH\",\n    \"description\": \"Replace worn bearings\",\n    \"assigned_to\": \"John Smith\",\n    \"scheduled_date\": \"2026-04-20\"\n}"
+              }
+            }
+          },
+          "name": "create-work-order"
+        },
+        {
+          "description": "",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/api/v1/alerts",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:create-alert"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": true,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"alert_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"sent_at\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"alert_id\": 1,\n    \"asset_id\": \"ASSET-001\",\n    \"severity\": \"HIGH\",\n    \"sent_at\": \"2026-04-17 10:00\",\n    \"status\": \"SENT\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"asset_id\": \"ASSET-001\",\n    \"severity\": \"HIGH\",\n    \"message\": \"Vibration exceeds threshold\"\n}"
+              }
+            }
+          },
+          "name": "create-alert"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:get-sensor-data",
+      "data": {
+        "name": "get-sensor-data",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "StartActivity to PostgreSQLQuery"
+          },
+          {
+            "id": 2,
+            "from": "PostgreSQLQuery",
+            "to": "Return",
+            "type": "label",
+            "label": "PostgreSQLQuery to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT a.asset_id, a.asset_type, a.well_site_id, a.description, a.status, sr.reading_timestamp, sr.vibration_rms, sr.temperature_c, sr.pressure_psi, sr.flow_rate, sr.power_consumption FROM public.assets a LEFT JOIN public.sensor_readings sr ON a.asset_id = sr.asset_id WHERE a.asset_id = $1 ORDER BY sr.id DESC LIMIT 1",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "asset_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "asset_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "well_site_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "description",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "reading_timestamp",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "vibration_rms",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "temperature_c",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "pressure_psi",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "flow_rate",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "power_consumption",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "0e8be336-69ff-4915-8d38-bee2cd4b3755SELECT a.asset_id, a.asset_type, a.well_site_id, a.description, a.status, sr.reading_timestamp, sr.vibration_rms, sr.temperature_c, sr.pressure_psi, sr.flow_rate, sr.power_consumption FROM public.assets a LEFT JOIN public.sensor_readings sr ON a.asset_id = sr.asset_id WHERE a.asset_id = $1 ORDER BY sr.id DESC LIMIT 1",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "asset_id": "=$flow.pathParams.asset_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"asset_type\":{\"type\":\"string\"},\"well_site_id\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"reading_timestamp\":{\"type\":\"string\"},\"vibration_rms\":{\"type\":\"string\"},\"temperature_c\":{\"type\":\"string\"},\"pressure_psi\":{\"type\":\"string\"},\"flow_rate\":{\"type\":\"string\"},\"power_consumption\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"asset_type\":{\"type\":\"string\"},\"well_site_id\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"reading_timestamp\":{\"type\":\"string\"},\"vibration_rms\":{\"type\":\"string\"},\"temperature_c\":{\"type\":\"string\"},\"pressure_psi\":{\"type\":\"string\"},\"flow_rate\":{\"type\":\"string\"},\"power_consumption\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "asset_id": "=$activity[PostgreSQLQuery].Output.records[0].asset_id",
+                      "asset_type": "=$activity[PostgreSQLQuery].Output.records[0].asset_type",
+                      "well_site_id": "=$activity[PostgreSQLQuery].Output.records[0].well_site_id",
+                      "description": "=$activity[PostgreSQLQuery].Output.records[0].description",
+                      "status": "=$activity[PostgreSQLQuery].Output.records[0].status",
+                      "reading_timestamp": "=$activity[PostgreSQLQuery].Output.records[0].reading_timestamp",
+                      "vibration_rms": "=$activity[PostgreSQLQuery].Output.records[0].vibration_rms",
+                      "temperature_c": "=$activity[PostgreSQLQuery].Output.records[0].temperature_c",
+                      "pressure_psi": "=$activity[PostgreSQLQuery].Output.records[0].pressure_psi",
+                      "flow_rate": "=$activity[PostgreSQLQuery].Output.records[0].flow_rate",
+                      "power_consumption": "=$activity[PostgreSQLQuery].Output.records[0].power_consumption"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjI1MywieSI6OTV9LCJSZXR1cm4iOnsieCI6NDc0LCJ5Ijo5Nn19",
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"},\"asset_type\":{\"type\":\"string\"},\"well_site_id\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"reading_timestamp\":{\"type\":\"string\"},\"vibration_rms\":{\"type\":\"string\"},\"temperature_c\":{\"type\":\"string\"},\"pressure_psi\":{\"type\":\"string\"},\"flow_rate\":{\"type\":\"string\"},\"power_consumption\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"pathParams\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"asset_type\":{\"type\":\"string\"},\"well_site_id\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"reading_timestamp\":{\"type\":\"string\"},\"vibration_rms\":{\"type\":\"string\"},\"temperature_c\":{\"type\":\"string\"},\"pressure_psi\":{\"type\":\"string\"},\"flow_rate\":{\"type\":\"string\"},\"power_consumption\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:create-prediction",
+      "data": {
+        "name": "create-prediction",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "StartActivity to PostgreSQLQuery"
+          },
+          {
+            "id": 2,
+            "from": "PostgreSQLQuery",
+            "to": "Return",
+            "type": "label",
+            "label": "PostgreSQLQuery to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO public.predictions (asset_id, predicted_at, status, confidence, days_to_failure, failure_mode, recommended_action, sensor_anomalies) VALUES ($1, TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI'), $2, $3, $4, $5, $6, $7) RETURNING prediction_id, asset_id, predicted_at, status, confidence, days_to_failure",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "asset_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "confidence",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "days_to_failure",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "failure_mode",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "recommended_action",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "sensor_anomalies",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "prediction_id",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "predicted_at",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "4e5a2571-ab66-49e7-b757-596c0b2f983a",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "asset_id": "=$flow.body.asset_id",
+                      "status": "=$flow.body.status",
+                      "confidence": "=$flow.body.confidence",
+                      "days_to_failure": "=$flow.body.days_to_failure",
+                      "failure_mode": "=$flow.body.failure_mode",
+                      "recommended_action": "=$flow.body.recommended_action",
+                      "sensor_anomalies": "=$flow.body.sensor_anomalies"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"},\"prediction_id\":{\"type\":\"integer\"},\"predicted_at\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"},\"prediction_id\":{\"type\":\"integer\"},\"predicted_at\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "prediction_id": "=$activity[PostgreSQLQuery].Output.records[0].prediction_id",
+                      "asset_id": "=$activity[PostgreSQLQuery].Output.records[0].asset_id",
+                      "predicted_at": "=$activity[PostgreSQLQuery].Output.records[0].predicted_at",
+                      "status": "=$activity[PostgreSQLQuery].Output.records[0].status",
+                      "confidence": "=$activity[PostgreSQLQuery].Output.records[0].confidence",
+                      "days_to_failure": "=number.int64($activity[PostgreSQLQuery].Output.records[0].days_to_failure)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjI1MywieSI6OTR9LCJSZXR1cm4iOnsieCI6NDc0LCJ5Ijo5Nn19",
+        "metadata": {
+          "input": [
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"prediction_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"predicted_at\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"number\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"string\"},\"failure_mode\":{\"type\":\"string\"},\"recommended_action\":{\"type\":\"string\"},\"sensor_anomalies\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"prediction_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"predicted_at\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"confidence\":{\"type\":\"string\"},\"days_to_failure\":{\"type\":\"number\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:create-work-order",
+      "data": {
+        "name": "create-work-order",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "StartActivity to PostgreSQLQuery"
+          },
+          {
+            "id": 2,
+            "from": "PostgreSQLQuery",
+            "to": "Return",
+            "type": "label",
+            "label": "PostgreSQLQuery to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO public.work_orders (asset_id, priority, description, assigned_to, scheduled_date, created_at) VALUES ($1, $2, $3, $4, $5, TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI')) RETURNING work_order_id, asset_id, priority, assigned_to, scheduled_date, status",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "asset_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "priority",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "description",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "assigned_to",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "scheduled_date",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "work_order_id",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "e5805974-158d-4e26-ab2b-dfb0eea6ee16",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "asset_id": "=$flow.body.asset_id",
+                      "priority": "=$flow.body.priority",
+                      "description": "=$flow.body.description",
+                      "assigned_to": "=$flow.body.assigned_to",
+                      "scheduled_date": "=$flow.body.scheduled_date"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"work_order_id\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"work_order_id\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "work_order_id": "=$activity[PostgreSQLQuery].Output.records[0].work_order_id",
+                      "asset_id": "=$activity[PostgreSQLQuery].Output.records[0].asset_id",
+                      "priority": "=$activity[PostgreSQLQuery].Output.records[0].priority",
+                      "assigned_to": "=$activity[PostgreSQLQuery].Output.records[0].assigned_to",
+                      "scheduled_date": "=$activity[PostgreSQLQuery].Output.records[0].scheduled_date",
+                      "status": "=$activity[PostgreSQLQuery].Output.records[0].status"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjI1MywieSI6OTR9LCJSZXR1cm4iOnsieCI6NDc0LCJ5Ijo5Nn19",
+        "metadata": {
+          "input": [
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"work_order_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"work_order_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"assigned_to\":{\"type\":\"string\"},\"scheduled_date\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:create-alert",
+      "data": {
+        "name": "create-alert",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "StartActivity to PostgreSQLQuery"
+          },
+          {
+            "id": 2,
+            "from": "PostgreSQLQuery",
+            "to": "Return",
+            "type": "label",
+            "label": "PostgreSQLQuery to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "This activity executes query on a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO public.alert_history (asset_id, severity, message, sent_at) VALUES ($1, $2, $3, TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI')) RETURNING alert_id, asset_id, severity, sent_at, status",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "asset_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "severity",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "message",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": true,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "alert_id",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "sent_at",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": true
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "bdc188d1-284e-482b-908f-b3eda5321e9e",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "asset_id": "=$flow.body.asset_id",
+                      "severity": "=$flow.body.severity",
+                      "message": "=$flow.body.message"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"},\"alert_id\":{\"type\":\"integer\"},\"sent_at\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"},\"alert_id\":{\"type\":\"integer\"},\"sent_at\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "alert_id": "=$activity[PostgreSQLQuery].Output.records[0].alert_id",
+                      "asset_id": "=$activity[PostgreSQLQuery].Output.records[0].asset_id",
+                      "severity": "=$activity[PostgreSQLQuery].Output.records[0].severity",
+                      "sent_at": "=$activity[PostgreSQLQuery].Output.records[0].sent_at",
+                      "status": "=$activity[PostgreSQLQuery].Output.records[0].status"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjI1MywieSI6OTR9LCJSZXR1cm4iOnsieCI6NDc0LCJ5Ijo5Nn19",
+        "metadata": {
+          "input": [
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"alert_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"sent_at\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"alert_id\":{\"type\":\"number\"},\"asset_id\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\"},\"sent_at\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PostgreSQL.PredMaintConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Database_Name",
+      "type": "string",
+      "value": "predictive_maintenance"
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Password",
+      "type": "string",
+      "value": "SECRET:bcyeTm+UlKq0AGZQt/LOvAWlwRta"
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.PredMaintConn.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    },
+    {
+      "name": "API_PORT",
+      "type": "float64",
+      "value": 9095
+    }
+  ],
+  "connections": {
+    "e3c455be-4ee3-4b77-8c98-db7b09e81f7d": {
+      "id": "e3c455be-4ee3-4b77-8c98-db7b09e81f7d",
+      "name": "PredMaintConn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PredMaintConn",
+        "description": "",
+        "host": "=$property[\"PostgreSQL.PredMaintConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PredMaintConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PredMaintConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PredMaintConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PredMaintConn.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.PredMaintConn.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.PredMaintConn.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.PredMaintConn.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.PredMaintConn.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.PredMaintConn.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.PredMaintConn.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTMiLCJ0YWciOiIxLjYuMTMtYjAzIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjEiLCJ0YWciOiIyLjcuMS1iMDEiLCJuYW1lIjoiUG9zdGdyZVNRTCIsInMzbG9jYXRpb24iOiJUaWJjby9Qb3N0Z3JlU1FMIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.3"
+  }
+}
