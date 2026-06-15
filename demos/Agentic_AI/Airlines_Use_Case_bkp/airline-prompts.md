@@ -1,6 +1,6 @@
-# COPA Airlines Use Case — All Prompts
+# Airline Use Case — All Prompts
 
-All 7 prompts you gave to generate the COPA Airlines Passenger Services
+All 7 prompts you gave to generate the Airline Passenger Services
 AI Agent demo apps. Chronological order across both sessions.
 
 **Total prompts:** 7
@@ -17,7 +17,7 @@ AI Agent demo apps. Chronological order across both sessions.
 - **Timestamp:** 2026-05-21 12:53:58 UTC
 - **Session:** A (Session A — c--Work-github-cp-integration-pm)
 
-> I have meeting with COPA Airlines in 1 hour and I want to introduce flogo to them and show them quick demo ...so can you help me build a very simple use cases relevant to copa airlines industry/vertical which makes them relate to the use case .... for eg you can generate a swagger api spec ...then generate a rest service from that api spec ..then we can expose those api as mcp server tools using flogo MCP server and then finally use flogo agentic ai connector to build some agentic workflow/orchestration .... first just come up with a very simple / real world use case ...then once i approve the use case ..then you start creating api spec, schema, apps etc after my approval
+> I have meeting with Airline in 1 hour and I want to introduce flogo to them and show them quick demo ...so can you help me build a very simple use cases relevant to airline industry/vertical which makes them relate to the use case .... for eg you can generate a swagger api spec ...then generate a rest service from that api spec ..then we can expose those api as mcp server tools using flogo MCP server and then finally use flogo agentic ai connector to build some agentic workflow/orchestration .... first just come up with a very simple / real world use case ...then once i approve the use case ..then you start creating api spec, schema, apps etc after my approval
 
 ## Prompt #2
 
@@ -31,7 +31,7 @@ AI Agent demo apps. Chronological order across both sessions.
 - **Timestamp:** 2026-05-21 13:37:59 UTC
 - **Session:** B (Session B — c--Work-VsCode)
 
-> Create a flogo rest service app -  copa-rest-api-demo from this api spec - C:\Work\VsCode\Agentic_AI\Copa_Airlines_Use_Case\swagger.json ... use dummy values in return/reply activities wherever required
+> Create a flogo rest service app -  airline-rest-api-demo from this api spec - C:\Work\VsCode\Agentic_AI\Airline_Passenger_Services_Use_Case\swagger.json ... use dummy values in return/reply activities wherever required
 
 ## Prompt #4
 
@@ -63,4 +63,4 @@ AI Agent demo apps. Chronological order across both sessions.
 - **Timestamp:** 2026-05-21 14:55:17 UTC
 - **Session:** B (Session B — c--Work-VsCode)
 
-> Create a flogo rest service app copa-rest-service-demo2 from this API Spec C:\Work\VsCode\Agentic_AI\Copa_Airlines_Use_Case\swagger.json
+> Create a flogo rest service app airline-rest-service-demo2 from this API Spec C:\Work\VsCode\Agentic_AI\Airline_Passenger_Services_Use_Case\swagger.json

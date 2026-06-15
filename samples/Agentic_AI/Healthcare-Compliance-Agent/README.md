@@ -334,6 +334,39 @@ The `sessionId` query parameter becomes the `conversationId` — it names both t
   share your Social Security Number in this chat. For appointment scheduling,
   I only need your patient ID and date of birth to verify your account.
 ```
+```
+Here are **sample prompts** you can give me (you can copy/paste and fill in the blanks).  
+For your security, please **don’t include SSN, full date of birth, or medical record numbers** in chat.
+
+## Appointments & scheduling
+- “Can you show me **cardiology** appointment openings for **next week**?”
+- “I prefer **afternoons**—what cardiology slots do you have on **Wednesday or Thursday**?”
+- “Do you have appointments with **Dr. Sarah Johnson** on **[date]**?”
+- “Can you help me **reschedule** my cardiology appointment to **[date range]**?”
+- “What information do I need to **bring to my first cardiology visit**?”
+
+## Finding care locations
+- “Find the **nearest urgent care** for **[issue type]** near **ZIP [xxxxx]**.”
+- “What’s the closest clinic for **cardiology follow-up** near **ZIP [xxxxx]**?”
+
+## Medication (general info only)
+- “What are the **common side effects** of **[medication name]**?”
+- “How should I **store** **[medication name]**?”
+- “Are there **food or alcohol interactions** with **[medication name]**?”
+- “What should I do if I **miss a dose** of **[medication name]**?”  
+  (I’ll give general guidance and advise you to confirm with your prescriber.)
+
+## Symptoms / what to do next (non-diagnostic)
+- “I’m having **[symptom]**—should I go to **urgent care** or **ER**?”
+- “What are **warning signs** that mean I should seek emergency care for **chest pain/palpitations**?”
+- “How do I prepare for an **EKG / echocardiogram / stress test**?”
+
+## Insurance, billing, and records (general)
+- “Do you accept **[insurance plan]** for cardiology visits?”
+- “How do I get a copy of my **visit summary** or **test results** through the portal?”
+
+If you tell me what you’re trying to do (schedule, find a clinic, meds, prep for a test, symptoms), I can suggest the best exact prompt for your situation.
+```
 
 ---
 

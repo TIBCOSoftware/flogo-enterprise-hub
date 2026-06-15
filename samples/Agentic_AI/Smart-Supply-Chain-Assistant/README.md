@@ -254,11 +254,11 @@ Run `SupplyChainAgent.flogo`. This starts:
 
 Use any WebSocket client to connect.
 
-**Postman**: Create a new WebSocket request, set the URL to `ws://localhost:9998/supply-chain?sessionId=my-session-1`, and click Connect.
+**Postman**: Create a new WebSocket request, set the URL to `ws://localhost:9666/supply-chain?sessionId=my-session-1`, and click Connect.
 
 **websocat** (command line):
 ```bash
-websocat "ws://localhost:9998/supply-chain?sessionId=my-session-1"
+websocat "ws://localhost:9666/supply-chain?sessionId=my-session-1"
 ```
 
 Then type any of the sample queries below.

@@ -2,18 +2,15 @@
   "imports": [
     "github.com/project-flogo/flow",
     "github.com/project-flogo/contrib/activity/noop",
-    "github.com/tibco/flogo-general/src/app/General/activity/log",
-    "github.com/project-flogo/contrib/activity/actreturn",
     "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
     "github.com/project-flogo/websocket/activity/wswritedata",
     "github.com/project-flogo/websocket/trigger/wsserver",
-    "github.com/project-flogo/contrib/function/string",
     "github.com/project-flogo/contrib/function/coerce",
     "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
     "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
   ],
-  "name": "copa-agent",
-  "description": "COPA Airlines Passenger Services AI Agent — Disruption rebooking via WebSocket chat",
+  "name": "airline-agent",
+  "description": "Airline Passenger Services AI Agent — Disruption rebooking via WebSocket chat",
   "version": "1.0.0",
   "type": "flogo:app",
   "appModel": "1.1.1",
@@ -24,7 +21,7 @@
       "name": "wsserver",
       "description": "WebSocket server for passenger chat",
       "settings": {
-        "port": "=$property[\"AGENT_PORT\"]",
+        "port": "=$property[\"WEBSOCKET_PORT\"]",
         "enableTLS": false,
         "serverCert": "",
         "serverKey": "",
@@ -34,10 +31,10 @@
       "id": "WebsocketServer",
       "handlers": [
         {
-          "description": "Chat endpoint for passenger interactions",
+          "description": "Passenger Service Agent calling MCP Server",
           "settings": {
             "method": "GET",
-            "path": "/ws/chat",
+            "path": "/ws/passengerserviceagent",
             "mode": "Data",
             "format": "String",
             "jsonSchema": ""
@@ -74,7 +71,7 @@
       "id": "flow:PassengerServiceAgent",
       "data": {
         "name": "PassengerServiceAgent",
-        "description": "WebSocket → AI Agent → WebSocket response",
+        "description": "Passenger Service Agent calling MCP Server",
         "links": [
           {
             "id": 1,
@@ -103,31 +100,42 @@
           {
             "id": "AIAgent",
             "name": "AIAgent",
-            "description": "COPA Passenger Services AI Agent",
+            "description": "Airline Passenger Services AI Agent",
             "activity": {
               "ref": "#agentactivity",
               "settings": {
                 "llmProviderConnection": "conn://a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
-                "model": "gpt-4o",
+                "model": "=$property[\"LLM_Model\"]",
                 "reasoning": "",
-                "temperature": 0.3,
+                "temperature": 0.1,
                 "enableGuardrails": false,
                 "rateLimit": 25,
                 "tokenLimit": 4096,
                 "redactSensitiveData": false,
                 "responseType": "Text",
                 "agentHandoffs": "",
+                "remoteAgents": [],
                 "mcpServers": [
-                  "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+                  "conn://b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
                 ],
                 "conversationStoreType": "Memory",
-                "memoryMaxSize": 20,
-                "systemPrompt": "You are a COPA Airlines customer service agent specializing in flight disruptions and passenger rebooking at the Panama (PTY) hub.\n\nCAPABILITIES (via MCP tools):\n- CheckFlightStatus: Look up any COPA flight by flight number (e.g., CM801)\n- GetBooking: Retrieve passenger booking by PNR confirmation code\n- RebookPassenger: Rebook a passenger to an alternative flight\n\nWORKFLOW:\n1. When a passenger asks about a flight, ALWAYS check flight status first\n2. If the flight is delayed and they have a connection, check their booking\n3. Calculate if they'll miss their connection (< 60 min connection = at risk)\n4. If at risk, suggest rebooking and offer the next available flight\n5. Only rebook after the passenger confirms\n\nRULES:\n- Be empathetic — disruptions are stressful\n- Always address the passenger by name after looking up their booking\n- Mention their ConnectMiles tier if Gold or Presidential (VIP treatment)\n- Reference the Panama hub (PTY) — passengers connect through Tocumen\n- NEVER fabricate flight numbers — only use data from CheckFlightStatus\n- If you cannot find a flight or booking, say so honestly\n\nCOPA CONTEXT:\n- Hub: Tocumen International Airport (PTY), Panama City\n- Alliance: Star Alliance member\n- Loyalty: ConnectMiles (PreferMember, Silver, Gold, Presidential)\n- Network: 80+ destinations across North, Central, South America & Caribbean\n- Fleet: Boeing 737 MAX 9 and Boeing 737-800"
+                "memoryMaxSize": 99,
+                "systemPrompt": "You are an airline customer service agent specializing in flight disruptions and passenger rebooking at the main hub.\n\nCAPABILITIES (via MCP tools):\n- CheckFlightStatus: Look up any flight by flight number (e.g., FL801)\n- GetBooking: Retrieve passenger booking by PNR confirmation code\n- RebookPassenger: Rebook a passenger to an alternative flight\n\nWORKFLOW:\n1. When a passenger asks about a flight, ALWAYS check flight status first\n2. If the flight is delayed and they have a connection, check their booking\n3. Calculate if they'll miss their connection (< 60 min connection = at risk)\n4. If at risk, use CheckFlightStatus to find alternative flights on the same route that are ON_TIME\n5. Suggest the alternative flight to the passenger with departure time and details\n6. Only rebook after the passenger confirms — when calling RebookPassenger, you MUST pass both the PNR and the newFlightNumber (the alternative flight number you found in step 4)\n\nRULES:\n- Be empathetic — disruptions are stressful\n- Always address the passenger by name after looking up their booking\n- Mention their FrequentFlyer tier if Gold or Platinum (VIP treatment)\n- Reference the main hub — passengers connect through the hub airport\n- NEVER fabricate flight numbers — only use data from CheckFlightStatus\n- If you cannot find a flight or booking, say so honestly\n\nAIRLINE CONTEXT:\n- Hub: Main Hub Airport\n- Alliance: Global airline alliance member\n- Loyalty: FrequentFlyer (Basic, Silver, Gold, Platinum)\n- Network: 80+ destinations across North, Central, South America & Caribbean\n- Fleet: Boeing 737 MAX 9 and Boeing 737-800"
               },
               "input": {
                 "userPrompt": "=coerce.toString($flow.content)",
-                "conversationId": ""
-              }
+                "conversationId": "=coerce.toString($flow.wsconnection)"
+              },
+              "schemas": {
+                "input": {
+                  "filteredToolNames": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+                  }
+                }
+              },
+              "feSchemaMap": {}
             }
           },
           {
@@ -147,6 +155,7 @@
             }
           }
         ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkFJQWdlbnQiOnsieCI6MjUwLCJ5IjoxNTB9LCJXZWJzb2NrZXRXcml0ZURhdGEiOnsieCI6NDUwLCJ5IjoyNTB9fQ==",
         "metadata": {
           "input": [
             {
@@ -184,14 +193,19 @@
   ],
   "properties": [
     {
-      "name": "AGENT_PORT",
-      "type": "float64",
-      "value": 8082
-    },
-    {
       "name": "AgenticAI.OpenAI.LLM_Provider",
       "type": "string",
       "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAI.API_Key",
+      "type": "string",
+      "value": "SECRET:84Uyfvc7TCybHjXvsqd54vxadCdg/tup3in5gKln497wizUnrMXpeUgKKzSw/MeWzbJdVzVGQMcicaLtUrhm99n4SyziQpYoD54eEQYdsSmoMjiSKU2htIs58/DZy5APc0RKLiFvjyQOMgRnqSa1EYPULM23La9MHPKu57oliNTvf9KZSOBzi9VseKs6CQAHmrWAza31JUFQ7ju8xnyyvTAn2ArJdClBFABIPabxUBzZTjoe"
+    },
+    {
+      "name": "AgenticAI.OpenAI.LLM_Base_URL",
+      "type": "string",
+      "value": ""
     },
     {
       "name": "AgenticAI.OpenAI.OpenAI_Provider",
@@ -199,14 +213,14 @@
       "value": "Default"
     },
     {
-      "name": "AgenticAI.OpenAI.API_Key",
+      "name": "LLM_Model",
       "type": "string",
-      "value": "YOUR_OPENAI_API_KEY"
+      "value": "gpt-5.5"
     },
     {
-      "name": "AgenticAI.OpenAI.LLM_Base_URL",
-      "type": "string",
-      "value": ""
+      "name": "WEBSOCKET_PORT",
+      "type": "float64",
+      "value": 8054
     }
   ],
   "connections": {
@@ -217,23 +231,27 @@
       "isGlobal": false,
       "settings": {
         "name": "OpenAI",
-        "description": "OpenAI GPT-4o for COPA Passenger Services Agent",
+        "description": "",
         "llmProvider": "=$property[\"AgenticAI.OpenAI.LLM_Provider\"]",
-        "openAIProvider": "=$property[\"AgenticAI.OpenAI.OpenAI_Provider\"]",
+        "anthropicProvider": "Default",
         "apiKey": "=$property[\"AgenticAI.OpenAI.API_Key\"]",
-        "llmProviderUrl": "=$property[\"AgenticAI.OpenAI.LLM_Base_URL\"]"
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAI.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
       }
     },
     "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e": {
       "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
-      "name": "COPAMCPServer",
+      "name": "AirlineMCPServer",
       "ref": "#mcpserverconfig",
       "isGlobal": false,
       "settings": {
-        "name": "COPAMCPServer",
-        "description": "COPA Airlines MCP Server with flight status, booking, and rebooking tools",
+        "name": "AirlineMCPServer",
+        "description": "Airline MCP Server with flight status, booking, and rebooking tools",
         "serverType": "http",
-        "serverUrl": "http://localhost:9091/mcp",
+        "serverUrl": "http://localhost:9044/mcp",
         "httpTransportType": "streamable",
         "authType": "None",
         "authToken": "",
@@ -241,15 +259,16 @@
       }
     }
   },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9wcm9qZWN0LWZsb2dvL3dlYnNvY2tldCIsImlkIjoid2Vic29ja2V0IiwidmVyc2lvbiI6IjEuMC4xIiwidGFnIjoiMS4wLjEtYjAzLWZsb2dvLTIuMjUuMCIsIm5hbWUiOiJXZWJzb2NrZXQiLCJzM2xvY2F0aW9uIjoiVGliY28vd2Vic29ja2V0IiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWFpLWFnZW50L3NyYy9hcHAvQWdlbnRpY0FJIiwiaWQiOiJBZ2VudGljQUkiLCJ2ZXJzaW9uIjoiMC45LjMiLCJ0YWciOiIwLjkuMy1iMDctMC45LjMiLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInMzbG9jYXRpb24iOiJUaWJjby9BZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
   "metadata": {
     "endpoints": [
       {
         "protocol": "http",
-        "port": "8082",
-        "title": "COPA Agent WebSocket",
+        "port": "8054",
+        "title": "WebsocketServer",
         "type": "public"
       }
     ],
-    "flogoVersion": "2.26.3"
+    "flogoVersion": "2.26.5"
   }
 }

@@ -2,14 +2,14 @@
   "imports": [
     "github.com/project-flogo/flow",
     "github.com/project-flogo/contrib/activity/noop",
-    "github.com/tibco/flogo-general/src/app/General/activity/log",
     "github.com/project-flogo/contrib/activity/actreturn",
     "github.com/tibco/flogo-general/src/app/General/trigger/rest",
     "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce",
     "github.com/project-flogo/contrib/function/array"
   ],
-  "name": "copa-rest-api-demo",
-  "description": "COPA Airlines Passenger Services REST API — Demo with dummy data",
+  "name": "airline-rest-service-demo2",
+  "description": "Airline Passenger Services REST API - Mock service with dummy data",
   "version": "1.0.0",
   "type": "flogo:app",
   "appModel": "1.1.1",
@@ -18,7 +18,7 @@
     {
       "ref": "#rest",
       "name": "tibco-wi-rest",
-      "description": "COPA Airlines REST API",
+      "description": "Simple REST Trigger",
       "settings": {
         "port": "=$property[\"REST_PORT\"]",
         "APISpecUpdate": false,
@@ -35,7 +35,7 @@
       "id": "ReceiveHTTPMessage",
       "handlers": [
         {
-          "description": "Returns mock flight status — CM801 is delayed 90 min",
+          "description": "Get flight status by flight number",
           "settings": {
             "Method": "GET",
             "reqType": "application/json",
@@ -45,7 +45,7 @@
           "action": {
             "ref": "github.com/project-flogo/flow",
             "settings": {
-              "flowURI": "res://flow:getFlightStatus"
+              "flowURI": "res://flow:get-flight-status"
             },
             "input": {
               "pathParams": "=$.pathParams",
@@ -58,7 +58,7 @@
           },
           "reply": {
             "code": 200,
-            "configureResponseCodes": false,
+            "configureResponseCodes": true,
             "message": {}
           },
           "schemas": {
@@ -66,7 +66,7 @@
               "data": {
                 "type": "json",
                 "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"originCity\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"destinationCity\":{\"type\":\"string\"},\"scheduledDeparture\":{\"type\":\"string\"},\"estimatedDeparture\":{\"type\":\"string\"},\"scheduledArrival\":{\"type\":\"string\"},\"estimatedArrival\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"gate\":{\"type\":\"string\"},\"delayMinutes\":{\"type\":\"number\"},\"delayReason\":{\"type\":\"string\"},\"aircraft\":{\"type\":\"string\"}}}",
-                "fe_metadata": "{\n    \"flightNumber\": \"CM801\",\n    \"origin\": \"BOG\",\n    \"originCity\": \"Bogota\",\n    \"destination\": \"PTY\",\n    \"destinationCity\": \"Panama City\",\n    \"scheduledDeparture\": \"2026-05-21T08:30:00-05:00\",\n    \"estimatedDeparture\": \"2026-05-21T10:00:00-05:00\",\n    \"scheduledArrival\": \"2026-05-21T11:15:00-05:00\",\n    \"estimatedArrival\": \"2026-05-21T12:45:00-05:00\",\n    \"status\": \"DELAYED\",\n    \"gate\": \"B12\",\n    \"delayMinutes\": 90,\n    \"delayReason\": \"Late arriving aircraft from GYE\",\n    \"aircraft\": \"Boeing 737 MAX 9\"\n}"
+                "fe_metadata": "{\n    \"flightNumber\": \"FL801\",\n    \"origin\": \"BOG\",\n    \"originCity\": \"Bogota\",\n    \"destination\": \"PTY\",\n    \"destinationCity\": \"Panama City\",\n    \"scheduledDeparture\": \"2026-05-21T08:30:00-05:00\",\n    \"estimatedDeparture\": \"2026-05-21T10:00:00-05:00\",\n    \"scheduledArrival\": \"2026-05-21T11:15:00-05:00\",\n    \"estimatedArrival\": \"2026-05-21T12:45:00-05:00\",\n    \"status\": \"DELAYED\",\n    \"gate\": \"B12\",\n    \"delayMinutes\": 90,\n    \"delayReason\": \"Late arriving aircraft from GYE\",\n    \"aircraft\": \"Boeing 737 MAX 9\"\n}"
               },
               "responseBody": {
                 "type": "json",
@@ -87,10 +87,10 @@
               }
             }
           },
-          "name": "getFlightStatus"
+          "name": "get-flight-status"
         },
         {
-          "description": "Returns mock booking — PNR ABCDE1, Carlos Martinez, Gold ConnectMiles",
+          "description": "Get booking details by PNR",
           "settings": {
             "Method": "GET",
             "reqType": "application/json",
@@ -100,7 +100,7 @@
           "action": {
             "ref": "github.com/project-flogo/flow",
             "settings": {
-              "flowURI": "res://flow:getBooking"
+              "flowURI": "res://flow:get-booking"
             },
             "input": {
               "pathParams": "=$.pathParams",
@@ -113,15 +113,15 @@
           },
           "reply": {
             "code": 200,
-            "configureResponseCodes": false,
+            "configureResponseCodes": true,
             "message": {}
           },
           "schemas": {
             "reply": {
               "data": {
                 "type": "json",
-                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"pnr\":{\"type\":\"string\"},\"passenger\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"passengerId\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"connectMilesTier\":{\"type\":\"string\"},\"connectMilesNumber\":{\"type\":\"string\"}}},\"segments\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureTime\":{\"type\":\"string\"},\"arrivalTime\":{\"type\":\"string\"},\"seatNumber\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}}",
-                "fe_metadata": "{\n    \"pnr\": \"ABCDE1\",\n    \"passenger\": {\n        \"name\": \"Carlos Martinez\",\n        \"passengerId\": \"PAX-2026-00101\",\n        \"email\": \"carlos.martinez@email.com\",\n        \"phone\": \"+57-310-555-0101\",\n        \"connectMilesTier\": \"Gold\",\n        \"connectMilesNumber\": \"CM-98765432\"\n    },\n    \"segments\": [\n        {\n            \"flightNumber\": \"CM801\",\n            \"origin\": \"BOG\",\n            \"destination\": \"PTY\",\n            \"departureTime\": \"2026-05-21T08:30:00-05:00\",\n            \"arrivalTime\": \"2026-05-21T11:15:00-05:00\",\n            \"seatNumber\": \"4A\",\n            \"cabin\": \"Business\",\n            \"status\": \"CHECKED_IN\"\n        }\n    ]\n}"
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"pnr\":{\"type\":\"string\"},\"passenger\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"passengerId\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"loyaltyTier\":{\"type\":\"string\"},\"loyaltyNumber\":{\"type\":\"string\"}}},\"segments\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureTime\":{\"type\":\"string\"},\"arrivalTime\":{\"type\":\"string\"},\"seatNumber\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}}",
+                "fe_metadata": "{\n    \"pnr\": \"ABCDE1\",\n    \"passenger\": {\n        \"name\": \"Carlos Martinez\",\n        \"passengerId\": \"PAX-2026-00101\",\n        \"email\": \"carlos.martinez@email.com\",\n        \"phone\": \"+57-310-555-0101\",\n        \"loyaltyTier\": \"Gold\",\n        \"loyaltyNumber\": \"FF-98765432\"\n    },\n    \"segments\": [\n        {\n            \"flightNumber\": \"FL801\",\n            \"origin\": \"BOG\",\n            \"destination\": \"PTY\",\n            \"departureTime\": \"2026-05-21T08:30:00-05:00\",\n            \"arrivalTime\": \"2026-05-21T11:15:00-05:00\",\n            \"seatNumber\": \"4A\",\n            \"cabin\": \"Business\",\n            \"status\": \"CHECKED_IN\"\n        }\n    ]\n}"
               },
               "responseBody": {
                 "type": "json",
@@ -142,10 +142,10 @@
               }
             }
           },
-          "name": "getBooking"
+          "name": "get-booking"
         },
         {
-          "description": "Mock rebooking — always rebooks to CM447 PTY-MIA",
+          "description": "Rebook passenger to alternative flight",
           "settings": {
             "Method": "POST",
             "reqType": "application/json",
@@ -155,12 +155,12 @@
           "action": {
             "ref": "github.com/project-flogo/flow",
             "settings": {
-              "flowURI": "res://flow:rebookPassenger"
+              "flowURI": "res://flow:rebook-passenger"
             },
             "input": {
               "pathParams": "=$.pathParams",
-              "body": "=$.body",
-              "headers": "=$.headers"
+              "headers": "=$.headers",
+              "body": "=$.body"
             },
             "output": {
               "code": "=$.code",
@@ -169,7 +169,7 @@
           },
           "reply": {
             "code": 200,
-            "configureResponseCodes": false,
+            "configureResponseCodes": true,
             "message": {}
           },
           "schemas": {
@@ -177,7 +177,7 @@
               "data": {
                 "type": "json",
                 "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"success\":{\"type\":\"boolean\"},\"message\":{\"type\":\"string\"},\"updatedSegments\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureTime\":{\"type\":\"string\"},\"arrivalTime\":{\"type\":\"string\"},\"seatNumber\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}}",
-                "fe_metadata": "{\n    \"success\": true,\n    \"message\": \"Passenger Carlos Martinez rebooked from CM445 to CM447\",\n    \"updatedSegments\": [\n        {\n            \"flightNumber\": \"CM801\",\n            \"origin\": \"BOG\",\n            \"destination\": \"PTY\",\n            \"departureTime\": \"2026-05-21T08:30:00-05:00\",\n            \"arrivalTime\": \"2026-05-21T12:45:00-05:00\",\n            \"seatNumber\": \"4A\",\n            \"cabin\": \"Business\",\n            \"status\": \"CHECKED_IN\"\n        }\n    ]\n}"
+                "fe_metadata": "{\n    \"success\": true,\n    \"message\": \"Passenger Carlos Martinez rebooked from FL445 to FL447\",\n    \"updatedSegments\": [\n        {\n            \"flightNumber\": \"FL447\",\n            \"origin\": \"PTY\",\n            \"destination\": \"MIA\",\n            \"departureTime\": \"2026-05-21T15:30:00-05:00\",\n            \"arrivalTime\": \"2026-05-21T19:45:00-04:00\",\n            \"seatNumber\": \"5A\",\n            \"cabin\": \"Business\",\n            \"status\": \"CONFIRMED\"\n        }\n    ]\n}"
               },
               "responseBody": {
                 "type": "json",
@@ -199,35 +199,28 @@
               "body": {
                 "type": "json",
                 "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"newFlightNumber\":{\"type\":\"string\"}}}",
-                "fe_metadata": "{\n    \"newFlightNumber\": \"CM447\"\n}"
+                "fe_metadata": "{\n    \"newFlightNumber\": \"FL447\"\n}"
               }
             }
           },
-          "name": "rebookPassenger"
+          "name": "rebook-passenger"
         }
       ]
     }
   ],
   "resources": [
     {
-      "id": "flow:getFlightStatus",
+      "id": "flow:get-flight-status",
       "data": {
-        "name": "getFlightStatus",
-        "description": "Returns mock flight status — CM801 is delayed 90 min",
+        "name": "get-flight-status",
+        "description": "",
         "links": [
           {
             "id": 1,
             "from": "StartActivity",
-            "to": "LogMessage",
-            "type": "label",
-            "label": "StartActivity to LogMessage"
-          },
-          {
-            "id": 2,
-            "from": "LogMessage",
             "to": "Return",
             "type": "label",
-            "label": "LogMessage to Return"
+            "label": "StartActivity to Return"
           }
         ],
         "tasks": [
@@ -237,20 +230,6 @@
             "description": "NoOp Activity",
             "activity": {
               "ref": "#noop"
-            }
-          },
-          {
-            "id": "LogMessage",
-            "name": "LogMessage",
-            "description": "Simple Log Message Activity",
-            "activity": {
-              "ref": "#log",
-              "input": {
-                "Log Level": "INFO",
-                "flowInfo": false,
-                "message": "=string.concat(\"Flight status request: \", $flow.pathParams.flightNumber)",
-                "logLevel": ""
-              }
             }
           },
           {
@@ -264,7 +243,7 @@
                   "code": 200,
                   "data": {
                     "mapping": {
-                      "flightNumber": "CM801",
+                      "flightNumber": "FL801",
                       "origin": "BOG",
                       "originCity": "Bogota",
                       "destination": "PTY",
@@ -285,7 +264,7 @@
             }
           }
         ],
-        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMTgsInkiOjkyfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6OTd9fQ==",
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0K",
         "metadata": {
           "input": [
             {
@@ -303,14 +282,6 @@
                 "type": "json",
                 "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
               }
-            },
-            {
-              "name": "requestURI",
-              "type": "string"
-            },
-            {
-              "name": "method",
-              "type": "string"
             }
           ],
           "output": [
@@ -328,7 +299,7 @@
             }
           ],
           "fe_metadata": {
-            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"pathParams\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"pathParams\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}}}",
             "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"originCity\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"destinationCity\":{\"type\":\"string\"},\"scheduledDeparture\":{\"type\":\"string\"},\"estimatedDeparture\":{\"type\":\"string\"},\"scheduledArrival\":{\"type\":\"string\"},\"estimatedArrival\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"gate\":{\"type\":\"string\"},\"delayMinutes\":{\"type\":\"number\"},\"delayReason\":{\"type\":\"string\"},\"aircraft\":{\"type\":\"string\"}}}},\"required\":[]}"
           }
         },
@@ -336,24 +307,17 @@
       }
     },
     {
-      "id": "flow:getBooking",
+      "id": "flow:get-booking",
       "data": {
-        "name": "getBooking",
-        "description": "Returns mock booking — PNR ABCDE1, Carlos Martinez, Gold ConnectMiles",
+        "name": "get-booking",
+        "description": "",
         "links": [
           {
             "id": 1,
             "from": "StartActivity",
-            "to": "LogMessage",
-            "type": "label",
-            "label": "StartActivity to LogMessage"
-          },
-          {
-            "id": 2,
-            "from": "LogMessage",
             "to": "Return",
             "type": "label",
-            "label": "LogMessage to Return"
+            "label": "StartActivity to Return"
           }
         ],
         "tasks": [
@@ -363,20 +327,6 @@
             "description": "NoOp Activity",
             "activity": {
               "ref": "#noop"
-            }
-          },
-          {
-            "id": "LogMessage",
-            "name": "LogMessage",
-            "description": "Simple Log Message Activity",
-            "activity": {
-              "ref": "#log",
-              "input": {
-                "Log Level": "INFO",
-                "flowInfo": false,
-                "message": "=string.concat(\"Booking lookup: \", $flow.pathParams.pnr)",
-                "logLevel": ""
-              }
             }
           },
           {
@@ -396,12 +346,12 @@
                         "passengerId": "PAX-2026-00101",
                         "email": "carlos.martinez@email.com",
                         "phone": "+57-310-555-0101",
-                        "connectMilesTier": "Gold",
-                        "connectMilesNumber": "CM-98765432"
+                        "loyaltyTier": "Gold",
+                        "loyaltyNumber": "FF-98765432"
                       },
                       "segments": [
                         {
-                          "flightNumber": "CM801",
+                          "flightNumber": "FL801",
                           "origin": "BOG",
                           "destination": "PTY",
                           "departureTime": "2026-05-21T08:30:00-05:00",
@@ -411,7 +361,7 @@
                           "status": "CHECKED_IN"
                         },
                         {
-                          "flightNumber": "CM445",
+                          "flightNumber": "FL445",
                           "origin": "PTY",
                           "destination": "MIA",
                           "departureTime": "2026-05-21T12:30:00-05:00",
@@ -428,7 +378,7 @@
             }
           }
         ],
-        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMTgsInkiOjkyfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6OTd9fQ==",
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0K",
         "metadata": {
           "input": [
             {
@@ -458,37 +408,30 @@
               "type": "object",
               "schema": {
                 "type": "json",
-                "value": "{\"pnr\":{\"type\":\"string\"},\"passenger\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"passengerId\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"connectMilesTier\":{\"type\":\"string\"},\"connectMilesNumber\":{\"type\":\"string\"}}},\"segments\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureTime\":{\"type\":\"string\"},\"arrivalTime\":{\"type\":\"string\"},\"seatNumber\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}"
+                "value": "{\"pnr\":{\"type\":\"string\"},\"passenger\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"passengerId\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"loyaltyTier\":{\"type\":\"string\"},\"loyaltyNumber\":{\"type\":\"string\"}}},\"segments\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureTime\":{\"type\":\"string\"},\"arrivalTime\":{\"type\":\"string\"},\"seatNumber\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}"
               }
             }
           ],
           "fe_metadata": {
             "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"pathParams\":{\"type\":\"object\",\"properties\":{\"pnr\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}}}",
-            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"pnr\":{\"type\":\"string\"},\"passenger\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"passengerId\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"connectMilesTier\":{\"type\":\"string\"},\"connectMilesNumber\":{\"type\":\"string\"}}},\"segments\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureTime\":{\"type\":\"string\"},\"arrivalTime\":{\"type\":\"string\"},\"seatNumber\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}}},\"required\":[]}"
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"pnr\":{\"type\":\"string\"},\"passenger\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"passengerId\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"phone\":{\"type\":\"string\"},\"loyaltyTier\":{\"type\":\"string\"},\"loyaltyNumber\":{\"type\":\"string\"}}},\"segments\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flightNumber\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureTime\":{\"type\":\"string\"},\"arrivalTime\":{\"type\":\"string\"},\"seatNumber\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}}}}},\"required\":[]}"
           }
         },
         "explicitReply": true
       }
     },
     {
-      "id": "flow:rebookPassenger",
+      "id": "flow:rebook-passenger",
       "data": {
-        "name": "rebookPassenger",
-        "description": "Mock rebooking — always rebooks to CM447 PTY-MIA",
+        "name": "rebook-passenger",
+        "description": "",
         "links": [
           {
             "id": 1,
             "from": "StartActivity",
-            "to": "LogMessage",
-            "type": "label",
-            "label": "StartActivity to LogMessage"
-          },
-          {
-            "id": 2,
-            "from": "LogMessage",
             "to": "Return",
             "type": "label",
-            "label": "LogMessage to Return"
+            "label": "StartActivity to Return"
           }
         ],
         "tasks": [
@@ -498,20 +441,6 @@
             "description": "NoOp Activity",
             "activity": {
               "ref": "#noop"
-            }
-          },
-          {
-            "id": "LogMessage",
-            "name": "LogMessage",
-            "description": "Simple Log Message Activity",
-            "activity": {
-              "ref": "#log",
-              "input": {
-                "Log Level": "INFO",
-                "flowInfo": false,
-                "message": "=string.concat(\"Rebook request for PNR: \", $flow.pathParams.pnr)",
-                "logLevel": ""
-              }
             }
           },
           {
@@ -526,10 +455,10 @@
                   "data": {
                     "mapping": {
                       "success": true,
-                      "message": "Passenger Carlos Martinez rebooked from CM445 to CM447",
+                      "message": "Passenger Carlos Martinez rebooked from FL445 to FL447",
                       "updatedSegments": [
                         {
-                          "flightNumber": "CM801",
+                          "flightNumber": "FL801",
                           "origin": "BOG",
                           "destination": "PTY",
                           "departureTime": "2026-05-21T08:30:00-05:00",
@@ -539,7 +468,7 @@
                           "status": "CHECKED_IN"
                         },
                         {
-                          "flightNumber": "CM447",
+                          "flightNumber": "FL447",
                           "origin": "PTY",
                           "destination": "MIA",
                           "departureTime": "2026-05-21T15:30:00-05:00",
@@ -556,7 +485,7 @@
             }
           }
         ],
-        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMTgsInkiOjkyfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6OTd9fQ==",
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0K",
         "metadata": {
           "input": [
             {
@@ -610,327 +539,20 @@
   "properties": [
     {
       "name": "REST_PORT",
-      "type": "float64",
-      "value": 3001
+      "type": "string",
+      "value": "3001"
     }
   ],
   "connections": {},
-  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTQiLCJ0YWciOiIxLjYuMTQtYjA0IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
   "metadata": {
     "endpoints": [
       {
         "protocol": "http",
         "port": "3001",
-        "spec": {
-          "name": "copa-rest-api-demo",
-          "version": "1.0.0"
-        },
         "title": "ReceiveHTTPMessage",
-        "swagger": {
-          "openapi": "3.0.0",
-          "info": {
-            "title": "copa-rest-api-demo",
-            "version": "1.0.0",
-            "description": "COPA Airlines REST API"
-          },
-          "paths": {
-            "/api/flights/{flightNumber}": {
-              "get": {
-                "summary": "getFlightStatus",
-                "operationId": "get_api_flights_flightNumber",
-                "parameters": [
-                  {
-                    "name": "flightNumber",
-                    "in": "path",
-                    "description": "Request parameter",
-                    "required": true,
-                    "schema": {
-                      "type": "string"
-                    }
-                  },
-                  {
-                    "name": "Authorization",
-                    "in": "header",
-                    "description": "Request parameter",
-                    "required": false,
-                    "schema": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "responses": {
-                  "200": {
-                    "description": "",
-                    "content": {
-                      "application/json": {
-                        "schema": {
-                          "$ref": "#/components/schemas/schema1"
-                        }
-                      }
-                    }
-                  }
-                },
-                "description": "Returns mock flight status — CM801 is delayed 90 min"
-              }
-            },
-            "/api/bookings/{pnr}": {
-              "get": {
-                "summary": "getBooking",
-                "operationId": "get_api_bookings_pnr",
-                "parameters": [
-                  {
-                    "name": "pnr",
-                    "in": "path",
-                    "description": "Request parameter",
-                    "required": true,
-                    "schema": {
-                      "type": "string"
-                    }
-                  },
-                  {
-                    "name": "Authorization",
-                    "in": "header",
-                    "description": "Request parameter",
-                    "required": false,
-                    "schema": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "responses": {
-                  "200": {
-                    "description": "",
-                    "content": {
-                      "application/json": {
-                        "schema": {
-                          "$ref": "#/components/schemas/schema2"
-                        }
-                      }
-                    }
-                  }
-                },
-                "description": "Returns mock booking — PNR ABCDE1, Carlos Martinez, Gold ConnectMiles"
-              }
-            },
-            "/api/bookings/{pnr}/rebook": {
-              "post": {
-                "summary": "rebookPassenger",
-                "operationId": "post_api_bookings_pnr_rebook",
-                "parameters": [
-                  {
-                    "name": "pnr",
-                    "in": "path",
-                    "description": "Request parameter",
-                    "required": true,
-                    "schema": {
-                      "type": "string"
-                    }
-                  },
-                  {
-                    "name": "Authorization",
-                    "in": "header",
-                    "description": "Request parameter",
-                    "required": false,
-                    "schema": {
-                      "type": "string"
-                    }
-                  }
-                ],
-                "responses": {
-                  "200": {
-                    "description": "",
-                    "content": {
-                      "application/json": {
-                        "schema": {
-                          "$ref": "#/components/schemas/schema3"
-                        }
-                      }
-                    }
-                  }
-                },
-                "description": "Mock rebooking — always rebooks to CM447 PTY-MIA",
-                "requestBody": {
-                  "description": "",
-                  "required": false,
-                  "content": {
-                    "application/json": {
-                      "schema": {
-                        "$ref": "#/components/schemas/schema4"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "components": {
-            "schemas": {
-              "schema1": {
-                "type": "object",
-                "properties": {
-                  "flightNumber": {
-                    "type": "string"
-                  },
-                  "origin": {
-                    "type": "string"
-                  },
-                  "originCity": {
-                    "type": "string"
-                  },
-                  "destination": {
-                    "type": "string"
-                  },
-                  "destinationCity": {
-                    "type": "string"
-                  },
-                  "scheduledDeparture": {
-                    "type": "string"
-                  },
-                  "estimatedDeparture": {
-                    "type": "string"
-                  },
-                  "scheduledArrival": {
-                    "type": "string"
-                  },
-                  "estimatedArrival": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string"
-                  },
-                  "gate": {
-                    "type": "string"
-                  },
-                  "delayMinutes": {
-                    "type": "number"
-                  },
-                  "delayReason": {
-                    "type": "string"
-                  },
-                  "aircraft": {
-                    "type": "string"
-                  }
-                }
-              },
-              "schema2": {
-                "type": "object",
-                "properties": {
-                  "pnr": {
-                    "type": "string"
-                  },
-                  "passenger": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "passengerId": {
-                        "type": "string"
-                      },
-                      "email": {
-                        "type": "string"
-                      },
-                      "phone": {
-                        "type": "string"
-                      },
-                      "connectMilesTier": {
-                        "type": "string"
-                      },
-                      "connectMilesNumber": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "segments": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "flightNumber": {
-                          "type": "string"
-                        },
-                        "origin": {
-                          "type": "string"
-                        },
-                        "destination": {
-                          "type": "string"
-                        },
-                        "departureTime": {
-                          "type": "string"
-                        },
-                        "arrivalTime": {
-                          "type": "string"
-                        },
-                        "seatNumber": {
-                          "type": "string"
-                        },
-                        "cabin": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              "schema3": {
-                "type": "object",
-                "properties": {
-                  "success": {
-                    "type": "boolean"
-                  },
-                  "message": {
-                    "type": "string"
-                  },
-                  "updatedSegments": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "flightNumber": {
-                          "type": "string"
-                        },
-                        "origin": {
-                          "type": "string"
-                        },
-                        "destination": {
-                          "type": "string"
-                        },
-                        "departureTime": {
-                          "type": "string"
-                        },
-                        "arrivalTime": {
-                          "type": "string"
-                        },
-                        "seatNumber": {
-                          "type": "string"
-                        },
-                        "cabin": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              "schema4": {
-                "type": "object",
-                "properties": {
-                  "newFlightNumber": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
+        "type": "public"
       }
     ],
-    "flogoVersion": "2.26.4"
+    "flogoVersion": "2.26.3"
   }
 }

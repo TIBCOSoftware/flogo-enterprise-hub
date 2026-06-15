@@ -22,48 +22,47 @@ This architecture shows how to use the **LLM Client Activity** for lightweight, 
 
 ## Real-World Scenario
 
-**Persona**: Sarah, a claims adjuster at Pacific Coast Insurance, receives a new claim and submits it to the automated claims processor.
+**Persona**: A claims adjuster receives a new claim and submits it to the automated claims processor.
 
 ```
-Sarah submits:
+Adjuster submits:
   Policy: POL-2026-001234
   Type:   collision
-  Amount: $15,000
-  Date:   2026-05-28
-  Desc:   "Rear-ended at intersection during evening commute"
+  Amount: $4,500
+  Date:   2026-06-10
+  Desc:   "Vehicle struck in grocery store parking lot"
 
 System (Step 1 — Policy Verification via MCP):
   [Calls lookup_policy → PolicyLookupMCPServer]
   [Calls check_coverage → PolicyLookupMCPServer]
 
   "Policy POL-2026-001234 is ACTIVE.
-   Holder: Robert Chen
-   Vehicle: 2024 Toyota Camry
-   Coverage: Collision up to $50,000, deductible $1,000
-   Status: COVERED — claim amount $15,000 is within limits.
-   Note: 1 prior settled claim (CLM-2026-8891, $3,200 collision, March 2026)."
+   Holder: James Morrison
+   Vehicle: 2025 Honda CR-V
+   Coverage: Collision up to $50,000, deductible $500
+   Status: COVERED — claim amount $4,500 is within limits."
 
 System (Step 2 — Fraud Assessment via A2A):
   [Delegates to FraudDetectionA2A agent]
-  [Agent calls AnalyzeClaimPatterns → 3 patterns found, MEDIUM_RISK]
-  [Agent calls CalculateRiskScore → composite score 62, FLAG_FOR_REVIEW]
+  [Agent calls AnalyzeClaimPatterns → LOW_RISK, 1 claim in 5 years]
+  [Agent calls CalculateRiskScore → composite score 15, APPROVE]
 
-  "RECOMMENDATION: REVIEW
+  "RECOMMENDATION: APPROVE
 
    Policy Verification: ACTIVE, collision COVERED, $50,000 limit
-   Fraud Risk Score: 62/100 (MEDIUM)
-     - Claim Frequency: 58 (3 claims in 12 months, above average)
-     - Amount Anomaly: 74 (2.4x typical for this coverage tier)
-     - Document Consistency: 45 (minor timeline inconsistencies)
-     - Behavioral Pattern: 68 (filed near policy renewal)
+   Fraud Risk Score: 15/100 (LOW)
+     - Claim Frequency: 8 (1 claim in 5 years)
+     - Amount Anomaly: 12 (within normal range)
+     - Document Consistency: 5 (all consistent)
+     - Behavioral Pattern: 10 (no unusual indicators)
 
-   Recommendation: FLAG_FOR_REVIEW — coverage confirmed but elevated
-   fraud indicators warrant manual adjuster review before approval.
-
-   Mitigating factors: 5+ year customer, no prior fraud flags."
+   Recommendation: APPROVE — clean claims history, low fraud risk,
+   8-year customer with safe driver discount."
 ```
 
 **One REST call. Two LLM Client steps. MCP tools for data lookup + A2A agent for fraud intelligence — chained in a simple Flogo flow.**
+
+The system supports **5 demo policies** with different outcomes — see [Demo Scenarios](#demo-scenarios) below.
 
 ---
 
@@ -200,46 +199,27 @@ Both tools are annotated with `readOnlyToolHint: true` to signal they do not mod
 
 ---
 
-## Sample Data
+## Demo Scenarios
 
-### Policy: POL-2026-001234 (Robert Chen)
+The system includes **5 hardcoded policies** that produce different outcomes, plus a bonus uncovered claim type scenario:
 
-| Field | Value |
-|---|---|
-| Policy Type | Comprehensive Auto |
-| Status | ACTIVE |
-| Vehicle | 2024 Toyota Camry |
-| Effective | Jan 15, 2026 |
-| Expiration | Jan 15, 2027 |
-| Deductible | $1,000 |
-| Monthly Premium | $185 |
-| Collision Limit | $50,000 |
-| Comprehensive Limit | $50,000 |
-| Liability Limit | $100,000 |
-| Medical Limit | $10,000 |
-| Prior Claims | 1 settled (CLM-2026-8891, collision, $3,200, Mar 2026) |
-| Discounts | Safe driver, Multi-policy, Anti-theft device |
+| # | Policy | Holder | Vehicle | Claim Type | Amount | Fraud Score | Expected Outcome |
+|---|--------|--------|---------|------------|--------|-------------|-----------------|
+| 1 | POL-2026-001234 | James Morrison | Honda CR-V 2025 | Collision | $4,500 | 15 (LOW) | **APPROVE** |
+| 2 | POL-2026-005678 | Sarah Mitchell | BMW X5 2024 | Collision | $18,500 | 58 (MEDIUM) | **FLAG_FOR_REVIEW** |
+| 3 | POL-2026-009012 | Marcus Webb | Mercedes GLE 2025 | Theft | $62,000 | 87 (HIGH) | **DENY** |
+| 4 | POL-2026-003456 | Elena Rodriguez | Toyota RAV4 2023 | Medical | $12,000 | 22 (LOW) | **REVIEW** (coverage limit) |
+| 5 | POL-2026-007890 | David Park | Hyundai Tucson 2022 | Collision | $8,500 | 10 | **DENY** (expired policy) |
+| 6 | POL-2026-001234 | James Morrison | Honda CR-V 2025 | Flood | $15,000 | 15 (LOW) | **DENY** (uncovered type) |
 
-### Coverage Check (collision)
+### Why Each Scenario Is Interesting
 
-| Field | Value |
-|---|---|
-| Status | COVERED |
-| Coverage Limit | $50,000 |
-| Deductible | $1,000 |
-| Co-Pay | 20% |
-| Exclusions | Intentional damage, racing, commercial use |
-| Conditions | Police report for >$2K, photos within 72h, rental car max 30 days |
-
-### Fraud Analysis
-
-| Dimension | Score | Weight | Detail |
-|---|---|---|---|
-| Claim Frequency | 58 | 25% | 3 claims in 12 months, above average |
-| Amount Anomaly | 74 | 30% | 2.4x typical for this coverage tier |
-| Document Consistency | 45 | 25% | Minor timeline inconsistencies |
-| Behavioral Pattern | 68 | 20% | Filed near policy renewal period |
-| **Composite** | **62** | | **FLAG_FOR_REVIEW** (confidence: 0.78) |
+- **Scenario 1 (APPROVE):** Clean 8-year customer, low-value claim, witness corroboration — the "happy path"
+- **Scenario 2 (FLAG_FOR_REVIEW):** Coverage limits were increased 60 days before this claim. Suspicious timing + amount near adjuster threshold
+- **Scenario 3 (DENY):** New customer, 4 claims in 10 months (5x average), $62K theft with no evidence — staged-loss indicators
+- **Scenario 4 (REVIEW):** Fraud score is LOW/APPROVE, but $12K medical claim exceeds $10K coverage limit — the LLM should flag the coverage gap
+- **Scenario 5 (DENY):** Policy expired April 2026 — claim cannot be processed regardless of fraud score
+- **Scenario 6 (DENY):** Valid policy but flood is not a covered claim type — tests the coverage check logic
 
 ---
 
@@ -292,60 +272,81 @@ Run `InsuranceClaimsProcessor.flogo`. This starts the REST API on port **9194**.
 
 ### Step 4 — Submit a Claim
 
-**curl**:
-```bash
-curl -X POST http://localhost:9194/process-claim \
-  -H "Content-Type: application/json" \
-  -d '{
-    "policy_number": "POL-2026-001234",
-    "claim_type": "collision",
-    "claim_amount": 15000,
-    "incident_description": "Rear-ended at intersection during evening commute",
-    "incident_date": "2026-05-28"
-  }'
-```
-
-**Postman**: Create a POST request to `http://localhost:9194/process-claim` with the JSON body above.
+Pick any scenario from below and run the curl command. Start with **Scenario 1** for the happy path, then try **Scenario 3** for the high-fraud deny.
 
 ---
 
-## Sample Queries
+## Demo Prompts (Copy-Paste Ready)
 
-### Standard Claim
+### Scenario 1 — APPROVE (Clean Claim, Low Risk)
 
-```json
-{
-  "policy_number": "POL-2026-001234",
-  "claim_type": "collision",
-  "claim_amount": 15000,
-  "incident_description": "Rear-ended at intersection during evening commute",
-  "incident_date": "2026-05-28"
-}
+```bash
+curl -s -X POST http://localhost:9194/process-claim \
+  -H "Content-Type: application/json" \
+  -d '{"policy_number":"POL-2026-001234","claim_type":"collision","claim_amount":4500,"incident_description":"Vehicle was struck by another car while parked in a grocery store parking lot. Damage to rear bumper and tailgate. Other driver left a note with insurance information.","incident_date":"2026-06-10"}'
 ```
 
-### High-Value Claim (likely triggers REVIEW or DENY)
+**What happens:** Policy lookup finds James Morrison, 8-year customer with Honda CR-V 2025, $500 deductible, 1 claim in 5 years. Collision is COVERED up to $50K. Fraud score 15 (LOW) → **APPROVE**.
 
-```json
-{
-  "policy_number": "POL-2026-001234",
-  "claim_type": "comprehensive",
-  "claim_amount": 48000,
-  "incident_description": "Vehicle stolen from parking garage",
-  "incident_date": "2026-06-01"
-}
+---
+
+### Scenario 2 — FLAG_FOR_REVIEW (Suspicious Timing)
+
+```bash
+curl -s -X POST http://localhost:9194/process-claim \
+  -H "Content-Type: application/json" \
+  -d '{"policy_number":"POL-2026-005678","claim_type":"collision","claim_amount":18500,"incident_description":"Highway collision during heavy rain on I-70. Vehicle hydroplaned into median barrier. Significant front-end and side panel damage. Police report filed.","incident_date":"2026-06-08"}'
 ```
 
-### Medical Claim
+**What happens:** Sarah Mitchell, BMW X5 2024. Coverage limits were increased from $50K to $75K just 60 days before this claim. 2 claims in 18 months. Fraud score 58 (MEDIUM) → **FLAG_FOR_REVIEW**.
 
-```json
-{
-  "policy_number": "POL-2026-001234",
-  "claim_type": "medical",
-  "claim_amount": 5200,
-  "incident_description": "Whiplash and back pain from rear-end collision",
-  "incident_date": "2026-05-28"
-}
+---
+
+### Scenario 3 — DENY (High Fraud Risk)
+
+```bash
+curl -s -X POST http://localhost:9194/process-claim \
+  -H "Content-Type: application/json" \
+  -d '{"policy_number":"POL-2026-009012","claim_type":"theft","claim_amount":62000,"incident_description":"Vehicle reported stolen from residential driveway overnight. No security camera footage available. Noticed missing when leaving for work in the morning.","incident_date":"2026-06-12"}'
 ```
+
+**What happens:** Marcus Webb, Mercedes GLE 2025. New customer (< 12 months), 4 claims in 10 months (5x average), $62K theft with no evidence. Staged-loss pattern detected. Fraud score 87 (HIGH) → **DENY**.
+
+---
+
+### Scenario 4 — REVIEW (Exceeds Coverage Limit)
+
+```bash
+curl -s -X POST http://localhost:9194/process-claim \
+  -H "Content-Type: application/json" \
+  -d '{"policy_number":"POL-2026-003456","claim_type":"medical","claim_amount":12000,"incident_description":"Rear-ended at stoplight. Passenger sustained whiplash and minor back injuries requiring emergency room visit and follow-up physical therapy sessions.","incident_date":"2026-06-05"}'
+```
+
+**What happens:** Elena Rodriguez, Toyota RAV4 2023, 5-year customer. Fraud score is 22 (LOW) / APPROVE. But medical coverage is only $10K with 20% co-pay — the $12K claim exceeds the limit. The LLM should flag this coverage gap and recommend **REVIEW**.
+
+---
+
+### Scenario 5 — DENY (Expired Policy)
+
+```bash
+curl -s -X POST http://localhost:9194/process-claim \
+  -H "Content-Type: application/json" \
+  -d '{"policy_number":"POL-2026-007890","claim_type":"collision","claim_amount":8500,"incident_description":"Side collision at intersection. Other driver ran red light. Moderate damage to driver side doors and quarter panel.","incident_date":"2026-06-11"}'
+```
+
+**What happens:** David Park, Hyundai Tucson 2022. Policy **EXPIRED** on April 1, 2026. Coverage check returns NOT_COVERED (POLICY_EXPIRED). Fraud score 10 → **DENY** — claim cannot be processed on an expired policy.
+
+---
+
+### Scenario 6 (Bonus) — DENY (Uncovered Claim Type)
+
+```bash
+curl -s -X POST http://localhost:9194/process-claim \
+  -H "Content-Type: application/json" \
+  -d '{"policy_number":"POL-2026-001234","claim_type":"flood","claim_amount":15000,"incident_description":"Vehicle submerged in flash flood waters in underground parking garage. Total water damage to engine and interior.","incident_date":"2026-06-13"}'
+```
+
+**What happens:** James Morrison's policy is ACTIVE and valid, but flood damage is NOT a covered claim type under standard auto policies. Coverage check returns NOT_COVERED. The LLM should **DENY** based on coverage, not fraud.
 
 ---
 

@@ -1,4 +1,4 @@
--- COPA Airlines Passenger Services — Reset Demo Data
+-- Airline Passenger Services — Reset Demo Data
 -- Run this to reset all tables with fresh, today-relative test data
 -- PostgreSQL 14+
 

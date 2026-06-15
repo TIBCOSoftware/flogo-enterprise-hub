@@ -28,6 +28,9 @@
         "agentDescription": "=$property[\"Trigger_Settings.AgentDescription\"]",
         "agentType": "Local",
         "agentPort": 8080,
+        "agentUrl": "http://localhost:9898",
+        "agentAuthMode": "None",
+        "agentToken": "",
         "model": "=$property[\"Trigger_Settings.LLM_Model\"]",
         "reasoning": "high",
         "temperature": "=$property[\"Trigger_Settings.LLM_temperature\"]",
@@ -35,9 +38,10 @@
         "rateLimit": "=$property[\"Trigger_Settings.Rate_Limit\"]",
         "tokenLimit": "=$property[\"Trigger_Settings.Token_Limit\"]",
         "redactSensitiveData": "=$property[\"Trigger_Settings.Redact_Sensitive_Data\"]",
+        "remoteAgents": [],
         "mcpServers": [
-          "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-          "c3d4e5f6-a7b8-9012-cdef-012345678902"
+          "conn://b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "conn://c3d4e5f6-a7b8-9012-cdef-012345678902"
         ],
         "conversationStoreType": "Memory",
         "memoryMaxSize": 20,
@@ -51,6 +55,8 @@
             "handlerType": "Tool",
             "agentToolName": "CreatePurchaseOrder",
             "agentToolDescription": "Create a new purchase order for a product from a supplier. Call this only after the user has confirmed the order details. Required fields: supplier_id, product_id, quantity, unit_price.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
             "customGuardrailType": "NONE",
             "customConversationStoreOperation": "NONE"
           },
@@ -96,7 +102,7 @@
       "name": "wsserver",
       "description": "WebSocket server that accepts supply chain queries with a sessionId parameter for per-session conversation history",
       "settings": {
-        "port": 9998,
+        "port": "=$property[\"PORT\"]",
         "enableTLS": false,
         "serverCert": "",
         "serverKey": "",
@@ -183,12 +189,8 @@
             "description": "InvokeAIAgentTrigger activity that dispatches the user prompt to the SupplyChainAgentTrigger",
             "activity": {
               "ref": "#callagent",
-              "settings": {
-                "agentType": "Local"
-              },
               "input": {
                 "agentName": "SupplyChainAgent",
-                "agentBaseUrl": "",
                 "prompt": "=coerce.toString($flow.content)",
                 "structuredOutput": false,
                 "conversationId": "=coerce.toString($flow.queryParams.sessionId)"
@@ -332,7 +334,7 @@
     {
       "name": "AgenticAI.openai.API_Key",
       "type": "string",
-      "value": "SECRET:pP3IQOJhSXzvPF8yBJiiOSW+CqaCIoEvyKnrjZ3C6O0hYbzQ9tyiAMlXWf4HvD0Q9sg6r9idCy6mJak1v64N2vS1c9cXER/HqSQ1L2A+U/xxWMwgd9EzLfSzWpfeal6sBqogjeqzh2P+JUMyMabGN5sFc92mJZQWhLQ7U4CqTQWzJh+fyylV6+8N9FuuIZrkFTKcV2+Sun7YlyfS2hlDavFWkbVm4UXV0nbLhWWWkX7NLSI9"
+      "value": "SECRET:xjEWjkJ6AsY2ceKv7AG5Czll+E0PAAHh+EKcLDiZK8Y+O3aFLPB4tjJRMjETiDKokv5AwDrAg86IZqlzYau07d+d2FbERRzg6BUljwpS4cBBRTs0u26sl5EvyFQJvlPZBO5SlhVGDxje6Iraod1RRPyTxbz7usluZ9cL8i9QqSx3G06qxGQYOXZMrHxng9SQGs5yjgAFgodnGVtsY7FT+bPt3w83/TdtsfTtVlhh3+TA5o2+"
     },
     {
       "name": "AgenticAI.openai.LLM_Base_URL",
@@ -373,6 +375,11 @@
       "name": "Trigger_Settings.LLM_temperature",
       "type": "float64",
       "value": 1
+    },
+    {
+      "name": "PORT",
+      "type": "float64",
+      "value": 9666
     }
   ],
   "connections": {
@@ -387,7 +394,11 @@
         "llmProvider": "=$property[\"AgenticAI.openai.LLM_Provider\"]",
         "anthropicProvider": "Default",
         "apiKey": "=$property[\"AgenticAI.openai.API_Key\"]",
-        "llmProviderUrl": "=$property[\"AgenticAI.openai.LLM_Base_URL\"]"
+        "llmProviderUrl": "=$property[\"AgenticAI.openai.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
       }
     },
     "b2c3d4e5-f6a7-8901-bcde-f12345678901": {
@@ -431,16 +442,16 @@
       }
     }
   },
-  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9wcm9qZWN0LWZsb2dvL3dlYnNvY2tldCIsImlkIjoid2Vic29ja2V0IiwidmVyc2lvbiI6IjEuMC4xIiwidGFnIjoiMS4wLjEtYjAzLWZsb2dvLTIuMjUuMCIsIm5hbWUiOiJXZWJzb2NrZXQiLCJzM2xvY2F0aW9uIjoiVGliY28vd2Vic29ja2V0IiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWFpLWFnZW50L3NyYy9hcHAvQWdlbnRpY0FJIiwiaWQiOiJBZ2VudGljQUkiLCJ2ZXJzaW9uIjoiMC45LjAiLCJ0YWciOiIwLjkuMC1iMDMiLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInMzbG9jYXRpb24iOiJUaWJjby9BZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9wcm9qZWN0LWZsb2dvL3dlYnNvY2tldCIsImlkIjoid2Vic29ja2V0IiwidmVyc2lvbiI6IjEuMC4xIiwidGFnIjoiMS4wLjEtYjAzLWZsb2dvLTIuMjUuMCIsIm5hbWUiOiJXZWJzb2NrZXQiLCJzM2xvY2F0aW9uIjoiVGliY28vd2Vic29ja2V0IiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWFpLWFnZW50L3NyYy9hcHAvQWdlbnRpY0FJIiwiaWQiOiJBZ2VudGljQUkiLCJ2ZXJzaW9uIjoiMC45LjMiLCJ0YWciOiIwLjkuMy1iMDctMC45LjMiLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInMzbG9jYXRpb24iOiJUaWJjby9BZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
   "metadata": {
     "endpoints": [
       {
         "protocol": "http",
-        "port": "9998",
+        "port": "9666",
         "title": "WebsocketServer",
         "type": "public"
       }
     ],
-    "flogoVersion": "2.26.2"
+    "flogoVersion": "2.26.5"
   }
 }

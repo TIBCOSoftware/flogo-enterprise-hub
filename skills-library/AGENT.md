@@ -7,6 +7,85 @@ The available skills under `.claude/skills/` document how to use the relevant CL
 
 **NEVER UPDATE THE `.flogo` FILES DIRECTLY** — always use `fda`.
 
+## Resolving the `fda` CLI
+
+The `fda` binary (`flogodesign-cli`) ships inside the TIBCO Flogo VS Code extension. Its path changes with every extension update, so **always discover it dynamically** before running any `fda` command:
+
+```bash
+# 1. Check if fda is already on PATH (user may have set up an alias/function)
+which fda 2>/dev/null
+
+# 2. If not found, discover the latest version dynamically
+HOME_DIR="${HOME:-$USERPROFILE}"
+EXT_NAME="flogodesign-cli"
+
+# Windows (Git Bash / msys / cygwin): binary has .exe extension
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+  EXT_NAME="flogodesign-cli.exe"
+fi
+
+# Search across VS Code variants (standard, Insiders, Remote/WSL)
+for dir in "$HOME_DIR/.vscode/extensions" \
+           "$HOME_DIR/.vscode-insiders/extensions" \
+           "$HOME_DIR/.vscode-server/extensions"; do
+  FDA_PATH=$(ls -td "$dir/tibco.flogo-"*/bin/"$EXT_NAME" 2>/dev/null | head -1)
+  [ -n "$FDA_PATH" ] && break
+done
+
+# 3. Use the discovered path (quote it — the path may contain special characters)
+"$FDA_PATH" version
+```
+
+**Never hardcode the extension folder name** (e.g. `tibco.flogo-2.26.6-2851`). The glob `tibco.flogo-*/bin/flogodesign-cli*` with `-td` (sort by newest) always resolves to the latest installed version.
+
+If neither `which fda` nor the dynamic scan finds the binary, ask the user to install the TIBCO Flogo VS Code extension.
+
+### Setting up a persistent `fda` alias
+
+Add the function below to your shell startup file so `fda` is available in every terminal session:
+
+| OS | Shell | File |
+|---|---|---|
+| Windows | Git Bash | `~/.bashrc` |
+| macOS | zsh (default) | `~/.zshrc` |
+| Linux | bash | `~/.bashrc` |
+
+**Bash / Zsh function** (add to `~/.bashrc` or `~/.zshrc`):
+
+```bash
+fda() {
+  local cmd="" home_dir="${HOME:-$USERPROFILE}" ext_name="flogodesign-cli"
+  if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+    ext_name="flogodesign-cli.exe"
+  fi
+  for dir in "$home_dir/.vscode/extensions" \
+             "$home_dir/.vscode-insiders/extensions" \
+             "$home_dir/.vscode-server/extensions"; do
+    cmd=$(ls -td "$dir/tibco.flogo-"*/bin/"$ext_name" 2>/dev/null | head -1)
+    [ -n "$cmd" ] && break
+  done
+  if [ -z "$cmd" ]; then
+    echo "Error: flogodesign-cli not found. Install the TIBCO Flogo VS Code extension." >&2
+    return 1
+  fi
+  "$cmd" "$@"
+}
+```
+
+**PowerShell function** (add to `$PROFILE`):
+
+```powershell
+function fda {
+  $cli = Get-ChildItem "$env:USERPROFILE\.vscode\extensions\tibco.flogo-*\bin\flogodesign-cli.exe" -ErrorAction SilentlyContinue |
+         Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  if (-not $cli) {
+    $cli = Get-ChildItem "$env:USERPROFILE\.vscode-insiders\extensions\tibco.flogo-*\bin\flogodesign-cli.exe" -ErrorAction SilentlyContinue |
+           Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  }
+  if (-not $cli) { Write-Error "flogodesign-cli not found. Install the TIBCO Flogo VS Code extension."; return }
+  & $cli.FullName @args
+}
+
 ## Project conventions
 
 - Always work with Flogo applications inside the `./Flogo_Apps/` folder.
