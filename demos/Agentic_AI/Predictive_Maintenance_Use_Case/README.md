@@ -639,7 +639,13 @@ You only handle predictive maintenance — sensor analysis, health predictions, 
 2. Start **MCP Server** (port 9093) — `predictive-maintenance-mcp-server.flogo`
 3. Start **REST API Service** (port 9095) — `predictive-maintenance-api.flogo`
 4. Start **Agentic AI Orchestration** (port 8083) — `predictive-maintenance-agent.flogo`
-5. Open `agentic-chatbot.html` → connects to `ws://localhost:8083/ws/chat`
+5. Start the chatbot UI:
+   ```bash
+   cd demos/Agentic_AI/Chatbot
+   npm install
+   npm start
+   ```
+   Open http://localhost:3000, paste `ws://localhost:8083/ws/chat` in the WebSocket URL field, and click **Connect**
 
 ---
 
