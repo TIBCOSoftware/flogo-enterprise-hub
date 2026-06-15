@@ -88,13 +88,6 @@ Mock REST API backend with hardcoded dummy data. Can be used as the backend for 
 | GET | `/api/bookings/{pnr}` | Get booking details |
 | POST | `/api/bookings/{pnr}/rebook` | Rebook passenger (body: `{"newFlightNumber": "..."}`) |
 
-### 4. REST API Demo Variants (Port 3001)
-
-Three additional demo variants of the REST API with slightly different configurations, all on port 3001:
-
-- `airline-rest-api-demo.flogo` -- Demo with dummy data
-- `airline-rest-service-demo2.flogo` -- Second iteration with coerce functions
-- `airline-service-api-demo.flogo` -- Enhanced OpenAPI descriptions
 
 ---
 
@@ -107,7 +100,6 @@ Three additional demo variants of the REST API with slightly different configura
 | `reset_data.sql` | Data reset script using `CURRENT_DATE` for always-current flight times |
 | `airline-poc.md` | Full POC blueprint -- architecture, agent definition, MCP tools, REST APIs, end-to-end scenarios, demo script |
 | `airline-prompts.md` | Demo prompts organized by scenario + build prompts for citizen developers |
-| `airline-prompts.txt` | Same prompts in plain text for easy copy-paste |
 | `airline-session-history.md` | Development session history with chronological action timeline |
 
 ---
