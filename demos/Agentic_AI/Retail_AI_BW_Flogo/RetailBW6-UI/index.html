@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Retail AI Copilot MVP - BW6</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Retail AI Copilot - BW6</p>
+          <!--<h1>RAG, agent tools, and MCP workbench</h1>-->
+        </div>
+        <div class="topbar-actions">
+          <!-- <button id="resetDemo" type="button">Reset Demo</button> -->
+          <div class="status-pill" id="serverStatus">Starting</div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel ingestion-panel" aria-labelledby="ingestionTitle">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Admin</p>
+              <h2 id="ingestionTitle">Ingestion</h2>
+            </div>
+            <button id="runIngest" type="button">Run</button>
+          </div>
+
+          <div class="metric-grid" id="metrics"></div>
+
+          <form class="upload-form" id="uploadForm">
+            <div class="upload-grid">
+              <label>
+                File
+                <input id="uploadFile" type="file" accept=".pdf,.md,.markdown,.csv,.json,.txt,text/markdown,text/plain,application/pdf,application/json,text/csv" />
+              </label>
+              <label>
+                Type
+                <select id="uploadType">
+                  <option value="auto">Auto detect</option>
+                  <option value="product_catalog">Product catalog</option>
+                  <option value="document">Knowledge document</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit">Upload</button>
+          </form>
+
+          <div class="section-block">
+            <h3>Upload History</h3>
+            <div class="upload-history" id="uploadHistory"></div>
+          </div>
+
+          <div class="section-block">
+            <h3>Indexed Sources</h3>
+            <div class="chunk-list" id="chunkList"></div>
+          </div>
+
+          <div class="section-block">
+            <!--<h3>MCP Endpoints</h3>
+            <code class="endpoint">inventory: http://127.0.0.1:3011/mcp</code>
+            <code class="endpoint">orders: http://127.0.0.1:3012/mcp</code>
+            <code class="endpoint">promotions: http://127.0.0.1:3013/mcp</code>
+            <code class="endpoint">policy: http://127.0.0.1:3014/mcp</code> -->
+          </div>
+        </section>
+
+        <section class="query-area" aria-labelledby="queryTitle">
+          <div class="query-header">
+            <div>
+              <p class="eyebrow">Associate Console</p>
+              <h2 id="queryTitle">Ask the retail copilot</h2>
+            </div>
+            <div class="select-row">
+              <label>
+                User
+                <select id="userId"></select>
+              </label>
+              <label>
+                Customer
+                <select id="customerId">
+                  <option value="CUST-001">CUST-001 Gold</option>
+                  <option value="CUST-002">CUST-002 Silver</option>
+                  <option value="CUST-003">CUST-003 Member</option>
+                  <option value="CUST-004">CUST-004 Platinum</option>
+                </select>
+              </label>
+              <label>
+                Store
+                <select id="storeId">
+                  <option value="SFO-001">SFO-001</option>
+                  <option value="OAK-002">OAK-002</option>
+                  <option value="SJC-003">SJC-003</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="scenario-strip" id="scenarioList"></div>
+
+          <div class="example-row" id="examples"></div>
+
+          <div class="chat-log" id="chatLog" aria-live="polite"></div>
+
+          <form class="composer" id="queryForm">
+            <textarea
+              id="question"
+              rows="3"
+              placeholder="Ask about returns, inventory, recommendations, promotions, or policy."
+            ></textarea>
+            <button type="submit">Ask</button>
+          </form>
+        </section>
+
+        <!--<aside class="panel trace-panel" aria-labelledby="traceTitle">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Observability</p>
+              <h2 id="traceTitle">Pipeline Trace</h2>
+            </div>
+          </div>
+
+          <div class="trace-dashboard" id="traceDashboard"></div>
+
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="plan" type="button">Plan</button>
+            <button class="tab" data-tab="retrieval" type="button">Retrieval</button>
+            <button class="tab" data-tab="tools" type="button">Tools</button>
+            <button class="tab" data-tab="approval" type="button">Approval</button>
+            <button class="tab" data-tab="route" type="button">Route</button>
+            <button class="tab" data-tab="observability" type="button">Obs</button>
+          </div>
+
+          <div class="trace-content" id="traceContent"></div>
+        </aside> -->
+      </main>
+
+      <!-- <section class="operations-section" aria-labelledby="operationsTitle">
+        <div class="operations-header">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h2 id="operationsTitle">Operations</h2>
+          </div>
+          <div class="operations-controls">
+            <label>
+              Filter
+              <select id="operationsFilter">
+                <option value="all">All records</option>
+                <option value="approvals">Approvals</option>
+                <option value="reservations">Reservations</option>
+                <option value="returns">Returns</option>
+                <option value="promotions">Promotions</option>
+              </select>
+            </label>
+            <button id="refreshOperations" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <div class="operations-summary" id="operationsSummary"></div>
+        <div class="operations-grid" id="operationsGrid"></div>
+
+        <div class="conversation-section">
+          <div class="operations-header">
+            <div>
+              <p class="eyebrow">Audit</p>
+              <h2>Conversation History</h2>
+            </div>
+            <button id="refreshConversations" type="button">Refresh</button>
+          </div>
+          <div class="conversation-grid">
+            <div class="conversation-list" id="conversationList"></div>
+            <div class="conversation-detail" id="conversationDetail"></div>
+          </div>
+        </div>
+
+        <div class="eval-section">
+          <div class="operations-header">
+            <div>
+              <p class="eyebrow">Quality</p>
+              <h2>Evaluation Runs</h2>
+            </div>
+            <button id="runEvals" type="button">Run Evals</button>
+          </div>
+          <div class="eval-summary" id="evalSummary"></div>
+          <div class="eval-results" id="evalResults"></div>
+        </div>
+      </section> -->
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,394 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
+  ],
+  "name": "RetailAIOrchestrator",
+  "description": "Flogo Agentic AI orchestrator that replaces BW6 Java code (RetailLLMPlanner, RetailLLMAnswerGenerator, McpStdioClient, McpToolGateway) with a single LLM Client Activity connected to the BW6 MCP Server. Demonstrates the BW & Flogo Better Together story.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "REST trigger for retail AI query processing — replaces BW6 Retail.Agent.API REST endpoint on port 18085.",
+      "settings": {
+        "port": 18085,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "Processes retail customer queries using a single LLM Client Activity connected to the BW6 MCP Server. Replaces RetailLLMPlanner.java, RetailLLMAnswerGenerator.java, RetailAgentPlanner.java, McpStdioClient.java, and McpToolGateway.java.",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/api/query",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:process_retail_query"
+            },
+            "input": {
+              "body": "=$.body",
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"answer\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"confidence\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"answer\":\"\",\"toolsUsed\":[\"\"],\"confidence\":\"\"}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"question\":{\"type\":\"string\"},\"userId\":{\"type\":\"string\"},\"customerId\":{\"type\":\"string\"},\"storeId\":{\"type\":\"string\"},\"conversationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"question\":\"\",\"userId\":\"\",\"customerId\":\"\",\"storeId\":\"\",\"conversationId\":\"\"}"
+              }
+            }
+          },
+          "name": "process_retail_query"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:process_retail_query",
+      "data": {
+        "name": "process_retail_query",
+        "description": "Processes retail customer queries using a single LLM Client Activity connected to the BW6 MCP Server. Replaces RetailLLMPlanner.java, RetailLLMAnswerGenerator.java, RetailAgentPlanner.java, McpStdioClient.java, and McpToolGateway.java.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "PlanAndExecute",
+            "type": "label",
+            "label": "StartActivity to PlanAndExecute"
+          },
+          {
+            "id": 2,
+            "from": "PlanAndExecute",
+            "to": "ReturnResponse",
+            "type": "label",
+            "label": "PlanAndExecute to ReturnResponse"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "PlanAndExecute",
+            "name": "PlanAndExecute",
+            "description": "LLM Client Activity that connects to the BW6 MCP Server, discovers all 9 domain tools (check_inventory, reserve_inventory, get_product, lookup_order, check_return_eligibility, find_promotions, apply_promotion, create_return_authorization, query_policy), lets the LLM plan which tools to call, executes them via MCP, and generates the final answer. Replaces ~1,330 lines of custom Java code.",
+            "activity": {
+              "ref": "#llmclientactivity",
+              "settings": {
+                "responseType": "Text",
+                "remoteAgents": [],
+                "mcpServers": [
+                  "conn://a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                ],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10
+              },
+              "input": {
+                "systemPrompt": "=$property[\"RetailAgent.SystemPrompt\"]",
+                "userPrompt": "=string.concat(\"Customer Question: \", coerce.toString($flow.body.question), \"\\nCustomer ID: \", coerce.toString($flow.body.customerId), \"\\nStore ID: \", coerce.toString($flow.body.storeId))",
+                "conversationId": "=$flow.body.conversationId",
+                "llmConfiguration": {
+                  "mapping": {
+                    "provider": "=$property[\"LLMClient.LLM_Provider\"]",
+                    "apiKey": "=$property[\"LLMClient.API_Key\"]",
+                    "model": "=$property[\"LLMClient.LLM_Model\"]",
+                    "providerBaseUrl": "",
+                    "temparature": 0.3
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "llmConfiguration": {
+                    "type": "json",
+                    "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                    "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+                  },
+                  "mcpServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }"
+                  },
+                  "a2aServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReturnResponse",
+            "name": "ReturnResponse",
+            "description": "Returns the AI-generated answer as HTTP 200 JSON.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "answer": "=$activity[PlanAndExecute].response",
+                      "toolsUsed": [],
+                      "confidence": "high"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMwLCJ5IjoxMDh9LCJQbGFuQW5kRXhlY3V0ZSI6eyJ4IjoyMDAsInkiOjEwMH0sIlJldHVyblJlc3BvbnNlIjp7IngiOjUwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"question\":{\"type\":\"string\"},\"userId\":{\"type\":\"string\"},\"customerId\":{\"type\":\"string\"},\"storeId\":{\"type\":\"string\"},\"conversationId\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"answer\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"confidence\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"question\":{\"type\":\"string\"},\"userId\":{\"type\":\"string\"},\"customerId\":{\"type\":\"string\"},\"storeId\":{\"type\":\"string\"},\"conversationId\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"answer\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"confidence\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "RetailAgent.SystemPrompt",
+      "type": "string",
+      "value": "You are a retail AI assistant for ACME Store. You help customers with product inquiries, inventory checks, order lookups, returns, promotions, and store policy questions.\n\nYou have access to the following tools via the BW6 MCP Server:\n\nREAD TOOLS (safe, no side effects):\n- check_inventory: Check stock availability for a product by SKU\n- get_product: Get product details (name, price, description, category)\n- lookup_order: Look up order status by order ID\n- check_return_eligibility: Check if an order is eligible for return\n- find_promotions: Find applicable promotions for a category or product\n- query_policy: Query the store policy knowledge base (return policy, warranty, shipping, etc.)\n\nWRITE TOOLS (require manager approval — changes state):\n- reserve_inventory: Reserve inventory for a customer (creates pending approval)\n- apply_promotion: Apply a promotion to a customer's cart (creates pending approval)\n- create_return_authorization: Create a return authorization for an order (creates pending approval)\n\nTOOL USAGE RULES:\n1. For inventory questions: use check_inventory with the product SKU\n2. For product details or recommendations: use get_product, optionally with find_promotions\n3. For order status: use lookup_order with the order ID\n4. For return requests: FIRST use lookup_order, THEN check_return_eligibility, THEN create_return_authorization if eligible\n5. For inventory reservations: FIRST use check_inventory to verify availability, THEN reserve_inventory\n6. For promotion applications: FIRST use find_promotions, THEN apply_promotion\n7. For policy questions (return policy, warranty, shipping): use query_policy\n\nAPPROVAL HANDLING:\n- When reserve_inventory, apply_promotion, or create_return_authorization returns a response with status \"pending_approval\", inform the customer that manager approval is required\n- Provide the approval reference ID to the customer\n- Do NOT retry write operations that are pending approval\n- Do NOT call a write tool without first calling the corresponding read tool\n\nANSWER FORMAT:\n- Provide a clear, natural-language answer based on tool results\n- Include specific data from tool responses (prices, quantities, order statuses)\n- For policy questions, cite the relevant policy section from query_policy results\n- Be concise but complete — aim for 2-4 sentences\n- If multiple tools were used, synthesize the results into a coherent answer\n\nSAFETY CONSTRAINTS:\n- Never fabricate inventory counts, prices, order statuses, or policy details\n- If a tool call fails or returns an error, inform the customer of the specific issue\n- Do not recommend products that check_inventory shows as out of stock\n- Do not promise return eligibility without checking via check_return_eligibility\n- Always verify inventory before attempting reservation"
+    },
+    {
+      "name": "LLMClient.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "LLMClient.API_Key",
+      "type": "string",
+      "value": "YOUR_OPENAI_API_KEY"
+    },
+    {
+      "name": "LLMClient.LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "REST_Port",
+      "type": "float64",
+      "value": 9500
+    },
+    {
+      "name": "MCP_Server_URL",
+      "type": "string",
+      "value": "http://localhost:18000/rest/mcp"
+    }
+  ],
+  "connections": {
+    "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d": {
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "RetailBW6MCPServer",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "RetailBW6MCPServer",
+        "description": "BW6 Retail MCP Server — exposes 9 domain tools (inventory, orders, products, promotions, returns, policy) via MCP protocol over HTTP.",
+        "serverType": "http",
+        "serverUrl": "http://localhost:18000/rest/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTQtSEYxIiwidGFnIjoiMS42LjE0LWhmMS1iMDMiLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWFpLWFnZW50L3NyYy9hcHAvQWdlbnRpY0FJIiwiaWQiOiJBZ2VudGljQUkiLCJ2ZXJzaW9uIjoiMC45LjMiLCJ0YWciOiIwLjkuMy1iMDIiLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInMzbG9jYXRpb24iOiJUaWJjby9BZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "18085",
+        "spec": {
+          "name": "RetailAIOrchestrator",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "RetailAIOrchestrator",
+            "version": "1.0.0",
+            "description": "REST trigger for retail AI query processing — replaces BW6 Retail.Agent.API REST endpoint on port 18085."
+          },
+          "paths": {
+            "/api/query": {
+              "post": {
+                "summary": "process_retail_query",
+                "operationId": "post_api_query",
+                "parameters": [
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema2"
+                    }
+                  }
+                },
+                "description": "Processes retail customer queries using a single LLM Client Activity connected to the BW6 MCP Server. Replaces RetailLLMPlanner.java, RetailLLMAnswerGenerator.java, RetailAgentPlanner.java, McpStdioClient.java, and McpToolGateway.java.",
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                },
+                "customerId": {
+                  "type": "string"
+                },
+                "storeId": {
+                  "type": "string"
+                },
+                "conversationId": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema2": {
+              "type": "object",
+              "properties": {
+                "answer": {
+                  "type": "string"
+                },
+                "toolsUsed": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "confidence": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}
