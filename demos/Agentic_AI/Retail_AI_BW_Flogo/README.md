@@ -19,7 +19,7 @@ UI (Associate Console)
   -> UI displays answer with citations / tool trace / approval buttons
 ```
 
-The Flogo orchestrator replaces ~1,330 lines of custom BW6 Java code (`RetailLLMPlanner.java`, `RetailLLMAnswerGenerator.java`, `RetailAgentPlanner.java`, `McpStdioClient.java`, `McpToolGateway.java`) with a **single LLM Client Activity** connected to the BW6 MCP Server. This is the "Better Together" story: Flogo handles AI orchestration while BW6 provides enterprise-grade domain APIs and MCP tooling.
+The Flogo orchestrator replaces ~1,330 lines of custom BW6 Java code (`RetailLLMPlanner.java`, `RetailLLMAnswerGenerator.java`, `RetailAgentPlanner.java`, `McpStdioClient.java`, `McpToolGateway.java`) with a **single LLM Client Activity** connected to the BW6 MCP Server. This is the "Better Together" story: Flogo handles AI orchestration while BW6 provides  domain APIs .
 
 ### Flogo Flow
 
