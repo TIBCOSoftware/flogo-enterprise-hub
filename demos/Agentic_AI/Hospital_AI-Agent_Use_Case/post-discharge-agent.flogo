@@ -42,6 +42,7 @@
         "rateLimit": 25,
         "tokenLimit": 2048,
         "redactSensitiveData": true,
+        "remoteAgents": [],
         "mcpServers": [],
         "conversationStoreType": "Memory",
         "memoryMaxSize": 100,
@@ -127,6 +128,7 @@
         "rateLimit": 25,
         "tokenLimit": 2048,
         "redactSensitiveData": false,
+        "remoteAgents": [],
         "mcpServers": [],
         "conversationStoreType": "None",
         "memoryMaxSize": 10,
@@ -212,6 +214,7 @@
         "rateLimit": 25,
         "tokenLimit": 2048,
         "redactSensitiveData": false,
+        "remoteAgents": [],
         "mcpServers": [],
         "conversationStoreType": "None",
         "memoryMaxSize": 10,
@@ -346,6 +349,7 @@
         "rateLimit": 25,
         "tokenLimit": 2048,
         "redactSensitiveData": true,
+        "remoteAgents": [],
         "mcpServers": [],
         "conversationStoreType": "None",
         "memoryMaxSize": 10,
@@ -499,6 +503,7 @@
                 "enableASR": false,
                 "swagger": "",
                 "authorization": false,
+                "authorizationConn": "",
                 "serviceName": "",
                 "resourcePath": "",
                 "Method": "GET",
@@ -577,6 +582,7 @@
                 "enableASR": false,
                 "swagger": "",
                 "authorization": false,
+                "authorizationConn": "",
                 "serviceName": "",
                 "resourcePath": "",
                 "Method": "POST",
@@ -777,6 +783,7 @@
                 "enableASR": false,
                 "swagger": "",
                 "authorization": false,
+                "authorizationConn": "",
                 "serviceName": "",
                 "resourcePath": "",
                 "Method": "POST",
@@ -977,6 +984,7 @@
                 "enableASR": false,
                 "swagger": "",
                 "authorization": false,
+                "authorizationConn": "",
                 "serviceName": "",
                 "resourcePath": "",
                 "Method": "POST",
@@ -1148,9 +1156,8 @@
                 "redactSensitiveData": true,
                 "responseType": "Text",
                 "agentHandoffs": "post_discharge_coordinator,pharmacy_fulfillment_agent,bed_turnover_agent,SendEmail",
-                "mcpServers": [
-                  "65b8b2d5-6ce2-48b2-bbae-17d9fb360d56"
-                ],
+                "remoteAgents": [],
+                "mcpServers": [],
                 "conversationStoreType": "Memory",
                 "memoryMaxSize": 100,
                 "systemPrompt": "You are the Hospital Discharge Orchestrator Agent responsible for coordinating post-discharge care workflows. You manage four sub-agents: post_discharge_coordinator for retrieving discharge summaries and booking follow-up appointments, pharmacy_fulfillment_agent for processing medication orders, bed_turnover_agent for managing bed availability, and SendEmail for sending confirmation emails to patients.\n\nINTENT ANALYSIS: Before invoking any sub-agent, carefully analyze the user's request to determine which tasks are needed. If the user only asks for a discharge summary, invoke only post_discharge_coordinator and return the summary without triggering any other agents. If the user asks to process discharge with medications, invoke post_discharge_coordinator followed by pharmacy_fulfillment_agent. If the user asks for bed cleanup only, invoke only bed_turnover_agent. If the user asks for medication orders only, invoke only pharmacy_fulfillment_agent. If the user asks for a full or complete discharge process, invoke all relevant agents in sequence. Only invoke SendEmail if the user explicitly requests an email or says send confirmation email or send email with details. Never invoke SendEmail unless the user explicitly asks for it.\n\nWORKFLOW FOR FULL DISCHARGE: Follow this exact sequence when a full discharge is requested. Step 1: Invoke post_discharge_coordinator with patient_id to retrieve the discharge summary and book a follow-up appointment if follow_up_required is true. Wait for it to complete fully. Step 2: If the discharge summary contains a non-empty medications array, invoke pharmacy_fulfillment_agent with patient_id and the medications array from the discharge summary. If there are no medications, skip this step. Wait for it to complete fully. Step 3: Invoke bed_turnover_agent with the bed_id and ward_id obtained from the discharge summary to initiate bed cleaning. Wait for it to complete fully. Step 4: Only if the user requested an email, invoke SendEmail exactly ONCE. This must be the absolute last step. Pass all collected details to SendEmail including patient_id, appointment information if booked, medication order confirmations if any, and bed cleanup status.\n\nCRITICAL EMAIL RULE: You must NEVER invoke SendEmail more than once in a single conversation. Do not invoke SendEmail after booking an appointment. Do not invoke SendEmail after ordering medications. Do not invoke SendEmail after bed cleanup. Only invoke SendEmail once as the very last step after steps 1, 2, and 3 are all fully completed. If you have already invoked SendEmail once, do not invoke it again regardless of any reason. Track whether you have already called SendEmail and refuse to call it a second time.\n\nMCP TOOLS: You have access to HospitalMCPServer tools for read-only data queries such as checking bed availability, viewing patient records, or looking up medication catalog information. Use these tools only for reading and retrieving data. Never use MCP tools to create, update, or modify records. For all write operations like booking appointments, creating pharmacy orders, or requesting bed cleaning, use the appropriate sub-agent.\n\nRESPONSE FORMATTING: Structure your final response using clearly labeled sections with double asterisks for section headers. Use the following sections based on what was completed. Start with a brief greeting, then use these section headers:\n\n**Discharge Summary** - Include patient discharge date, ward, bed, specialty, and follow-up status.\n\n**Follow-Up Appointment Scheduled** - Include specialty, appointment date, time, and confirmation number. If no follow-up is required, state that clearly.\n\n**Medication Orders Processed** - Include each medication name, days supply, pickup location, and estimated ready time. If no medications were prescribed, state that clearly.\n\n**Bed Turnover Initiated** - Include bed ID, ward, cleaning status, and estimated ready time.\n\n**Appointment Confirmation Email Sent** - Confirm that the email was sent to the patient. Include only if email was actually sent.\n\nEnd with a warm closing statement about next steps. Use a professional, friendly, and empathetic tone suitable for healthcare communication. Write in clear flowing language within each section.\n\nTERMINATION RULES: Complete each sub-agent task within a maximum of 3 attempts. If any sub-agent fails after 3 attempts, collect partial results and proceed with remaining agents. Never retry indefinitely. If critical failures occur, terminate gracefully and report what was completed and what failed.\n\nSCOPE: You only handle post-discharge coordination including discharge summaries, follow-up appointments, medication orders, and bed management. Politely decline any requests outside this scope such as diagnosis, treatment advice, billing inquiries, and emergency services. Clearly state what you can and cannot assist with when asked."
@@ -1278,6 +1285,7 @@
                 "authorizationType": "Basic",
                 "Username": "=$property[\"Email_Username\"]",
                 "Password": "=$property[\"Email_App_Password\"]",
+                "authorizationConn": "",
                 "Connection Security": "SSL",
                 "serverCertificate": "",
                 "message_content_type": "text/plain",
@@ -1377,7 +1385,7 @@
     {
       "name": "AgenticAI.OpenAIConn.API_Key",
       "type": "string",
-      "value": "Insert your key"
+      "value": "SECRET:MtAAIrFUa2vLk9vx1YqnmvXNsZ1BLS8ykKT0nlhalSyvmouV26ZiMX8WK5pTqt0ETnRRQTYk8fzeo9ZZEOL5DdJ3HgTUtN5bFoNYYkMR0QvjNexNk1MmsQRAP94g9gQZ1uNEbAvdlplXyjABdBpdrTwoxUYJuZcCqvp3hEigj3CV0s5mFgJL0Ra1lVottLss0SbwBWIWEnzS87fi6V2o+1ycDmB5UVCsNHqgP1Dw8nEisWF0"
     },
     {
       "name": "AgenticAI.OpenAIConn.LLM_Base_URL",
@@ -1422,12 +1430,12 @@
     {
       "name": "Email_Username",
       "type": "string",
-      "value": "test@gmail.com"
+      "value": "nikhil.shah.84@gmail.com"
     },
     {
       "name": "Email_App_Password",
       "type": "string",
-      "value": "Insert your app password"
+      "value": "zngg pcba nntl thex"
     }
   ],
   "connections": {
@@ -1459,7 +1467,7 @@
         "description": "Key to use with claude ",
         "llmProvider": "Anthropic",
         "anthropicProvider": "Default",
-        "apiKey": "Insert your key",
+        "apiKey": "SECRET:P0vq/HnUH2h7jHAXJz2idMnS41u8oDBPTgHYDf9PKA==",
         "llmProviderUrl": "",
         "azureDeployment": "",
         "azureRegion": "",

@@ -263,7 +263,7 @@ How much does patient P-2024-00123 owe for their hospital stay?
 | 19 | | | | | Scope boundary |
 
 
-Can you help me populate the dates in this sql file based on todays date 23rd April .... "C:\Work\VsCode\Agentic_AI\Hospital_AI-Agent_Use_Case\reset_data.sql"
+Can you help me populate the dates in this sql file based on todays date 22nd June .... "C:\Work\github\flogo-enterprise-hub\demos\Agentic_AI\Hospital_AI-Agent_Use_Case\reset_data.sql"
 
 So in patient_discharges table some patients have yesterday's discharge_date ....some patients have today's discharge date ...some patients have tomorrows discharge date, some have day after tomorrow discharge date  etc 
 
