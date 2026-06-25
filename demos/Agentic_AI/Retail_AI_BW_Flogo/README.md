@@ -112,23 +112,53 @@ Retail_AI_BW_Flogo/
 
 ## Prerequisites
 
-- Docker (for SQL Server and Weaviate)
-- TIBCO Flogo Enterprise (for the RetailAIOrchestrator)
-- TIBCO BusinessWorks 6 with AI Plugin (for domain APIs and MCP Server)
-- OpenAI API key
-- Python 3 (or any static file server for the UI)
+| Prerequisite | Version / Details |
+|---|---|
+| **TIBCO Flogo Enterprise** | With the **Agentic AI** plugin (provides the LLM Client Activity and MCP Server connector) |
+| **TIBCO BusinessWorks 6** | **6.12.0 HF2** or later, with the **AI Plugin**, **JDBC**, **REST/JSON**, and **Java** palettes |
+| **Node.js** | Required by the BW6 MCP Gateway — it uses `npx mcp-remote` to bridge STDIO MCP to the BW6 MCP Server |
+| **Java** | JDK 17+ (required by the BW6 Java activities — `RetailLLMPlanner`, `RetailLLMAnswerGenerator`, etc.) |
+| **Docker** | For SQL Server and Weaviate containers |
+| **OpenAI API key** | Used by both the Flogo orchestrator and BW6 Java classes for LLM calls |
+| **Python 3** | (or any static file server) to serve the UI |
 
 ## Setup
 
-### 1. Environment Variables
+### 1. Configure the Flogo App (RetailAIOrchestrator)
 
-```bash
-export OPENAI_API_KEY="your_openai_api_key"
-```
+Before running the Flogo orchestrator, update the **app properties** in `RetailAIOrchestrator.flogo`:
 
-The Flogo RetailAIOrchestrator uses the OpenAI API key for LLM planning and answer generation. The LLM provider, model, and API key are configured as app properties in `RetailAIOrchestrator.flogo` and can be changed without modifying the flow.
+| App Property | Default Value | What to Change |
+|---|---|---|
+| `LLMClient.API_Key` | `YOUR_OPENAI_API_KEY` | **Required** — replace with your own OpenAI API key |
+| `LLMClient.LLM_Provider` | `OpenAI` | Change if using a different provider (Anthropic, Gemini, Ollama, etc.) |
+| `LLMClient.LLM_Model` | `gpt-5.5` | Change to your preferred model (e.g., `gpt-4.1-mini`, `gpt-4.1`) |
+| `MCP_Server_URL` | `http://localhost:18000/rest/mcp` | Update if the BW6 MCP Server runs on a different host/port |
+| `RetailAgent.SystemPrompt` | _(pre-configured)_ | No change needed — defines the AI assistant's behavior and tool usage rules |
 
-### 2. SQL Server
+You can edit these properties in the Flogo Enterprise UI (VS Code extension or Web UI) or directly in the `.flogo` JSON file.
+
+### 2. Configure the BW6 Apps
+
+The BW6 domain APIs require:
+
+- **OpenAI API key** — set as an environment variable before starting BW6 processes:
+  ```bash
+  export OPENAI_API_KEY="your_openai_api_key"
+  ```
+  The BW6 Java classes (`RetailLLMPlanner.java`, `RetailLLMAnswerGenerator.java`) read this from the environment. You can also configure it in TIBCO BusinessStudio. Do not hardcode the key in Java source.
+
+- **SQL Server JDBC connection** — the BW6 apps connect using:
+  ```
+  jdbc:sqlserver://localhost:14333;databaseName=RetailBW6Ops;encrypt=true;trustServerCertificate=true
+  ```
+  Update the JDBC shared resource in BusinessStudio if your SQL Server runs on a different host/port.
+
+- **Weaviate URL** — the Policy API connects to Weaviate at `http://localhost:8080` for vector storage. Update if running elsewhere.
+
+- **Node.js** — the MCP Gateway uses `npx mcp-remote` to bridge to the BW6 MCP Server. Ensure Node.js is installed and `npx` is on your PATH.
+
+### 3. SQL Server
 
 ```bash
 docker run -d \
@@ -256,7 +286,7 @@ GO
 jdbc:sqlserver://localhost:14333;databaseName=RetailBW6Ops;encrypt=true;trustServerCertificate=true
 ```
 
-### 3. Weaviate
+### 4. Weaviate
 
 ```bash
 docker run -d \
