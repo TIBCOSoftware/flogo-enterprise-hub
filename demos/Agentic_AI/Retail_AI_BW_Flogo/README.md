@@ -114,7 +114,7 @@ Retail_AI_BW_Flogo/
 
 | Prerequisite | Version / Details |
 |---|---|
-| **TIBCO Flogo ** | **2.26.4** and above |
+| **TIBCO Flogo** | **2.26.4** or later |
 | **TIBCO BusinessWorks 6** | **6.12.0 HF3** or later, with the **AI Plugin**, **JDBC**, **REST/JSON**, and **Java** palettes |
 | **Node.js** | Required by the BW6 MCP Gateway — it uses `npx mcp-remote` to bridge STDIO MCP to the BW6 MCP Server |
 | **Java** | JDK 17+ (required by the BW6 Java activities — `RetailLLMPlanner`, `RetailLLMAnswerGenerator`, etc.) |
