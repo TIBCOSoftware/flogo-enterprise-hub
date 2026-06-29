@@ -17,6 +17,7 @@ The Subscriber flow has a subscriber trigger that listens to the specified desti
 
 ## Prerequisites
 
+* The application is compatible with Flogo Extension for Visual Studio Code version 2.26.2+
 * A TIBCO FTL server running and accessible (e.g., https://localhost:8785).
 * If your FTL server uses Basic Authentication With TLS, Authentication mTLS, or OAuth2.0 Authentication, ensure you have the required credentials, certificates, and trust files.
 * A destination configured in the FTL server administration (e.g., read).
@@ -188,4 +189,4 @@ For running the application,
 
 ## Help
 
-Please visit our [TIBCO Flogo<sup>&trade;</sup> Extension for Visual Studio Code documentation](https://docs.tibco.com/products/tibco-flogo-extension-for-visual-studio-code-latest) for additional information.
+Please visit our [TIBCO FTL Connector documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/ftl/ftl_overview.htm?TocPath=Connectors%2520User%2520Guide%257CSupported%2520Flogo%2520Connectors%257CTIBCO%2520FTL%257C_____0) for additional information.
