@@ -1,0 +1,521 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-files/src/app/File/activity/read",
+    "github.com/tibco/flogo-ftl-connector/src/app/FTL/activity/publisher",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/tibco/flogo-ftl-connector/src/app/FTL/trigger/subscriber",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+    "github.com/tibco/flogo-ftl-connector/src/app/FTL/connector/ftl"
+  ],
+  "name": "FTL_PublishSubscribe",
+  "description": "Sample app demonstrating FTL publish and subscribe messaging with file transfer",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/ftl",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Publisher"
+            },
+            "input": {
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "message": "=$.message"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "Publisher"
+        }
+      ]
+    },
+    {
+      "ref": "#subscriber",
+      "name": "ftl-subscriber-trigger",
+      "description": "This trigger receives messages from TIBCO FTL service",
+      "settings": {
+        "connection": "conn://515a9483-c2cc-4977-a640-c960a3cb8816"
+      },
+      "id": "FTLMessageSubscriber",
+      "handlers": [
+        {
+          "description": "",
+          "settings": {
+            "destinationName": "read",
+            "durableType": "Standard",
+            "durableName": "readstandard",
+            "matchFilter": "",
+            "format": "Opaque",
+            "formatName": "",
+            "acknowledgementMode": "Auto",
+            "batchSize": 1,
+            "batchDuration": 1,
+            "acknowledgementStyle": "Sync",
+            "prefetchSize": 1,
+            "queueSize": -1,
+            "queueOverflowPolicy": "Discard None",
+            "noLocalDelivery": false,
+            "retryDuration": 0,
+            "enableFlowLimit": false,
+            "maxConcurrentMessages": 200
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Subscriber"
+            },
+            "input": {
+              "message": "=$.message"
+            }
+          },
+          "schemas": {
+            "output": {
+              "message": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "Subscriber"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:Publisher",
+      "data": {
+        "name": "Publisher",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadFile",
+            "type": "label",
+            "label": "StartActivity to ReadFile"
+          },
+          {
+            "id": 2,
+            "from": "ReadFile",
+            "to": "FTLPublisher",
+            "type": "label",
+            "label": "ReadFile to FTLPublisher"
+          },
+          {
+            "id": 3,
+            "from": "FTLPublisher",
+            "to": "Return",
+            "type": "label",
+            "label": "FTLPublisher to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadFile",
+            "name": "ReadFile",
+            "description": "This activity reads the content of a file",
+            "activity": {
+              "ref": "#read",
+              "input": {
+                "readAs": "Binary",
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "fileName": "<path-to-your-file>"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"binaryContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"binaryContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "FTLPublisher",
+            "name": "FTLPublisher",
+            "description": "Publishes messages to TIBCO FTL destinations (topics/queues)",
+            "activity": {
+              "ref": "#publisher",
+              "settings": {
+                "FTLConManager": "conn://515a9483-c2cc-4977-a640-c960a3cb8816",
+                "destinationName": "read",
+                "sendPolicy": "Send Inline",
+                "format": "Opaque",
+                "formatName": "",
+                "retryDuration": 0,
+                "batchCount": 1,
+                "lingerTime": 0
+              },
+              "input": {
+                "Message": {
+                  "mapping": {
+                    "data": "=$activity[ReadFile].output.fileContent.binaryContent"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "Message": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "message": "Message Published"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjI5LCJ5Ijo3MX0sIlJlYWRGaWxlIjp7IngiOjE1NywieSI6NjR9LCJGVExQdWJsaXNoZXIiOnsieCI6MzQ3LCJ5Ijo2OH0sIlJldHVybiI6eyJ4Ijo1MzksInkiOjY5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"message\":{\"type\":\"string\"}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:Subscriber",
+      "data": {
+        "name": "Subscriber",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "WriteFile",
+            "type": "label",
+            "label": "LogMessage to WriteFile"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$flow.message.data",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "WriteFile",
+            "name": "WriteFile",
+            "description": "This activity writes the content to a file",
+            "activity": {
+              "ref": "#write",
+              "input": {
+                "writeAs": "Binary",
+                "createNonExistingDir": false,
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "fileName": "<path-to-output-file>",
+                    "binaryContent": "=$flow.message.data",
+                    "overwrite": "=boolean.true()"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"binaryContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"binaryContent\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"binaryContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"binaryContent\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMDksInkiOjE1M30sIldyaXRlRmlsZSI6eyJ4Ijo0MzIsInkiOjE1OX19",
+        "metadata": {
+          "input": [
+            {
+              "name": "message",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"FTLMessageSubscriber\",\"properties\":{\"message\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FTL.ftlConnection.FTL_Server_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "FTL.ftlConnection.FTL_Secondary_Server_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "FTL.ftlConnection.FTL_Application_Instance_ID",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "FTL.ftlConnection.FTL_Client_Label",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "FTL.ftlConnection.User_Name",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "FTL.ftlConnection.Password",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "FTL.ftlConnection.Use_certificate_for_verification",
+      "type": "boolean",
+      "value": false
+    },
+    {
+      "name": "FTL.ftlConnection.FTL_Server_Trust_File",
+      "type": "string",
+      "value": ""
+    }
+  ],
+  "connections": {
+    "515a9483-c2cc-4977-a640-c960a3cb8816": {
+      "id": "515a9483-c2cc-4977-a640-c960a3cb8816",
+      "name": "ftlConnection",
+      "ref": "#ftl",
+      "isGlobal": false,
+      "settings": {
+        "name": "ftlConnection",
+        "description": "FTL client configuration",
+        "serverUrl": "=$property[\"FTL.ftlConnection.FTL_Server_URL\"]",
+        "secondaryServerUrl": "=$property[\"FTL.ftlConnection.FTL_Secondary_Server_URL\"]",
+        "applicationInstanceId": "=$property[\"FTL.ftlConnection.FTL_Application_Instance_ID\"]",
+        "clientLabel": "=$property[\"FTL.ftlConnection.FTL_Client_Label\"]",
+        "authenticationMode": "Basic Authentication With TLS",
+        "userName": "=$property[\"FTL.ftlConnection.User_Name\"]",
+        "password": "=$property[\"FTL.ftlConnection.Password\"]",
+        "useCertVerification": "=$property[\"FTL.ftlConnection.Use_certificate_for_verification\"]",
+        "trustFile": "=$property[\"FTL.ftlConnection.FTL_Server_Trust_File\"]",
+        "clientCertificate": "",
+        "clientPrivateKey": "",
+        "clientPrivateKeyPassword": "",
+        "oauthTokenURL": "",
+        "oauthClientId": "",
+        "oauthClientSecret": "",
+        "oauthTrustFile": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTQiLCJ0YWciOiIxLjYuMTQtYjA0IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1maWxlcy9zcmMvYXBwL0ZpbGUiLCJpZCI6IkZpbGUiLCJ2ZXJzaW9uIjoiMS4wLjAiLCJ0YWciOiIxLjAuMC1iMTQiLCJuYW1lIjoiRmlsZSIsInMzbG9jYXRpb24iOiJUaWJjby9GaWxlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWZ0bC1jb25uZWN0b3Ivc3JjL2FwcC9GVEwiLCJpZCI6IkZUTCIsInZlcnNpb24iOiIxLjAuMC1IRjMiLCJ0YWciOiIxLjAuMC1oZjMtYjAzLWZnZnRsLTIxLXRlbXAiLCJuYW1lIjoiVElCQ08gRlRMIiwiczNsb2NhdGlvbiI6IlRpYmNvL0ZUTCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "FTL_PublishSubscribe",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "FTL_PublishSubscribe",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/ftl": {
+              "get": {
+                "summary": "Publisher",
+                "operationId": "get_ftl",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "definitions": {}
+        }
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}
