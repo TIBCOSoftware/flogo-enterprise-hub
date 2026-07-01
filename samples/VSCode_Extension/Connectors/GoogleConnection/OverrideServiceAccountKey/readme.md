@@ -17,13 +17,15 @@ By default, the Service Account JSON key is embedded in the Flogo app at design 
 
 ## Prerequisites
 
-1. A Google Cloud Platform (GCP) account with an active project.
+1. The application is compatible with Flogo Extension for Visual Studio Code version 2.26.4+.
 
-2. A **Service Account** with the required IAM roles (e.g., `Storage Admin` for GCS) and its **JSON key file** downloaded from GCP Console.
+2. A Google Cloud Platform (GCP) account with an active project.
 
-3. TIBCO Flogo Extension for Visual Studio Code installed and a Flogo app with Google Connection configured (e.g., `GCS-CRUD-App`).
+3. A **Service Account** with the required IAM roles (e.g., `Storage Admin` for GCS) and its **JSON key file** downloaded from GCP Console.
 
-4. For **Kubernetes** override: a running Kubernetes cluster (e.g., Minikube) with `kubectl` configured, and the Flogo app binary built as a Docker image.
+4. TIBCO Flogo Extension for Visual Studio Code installed and a Flogo app with Google Connection configured (e.g., `GCS-CRUD-App`).
+
+5. For **Kubernetes** override: a running Kubernetes cluster (e.g., Minikube) with `kubectl` configured, and the Flogo app binary built as a Docker image.
 
 
 ## Google Connection Service Account Key as an App Property
@@ -120,9 +122,9 @@ The env file must include `"FLOGO_APP_PROPS_ENV": "auto"` to enable app property
 ```json
 {
     "FLOGO_APP_PROPS_ENV": "auto",
-    "GoogleConnection.gglFile.Service_Account_Key": "file://C:/path/to/tci-flogo-key.json",
-    "GoogleConnection.gglJSON.Service_Account_Key": "{\n  \"type\": \"service_account\",\n  \"project_id\": \"tci-flogo\",\n  \"private_key_id\": \"5d1b86d3...\",\n  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADA...\\n-----END PRIVATE KEY-----\\n\",\n  \"client_email\": \"flogopubsub@tci-flogo.iam.gserviceaccount.com\",\n  \"client_id\": \"101648056839578964129\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\"\n}\n",
-    "GoogleConnection.gglBase64.Service_Account_Key": "eyJ0eXBlIjoic2VydmljZV9hY2NvdW50IiwicHJvamVjdF9pZCI6InRjaS1mbG9nbyIs..."
+    "GoogleConnection.gglFile.Service_Account_Key": "file://C:/path/to/key.json",
+    "GoogleConnection.gglJSON.Service_Account_Key": "{\n  \"type\": \"service_account\",\n  \"project_id\": \"project\",\n  \"private_key_id\": \"5d23...\",\n  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADA...\\n-----END PRIVATE KEY-----\\n\",\n  \"client_email\": \"email@client.iam.gserviceaccount.com\",\n  \"client_id\": \"10164805678964129\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\"\n}\n",
+    "GoogleConnection.gglBase64.Service_Account_Key": "eyJ0eXBlIjoic2VydmljZV9hY2NvdW50IInRjaS1mbG9nbyIs..."
 }
 ```
 
@@ -162,14 +164,14 @@ Create a secret from your JSON key file:
 
 ```bash
 kubectl create secret generic gcs-sa-key \
-  --from-file="C:\Users\kramawat\Documents\FlogoConnectorData\GCS\GoggleConnectionKey\validkey\tci-flogo-5d1b86d38bf6.json" \
+  --from-file="C:\path\to\service-account-key.json" \
   --namespace=flogotestdp-ns
 ```
 
 Verify the secret was created:
 
 ```bash
-kubectl get secrets gcs-sa-key -n default
+kubectl get secrets gcs-sa-key -n flogotestdp-ns
 ```
 
 #### Step 3 — Deploy the app on TP using the Helm method. Start and set Endpoint Visibility.
@@ -218,7 +220,7 @@ appInit:
       - CAP_NET_RAW
     readOnlyRootFilesystem: true
 appProps:
-  GoogleConnection.googleconn.Service_Account_Key: file:///etc/gcp/tci-flogo-5d1b86d38bf6.json
+  GoogleConnection.googleconn.Service_Account_Key: file:///etc/gcp/key.json
 appSecrets: {}
 auditSafe:
   enabled: true
@@ -453,7 +455,7 @@ The same app can be tested with all three override formats by overriding the env
 ```json
 {
     "FLOGO_APP_PROPS_ENV": "auto",
-    "GoogleConnection.gglFile.Service_Account_Key": "file://C:/path/to/tci-flogo-key.json",
+    "GoogleConnection.gglFile.Service_Account_Key": "file://C:/path/to/key.json",
     "GoogleConnection.gglJSON.Service_Account_Key": "{\n  \"type\": \"service_account\",\n  \"project_id\": \"tci-flogo\",\n  \"private_key_id\": \"5d1b86d3...\",\n  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADA...\\n-----END PRIVATE KEY-----\\n\",\n  \"client_email\": \"flogopubsub@tci-flogo.iam.gserviceaccount.com\",\n  \"client_id\": \"101648056839578964129\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\"\n}\n",
     "GoogleConnection.gglBase64.Service_Account_Key": "eyJ0eXBlIjoic2VydmljZV9hY2NvdW50IiwicHJvamVjdF9pZCI6InRjaS1mbG9nbyIs..."
 }
@@ -510,4 +512,6 @@ After starting the app with an override, confirm it works by:
 
 * For multi-connector apps (GCS + Google Sheets), each connection's property name must be included separately in `FLOGO_APP_PROPS_JSON` if they use different property names.
 
-* For more information on Flogo app properties and overrides, refer to the [TIBCO Flogo Extension for Visual Studio Code documentation](https://docs.tibco.com/products/tibco-flogo-extension-for-visual-studio-code).
+* For more information on Creating Google Connection and Google Connection Details, refer to the 
+[Creating Google Connection documentation](https://docs.tibco.com/pub/flogo/2.26.4/doc/html/Default.htm#connectors/google-cloud-storage/creating-a-google-connection.htm?TocPath=Connectors%2520User%2520Guide%257CSupported%2520Flogo%2520Connectors%257CGoogle%2520Cloud%2520Storage%257CCreating%2520a%2520Google%2520Connection%257C_____0)
+[Google Connection Details](https://docs.tibco.com/pub/flogo/2.26.4/doc/html/Default.htm#connectors/google-cloud-storage/google-connection-details.htm?TocPath=Connectors%2520User%2520Guide%257CSupported%2520Flogo%2520Connectors%257CGoogle%2520Cloud%2520Storage%257CCreating%2520a%2520Google%2520Connection%257C_____1)  .

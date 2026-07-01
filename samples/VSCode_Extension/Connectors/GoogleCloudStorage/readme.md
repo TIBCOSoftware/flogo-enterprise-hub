@@ -18,16 +18,18 @@ The main purpose of these activities is:
 
 ## Prerequisites
 
-1. You must have a Google Cloud Platform (GCP) account with an active project.
+1. The application is compatible with Flogo Extension for Visual Studio Code version 2.26.4+.
 
-2. Create a **Service Account** in your GCP project and download its **JSON key file**. The service account must have the following IAM roles (or equivalent permissions):
+2. You must have a Google Cloud Platform (GCP) account with an active project.
+
+3. Create a **Service Account** in your GCP project and download its **JSON key file**. The service account must have the following IAM roles (or equivalent permissions):
    - `Storage Admin` — to create, list, get, update, upload, and delete buckets and objects.
 
-3. Ensure that your Google Cloud Storage bucket name is globally unique. This sample uses `gcsflogo-test-bucket` as the bucket name.
+4. Ensure that your Google Cloud Storage bucket name is globally unique. This sample uses `gcsflogo-test-bucket` as the bucket name.
 
-4. For the **Upload** activity, prepare a local file to upload. This sample references a 1 GB binary file. Update the file path in the UploadLargeFile activity to point to a valid local file before running.
+5. For the **Upload** activity, prepare a local file to upload. This sample references a 1 GB binary file. Update the file path in the UploadLargeFile activity to point to a valid local file before running.
 
-5. Install TIBCO Flogo Extension for Visual Studio Code.
+6. Install TIBCO Flogo Extension for Visual Studio Code.
 
 
 ## Create Google Cloud Storage Application
@@ -36,11 +38,11 @@ The main purpose of these activities is:
 
 2. In the newly created Flogo app, go to **CONNECTIONS > Create Connection > Google Connector**.
 
-![Search Google Cloud Storage connection](../../../images/GoogleCloudStorage/1.png)
+![Search Google Cloud Storage connection](../../images/GoogleCloudStorage/1.png)
 
 3. Configure the Google connection by uploading your **Service Account JSON key file** and clicking **Save** to save the connection.
 
-![Configure Google Cloud Storage connection](../../../images/GoogleCloudStorage/2.png)
+![Configure Google Cloud Storage connection](../../images/GoogleCloudStorage/2.png)
 
 4. Go to the **FLOWS** tab, add a **Receive HTTP Message** trigger, and configure it.
 
@@ -48,9 +50,9 @@ The main purpose of these activities is:
    - **Port**: 9999
    - **Path**: /gcs-crud
 
-![Configure Receive HTTP Trigger](../../../images/GoogleCloudStorage/3.png)
-![Configure Receive HTTP Trigger](../../../images/GoogleCloudStorage/4.png)
-![Configure Receive HTTP Trigger](../../../images/GoogleCloudStorage/5.png)
+![Configure Receive HTTP Trigger](../../images/GoogleCloudStorage/3.png)
+![Configure Receive HTTP Trigger](../../images/GoogleCloudStorage/4.png)
+![Configure Receive HTTP Trigger](../../images/GoogleCloudStorage/5.png)
 
 5. Add and configure the **Create** activity for creating a Bucket.
 
@@ -59,8 +61,8 @@ The main purpose of these activities is:
    - **Project Name**: your-gcp-project-id
    - **Storage Class**: Standard
 
-![Configure GCS Create Bucket Activity](../../../images/GoogleCloudStorage/6.png)
-![Configure GCS Create Bucket Activity](../../../images/GoogleCloudStorage/7.png)
+![Configure GCS Create Bucket Activity](../../images/GoogleCloudStorage/6.png)
+![Configure GCS Create Bucket Activity](../../images/GoogleCloudStorage/7.png)
 
 6. Add another **Create** activity for creating an Object inside the bucket.
 
@@ -72,7 +74,7 @@ The main purpose of these activities is:
    - **Storage Class**: Standard
    - **Metadata**: uploadedBy:Khushali
 
-![Configure GCS Create Object Activity](../../../images/GoogleCloudStorage/8.png)
+![Configure GCS Create Object Activity](../../images/GoogleCloudStorage/8.png)
 
 7. Add and configure the **Upload** activity to upload a large local file to GCS.
 
@@ -81,14 +83,14 @@ The main purpose of these activities is:
    - **Object Name**: 1GBFileUploaded
    - **Chunk Size**: 55442266 (bytes)
 
-![Configure GCS Upload Activity](../../../images/GoogleCloudStorage/9.png)
+![Configure GCS Upload Activity](../../images/GoogleCloudStorage/9.png)
 
 8. Add and configure the **List** activity to list objects in the bucket.
 
    - **Resource Type**: Object
    - **Bucket**: gcsflogo-test-bucket
 
-![Configure GCS List Activity](../../../images/GoogleCloudStorage/10.png)
+![Configure GCS List Activity](../../images/GoogleCloudStorage/10.png)
 
 9. Add and configure the **Get** activity to retrieve a specific object.
 
@@ -96,7 +98,7 @@ The main purpose of these activities is:
    - **Bucket**: gcsflogo-test-bucket
    - **Object**: testFile1.txt
 
-![Configure GCS Get Activity](../../../images/GoogleCloudStorage/11.png)
+![Configure GCS Get Activity](../../images/GoogleCloudStorage/11.png)
 
 10. Add and configure the **Update** activity to update object metadata and ACL.
 
@@ -107,7 +109,7 @@ The main purpose of these activities is:
     - **Metadata**: updatedBy:Khushali Ramawat, purpose:testing
     - **ACL**: mapped from CreateObject activity output
 
-![Configure GCS Update Activity](../../../images/GoogleCloudStorage/12.png)
+![Configure GCS Update Activity](../../images/GoogleCloudStorage/12.png)
 
 11. Add and configure the **Delete** activity to delete the object, the uploaded file, and finally the bucket.
 
@@ -115,9 +117,9 @@ The main purpose of these activities is:
     - **DeleteUploadedFile**: deletes `1GBFileUploaded`
     - **DeleteBucket**: deletes `gcsflogo-test-bucket`
 
-![Configure GCS Delete Activity](../../../images/GoogleCloudStorage/13.png)
-![Configure GCS Delete Activity](../../../images/GoogleCloudStorage/14.png)
-![Configure GCS Delete Activity](../../../images/GoogleCloudStorage/15.png)
+![Configure GCS Delete Activity](../../images/GoogleCloudStorage/13.png)
+![Configure GCS Delete Activity](../../images/GoogleCloudStorage/14.png)
+![Configure GCS Delete Activity](../../images/GoogleCloudStorage/15.png)
 
 12. Add **Log** activities after each GCS activity to log the output, and add a **Return** activity at the end to return the final result.
 
@@ -126,7 +128,7 @@ The main purpose of these activities is:
 
 ### The Connection
 
-![The Connection](../../../images/GoogleCloudStorage/2.png)
+![The Connection](../../images/GoogleCloudStorage/2.png)
 
 In the Google Cloud Storage connection, note that:
 
@@ -173,7 +175,7 @@ StartActivity
 | DeleteUploadedFile | Delete | Object | bucket: `gcsflogo-test-bucket`, object: `1GBFileUploaded` |
 | DeleteBucket | Delete | Bucket | bucket: `gcsflogo-test-bucket` |
 
-![The Connection](../../../images/GoogleCloudStorage/16.png)
+![The Connection](../../images/GoogleCloudStorage/16.png)
 
 > **Note:** Before running, update the **UploadLargeFile** activity's `filePath` to point to a valid local file on your machine.
 
@@ -187,13 +189,13 @@ StartActivity
 
 3. Build your GCS Flogo app.
 
-![Build the app](../../../images/GoogleCloudStorage/17.png)
+![Build the app](../../images/GoogleCloudStorage/17.png)
 
 4. Once the build is successful, you can see the binary in the bin folder.
 
 5. Run the GCS Flogo app.
 
-![Run the app](../../../images/GoogleCloudStorage/18.png)
+![Run the app](../../images/GoogleCloudStorage/18.png)
 
 
 6. Hit the endpoint to trigger the flow:
@@ -209,13 +211,13 @@ curl -X GET http://localhost:9999/gcs-crud
 
 1. Verify the output by hitting the endpoint:
 
-![Verify output in endpoint](../../../images/GoogleCloudStorage/19.png)
+![Verify output in endpoint](../../images/GoogleCloudStorage/19.png)
 
 2. Verify the output in the VS Code terminal (Log activity outputs):
 
-![Verify output in VS code terminal](../../../images/GoogleCloudStorage/20.png)
-![Verify output in VS code terminal](../../../images/GoogleCloudStorage/21.png)
-![Verify output in VS code terminal](../../../images/GoogleCloudStorage/22.png)
+![Verify output in VS code terminal](../../images/GoogleCloudStorage/20.png)
+![Verify output in VS code terminal](../../images/GoogleCloudStorage/21.png)
+![Verify output in VS code terminal](../../images/GoogleCloudStorage/22.png)
 
 
 ## Troubleshooting
@@ -243,4 +245,4 @@ curl -X GET http://localhost:9999/gcs-crud
 
 * The **Update** activity for Objects supports updating metadata, ACL, content type, and other object attributes. The ACL field can be mapped dynamically from a previous activity's output (as shown in this sample — ACL is mapped from the CreateObject output).
 
-* For more information on Google Cloud Storage, refer to the [GCS documentation](https://cloud.google.com/storage/docs).
+* For more information on Google Cloud Storage, refer to the [GCS documentation](https://docs.tibco.com/pub/flogo/2.26.4/doc/html/Default.htm#connectors/google-cloud-storage/overview.htm?TocPath=Connectors%2520User%2520Guide%257CSupported%2520Flogo%2520Connectors%257CGoogle%2520Cloud%2520Storage%257C_____0).
