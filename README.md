@@ -24,8 +24,8 @@ If you have purchased commercial support for TIBCO Flogo®, please create a Serv
 
 Build AI-powered agents, expose business data via MCP, and orchestrate intelligent workflows.
 
-- **[Agentic AI Samples](./samples/Agentic_AI/)** — AI agents with custom guardrails, multi-agent handoff, MCP server integration, A2A (Agent-to-Agent) protocol, LLM Client Activity, dynamic semantic tool selection at scale (150 tools), scheduled reasoning with automated report generation and email delivery, and incident triage. Supports OpenAI, Gemini, Anthropic, Ollama, and vLLM.
-- **[Model Context Protocol (MCP) Samples](./samples/Model_Context_Protocol(MCP)/)** — MCP servers exposing business data as AI-accessible tools: stateless, stateful, authenticated, annotated, and advanced primitives (elicitation, logging, sampling).
+- **[Agentic AI Samples](./samples/Agentic_AI/)** — AI agents with custom guardrails, multi-agent handoff, MCP server integration, A2A (Agent-to-Agent) protocol, LLM Client Activity, memory conversation store, dynamic MCP/A2A server configuration, dynamic semantic tool selection at scale (150 tools), scheduled reasoning with automated report generation and email delivery, and incident triage. Supports OpenAI, Gemini, Anthropic, Ollama, and vLLM.
+- **[Model Context Protocol (MCP) Samples](./samples/Model_Context_Protocol(MCP)/)** — MCP servers exposing business data as AI-accessible tools: stateless, stateful, authenticated, annotated, advanced primitives (elicitation, logging, sampling), JWT scope-based access control, structured content with annotations, and MCP client gateway.
 - **[AI-Powered Customer Service Demo](./demos/ai-powered-customer-service/)** — End-to-end demo integrating CRM, orders, and notifications as MCP tools for AI agents.
 - **[AI-Powered MFT Demo](./demos/flogo-mcp-mft/)** — MCP server for TIBCO Managed File Transfer — AI-powered B2B file transfer management.
 - **[Pongo2 Prompt Engine Extension](./extensions/pongo2/)** — Dynamic prompt engineering activity using Django/Jinja2-style templates for LLMs.

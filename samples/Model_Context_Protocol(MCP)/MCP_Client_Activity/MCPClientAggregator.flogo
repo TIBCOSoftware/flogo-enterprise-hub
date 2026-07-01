@@ -1,0 +1,479 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-mcp/src/app/MCP/activity/mcpclient",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "MCPClientAggregator",
+  "description": "MCP Gateway that exposes tools to clients while internally using MCP Client Activity to call backend MCP servers for data aggregation",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "MCP Client Aggregator Gateway",
+      "settings": {
+        "serverName": "MCPClientAggregator",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": true,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "AggregatorServer",
+      "handlers": [
+        {
+          "description": "Calls CustomerService MCP server via mcpclient to retrieve customer profile",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "lookup_customer",
+            "handlerDescription": "Look up a customer by customer ID. This tool internally calls the CustomerService MCP server to retrieve the customer profile.",
+            "toolTitle": "Lookup Customer",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:LookupCustomerFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\",\"description\":\"The customer ID to look up (e.g. CUST-1001)\"}},\"required\":[\"customer_id\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\",\"description\":\"The customer ID to look up (e.g. CUST-1001)\"}},\"required\":[\"customer_id\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "LookupCustomerFlow"
+        },
+        {
+          "description": "Calls InventoryService MCP server via mcpclient to retrieve product inventory",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "lookup_inventory",
+            "handlerDescription": "Look up a product by product ID. This tool internally calls the InventoryService MCP server to retrieve inventory details.",
+            "toolTitle": "Lookup Inventory",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:LookupInventoryFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\",\"description\":\"The product ID to look up (e.g. PROD-5001)\"}},\"required\":[\"product_id\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\",\"description\":\"The product ID to look up (e.g. PROD-5001)\"}},\"required\":[\"product_id\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "LookupInventoryFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:LookupCustomerFlow",
+      "data": {
+        "name": "LookupCustomerFlow",
+        "description": "Calls CustomerService MCP server via mcpclient to retrieve customer profile",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "CallCustomerService",
+            "type": "label",
+            "label": "StartActivity to CallCustomerService"
+          },
+          {
+            "id": 2,
+            "from": "CallCustomerService",
+            "to": "LogResult",
+            "type": "label",
+            "label": "CallCustomerService to LogResult"
+          },
+          {
+            "id": 3,
+            "from": "LogResult",
+            "to": "Return",
+            "type": "label",
+            "label": "LogResult to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "CallCustomerService",
+            "name": "CallCustomerService",
+            "description": "MCP Client Activity — calls get_customer_profile on CustomerService MCP server",
+            "activity": {
+              "ref": "#mcpclient",
+              "settings": {
+                "clientName": "CustomerServiceClient",
+                "clientVersion": "1.0.0",
+                "transportType": "Streamable-HTTP",
+                "command": "",
+                "commandArgs": "",
+                "endpoint": "=$property[\"CustomerService.ENDPOINT\"]",
+                "authMode": "None",
+                "staticToken": "",
+                "authorizationConn": "",
+                "timeout": 30,
+                "toolName": "get_customer_profile",
+                "responseType": "JSON"
+              },
+              "input": {
+                "toolArguments": {
+                  "mapping": {
+                    "customer_id": "=$flow.arguments.customer_id"
+                  }
+                }
+              },
+              "output": {
+                "isError": false
+              },
+              "schemas": {
+                "input": {
+                  "toolArguments": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"customer_id\":{\"description\":\"The customer ID to look up (e.g. CUST-1001)\",\"type\":\"string\"}},\"required\":[\"customer_id\"],\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false}",
+                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"customer_id\":{\"description\":\"The customer ID to look up (e.g. CUST-1001)\",\"type\":\"string\"}},\"required\":[\"customer_id\"],\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false}"
+                  }
+                },
+                "output": {
+                  "responseJSONSchema": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"data\":\"string\"}"
+                  },
+                  "result": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"data\":\"string\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResult",
+            "name": "LogResult",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[LookupCustomer] CustomerService response: \", coerce.toString($activity[CallCustomerService].result))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[CallCustomerService].result)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxDdXN0b21lclNlcnZpY2UiOnsieCI6MjUwLCJ5Ijo1MH0sIkxvZ1Jlc3VsdCI6eyJ4Ijo0NTAsInkiOjUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6NTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"customer_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:LookupInventoryFlow",
+      "data": {
+        "name": "LookupInventoryFlow",
+        "description": "Calls InventoryService MCP server via mcpclient to retrieve product inventory",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "CallInventoryService",
+            "type": "label",
+            "label": "StartActivity to CallInventoryService"
+          },
+          {
+            "id": 2,
+            "from": "CallInventoryService",
+            "to": "LogResult",
+            "type": "label",
+            "label": "CallInventoryService to LogResult"
+          },
+          {
+            "id": 3,
+            "from": "LogResult",
+            "to": "Return",
+            "type": "label",
+            "label": "LogResult to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "CallInventoryService",
+            "name": "CallInventoryService",
+            "description": "MCP Client Activity — calls get_product_inventory on InventoryService MCP server",
+            "activity": {
+              "ref": "#mcpclient",
+              "settings": {
+                "clientName": "InventoryServiceClient",
+                "clientVersion": "1.0.0",
+                "transportType": "Streamable-HTTP",
+                "command": "",
+                "commandArgs": "",
+                "endpoint": "=$property[\"InventoryService.ENDPOINT\"]",
+                "authMode": "None",
+                "staticToken": "",
+                "authorizationConn": "",
+                "timeout": 30,
+                "toolName": "get_product_inventory",
+                "responseType": "JSON"
+              },
+              "input": {
+                "toolArguments": {
+                  "mapping": {
+                    "product_id": "=$flow.arguments.product_id"
+                  }
+                }
+              },
+              "output": {
+                "isError": false
+              },
+              "schemas": {
+                "input": {
+                  "toolArguments": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"product_id\":{\"description\":\"The product ID to look up (e.g. PROD-5001)\",\"type\":\"string\"}},\"required\":[\"product_id\"],\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false}",
+                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"product_id\":{\"description\":\"The product ID to look up (e.g. PROD-5001)\",\"type\":\"string\"}},\"required\":[\"product_id\"],\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false}"
+                  }
+                },
+                "output": {
+                  "responseJSONSchema": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"data\":\"string\"}"
+                  },
+                  "result": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"data\":\"string\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResult",
+            "name": "LogResult",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[LookupInventory] InventoryService response: \", coerce.toString($activity[CallInventoryService].result))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[CallInventoryService].result)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxJbnZlbnRvcnlTZXJ2aWNlIjp7IngiOjI1MCwieSI6NTB9LCJMb2dSZXN1bHQiOnsieCI6NDUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4Ijo2NTAsInkiOjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9100"
+    },
+    {
+      "name": "CustomerService.ENDPOINT",
+      "type": "string",
+      "value": "http://localhost:9098/mcp"
+    },
+    {
+      "name": "InventoryService.ENDPOINT",
+      "type": "string",
+      "value": "http://localhost:9099/mcp"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMyIsInRhZyI6IjEuMC4zLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTQiLCJ0YWciOiIxLjYuMTQtYjA0IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9100",
+        "title": "AggregatorServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}

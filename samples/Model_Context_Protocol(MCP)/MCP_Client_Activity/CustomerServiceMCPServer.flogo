@@ -1,0 +1,180 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver"
+  ],
+  "name": "CustomerServiceMCPServer",
+  "description": "Simple MCP server that provides customer profile data — used as a backend for the MCPClientAggregator gateway sample",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Customer Service MCP Server",
+      "settings": {
+        "serverName": "CustomerServiceMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": true,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "CustomerServiceServer",
+      "handlers": [
+        {
+          "description": "Retrieve customer profile by customer ID",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_customer_profile",
+            "handlerDescription": "Look up a customer by customer ID and return their profile including name, email, phone, membership tier, and account creation date.",
+            "toolTitle": "Get Customer Profile",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetCustomerProfileFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\",\"description\":\"The customer ID to look up (e.g. CUST-1001)\"}},\"required\":[\"customer_id\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\",\"description\":\"The customer ID to look up (e.g. CUST-1001)\"}},\"required\":[\"customer_id\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "GetCustomerProfileFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GetCustomerProfileFlow",
+      "data": {
+        "name": "GetCustomerProfileFlow",
+        "description": "Returns mock customer profile data",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"customer_id\":\"CUST-1001\",\"name\":\"Alice Johnson\",\"email\":\"alice.johnson@example.com\",\"phone\":\"+1-555-0142\",\"membership_tier\":\"Gold\",\"member_since\":\"2023-03-15\",\"address\":{\"city\":\"Austin\",\"state\":\"TX\",\"country\":\"US\"}}"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNzQsInkiOjQyfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"customer_id\":{\"type\":\"string\",\"description\":\"The customer ID to look up (e.g. CUST-1001)\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9098"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMyIsInRhZyI6IjEuMC4zLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9098",
+        "title": "CustomerServiceServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}

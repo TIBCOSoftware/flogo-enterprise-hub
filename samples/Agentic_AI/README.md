@@ -107,11 +107,20 @@ A timer-triggered autonomous agent that fires every Monday at 8am, queries a Sal
 
 ---
 
+### 9. [IT Help Desk Advisor with Memory Conversation Store and Dynamic MCP/A2A Configuration](./LLMClient-Dynamic-Config-And-Memory/)
+**LLM Client Activity + Memory Conversation Store + Dynamic mcpServerConfigs + Dynamic a2aServerConfigs**
+
+A multi-turn IT help desk advisor demonstrating two **new features in Flogo 2.26.5**: the **Memory Conversation Store** (in-memory multi-turn conversation history keyed by `conversationId`) and **Dynamic MCP/A2A Server Configuration** (`mcpServerConfigs` and `a2aServerConfigs` as activity inputs instead of connection-level settings). An employee describes a WiFi issue, receives KB-guided troubleshooting steps across multiple turns, and escalates to a support ticket — all within one continuous conversation.
+
+**Highlights**: Memory Conversation Store with `memoryMaxSize: 20` and query-param `sessionId` as `conversationId` · Dynamic `mcpServerConfigs` input mapping (no MCP connection resource) · Dynamic `a2aServerConfigs` input mapping (no A2A connection resource) · Property-resolved server names and URLs for environment portability · Knowledge Base MCP Server with search and troubleshooting tools · A2A Ticket Service agent for escalation · Multi-turn conversation memory across WebSocket messages
+
+---
+
 ## Prerequisites
 
 - **TIBCO Flogo® 2.26.4 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
 - An API key for your chosen LLM provider (OpenAI, Gemini, or Anthropic)
-- A WebSocket client for testing: [Postman](https://www.postman.com/) or [websocat](https://github.com/vi/websocat)
+- A WebSocket client for testing: [Flogo Chatbot](./Chatbot/) (included — see below) or [websocat](https://github.com/vi/websocat)
 
 ## Quick Start
 
@@ -119,6 +128,17 @@ A timer-triggered autonomous agent that fires every Monday at 8am, queries a Sal
 2. Open the `flogo-enterprise-hub` folder in VS Code with the Flogo extension installed.
 3. Navigate to `samples/Agentic_AI/<sample-name>/` and click the `.flogo` file.
 4. Configure your LLM Provider connection with your API key.
-5. Run the app from VS Code and connect via WebSocket to test.
+5. Run the app from VS Code and connect via the [Flogo Chatbot](./Chatbot/) or websocat to test.
+
+### Flogo Chatbot — Browser-Based WebSocket Test Client
+
+A ready-to-use chat UI is included in [`Chatbot/`](./Chatbot/) for testing any sample that exposes a WebSocket endpoint:
+
+```bash
+cd samples/Agentic_AI/Chatbot
+npm install
+npm start
+# Open http://localhost:3000, update the WebSocket URL if needed, and click Connect
+```
 
 See each sample's individual `README.md` for detailed configuration and usage instructions.
