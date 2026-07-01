@@ -64,16 +64,16 @@ INSERT INTO patients (patient_id, first_name, last_name, phone_number, email) VA
 -- =============================================
 
 INSERT INTO patient_discharges (patient_id, discharge_date, ward_id, bed_id, follow_up_required, specialty_code) VALUES
-('P-2024-00121', '2026-06-19', 'WARD-2A', 'BED-2A-001', FALSE, 'GENERAL'),         -- 3 days ago (past)
-('P-2024-00122', '2026-06-22', 'WARD-3B', 'BED-3B-001', TRUE, 'ORTHOPEDICS'),      -- today
-('P-2024-00123', '2026-06-22', 'WARD-4A', 'BED-4A-010', TRUE, 'CARDIOLOGY'),       -- today
-('P-2024-00124', '2026-06-23', 'WARD-3B', 'BED-3B-002', TRUE, 'ORTHOPEDICS'),      -- tomorrow
-('P-2024-00125', '2026-06-22', 'WARD-2A', 'BED-2A-002', FALSE, 'GENERAL'),         -- today
-('P-2024-00126', '2026-06-24', 'WARD-5C', 'BED-5C-001', TRUE, 'NEUROLOGY'),        -- day after tomorrow
-('P-2024-00127', '2026-06-26', 'WARD-4A', 'BED-4A-012', TRUE, 'CARDIOLOGY'),       -- 4 days from now
-('P-2024-00128', '2026-06-27', 'WARD-1A', 'BED-1A-001', TRUE, 'GENERAL'),          -- 5 days from now
-('P-2024-00129', '2026-06-20', 'WARD-6B', 'BED-6B-001', TRUE, 'ONCOLOGY'),         -- 2 days ago (past)
-('P-2024-00130', '2026-06-21', 'WARD-4A', 'BED-4A-011', FALSE, 'GENERAL');         -- yesterday (past)
+('P-2024-00121', '2026-06-27', 'WARD-2A', 'BED-2A-001', FALSE, 'GENERAL'),         -- 3 days ago (past)
+('P-2024-00122', '2026-06-30', 'WARD-3B', 'BED-3B-001', TRUE, 'ORTHOPEDICS'),      -- today
+('P-2024-00123', '2026-06-30', 'WARD-4A', 'BED-4A-010', TRUE, 'CARDIOLOGY'),       -- today
+('P-2024-00124', '2026-07-01', 'WARD-3B', 'BED-3B-002', TRUE, 'ORTHOPEDICS'),      -- tomorrow
+('P-2024-00125', '2026-06-30', 'WARD-2A', 'BED-2A-002', FALSE, 'GENERAL'),         -- today
+('P-2024-00126', '2026-07-02', 'WARD-5C', 'BED-5C-001', TRUE, 'NEUROLOGY'),        -- day after tomorrow
+('P-2024-00127', '2026-07-04', 'WARD-4A', 'BED-4A-012', TRUE, 'CARDIOLOGY'),       -- 4 days from now
+('P-2024-00128', '2026-07-05', 'WARD-1A', 'BED-1A-001', TRUE, 'GENERAL'),          -- 5 days from now
+('P-2024-00129', '2026-06-28', 'WARD-6B', 'BED-6B-001', TRUE, 'ONCOLOGY'),         -- 2 days ago (past)
+('P-2024-00130', '2026-06-29', 'WARD-4A', 'BED-4A-011', FALSE, 'GENERAL');         -- yesterday (past)
 
 -- =============================================
 -- DISCHARGE MEDICATIONS (10 entries)
@@ -97,11 +97,11 @@ INSERT INTO discharge_medications (discharge_id, medication_code, days_supply) V
 -- =============================================
 
 INSERT INTO appointments (patient_id, specialty, scheduled_date, scheduled_time, status) VALUES
-('P-2024-00129', 'ONCOLOGY', '2026-06-27', '10:30', 'CONFIRMED'),      -- follow-up 7d after 06-20 discharge
-('P-2024-00121', 'GENERAL', '2026-07-03', '09:00', 'CONFIRMED'),       -- routine visit (not from discharge)
-('P-2024-00130', 'GENERAL', '2026-06-30', '14:00', 'CONFIRMED'),       -- routine visit
-('P-2024-00127', 'CARDIOLOGY', '2026-06-19', '14:00', 'CONFIRMED'),    -- past visit (before admission)
-('P-2024-00128', 'GENERAL', '2026-06-15', '10:00', 'CONFIRMED');       -- past visit (before admission)
+('P-2024-00129', 'ONCOLOGY', '2026-07-05', '10:30', 'CONFIRMED'),      -- follow-up 7d after 06-28 discharge
+('P-2024-00121', 'GENERAL', '2026-07-11', '09:00', 'CONFIRMED'),       -- routine visit (not from discharge)
+('P-2024-00130', 'GENERAL', '2026-07-08', '14:00', 'CONFIRMED'),       -- routine visit
+('P-2024-00127', 'CARDIOLOGY', '2026-06-27', '14:00', 'CONFIRMED'),    -- past visit (before admission)
+('P-2024-00128', 'GENERAL', '2026-06-23', '10:00', 'CONFIRMED');       -- past visit (before admission)
 
 -- =============================================
 -- PHARMACY ORDERS (4 entries - historical only, all completed)
@@ -109,26 +109,26 @@ INSERT INTO appointments (patient_id, specialty, scheduled_date, scheduled_time,
 -- =============================================
 
 INSERT INTO pharmacy_orders (patient_id, medication_code, medication_name, days_supply, pickup_location, ready_by, status) VALUES
-('P-2024-00121', 'MED001', 'Aspirin 100mg', '30', 'PHARMACY_A', '2026-06-10 10:00', 'DISPENSED'),       -- past prescription
-('P-2024-00121', 'MED008', 'Metformin 500mg', '30', 'PHARMACY_A', '2026-06-15 14:00', 'DISPENSED'),      -- past prescription
-('P-2024-00129', 'MED003', 'Lisinopril 10mg', '30', 'PHARMACY_A', '2026-06-17 16:00', 'DISPENSED'),      -- past prescription
-('P-2024-00130', 'MED007', 'Amoxicillin 500mg', '7', 'PHARMACY_B', '2026-06-19 11:00', 'DISPENSED');     -- past prescription
+('P-2024-00121', 'MED001', 'Aspirin 100mg', '30', 'PHARMACY_A', '2026-06-18 10:00', 'DISPENSED'),       -- past prescription
+('P-2024-00121', 'MED008', 'Metformin 500mg', '30', 'PHARMACY_A', '2026-06-23 14:00', 'DISPENSED'),      -- past prescription
+('P-2024-00129', 'MED003', 'Lisinopril 10mg', '30', 'PHARMACY_A', '2026-06-25 16:00', 'DISPENSED'),      -- past prescription
+('P-2024-00130', 'MED007', 'Amoxicillin 500mg', '7', 'PHARMACY_B', '2026-06-27 11:00', 'DISPENSED');     -- past prescription
 
 -- =============================================
 -- BEDS (10 entries)
 -- =============================================
 
 INSERT INTO beds (bed_id, ward_id, patient_id, status, updated_at, estimated_ready) VALUES
-('BED-1A-001', 'WARD-1A', 'P-2024-00128', 'OCCUPIED', '2026-06-19 08:00', NULL),              -- P-128 discharge 06-27 (future)
-('BED-2A-001', 'WARD-2A', NULL, 'AVAILABLE', '2026-06-19 15:00', NULL),                        -- P-121 discharged 06-19, bed cleaned
-('BED-2A-002', 'WARD-2A', 'P-2024-00125', 'OCCUPIED', '2026-06-20 09:00', NULL),              -- P-125 discharging today
-('BED-3B-001', 'WARD-3B', 'P-2024-00122', 'OCCUPIED', '2026-06-18 10:00', NULL),              -- P-122 discharging today
-('BED-3B-002', 'WARD-3B', 'P-2024-00124', 'OCCUPIED', '2026-06-19 11:00', NULL),              -- P-124 discharge tomorrow
-('BED-4A-010', 'WARD-4A', 'P-2024-00123', 'OCCUPIED', '2026-06-17 07:00', NULL),              -- P-123 discharging today
-('BED-4A-011', 'WARD-4A', NULL, 'AVAILABLE', '2026-06-21 16:00', NULL),                        -- P-130 discharged yesterday, bed cleaned
-('BED-4A-012', 'WARD-4A', 'P-2024-00127', 'OCCUPIED', '2026-06-19 07:00', NULL),              -- P-127 discharge 06-26 (future)
-('BED-5C-001', 'WARD-5C', 'P-2024-00126', 'OCCUPIED', '2026-06-20 08:30', NULL),              -- P-126 discharge 06-24 (future)
-('BED-6B-001', 'WARD-6B', NULL, 'AVAILABLE', '2026-06-21 09:30', NULL);                        -- P-129 discharged 06-20, bed cleaned
+('BED-1A-001', 'WARD-1A', 'P-2024-00128', 'OCCUPIED', '2026-06-27 08:00', NULL),              -- P-128 discharge 07-05 (future)
+('BED-2A-001', 'WARD-2A', NULL, 'AVAILABLE', '2026-06-27 15:00', NULL),                        -- P-121 discharged 06-27, bed cleaned
+('BED-2A-002', 'WARD-2A', 'P-2024-00125', 'OCCUPIED', '2026-06-28 09:00', NULL),              -- P-125 discharging today
+('BED-3B-001', 'WARD-3B', 'P-2024-00122', 'OCCUPIED', '2026-06-26 10:00', NULL),              -- P-122 discharging today
+('BED-3B-002', 'WARD-3B', 'P-2024-00124', 'OCCUPIED', '2026-06-27 11:00', NULL),              -- P-124 discharge tomorrow
+('BED-4A-010', 'WARD-4A', 'P-2024-00123', 'OCCUPIED', '2026-06-25 07:00', NULL),              -- P-123 discharging today
+('BED-4A-011', 'WARD-4A', NULL, 'AVAILABLE', '2026-06-29 16:00', NULL),                        -- P-130 discharged yesterday, bed cleaned
+('BED-4A-012', 'WARD-4A', 'P-2024-00127', 'OCCUPIED', '2026-06-27 07:00', NULL),              -- P-127 discharge 07-04 (future)
+('BED-5C-001', 'WARD-5C', 'P-2024-00126', 'OCCUPIED', '2026-06-28 08:30', NULL),              -- P-126 discharge 07-02 (future)
+('BED-6B-001', 'WARD-6B', NULL, 'AVAILABLE', '2026-06-29 09:30', NULL);                        -- P-129 discharged 06-28, bed cleaned
 
 -- =============================================
 -- VERIFY DATA

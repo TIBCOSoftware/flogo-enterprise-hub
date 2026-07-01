@@ -286,7 +286,7 @@ In the [InsuranceClaimsProcessor](../InsuranceClaimsProcessor/) sample, MCP and 
 
 - **TIBCO Flogo 2.26.5 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
 - An **OpenAI API key** (or swap for Anthropic, Gemini, Ollama, or vLLM in the LLM configuration properties)
-- A WebSocket client for testing: [Flogo Chatbot](../Chatbot/) (included in this repo) or [websocat](https://github.com/vi/websocat)
+- A WebSocket client for testing: [Postman](https://www.postman.com/) or [websocat](https://github.com/vi/websocat)
 
 ---
 
@@ -334,15 +334,9 @@ Run `ITHelpDeskAdvisor.flogo`. This starts the WebSocket server on port **9200**
 
 ### Step 4 — Connect and Chat
 
-Use any WebSocket client to connect. Two options:
+Use any WebSocket client to connect. Two popular options:
 
-**Flogo Chatbot** (browser UI — included in this repo):
-```bash
-cd ../Chatbot
-npm install
-npm start
-```
-Open **http://localhost:3000**. Update the WebSocket URL to `ws://localhost:9200/helpdesk?sessionId=wifi-issue-001` and click the refresh icon to apply. Click **Connect** and start chatting.
+**Postman**: Create a new WebSocket request, set the URL to `ws://localhost:9200/helpdesk?sessionId=wifi-issue-001`, and click Connect. Type messages in the message box and send.
 
 **websocat** (command line):
 ```bash
