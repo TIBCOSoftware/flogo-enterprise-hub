@@ -1,0 +1,397 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider"
+  ],
+  "name": "TicketServiceA2A",
+  "description": "A2A Server agent that creates and manages IT support tickets — used as a backend for the ITHelpDeskAdvisor sample",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "IT Ticket Service A2A Server agent on port 9202.",
+      "settings": {
+        "llmProviderConnection": "conn://a2a1aaaa-bbbb-cccc-dddd-eeee00000001",
+        "agentName": "=$property[\"Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"Trigger_Settings.AgentDescription\"]",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"A2A.port\"]",
+        "agentUrl": "=$property[\"A2A.AgentUrl\"]",
+        "agentAuthMode": "=$property[\"A2A.AuthMode\"]",
+        "agentToken": "",
+        "model": "=$property[\"Trigger_Settings.LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "=$property[\"Trigger_Settings.LLM_temperature\"]",
+        "enableGuardrails": false,
+        "rateLimit": "=$property[\"Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": false,
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 20,
+        "systemPrompt": "You are an IT support ticket management agent exposed via A2A protocol.\n\nYou are called by help desk advisor agents when a user's issue cannot be resolved through self-service troubleshooting and needs to be escalated to a support ticket.\n\n## Your Tools\n\n- **create_ticket**: Create a new IT support ticket with issue description, priority, and category. Returns a ticket ID and confirmation.\n- **get_ticket_status**: Look up the current status of an existing support ticket by ticket ID.\n\n## Behavior Guidelines\n\n- When creating a ticket, always confirm the issue description and priority before proceeding\n- Assign appropriate categories based on the issue type (Networking, Hardware, Software, Security, Other)\n- Return the ticket ID prominently so the caller can relay it to the end user\n- Keep responses concise — the caller is typically another agent"
+      },
+      "id": "TicketServiceA2AServer",
+      "handlers": [
+        {
+          "description": "Creates a new IT support ticket (mock data)",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "create_ticket",
+            "agentToolDescription": "Create a new IT support ticket with issue description, priority level, and category. Returns the new ticket ID, status, and estimated response time.",
+            "agentSkillTags": "create_ticket,ticket,support,helpdesk,escalation",
+            "agentSkillExamples": "Create a high priority ticket for a laptop WiFi issue.|Open a support ticket: user cannot connect to VPN after password change.|Submit a ticket for a broken keyboard, medium priority.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:create_ticket_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"issue_description\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"issue_description\":\"Laptop cannot connect to corporate WiFi after Windows update\",\"priority\":\"high\",\"category\":\"Networking\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "create_ticket_flow"
+        },
+        {
+          "description": "Retrieves the current status of a support ticket (mock data)",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "get_ticket_status",
+            "agentToolDescription": "Look up the current status of an IT support ticket by ticket ID. Returns ticket status, assigned technician, priority, and any notes.",
+            "agentSkillTags": "get_ticket_status,ticket,status,tracking",
+            "agentSkillExamples": "What is the status of ticket TKT-20260623-001?|Check on my support ticket TKT-20260623-001.|Is ticket TKT-20260623-001 still open?",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_ticket_status_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"ticket_id\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"ticket_id\":\"TKT-20260623-001\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "get_ticket_status_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:create_ticket_flow",
+      "data": {
+        "name": "create_ticket_flow",
+        "description": "Creates a new IT support ticket (mock data)",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock ticket creation result",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"ticket_id\":\"TKT-20260623-001\",\"status\":\"Open\",\"priority\":\"High\",\"category\":\"Networking\",\"issue_description\":\"Laptop cannot connect to corporate WiFi after Windows update. Self-service troubleshooting steps from KB-1001 did not resolve the issue.\",\"created_at\":\"2026-06-23T14:30:00Z\",\"assigned_to\":\"Network Support Team\",\"estimated_response_time\":\"4 hours\",\"message\":\"Ticket TKT-20260623-001 has been created successfully. The Network Support Team will review your issue within 4 hours. You will receive email updates at your registered address.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"issue_description\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"TicketServiceA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"issue_description\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_ticket_status_flow",
+      "data": {
+        "name": "get_ticket_status_flow",
+        "description": "Retrieves the current status of a support ticket (mock data)",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock ticket status",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"ticket_id\":\"TKT-20260623-001\",\"status\":\"In Progress\",\"priority\":\"High\",\"category\":\"Networking\",\"assigned_to\":\"Mike Chen — Network Support\",\"created_at\":\"2026-06-23T14:30:00Z\",\"updated_at\":\"2026-06-23T15:45:00Z\",\"notes\":[{\"timestamp\":\"2026-06-23T15:45:00Z\",\"author\":\"Mike Chen\",\"note\":\"Reviewing WiFi adapter logs. Suspected driver compatibility issue with latest Windows update KB5040442. Will attempt driver rollback.\"}],\"estimated_resolution\":\"End of business day\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"ticket_id\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"TicketServiceA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"ticket_id\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.openai.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.openai.API_Key",
+      "type": "string",
+      "value": "SECRET:0d+UhNmCNYvPrKeym/pnNX8rFG92HNBrnyogfoCaBXnTtGg="
+    },
+    {
+      "name": "AgenticAI.openai.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "TicketServiceAgent"
+    },
+    {
+      "name": "Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "IT support ticket management agent. Creates and tracks support tickets via A2A protocol."
+    },
+    {
+      "name": "Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-4o"
+    },
+    {
+      "name": "Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 4096
+    },
+    {
+      "name": "Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 25
+    },
+    {
+      "name": "Trigger_Settings.LLM_temperature",
+      "type": "float64",
+      "value": 0.3
+    },
+    {
+      "name": "A2A.AgentUrl",
+      "type": "string",
+      "value": "http://localhost:9202"
+    },
+    {
+      "name": "A2A.port",
+      "type": "string",
+      "value": "9202"
+    },
+    {
+      "name": "A2A.AuthMode",
+      "type": "string",
+      "value": "None"
+    }
+  ],
+  "connections": {
+    "a2a1aaaa-bbbb-cccc-dddd-eeee00000001": {
+      "id": "a2a1aaaa-bbbb-cccc-dddd-eeee00000001",
+      "name": "openai",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "openai",
+        "description": "OpenAI LLM provider connection",
+        "llmProvider": "=$property[\"AgenticAI.openai.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.openai.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.openai.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS4zIiwidGFnIjoiMC45LjMtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9202",
+        "title": "TicketServiceA2AServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}

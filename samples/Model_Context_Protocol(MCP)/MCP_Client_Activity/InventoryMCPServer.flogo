@@ -1,0 +1,180 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver"
+  ],
+  "name": "InventoryMCPServer",
+  "description": "Simple MCP server that provides product inventory data — used as a backend for the MCPClientAggregator gateway sample",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Inventory Service MCP Server",
+      "settings": {
+        "serverName": "InventoryMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": true,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "InventoryServiceServer",
+      "handlers": [
+        {
+          "description": "Retrieve product inventory by product ID",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_product_inventory",
+            "handlerDescription": "Look up a product by product ID and return its inventory details including name, SKU, stock quantity, unit price, warehouse location, and reorder status.",
+            "toolTitle": "Get Product Inventory",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetProductInventoryFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\",\"description\":\"The product ID to look up (e.g. PROD-5001)\"}},\"required\":[\"product_id\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\",\"description\":\"The product ID to look up (e.g. PROD-5001)\"}},\"required\":[\"product_id\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "GetProductInventoryFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GetProductInventoryFlow",
+      "data": {
+        "name": "GetProductInventoryFlow",
+        "description": "Returns mock product inventory data",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"product_id\":\"PROD-5001\",\"name\":\"Wireless Keyboard K500\",\"sku\":\"KB-WL-K500-BLK\",\"stock_quantity\":342,\"unit_price_usd\":79.99,\"warehouse\":\"Austin-TX-W2\",\"reorder_threshold\":50,\"reorder_needed\":false,\"last_restocked\":\"2026-06-10\"}"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNzQsInkiOjQyfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_id\":{\"type\":\"string\",\"description\":\"The product ID to look up (e.g. PROD-5001)\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9099"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMyIsInRhZyI6IjEuMC4zLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9099",
+        "title": "InventoryServiceServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}

@@ -8,8 +8,8 @@ Ready-to-run sample applications for **TIBCO Flogo®** — the low-code / no-cod
 
 | Category | Description |
 |----------|-------------|
-| [Agentic AI](./Agentic_AI/) | AI-powered agents with custom guardrails, multi-agent handoff, MCP server integration, A2A (Agent-to-Agent) protocol, LLM Client Activity, dynamic tool selection at scale, scheduled reasoning with report generation, and incident triage |
-| [Model Context Protocol (MCP)](./Model_Context_Protocol(MCP)/) | MCP servers exposing business data as AI-accessible tools — stateless, stateful, authenticated, annotated, and advanced primitives |
+| [Agentic AI](./Agentic_AI/) | AI-powered agents with custom guardrails, multi-agent handoff, MCP server integration, A2A (Agent-to-Agent) protocol, LLM Client Activity, memory conversation store, dynamic MCP/A2A server configuration, dynamic tool selection at scale, scheduled reasoning with report generation, and incident triage |
+| [Model Context Protocol (MCP)](./Model_Context_Protocol(MCP)/) | MCP servers exposing business data as AI-accessible tools — stateless, stateful, authenticated, annotated, advanced primitives, JWT scope-based access control, structured content with annotations, and MCP client gateway |
 | [Flogo Core & Connector Samples](./VSCode_Extension/) | API development (REST, gRPC, GraphQL), enterprise connectors, flow design concepts, mapping, and unit testing |
 | [TIBCO Control Plane](./Tibco_Control_Plane/) | Custom Docker image deployment and TLS ingress configuration for TIBCO Platform |
 | [DockerFiles](./DockerFiles/) | Dockerfile examples for multiple Linux distributions and supplemental connector types (EMS, IBM MQ, Oracle, SAP) |
