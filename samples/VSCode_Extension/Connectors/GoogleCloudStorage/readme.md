@@ -245,4 +245,4 @@ curl -X GET http://localhost:9999/gcs-crud
 
 * The **Update** activity for Objects supports updating metadata, ACL, content type, and other object attributes. The ACL field can be mapped dynamically from a previous activity's output (as shown in this sample — ACL is mapped from the CreateObject output).
 
-* For more information on Google Cloud Storage, refer to the [TIBCO Flogo® Connector for Google Cloud Storage documentation](https://docs.tibco.com/pub/flogo/2.26.5/doc/html/Default.htm#connectors/google-cloud-storage/overview.htm?TocPath=Connectors%2520User%2520Guide%257CSupported%2520Flogo%2520Connectors%257CGoogle%2520Cloud%2520Storage%257C_____0).
+* For more information on Google Cloud Storage, refer to the [TIBCO Flogo® Connector for Google Cloud Storage documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/google-cloud-storage/overview.htm?TocPath=Connectors%2520User%2520Guide%257CSupported%2520Flogo%2520Connectors%257CGoogle%2520Cloud%2520Storage%257C_____0).
