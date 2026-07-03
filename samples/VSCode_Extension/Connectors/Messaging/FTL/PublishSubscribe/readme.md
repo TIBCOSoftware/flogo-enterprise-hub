@@ -32,21 +32,16 @@ The Subscriber flow has a subscriber trigger that listens to the specified desti
 2. Add the FTL `bin` directory to your system `PATH` variable (e.g., `%TIBFTL_ROOT%\bin` on Windows or `$TIBFTL_ROOT/bin` on Linux).
 3. Reload your Visual Studio Code after setting the environment variables for the changes to take effect.
 
-## Import Sample into VSCode Workspace
+## Open the sample app in VS Code
 
-1. Download the sample flogo file i.e., FTL_PublishSubscribe.flogo
-2. Place the downloaded file into your Visual Studio Code workspace.
-3. Open the file by clicking on it in VSCode.
-
-## Create FTL Application
-
-1. Install TIBCO Flogo Extension for Visual Studio Code and Create a new Flogo app in it.
-
-2. In the newly created Flogo app, go to CONNECTIONS > Create Connection > TIBCO FTL.
+1. Install the TIBCO Flogo Extension for Visual Studio Code.
+2. Download `FTL_PublishSubscribe.flogo` and place it into your Visual Studio Code workspace.
+3. Open the file by clicking on it in VS Code.
+4. In the app, go to CONNECTIONS > Create Connection > TIBCO FTL.
 
 ![Search FTL connector](../../../../images/FTL/PublishSubscribe/Select_FTL_Connector.png)
 
-3. Configure the FTL connection details and click Save to save the connection.
+5. Configure the FTL connection details and click Save to save the connection.
 
 ![Configure FTL connection details](../../../../images/FTL/PublishSubscribe/Connection_details.png)
 
@@ -179,10 +174,10 @@ For running the application,
 ## Troubleshooting
 
 * If the FTL server is down or the FTL server URL is incorrect or unreachable:
-'warn rscl: Client(_boot) Realm not responding at https://&lt;host&gt;:&lt;port&gt; (Realm server not found: Failed to connect to &lt;host&gt; port &lt;port&gt; after 0 ms: Could not connect to server).'
+`warn rscl: Client(_boot) Realm not responding at https://<host>:<port> (Realm server not found: Failed to connect to <host> port <port> after 0 ms: Could not connect to server).`
 
 * If authentication fails:
-'ERROR [flogo] - Failed to create engine instance due to error: failed to connect to FTL realm [https://&lt;host&gt;:&lt;port&gt;]: Invalid user name or password'
+`ERROR [flogo] - Failed to create engine instance due to error: failed to connect to FTL realm [https://<host>:<port>]: Invalid user name or password`
 
 * If the file path in ReadFile or WriteFile is invalid, ensure the file paths are correct and accessible.
 
