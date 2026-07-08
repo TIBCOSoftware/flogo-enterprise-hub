@@ -1,0 +1,1178 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/insert",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/activity/sendmail",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "TelecomInvoiceA2AServers",
+  "description": "Telecom Invoice Chatbot A2A Servers - Billing dispute, recharge, and confirmation email agents (write workflows)",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "AI Agent trigger for Agentic AI. This agent must be invoked within the app using 'Invoke AI Agent Trigger' activity",
+      "settings": {
+        "llmProviderConnection": "conn://b1c2d3e4-5555-6666-7777-888899999883",
+        "agentName": "billing_dispute_agent",
+        "agentDescription": "Handles billing dispute workflows. Validates a disputed invoice by cross-checking its line items against the subscriber's usage records, then creates a dispute ticket in the CRM. Returns the validation findings and a dispute confirmation with ticket ID and estimated resolution.",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"BillingDispute_A2AServer_PORT\"]",
+        "agentUrl": "=$property[\"BillingDispute_A2AServer_URL\"]",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"LLM_Model\"]",
+        "reasoning": "",
+        "temperature": 0.7,
+        "enableGuardrails": true,
+        "rateLimit": 25,
+        "tokenLimit": 2048,
+        "redactSensitiveData": true,
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 100,
+        "systemPrompt": "You are the Billing Dispute Agent for a telecom operator. You handle billing dispute workflows for postpaid and prepaid subscribers.\n\nYou have access to a tool that performs two operations for a given invoice:\n1. Validates the disputed invoice by cross-checking its line items against the customer's actual usage records (data, international minutes, roaming days, roaming country)\n2. Creates a dispute ticket in the CRM\n\nProvide these parameters to the tool:\n- customer_id: The customer ID (e.g. CUST-10042871)\n- invoice_id: The invoice being disputed (e.g. INV-2026-06-872)\n- reason: A clear description of the dispute reason\n- dispute_id: A new dispute reference you generate in the format DSP-2026-XXXX (4 digits)\n\nThe tool returns the validation context (invoice line items alongside the customer's usage) plus a confirmation that the dispute ticket was created with status OPEN and an estimated resolution of 5 business days.\n\nWhen you receive the validation data, analyze it to confirm whether the disputed charge is justified. For example, if the invoice contains a ROAMING charge but the usage record shows roaming_days = 0 and no roaming_country, that charge is a clear discrepancy that supports the dispute. Summarize the discrepancy you found.\n\nReturn a clear response including:\n- The dispute ID and its OPEN status\n- The estimated resolution timeframe (5 business days)\n- A short explanation of the discrepancy found during validation (if any)\n\nDo not invoke or hand over to any other agents. Your only responsibility is validating and filing the dispute. The orchestrator will coordinate a confirmation email if needed.\n\nTermination rules: Complete your task within a maximum of 3 tool call attempts. If the dispute filing fails, return the error details to the orchestrator and terminate gracefully."
+      },
+      "id": "billing_dispute_agent_trigger",
+      "handlers": [
+        {
+          "description": "Validate a disputed invoice against usage and create a dispute ticket",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "file_billing_dispute",
+            "agentToolDescription": "Validates and files a billing dispute. Provide customer_id, invoice_id, reason, and a generated dispute_id (format DSP-2026-XXXX). Cross-checks the invoice line items against usage records and creates a dispute ticket with status OPEN. Returns the validation context and dispute confirmation.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:billing_dispute_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\"},\"invoice_id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"dispute_id\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"customer_id\": \"CUST-10042872\", \"invoice_id\": \"INV-2026-06-872\", \"reason\": \"Charged for roaming but did not travel\", \"dispute_id\": \"DSP-2026-1001\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "billing_dispute_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "AI Agent trigger for Agentic AI. This agent must be invoked within the app using 'Invoke AI Agent Trigger' activity",
+      "settings": {
+        "llmProviderConnection": "conn://b1c2d3e4-5555-6666-7777-888899999883",
+        "agentName": "recharge_agent",
+        "agentDescription": "Applies recharge packs to a subscriber's account. Takes a chosen recharge offer and activates it immediately with a 30-day validity, logging the recharge. Returns an activation confirmation with the data added and validity dates.",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"Recharge_A2AServer_PORT\"]",
+        "agentUrl": "=$property[\"Recharge_A2AServer_URL\"]",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"LLM_Model\"]",
+        "reasoning": "",
+        "temperature": 0.7,
+        "enableGuardrails": true,
+        "rateLimit": 25,
+        "tokenLimit": 2048,
+        "redactSensitiveData": true,
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 100,
+        "systemPrompt": "You are the Recharge Agent for a telecom operator. You apply recharge packs (data, IDD, roaming, combo) to a subscriber's account.\n\nYou have access to a tool that applies a recharge offer to the customer's account and activates it immediately.\n\nProvide these parameters to the tool:\n- customer_id: The customer ID (e.g. CUST-10042873)\n- offer_id: The recharge offer ID chosen by the customer (e.g. OFF-DATA-10GB)\n- offer_name: The name of the offer (e.g. Data Booster 10GB)\n- amount: The price of the offer in AED (numeric)\n- data_amount_gb: The data included in the offer in GB (numeric; use 0 for non-data offers)\n- recharge_id: A new recharge reference you generate in the format RCG-2026-XXXX (4 digits)\n\nThe offer details (offer_id, offer_name, amount, data_amount_gb) come from the check_recharge_offers MCP tool that the orchestrator has already called. Only apply a recharge the customer has explicitly confirmed.\n\nThe tool inserts the recharge with status ACTIVE and a 30-day validity starting today, and returns a confirmation.\n\nReturn a clear confirmation including:\n- The recharge ID and offer applied\n- The amount charged and data added\n- The validity period (30 days from today)\n\nDo not invoke or hand over to any other agents. Your only responsibility is applying the recharge. The orchestrator will coordinate a confirmation email if needed.\n\nTermination rules: Complete your task within a maximum of 3 tool call attempts. If the recharge fails, return the error details to the orchestrator and terminate gracefully."
+      },
+      "id": "recharge_agent_trigger",
+      "handlers": [
+        {
+          "description": "Apply and activate a recharge pack on the subscriber account",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "apply_recharge_pack",
+            "agentToolDescription": "Applies and activates a recharge offer on the subscriber's account. Provide customer_id, offer_id, offer_name, amount (AED), data_amount_gb, and a generated recharge_id (format RCG-2026-XXXX). Inserts the recharge with status ACTIVE and 30-day validity. Returns the activation confirmation.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:recharge_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\"},\"offer_id\":{\"type\":\"string\"},\"offer_name\":{\"type\":\"string\"},\"amount\":{\"type\":\"number\"},\"data_amount_gb\":{\"type\":\"number\"},\"recharge_id\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"customer_id\": \"CUST-10042873\", \"offer_id\": \"OFF-DATA-10GB\", \"offer_name\": \"Data Booster 10GB\", \"amount\": 49.00, \"data_amount_gb\": 10, \"recharge_id\": \"RCG-2026-2001\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "recharge_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "AI Agent trigger for Agentic AI. This agent must be invoked within the app using 'Invoke AI Agent Trigger' activity",
+      "settings": {
+        "llmProviderConnection": "conn://b1c2d3e4-5555-6666-7777-888899999883",
+        "agentName": "send_confirmation_email",
+        "agentDescription": "Sends a single confirmation email after a billing action (dispute filing or recharge activation) is complete. The recipient delivery address is preconfigured in the email service, so a subscriber email address is optional. Must only be invoked once at the very end after the billing action is confirmed.",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"SendEmail_A2AServer_PORT\"]",
+        "agentUrl": "=$property[\"SendEmail_A2AServer_URL\"]",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"LLM_Model\"]",
+        "reasoning": "",
+        "temperature": 0.7,
+        "enableGuardrails": false,
+        "rateLimit": 25,
+        "tokenLimit": 2048,
+        "redactSensitiveData": true,
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "None",
+        "memoryMaxSize": 10,
+        "systemPrompt": "You are the Confirmation Email Agent for a telecom invoice chatbot. You send a single confirmation email after a billing action (a dispute filing or a recharge activation) has been completed.\n\nIMPORTANT DELIVERY NOTE: The recipient delivery address is already preconfigured in the email service. You do NOT need the subscriber's email address to send the email. NEVER refuse to send, and NEVER report failure, because an email address was not provided. Always dispatch the email using the subject and body you are given. A subscriber email address, if provided, is optional and may only be referenced inside the body for the subscriber's records.\n\nYour task: ALWAYS call your send tool exactly once to dispatch the confirmation email using the provided subject and body. If the subject or body are incomplete, compose a professional and warm email that includes any available details:\n- For a dispute: the dispute ID, the disputed invoice, the reason, the OPEN status, and the estimated resolution timeframe\n- For a recharge: the recharge ID, the offer applied, the amount charged, the data added, and the validity period\n- General next steps and a note to contact customer care for any questions\n\nFormat the email in plain text with clear sections and line breaks. Use a warm, professional telecom customer service tone and address the subscriber by name when known.\n\nSend the email exactly once. Do not send multiple emails under any circumstances. Only report a failure if the underlying send tool itself returns an error — never report failure simply because a subscriber email address was missing.\n\nDo not invoke or hand over to any other agents."
+      },
+      "id": "SendEmailAgent",
+      "handlers": [
+        {
+          "description": "Send a single confirmation email for a billing action",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "send_confirmation_email",
+            "agentToolDescription": "Sends a single confirmation email after a dispute filing or recharge activation. Invoke this tool only ONCE and only after the billing action has been completed. Provide the subject line and email body; the recipient delivery address is preconfigured in the email service, so the subscriber email address is optional. This tool always sends to the configured service mailbox and does not require a subscriber email.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:send_email_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": {
+                "mapping": {
+                  "data": "=$.response.data",
+                  "error": "=$.response.error"
+                }
+              }
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"email\":{\"type\":\"string\"},\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"email\": \"\", \"subject\": \"\", \"body\": \"\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "send_email_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:billing_dispute_flow",
+      "data": {
+        "name": "billing_dispute_flow",
+        "description": "Validate a disputed invoice against usage and create a dispute ticket",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "PostgreSQLQuery",
+            "type": "label",
+            "label": "LogMessage to PostgreSQLQuery"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLQuery",
+            "to": "PostgreSQLInsert",
+            "type": "label",
+            "label": "PostgreSQLQuery to PostgreSQLInsert"
+          },
+          {
+            "id": 4,
+            "from": "PostgreSQLInsert",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "PostgreSQLInsert to LogMessage1"
+          },
+          {
+            "id": 5,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation started: \",$flowctx[\"FlowName\"], \" Filing dispute \", $flow.toolParams.dispute_id, \" for invoice \", $flow.toolParams.invoice_id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "PostgreSQLQuery",
+            "name": "PostgreSQLQuery",
+            "description": "Validate invoice line items against usage records for the customer",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://c2d3e4f5-aaaa-bbbb-cccc-ddddeeee9883",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT li.category, li.description, li.amount, u.billing_period, u.data_used_gb, u.data_limit_gb, u.intl_call_minutes, u.roaming_days, u.roaming_country FROM invoice_line_items li LEFT JOIN usage_records u ON li.customer_id = u.customer_id WHERE li.invoice_id = ?invoice_id ORDER BY li.id ASC;",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "invoice_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "category",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "description",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "billing_period",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "data_used_gb",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "data_limit_gb",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "intl_call_minutes",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "roaming_days",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "roaming_country",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "b3b242ec-f5ed-46a5-b86d-fe653aa2ef9eSELECT li.category, li.description, li.amount, u.billing_period, u.data_used_gb, u.data_limit_gb, u.intl_call_minutes, u.roaming_days, u.roaming_country FROM invoice_line_items li LEFT JOIN usage_records u ON li.customer_id = u.customer_id WHERE li.invoice_id = ?invoice_id ORDER BY li.id ASC;",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "invoice_id": "=$flow.toolParams.invoice_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"invoice_id\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"invoice_id\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"category\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"amount\":{\"type\":\"number\"},\"billing_period\":{\"type\":\"string\"},\"data_used_gb\":{\"type\":\"number\"},\"data_limit_gb\":{\"type\":\"number\"},\"intl_call_minutes\":{\"type\":\"integer\"},\"roaming_days\":{\"type\":\"integer\"},\"roaming_country\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"category\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"amount\":{\"type\":\"number\"},\"billing_period\":{\"type\":\"string\"},\"data_used_gb\":{\"type\":\"number\"},\"data_limit_gb\":{\"type\":\"number\"},\"intl_call_minutes\":{\"type\":\"integer\"},\"roaming_days\":{\"type\":\"integer\"},\"roaming_country\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "PostgreSQLInsert",
+            "name": "PostgreSQLInsert",
+            "description": "Insert dispute ticket",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://c2d3e4f5-aaaa-bbbb-cccc-ddddeeee9883",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO disputes (dispute_id, customer_id, invoice_id, reason, status, estimated_resolution, last_update) VALUES (?dispute_id1, ?customer_id1, ?invoice_id1, ?reason1, 'OPEN', CURRENT_DATE + INTERVAL '5 days', CURRENT_TIMESTAMP);",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "dispute_id1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "customer_id1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "invoice_id1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "reason1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "54f80b45-be8e-42eb-ab0f-3383c09c18e2INSERT INTO disputes (dispute_id, customer_id, invoice_id, reason, status, estimated_resolution, last_update) VALUES (?dispute_id1, ?customer_id1, ?invoice_id1, ?reason1, 'OPEN', CURRENT_DATE + INTERVAL '5 days', CURRENT_TIMESTAMP);",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "dispute_id1": "=$flow.toolParams.dispute_id",
+                      "customer_id1": "=$flow.toolParams.customer_id",
+                      "invoice_id1": "=$flow.toolParams.invoice_id",
+                      "reason1": "=$flow.toolParams.reason"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"dispute_id1\":{\"type\":\"string\"},\"customer_id1\":{\"type\":\"string\"},\"invoice_id1\":{\"type\":\"string\"},\"reason1\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"dispute_id1\":{\"type\":\"string\"},\"customer_id1\":{\"type\":\"string\"},\"invoice_id1\":{\"type\":\"string\"},\"reason1\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation completed: \",$flowctx[\"FlowName\"], \" Dispute \", $flow.toolParams.dispute_id, \" created\")",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat(\"Dispute filed successfully. Dispute ID: \", $flow.toolParams.dispute_id, \", Invoice: \", $flow.toolParams.invoice_id, \", Customer: \", $flow.toolParams.customer_id, \", Reason: \", $flow.toolParams.reason, \". Status: OPEN, estimated resolution within 5 business days. Validation context (invoice line items vs usage): \", coerce.toString($activity[PostgreSQLQuery].Output))"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMDcsInkiOjkxfSwiUG9zdGdyZVNRTFF1ZXJ5Ijp7IngiOjQxNiwieSI6OTJ9LCJQb3N0Z3JlU1FMSW5zZXJ0Ijp7IngiOjYxNCwieSI6OTB9LCJMb2dNZXNzYWdlMSI6eyJ4Ijo3OTksInkiOjg0fSwiUmV0dXJuIjp7IngiOjk3MCwieSI6ODR9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"customer_id\":{\"type\":\"string\"},\"invoice_id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"dispute_id\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"billing_dispute_agent_trigger\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\"},\"invoice_id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"dispute_id\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:recharge_flow",
+      "data": {
+        "name": "recharge_flow",
+        "description": "Apply and activate a recharge pack on the subscriber account",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "StartActivity to LogMessage"
+          },
+          {
+            "id": 2,
+            "from": "LogMessage",
+            "to": "PostgreSQLInsert",
+            "type": "label",
+            "label": "LogMessage to PostgreSQLInsert"
+          },
+          {
+            "id": 3,
+            "from": "PostgreSQLInsert",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "PostgreSQLInsert to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage1",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage1 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation started: \",$flowctx[\"FlowName\"], \" Applying recharge \", $flow.toolParams.recharge_id, \" (\", $flow.toolParams.offer_id, \") for customer \", $flow.toolParams.customer_id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "PostgreSQLInsert",
+            "name": "PostgreSQLInsert",
+            "description": "Insert recharge activation record",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://c2d3e4f5-aaaa-bbbb-cccc-ddddeeee9883",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO recharges (recharge_id, customer_id, offer_id, offer_name, amount, data_added_gb, status, validity_start, validity_end) VALUES (?recharge_id1, ?customer_id1, ?offer_id1, ?offer_name1, ?amount1, ?data_added_gb1, 'ACTIVE', CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days');",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "recharge_id1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "customer_id1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "offer_id1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "offer_name1",
+                    "Type": "VARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "amount1",
+                    "Type": "NUMERIC",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "data_added_gb1",
+                    "Type": "NUMERIC",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "5d92c1b0-0371-45bc-923f-2f3fae87e023INSERT INTO recharges (recharge_id, customer_id, offer_id, offer_name, amount, data_added_gb, status, validity_start, validity_end) VALUES (?recharge_id1, ?customer_id1, ?offer_id1, ?offer_name1, ?amount1, ?data_added_gb1, 'ACTIVE', CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days');",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "recharge_id1": "=$flow.toolParams.recharge_id",
+                      "customer_id1": "=$flow.toolParams.customer_id",
+                      "offer_id1": "=$flow.toolParams.offer_id",
+                      "offer_name1": "=$flow.toolParams.offer_name",
+                      "amount1": "=$flow.toolParams.amount",
+                      "data_added_gb1": "=$flow.toolParams.data_amount_gb"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"recharge_id1\":{\"type\":\"string\"},\"customer_id1\":{\"type\":\"string\"},\"offer_id1\":{\"type\":\"string\"},\"offer_name1\":{\"type\":\"string\"},\"amount1\":{\"type\":\"number\"},\"data_added_gb1\":{\"type\":\"number\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"recharge_id1\":{\"type\":\"string\"},\"customer_id1\":{\"type\":\"string\"},\"offer_id1\":{\"type\":\"string\"},\"offer_name1\":{\"type\":\"string\"},\"amount1\":{\"type\":\"number\"},\"data_added_gb1\":{\"type\":\"number\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Agent Invocation completed: \",$flowctx[\"FlowName\"], \" Recharge \", $flow.toolParams.recharge_id, \" activated\")",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat(\"Recharge applied successfully. Recharge ID: \", $flow.toolParams.recharge_id, \", Offer: \", $flow.toolParams.offer_name, \" (\", $flow.toolParams.offer_id, \"), Customer: \", $flow.toolParams.customer_id, \". Amount charged: AED \", coerce.toString($flow.toolParams.amount), \", Data added: \", coerce.toString($flow.toolParams.data_amount_gb), \" GB. Status: ACTIVE, valid for 30 days from today.\")"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyNDgsInkiOjkxfSwiUG9zdGdyZVNRTEluc2VydCI6eyJ4Ijo0NjgsInkiOjkwfSwiTG9nTWVzc2FnZTEiOnsieCI6NjgwLCJ5Ijo4NH0sIlJldHVybiI6eyJ4Ijo4NjAsInkiOjg0fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"customer_id\":{\"type\":\"string\"},\"offer_id\":{\"type\":\"string\"},\"offer_name\":{\"type\":\"string\"},\"amount\":{\"type\":\"number\"},\"data_amount_gb\":{\"type\":\"number\"},\"recharge_id\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"recharge_agent_trigger\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\"},\"offer_id\":{\"type\":\"string\"},\"offer_name\":{\"type\":\"string\"},\"amount\":{\"type\":\"number\"},\"data_amount_gb\":{\"type\":\"number\"},\"recharge_id\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:send_email_flow",
+      "data": {
+        "name": "send_email_flow",
+        "description": "Send a single confirmation email for a billing action",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "SendMail",
+            "type": "label",
+            "label": "StartActivity to SendMail"
+          },
+          {
+            "id": 2,
+            "from": "SendMail",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "SendMail to LogMessage"
+          },
+          {
+            "id": 3,
+            "from": "LogMessage",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "SendMail",
+            "name": "SendMail",
+            "description": "Simple Send Mail Activity",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sendmail",
+              "input": {
+                "Server": "smtp.gmail.com",
+                "Port": 465,
+                "authorizationType": "Basic",
+                "Username": "=$property[\"Email_Username\"]",
+                "Password": "=$property[\"Email_App_Password\"]",
+                "authorizationConn": "",
+                "Connection Security": "SSL",
+                "serverCertificate": "",
+                "message_content_type": "text/plain",
+                "sender": "=$property[\"To_Email\"]",
+                "recipients": "=$property[\"To_Email\"]",
+                "cc_recipients": "",
+                "bcc_recipients": "",
+                "reply_to": "=$property[\"Email_Username\"]",
+                "subject": "=$flow.toolParams.subject",
+                "message": "=$flow.toolParams.body"
+              },
+              "schemas": {
+                "input": {
+                  "attachments": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "****Confirmation Email sent successfully to the configured service mailbox",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "The confirmation email was sent successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiU2VuZE1haWwiOnsieCI6MjQ4LCJ5IjoxMDJ9LCJMb2dNZXNzYWdlIjp7IngiOjQ3NSwieSI6MTAxfSwiUmV0dXJuIjp7IngiOjY2NSwieSI6OTl9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"email\":{\"type\":\"string\"},\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SendEmailAgent\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"email\":{\"type\":\"string\"},\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.API_Key",
+      "type": "string",
+      "value": "SECRET:OEnggHe/dCX8+AqSvXaLm4Zg7tWLt8e+BKuJaEgvvAzqh0OH+a0fR8i+yh7zVL/eN5bJg0pRt2IwGgs2JY6llCsS5pmMVhNpy4LPakhk6NmfAlvFBqv4jWZo+6LsFgV4X+E0JipZE4ukGDl8P4RxBfrFAM8B0YbnTxAUoGVs9jchyBIGeDdCg+Z97qiB4c9hdN4Cb8YUSMWfuQwMfbuUoWuJddAAynAfH3kwEVWbGSmU0TO+"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "telecom"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SECRET:ZptKw2gJGyeH/Xl4Viewun5qaEPB"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": "0"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    },
+    {
+      "name": "LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "To_Email",
+      "type": "string",
+      "value": "nikhil.shah@tibco.com"
+    },
+    {
+      "name": "Email_Username",
+      "type": "string",
+      "value": "nikhil.shah.84@gmail.com"
+    },
+    {
+      "name": "Email_App_Password",
+      "type": "string",
+      "value": "SECRET:lyZYz52r17nLrYp3cZvzTDtkEOiKMkv2HT6jmukvm+zJ1jE="
+    },
+    {
+      "name": "BillingDispute_A2AServer_PORT",
+      "type": "string",
+      "value": "9883"
+    },
+    {
+      "name": "Recharge_A2AServer_PORT",
+      "type": "string",
+      "value": "9884"
+    },
+    {
+      "name": "SendEmail_A2AServer_PORT",
+      "type": "string",
+      "value": "9885"
+    },
+    {
+      "name": "BillingDispute_A2AServer_URL",
+      "type": "string",
+      "value": "http://localhost:9883"
+    },
+    {
+      "name": "Recharge_A2AServer_URL",
+      "type": "string",
+      "value": "http://localhost:9884"
+    },
+    {
+      "name": "SendEmail_A2AServer_URL",
+      "type": "string",
+      "value": "http://localhost:9885"
+    }
+  ],
+  "connections": {
+    "b1c2d3e4-5555-6666-7777-888899999883": {
+      "id": "b1c2d3e4-5555-6666-7777-888899999883",
+      "name": "OpenAIConn",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "OpenAIConn",
+        "description": "",
+        "llmProvider": "=$property[\"AgenticAI.OpenAIConn.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAIConn.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAIConn.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    },
+    "c2d3e4f5-aaaa-bbbb-cccc-ddddeeee9883": {
+      "id": "c2d3e4f5-aaaa-bbbb-cccc-ddddeeee9883",
+      "name": "PostgresConn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.PostgresConn.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.PostgresConn.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS4zIiwidGFnIjoiMC45LjMtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiaWQiOiJHZW5lcmFsIiwidmVyc2lvbiI6IjEuNi4xNCIsInRhZyI6IjEuNi4xNC1iMDQiLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL3dpLXBvc3RncmVzL3NyYy9hcHAvUG9zdGdyZVNRTCIsImlkIjoiUG9zdGdyZVNRTCIsInZlcnNpb24iOiIyLjcuMSIsInRhZyI6IjIuNy4xLWIwMSIsIm5hbWUiOiJQb3N0Z3JlU1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL1Bvc3RncmVTUUwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9883",
+        "type": "public",
+        "name": "billing_dispute_agent_trigger"
+      },
+      {
+        "protocol": "http",
+        "port": "9884",
+        "type": "public",
+        "name": "recharge_agent_trigger"
+      },
+      {
+        "protocol": "http",
+        "port": "9885",
+        "type": "public",
+        "name": "SendEmailAgent"
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}
