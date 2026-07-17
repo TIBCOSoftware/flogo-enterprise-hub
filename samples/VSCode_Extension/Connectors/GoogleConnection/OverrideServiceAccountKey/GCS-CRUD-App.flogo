@@ -1,0 +1,793 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-gstorage/src/app/GoogleCloudStorage/activity/create",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/wi-gstorage/src/app/GoogleCloudStorage/activity/upload",
+    "github.com/tibco/wi-gstorage/src/app/GoogleCloudStorage/activity/list",
+    "github.com/tibco/wi-gstorage/src/app/GoogleCloudStorage/activity/get",
+    "github.com/tibco/wi-gstorage/src/app/GoogleCloudStorage/activity/update",
+    "github.com/tibco/wi-gstorage/src/app/GoogleCloudStorage/activity/delete",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/tibco/wi-google/src/app/GoogleConnection/connector"
+  ],
+  "name": "GCS-CRUD-App",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": 9999,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "Add description",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/gcs-crud",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GCS_All_Activity_Flow"
+            },
+            "input": {
+              "headers": "=$.headers"
+            },
+            "output": {
+              "data": "=$.data",
+              "code": "=$.code"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"output\":\"\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "GCS_All_Activity_Flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GCS_All_Activity_Flow",
+      "data": {
+        "name": "GCS_All_Activity_Flow",
+        "description": "Add description",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "CreateBucket",
+            "type": "label",
+            "label": "StartActivity to GoogleCloudStorageCreate"
+          },
+          {
+            "id": 2,
+            "from": "CreateBucket",
+            "to": "CreateObject",
+            "type": "label",
+            "label": "GoogleCloudStorageCreate to GoogleCloudStorageCreate1"
+          },
+          {
+            "id": 3,
+            "from": "CreateObject",
+            "to": "LogCreateObject",
+            "type": "label",
+            "label": "GoogleCloudStorageCreate to LogMessage"
+          },
+          {
+            "id": 4,
+            "from": "LogCreateObject",
+            "to": "UploadLargeFile",
+            "type": "label",
+            "label": "LogMessage to GoogleCloudStorageUpload"
+          },
+          {
+            "id": 5,
+            "from": "UploadLargeFile",
+            "to": "LogUploadFile",
+            "type": "label",
+            "label": "GoogleCloudStorageUpload to LogMessage4"
+          },
+          {
+            "id": 6,
+            "from": "LogUploadFile",
+            "to": "ListObject",
+            "type": "label",
+            "label": "LogMessage4 to GoogleCloudStorageList"
+          },
+          {
+            "id": 7,
+            "from": "ListObject",
+            "to": "LogListObject",
+            "type": "label",
+            "label": "GoogleCloudStorageList to LogMessage5"
+          },
+          {
+            "id": 8,
+            "from": "LogListObject",
+            "to": "GetObject",
+            "type": "label",
+            "label": "LogMessage5 to GoogleCloudStorageGet"
+          },
+          {
+            "id": 9,
+            "from": "GetObject",
+            "to": "LogGetObject",
+            "type": "label",
+            "label": "GoogleCloudStorageGet to LogMessage2"
+          },
+          {
+            "id": 10,
+            "from": "LogGetObject",
+            "to": "UpdateObject",
+            "type": "label",
+            "label": "LogMessage2 to GoogleCloudStorageUpdate"
+          },
+          {
+            "id": 11,
+            "from": "UpdateObject",
+            "to": "LogUpdateObject",
+            "type": "label",
+            "label": "GoogleCloudStorageUpdate to LogMessage1"
+          },
+          {
+            "id": 12,
+            "from": "LogUpdateObject",
+            "to": "DeleteObject",
+            "type": "label",
+            "label": "LogMessage1 to GoogleCloudStorageDelete"
+          },
+          {
+            "id": 13,
+            "from": "DeleteObject",
+            "to": "DeleteUploadedFile",
+            "type": "label",
+            "label": "GoogleCloudStorageDelete to GoogleCloudStorageDelete1"
+          },
+          {
+            "id": 14,
+            "from": "DeleteUploadedFile",
+            "to": "DeleteBucket",
+            "type": "label",
+            "label": "GoogleCloudStorageDelete1 to CopyOfGoogleCloudStorageDelete"
+          },
+          {
+            "id": 15,
+            "from": "DeleteBucket",
+            "to": "LogDeleteObjectFileBucket",
+            "type": "label",
+            "label": "CopyOfGoogleCloudStorageDelete to LogMessage3"
+          },
+          {
+            "id": 16,
+            "from": "LogDeleteObjectFileBucket",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage3 to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "CreateBucket",
+            "name": "CreateBucket",
+            "description": "This activity handles bucket create and object create for google cloud storage",
+            "activity": {
+              "ref": "#create",
+              "input": {
+                "Google Connection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "Object Name": "Bucket",
+                "input": {
+                  "mapping": {
+                    "name": "gcsflogo-test-bucket",
+                    "projectName": "tci-flogo",
+                    "labels": {
+                      "(Key)": "project:sample"
+                    },
+                    "storageClass": "Standard"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"name\":{\"type\":\"string\"},\"projectName\":{\"type\":\"string\"},\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"billing\":{\"properties\":{\"requesterPays\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"cors\":{\"items\":{\"properties\":{\"maxAgeSeconds\":{\"type\":\"number\"},\"method\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"origin\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"responseHeader\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"}},\"type\":\"object\"},\"type\":\"array\"},\"defaultObjectAcl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"labels\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"lifecycle\":{\"properties\":{\"rule\":{\"items\":{\"properties\":{\"action\":{\"properties\":{\"storageClass\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"type\":\"object\"},\"condition\":{\"properties\":{\"age\":{\"type\":\"number\"},\"createdBefore\":{\"type\":\"string\"},\"isLive\":{\"type\":\"boolean\"},\"matchesStorageClass\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"numNewerVersions\":{\"type\":\"number\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"},\"location\":{\"type\":\"string\"},\"logging\":{\"properties\":{\"logBucket\":{\"type\":\"string\"},\"logObjectPrefix\":{\"type\":\"string\"}},\"type\":\"object\"},\"predefinedAcl\":{\"type\":\"string\"},\"predefinedDefaultObjectAcl\":{\"type\":\"string\"},\"projection\":{\"type\":\"string\"},\"storageClass\":{\"type\":\"string\"},\"userProject\":{\"type\":\"string\"},\"versioning\":{\"properties\":{\"enabled\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"website\":{\"properties\":{\"mainPageSuffix\":{\"type\":\"string\"},\"notFoundPage\":{\"type\":\"string\"}},\"type\":\"object\"}},\"required\":[\"projectName\",\"name\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"name\":{\"type\":\"string\"},\"projectName\":{\"type\":\"string\"},\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"billing\":{\"properties\":{\"requesterPays\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"cors\":{\"items\":{\"properties\":{\"maxAgeSeconds\":{\"type\":\"number\"},\"method\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"origin\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"responseHeader\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"}},\"type\":\"object\"},\"type\":\"array\"},\"defaultObjectAcl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"labels\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"lifecycle\":{\"properties\":{\"rule\":{\"items\":{\"properties\":{\"action\":{\"properties\":{\"storageClass\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"type\":\"object\"},\"condition\":{\"properties\":{\"age\":{\"type\":\"number\"},\"createdBefore\":{\"type\":\"string\"},\"isLive\":{\"type\":\"boolean\"},\"matchesStorageClass\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"numNewerVersions\":{\"type\":\"number\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"},\"location\":{\"type\":\"string\"},\"logging\":{\"properties\":{\"logBucket\":{\"type\":\"string\"},\"logObjectPrefix\":{\"type\":\"string\"}},\"type\":\"object\"},\"predefinedAcl\":{\"type\":\"string\"},\"predefinedDefaultObjectAcl\":{\"type\":\"string\"},\"projection\":{\"type\":\"string\"},\"storageClass\":{\"type\":\"string\"},\"userProject\":{\"type\":\"string\"},\"versioning\":{\"properties\":{\"enabled\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"website\":{\"properties\":{\"mainPageSuffix\":{\"type\":\"string\"},\"notFoundPage\":{\"type\":\"string\"}},\"type\":\"object\"}},\"required\":[\"projectName\",\"name\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"billing\":{\"properties\":{\"requesterPays\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"cors\":{\"items\":{\"properties\":{\"maxAgeSeconds\":{\"type\":\"number\"},\"method\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"origin\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"responseHeader\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"}},\"type\":\"object\"},\"type\":\"array\"},\"defaultObjectAcl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"labels\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"lifecycle\":{\"properties\":{\"rule\":{\"items\":{\"properties\":{\"action\":{\"properties\":{\"storageClass\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"type\":\"object\"},\"condition\":{\"properties\":{\"age\":{\"type\":\"number\"},\"createdBefore\":{\"type\":\"string\"},\"isLive\":{\"type\":\"boolean\"},\"matchesStorageClass\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"numNewerVersions\":{\"type\":\"number\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"},\"location\":{\"type\":\"string\"},\"logging\":{\"properties\":{\"logBucket\":{\"type\":\"string\"},\"logObjectPrefix\":{\"type\":\"string\"}},\"type\":\"object\"},\"metageneration\":{\"type\":\"number\"},\"name\":{\"type\":\"string\"},\"owner\":{\"properties\":{\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"}},\"type\":\"object\"},\"projectNumber\":{\"type\":\"number\"},\"selfLink\":{\"type\":\"string\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"versioning\":{\"properties\":{\"enabled\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"website\":{\"properties\":{\"mainPageSuffix\":{\"type\":\"string\"},\"notFoundPage\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"billing\":{\"properties\":{\"requesterPays\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"cors\":{\"items\":{\"properties\":{\"maxAgeSeconds\":{\"type\":\"number\"},\"method\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"origin\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"responseHeader\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"}},\"type\":\"object\"},\"type\":\"array\"},\"defaultObjectAcl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"labels\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"lifecycle\":{\"properties\":{\"rule\":{\"items\":{\"properties\":{\"action\":{\"properties\":{\"storageClass\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"type\":\"object\"},\"condition\":{\"properties\":{\"age\":{\"type\":\"number\"},\"createdBefore\":{\"type\":\"string\"},\"isLive\":{\"type\":\"boolean\"},\"matchesStorageClass\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"numNewerVersions\":{\"type\":\"number\"}},\"type\":\"object\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"},\"location\":{\"type\":\"string\"},\"logging\":{\"properties\":{\"logBucket\":{\"type\":\"string\"},\"logObjectPrefix\":{\"type\":\"string\"}},\"type\":\"object\"},\"metageneration\":{\"type\":\"number\"},\"name\":{\"type\":\"string\"},\"owner\":{\"properties\":{\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"}},\"type\":\"object\"},\"projectNumber\":{\"type\":\"number\"},\"selfLink\":{\"type\":\"string\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"versioning\":{\"properties\":{\"enabled\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"website\":{\"properties\":{\"mainPageSuffix\":{\"type\":\"string\"},\"notFoundPage\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "CreateObject",
+            "name": "CreateObject",
+            "description": "This activity handles bucket create and object create for google cloud storage",
+            "activity": {
+              "ref": "#create",
+              "input": {
+                "Google Connection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "Object Name": "Object",
+                "input": {
+                  "mapping": {
+                    "bucket": "gcsflogo-test-bucket",
+                    "data": "sample object with dummy data....!!!!",
+                    "name": "testFile1.txt",
+                    "uploadType": "multipart",
+                    "metadata": {
+                      "(Key)": "uploadedBy:Khushali"
+                    },
+                    "storageClass": "Standard"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"data\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"uploadType\":{\"type\":\"string\"},\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"cacheControl\":{\"type\":\"string\"},\"contentDisposition\":{\"type\":\"string\"},\"contentEncoding\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"kmsKeyName\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"predefinedAcl\":{\"type\":\"string\"},\"projection\":{\"type\":\"string\"},\"storageClass\":{\"type\":\"string\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"uploadType\",\"name\",\"data\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"data\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"uploadType\":{\"type\":\"string\"},\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"cacheControl\":{\"type\":\"string\"},\"contentDisposition\":{\"type\":\"string\"},\"contentEncoding\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"kmsKeyName\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"predefinedAcl\":{\"type\":\"string\"},\"projection\":{\"type\":\"string\"},\"storageClass\":{\"type\":\"string\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"uploadType\",\"name\",\"data\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"bucket\":{\"type\":\"string\"},\"cacheControl\":{\"type\":\"string\"},\"componentCount\":{\"type\":\"number\"},\"contentDisposition\":{\"type\":\"string\"},\"contentEncoding\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"customerEncryption\":{\"properties\":{\"encryptionAlgorithm\":{\"type\":\"string\"},\"keySha256\":{\"type\":\"string\"}},\"type\":\"object\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"kmsKeyName\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"mediaLink\":{\"type\":\"string\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"metageneration\":{\"type\":\"number\"},\"name\":{\"type\":\"string\"},\"owner\":{\"properties\":{\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"}},\"type\":\"object\"},\"selfLink\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"timeDeleted\":{\"type\":\"string\"},\"timeStorageClassUpdated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"bucket\":{\"type\":\"string\"},\"cacheControl\":{\"type\":\"string\"},\"componentCount\":{\"type\":\"number\"},\"contentDisposition\":{\"type\":\"string\"},\"contentEncoding\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"customerEncryption\":{\"properties\":{\"encryptionAlgorithm\":{\"type\":\"string\"},\"keySha256\":{\"type\":\"string\"}},\"type\":\"object\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"kmsKeyName\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"mediaLink\":{\"type\":\"string\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"metageneration\":{\"type\":\"number\"},\"name\":{\"type\":\"string\"},\"owner\":{\"properties\":{\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"}},\"type\":\"object\"},\"selfLink\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"timeDeleted\":{\"type\":\"string\"},\"timeStorageClassUpdated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogCreateObject",
+            "name": "LogCreateObject",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[CreateObject].output)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "UploadLargeFile",
+            "name": "UploadLargeFile",
+            "description": "This activity uploads local files to Google Cloud Storage",
+            "activity": {
+              "ref": "#upload",
+              "input": {
+                "googleConnection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "input": {
+                  "mapping": {
+                    "bucketName": "gcsflogo-test-bucket",
+                    "files": [
+                      {
+                        "filePath": "C:\\\\path\\\\to\\\\file1GB.bin",
+                        "objectName": "1GBFileUploaded",
+                        "chunkSize": 55442266
+                      }
+                    ]
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucketName\":{\"type\":\"string\"},\"files\":{\"items\":{\"properties\":{\"filePath\":{\"type\":\"string\"},\"objectName\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"chunkSize\":{\"type\":\"integer\"}},\"required\":[\"filePath\",\"objectName\"],\"type\":\"object\"},\"type\":\"array\"}},\"required\":[\"bucketName\",\"files\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucketName\":{\"type\":\"string\"},\"files\":{\"items\":{\"properties\":{\"filePath\":{\"type\":\"string\"},\"objectName\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"chunkSize\":{\"type\":\"integer\"}},\"required\":[\"filePath\",\"objectName\"],\"type\":\"object\"},\"type\":\"array\"}},\"required\":[\"bucketName\",\"files\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"uploadedCount\":{\"type\":\"number\"},\"objects\":{\"items\":{\"properties\":{\"name\":{\"type\":\"string\"},\"bucket\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"contentType\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"metageneration\":{\"type\":\"number\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"uploadedCount\":{\"type\":\"number\"},\"objects\":{\"items\":{\"properties\":{\"name\":{\"type\":\"string\"},\"bucket\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"contentType\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"metageneration\":{\"type\":\"number\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogUploadFile",
+            "name": "LogUploadFile",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[UploadLargeFile].output)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ListObject",
+            "name": "ListObject",
+            "description": "This activity lists buckets or objects for Google Cloud Storage",
+            "activity": {
+              "ref": "#list",
+              "input": {
+                "googleConnection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "resourceType": "Object",
+                "input": {
+                  "mapping": {
+                    "bucket": "gcsflogo-test-bucket",
+                    "prefix": "upload/"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"delimiter\":{\"type\":\"string\"},\"endOffset\":{\"type\":\"string\"},\"filter\":{\"type\":\"string\"},\"includeFoldersAsPrefixes\":{\"type\":\"boolean\"},\"includeTrailingDelimiter\":{\"type\":\"boolean\"},\"matchGlob\":{\"type\":\"string\"},\"maxResults\":{\"type\":\"number\"},\"pageToken\":{\"type\":\"string\"},\"prefix\":{\"type\":\"string\"},\"projection\":{\"type\":\"string\"},\"softDeleted\":{\"type\":\"boolean\"},\"startOffset\":{\"type\":\"string\"},\"versions\":{\"type\":\"boolean\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"delimiter\":{\"type\":\"string\"},\"endOffset\":{\"type\":\"string\"},\"filter\":{\"type\":\"string\"},\"includeFoldersAsPrefixes\":{\"type\":\"boolean\"},\"includeTrailingDelimiter\":{\"type\":\"boolean\"},\"matchGlob\":{\"type\":\"string\"},\"maxResults\":{\"type\":\"number\"},\"pageToken\":{\"type\":\"string\"},\"prefix\":{\"type\":\"string\"},\"projection\":{\"type\":\"string\"},\"softDeleted\":{\"type\":\"boolean\"},\"startOffset\":{\"type\":\"string\"},\"versions\":{\"type\":\"boolean\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"kind\":{\"type\":\"string\"},\"nextPageToken\":{\"type\":\"string\"},\"prefixes\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"items\":{\"items\":{\"properties\":{\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"bucket\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"storageClass\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"md5Hash\":{\"type\":\"string\"},\"mediaLink\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"metageneration\":{\"type\":\"number\"},\"timeCreated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"timeStorageClassUpdated\":{\"type\":\"string\"},\"timeFinalized\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"kind\":{\"type\":\"string\"},\"nextPageToken\":{\"type\":\"string\"},\"prefixes\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"items\":{\"items\":{\"properties\":{\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"bucket\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"storageClass\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"md5Hash\":{\"type\":\"string\"},\"mediaLink\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"metageneration\":{\"type\":\"number\"},\"timeCreated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"timeStorageClassUpdated\":{\"type\":\"string\"},\"timeFinalized\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogListObject",
+            "name": "LogListObject",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[ListObject].output)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "GetObject",
+            "name": "GetObject",
+            "description": "This activity gets bucket or object for google cloud storage",
+            "activity": {
+              "ref": "#get",
+              "input": {
+                "Google Connection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "Object Name": "Object",
+                "input": {
+                  "mapping": {
+                    "bucket": "gcsflogo-test-bucket",
+                    "object": "testFile1.txt"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"metadataOnly\":{\"type\":\"boolean\"},\"projection\":{\"type\":\"string\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"object\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"metadataOnly\":{\"type\":\"boolean\"},\"projection\":{\"type\":\"string\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"object\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"bucket\":{\"type\":\"string\"},\"cacheControl\":{\"type\":\"string\"},\"componentCount\":{\"type\":\"number\"},\"contentEncoding\":{\"type\":\"string\"},\"contentDisposition\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"customerEncryption\":{\"properties\":{\"encryptionAlgorithm\":{\"type\":\"string\"},\"keySha256\":{\"type\":\"string\"}},\"type\":\"object\"},\"data\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"kmsKeyName\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"mediaLink\":{\"type\":\"string\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"metageneration\":{\"type\":\"number\"},\"name\":{\"type\":\"string\"},\"owner\":{\"properties\":{\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"}},\"type\":\"object\"},\"selfLink\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"timeDeleted\":{\"type\":\"string\"},\"timeStorageClassUpdated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"bucket\":{\"type\":\"string\"},\"cacheControl\":{\"type\":\"string\"},\"componentCount\":{\"type\":\"number\"},\"contentEncoding\":{\"type\":\"string\"},\"contentDisposition\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"customerEncryption\":{\"properties\":{\"encryptionAlgorithm\":{\"type\":\"string\"},\"keySha256\":{\"type\":\"string\"}},\"type\":\"object\"},\"data\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"kmsKeyName\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"mediaLink\":{\"type\":\"string\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"metageneration\":{\"type\":\"number\"},\"name\":{\"type\":\"string\"},\"owner\":{\"properties\":{\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"}},\"type\":\"object\"},\"selfLink\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"timeDeleted\":{\"type\":\"string\"},\"timeStorageClassUpdated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogGetObject",
+            "name": "LogGetObject",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[GetObject].output)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "UpdateObject",
+            "name": "UpdateObject",
+            "description": "This activity gets bucket or object for google cloud storage",
+            "activity": {
+              "ref": "#update",
+              "input": {
+                "Google Connection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "Object Name": "Object",
+                "input": {
+                  "mapping": {
+                    "acl": {
+                      "@foreach($activity[CreateObject].output.acl,acl)": {
+                        "entity": "allUsers",
+                        "role": "READER"
+                      }
+                    },
+                    "bucket": "gcsflogo-test-bucket",
+                    "object": "testFile1.txt",
+                    "metadata": {
+                      "(Key)": "updatedBy:Khushali Ramawat,purpose:testing"
+                    },
+                    "contentType": "text/csv"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"cacheControl\":{\"type\":\"string\"},\"contentDisposition\":{\"type\":\"string\"},\"contentEncoding\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"predefinedAcl\":{\"type\":\"string\"},\"projection\":{\"type\":\"string\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"object\",\"acl\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"cacheControl\":{\"type\":\"string\"},\"contentDisposition\":{\"type\":\"string\"},\"contentEncoding\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"predefinedAcl\":{\"type\":\"string\"},\"projection\":{\"type\":\"string\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"object\",\"acl\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"bucket\":{\"type\":\"string\"},\"cacheControl\":{\"type\":\"string\"},\"componentCount\":{\"type\":\"number\"},\"contentEncoding\":{\"type\":\"string\"},\"contentDisposition\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"customerEncryption\":{\"properties\":{\"encryptionAlgorithm\":{\"type\":\"string\"},\"keySha256\":{\"type\":\"string\"}},\"type\":\"object\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"kmsKeyName\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"mediaLink\":{\"type\":\"string\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"metageneration\":{\"type\":\"number\"},\"name\":{\"type\":\"string\"},\"owner\":{\"properties\":{\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"}},\"type\":\"object\"},\"selfLink\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"timeDeleted\":{\"type\":\"string\"},\"timeStorageClassUpdated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"acl\":{\"items\":{\"properties\":{\"bucket\":{\"type\":\"string\"},\"domain\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"},\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"projectTeam\":{\"properties\":{\"projectNumber\":{\"type\":\"string\"},\"team\":{\"type\":\"string\"}},\"type\":\"object\"},\"role\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"bucket\":{\"type\":\"string\"},\"cacheControl\":{\"type\":\"string\"},\"componentCount\":{\"type\":\"number\"},\"contentEncoding\":{\"type\":\"string\"},\"contentDisposition\":{\"type\":\"string\"},\"contentLanguage\":{\"type\":\"string\"},\"contentType\":{\"type\":\"string\"},\"crc32c\":{\"type\":\"string\"},\"customerEncryption\":{\"properties\":{\"encryptionAlgorithm\":{\"type\":\"string\"},\"keySha256\":{\"type\":\"string\"}},\"type\":\"object\"},\"etag\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"kmsKeyName\":{\"type\":\"string\"},\"md5Hash\":{\"type\":\"string\"},\"mediaLink\":{\"type\":\"string\"},\"metadata\":{\"properties\":{\"(Key)\":{\"type\":\"string\"}},\"type\":\"object\"},\"metageneration\":{\"type\":\"number\"},\"name\":{\"type\":\"string\"},\"owner\":{\"properties\":{\"entity\":{\"type\":\"string\"},\"entityId\":{\"type\":\"string\"}},\"type\":\"object\"},\"selfLink\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"storageClass\":{\"type\":\"string\"},\"timeCreated\":{\"type\":\"string\"},\"timeDeleted\":{\"type\":\"string\"},\"timeStorageClassUpdated\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogUpdateObject",
+            "name": "LogUpdateObject",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[UpdateObject].output)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "DeleteObject",
+            "name": "DeleteObject",
+            "description": "This activity handles deletion of bucket and object for google cloud storage",
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "Google Connection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "Object Name": "Object",
+                "input": {
+                  "mapping": {
+                    "bucket": "gcsflogo-test-bucket",
+                    "object": "=$activity[GetObject].output.name"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"object\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"object\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"Status\":{\"type\":\"string\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"Status\":{\"type\":\"string\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "DeleteUploadedFile",
+            "name": "DeleteUploadedFile",
+            "description": "This activity handles deletion of bucket and object for google cloud storage",
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "Google Connection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "Object Name": "Object",
+                "input": {
+                  "mapping": {
+                    "bucket": "gcsflogo-test-bucket",
+                    "object": "1GBFileUploaded"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"object\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"generation\":{\"type\":\"number\"},\"ifGenerationMatch\":{\"type\":\"number\"},\"ifGenerationNotMatch\":{\"type\":\"number\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\",\"object\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"Status\":{\"type\":\"string\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"Status\":{\"type\":\"string\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "DeleteBucket",
+            "name": "DeleteBucket",
+            "description": "This activity handles deletion of bucket and object for google cloud storage",
+            "activity": {
+              "ref": "#delete",
+              "input": {
+                "Google Connection": "conn://fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+                "Object Name": "Bucket",
+                "input": {
+                  "mapping": {
+                    "bucket": "gcsflogo-test-bucket"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"ifMetagenerationMatch\":{\"type\":\"number\"},\"ifMetagenerationNotMatch\":{\"type\":\"number\"},\"userProject\":{\"type\":\"string\"}},\"required\":[\"bucket\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"Status\":{\"type\":\"string\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"bucket\":{\"type\":\"string\"},\"Status\":{\"type\":\"string\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogDeleteObjectFileBucket",
+            "name": "LogDeleteObjectFileBucket",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(coerce.toString($activity[DeleteObject].output),coerce.toString($activity[DeleteUploadedFile].output),coerce.toString($activity[DeleteBucket].output))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "output": "=coerce.toString($activity[DeleteBucket].output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjAsInkiOjMzfSwiQ3JlYXRlQnVja2V0Ijp7IngiOjc4LCJ5IjoyNn0sIkNyZWF0ZU9iamVjdCI6eyJ4IjoyMzgsInkiOjI1fSwiTG9nQ3JlYXRlT2JqZWN0Ijp7IngiOjM5OSwieSI6Mjd9LCJVcGxvYWRMYXJnZUZpbGUiOnsieCI6NTQ5LCJ5IjoyMX0sIkxvZ1VwbG9hZEZpbGUiOnsieCI6NzE5LCJ5IjoyMH0sIkxpc3RPYmplY3QiOnsieCI6NzksInkiOjExNn0sIkxvZ0xpc3RPYmplY3QiOnsieCI6MjQxLCJ5IjoxMTR9LCJHZXRPYmplY3QiOnsieCI6NDAxLCJ5IjoxMTN9LCJMb2dHZXRPYmplY3QiOnsieCI6NTUyLCJ5IjoxMTV9LCJVcGRhdGVPYmplY3QiOnsieCI6NzIxLCJ5IjoxMDd9LCJMb2dVcGRhdGVPYmplY3QiOnsieCI6ODAsInkiOjIxNH0sIkRlbGV0ZU9iamVjdCI6eyJ4IjoyNDcsInkiOjIxNH0sIkRlbGV0ZVVwbG9hZGVkRmlsZSI6eyJ4Ijo0MDEsInkiOjIxOX0sIkRlbGV0ZUJ1Y2tldCI6eyJ4Ijo1NTYsInkiOjIxOX0sIkxvZ0RlbGV0ZU9iamVjdEZpbGVCdWNrZXQiOnsieCI6NzIxLCJ5IjoyMjB9LCJSZXR1cm4iOnsieCI6NzE4LCJ5IjozMTF9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"output\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "GoogleConnection.googleconn.Service_Account_Key",
+      "type": "string",
+      "value": {
+        "filename": "key.json",
+        "content": "data:application/json;base64,ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAicHJvamVjdCIsCiAgInByaXZhdGVfa2V5X2lkIjogImVlYWZkNTBmM2RhODFhNzFkODA4MzRlMmNlNjk2IiwKICAicHJpdmF0ZV9rZXkiOiAiLS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tXG5NSUlFdlFJQkFEQU5CZ1xuLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLVxuIiwKICAiY2xpZW50X2VtYWlsIjogImVtYWlsQGNsaWVudC5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgImNsaWVudF9pZCI6ICIxMjM1MjU0MDQzMTQ2NCIsCiAgImF1dGhfdXJpIjogImh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbS9vL29hdXRoMi9hdXRoIiwKICAidG9rZW5fdXJpIjogImh0dHBzOi8vb2F1dGgyLmdvb2dsZWFwaXMuY29tL3Rva2VuIiwKICAiYXV0aF9wcm92aWRlcl94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL29hdXRoMi92MS9jZXJ0cyIsCiAgImNsaWVudF94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL3JvYm90L3YxL21ldGFkYXRhL3g1MDkvZW1haWwlNDBjbGllbnQuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLAogICJ1bml2ZXJzZV9kb21haW4iOiAiZ29vZ2xlYXBpcy5jb20iCn0K"
+      }
+    }
+  ],
+  "connections": {
+    "fe65f5fd-11d6-4d8a-9e08-679b6907b023": {
+      "id": "fe65f5fd-11d6-4d8a-9e08-679b6907b023",
+      "name": "googleconn",
+      "ref": "#connector",
+      "isGlobal": false,
+      "settings": {
+        "name": "googleconn",
+        "description": "",
+        "seviceaccountkey": "=$property[\"GoogleConnection.googleconn.Service_Account_Key\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTQtSEYxIiwidGFnIjoiMS42LjE0LWhmMS1iMDIiLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL3dpLWdzdG9yYWdlL3NyYy9hcHAvR29vZ2xlQ2xvdWRTdG9yYWdlIiwiaWQiOiJHb29nbGVDbG91ZFN0b3JhZ2UiLCJ2ZXJzaW9uIjoiMS4xLjMiLCJ0YWciOiIxLjEuMy1iMDIiLCJuYW1lIjoiR29vZ2xlIENsb3VkIFN0b3JhZ2UiLCJzM2xvY2F0aW9uIjoiVGliY28vR29vZ2xlQ2xvdWRTdG9yYWdlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL3dpLWdvb2dsZS9zcmMvYXBwL0dvb2dsZUNvbm5lY3Rpb24iLCJpZCI6Ikdvb2dsZUNvbm5lY3Rpb24iLCJ2ZXJzaW9uIjoiMS4wLjMiLCJ0YWciOiIxLjAuMy1iMDEiLCJuYW1lIjoiR29vZ2xlIENvbm5lY3Rpb24iLCJzM2xvY2F0aW9uIjoiVGliY28vR29vZ2xlQ29ubmVjdGlvbiIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9999",
+        "spec": {
+          "name": "GCS-CRUD-App",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "GCS-CRUD-App",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/gcs-crud": {
+              "get": {
+                "summary": "GCS_All_Activity_Flow",
+                "operationId": "get_gcs-crud",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                },
+                "description": "Add description"
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "output": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}

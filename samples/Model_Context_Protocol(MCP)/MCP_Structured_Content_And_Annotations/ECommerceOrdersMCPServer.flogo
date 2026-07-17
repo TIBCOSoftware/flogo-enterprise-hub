@@ -1,0 +1,461 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/array"
+  ],
+  "name": "ECommerceOrdersMCPServer",
+  "description": "Demonstrates structured content (Tool Output Schema + structuredContent) and content annotations (audience/priority) in an e-commerce order management scenario",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "E-Commerce Orders MCP server with structured content and annotations",
+      "settings": {
+        "serverName": "ECommerceOrdersMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": true,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "ECommerceOrdersServer",
+      "handlers": [
+        {
+          "description": "Order status with structured content, text and annotations.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_order_status",
+            "handlerDescription": "Look up an order by order ID and return its status, items, total, and estimated delivery date. Returns both a human-readable text summary and structuredContent (typed JSON) for programmatic consumption. audience=[user,assistant] priority=0.9.",
+            "toolTitle": "Get Order Status",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetOrderStatusFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response",
+              "structuredContent": "=$.structuredContent"
+            }
+          },
+          "reply": {
+            "outputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_id\": {\n      \"type\": \"string\",\n      \"description\": \"The order identifier\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"description\": \"Current order status (e.g. processing, shipped, delivered)\"\n    },\n    \"item_count\": {\n      \"type\": \"integer\",\n      \"description\": \"Number of items in the order\"\n    },\n    \"total_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Order total in USD\"\n    },\n    \"estimated_delivery\": {\n      \"type\": \"string\",\n      \"description\": \"Estimated delivery date in ISO 8601 format\"\n    },\n    \"shipping_carrier\": {\n      \"type\": \"string\",\n      \"description\": \"Shipping carrier name\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"Shipment tracking number\"\n    }\n  },\n  \"required\": [\n    \"order_id\",\n    \"status\",\n    \"item_count\",\n    \"total_usd\"\n  ]\n}"
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "structuredContent": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_id\": {\n      \"type\": \"string\",\n      \"description\": \"The order identifier\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"description\": \"Current order status (e.g. processing, shipped, delivered)\"\n    },\n    \"item_count\": {\n      \"type\": \"integer\",\n      \"description\": \"Number of items in the order\"\n    },\n    \"total_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Order total in USD\"\n    },\n    \"estimated_delivery\": {\n      \"type\": \"string\",\n      \"description\": \"Estimated delivery date in ISO 8601 format\"\n    },\n    \"shipping_carrier\": {\n      \"type\": \"string\",\n      \"description\": \"Shipping carrier name\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"Shipment tracking number\"\n    }\n  },\n  \"required\": [\n    \"order_id\",\n    \"status\",\n    \"item_count\",\n    \"total_usd\"\n  ]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_id\": {\n      \"type\": \"string\",\n      \"description\": \"The order identifier\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"description\": \"Current order status (e.g. processing, shipped, delivered)\"\n    },\n    \"item_count\": {\n      \"type\": \"integer\",\n      \"description\": \"Number of items in the order\"\n    },\n    \"total_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Order total in USD\"\n    },\n    \"estimated_delivery\": {\n      \"type\": \"string\",\n      \"description\": \"Estimated delivery date in ISO 8601 format\"\n    },\n    \"shipping_carrier\": {\n      \"type\": \"string\",\n      \"description\": \"Shipping carrier name\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"Shipment tracking number\"\n    }\n  },\n  \"required\": [\n    \"order_id\",\n    \"status\",\n    \"item_count\",\n    \"total_usd\"\n  ]\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_id\": {\n      \"type\": \"string\",\n      \"description\": \"The order ID to look up (e.g. ORD-2026-78901)\"\n    }\n  },\n  \"required\": [\"order_id\"],\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_id\": {\n      \"type\": \"string\",\n      \"description\": \"The order ID to look up (e.g. ORD-2026-78901)\"\n    }\n  },\n  \"required\": [\"order_id\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "GetOrderStatusFlow"
+        },
+        {
+          "description": "Internal order analytics with assistant-only audience annotation.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_order_analytics",
+            "handlerDescription": "Returns internal order analytics and metrics for LLM reasoning. This data is for the AI assistant's internal use only and is not shown to the human user. audience=[assistant] (LLM only), priority=0.3 (low importance, background context).",
+            "toolTitle": "Get Order Analytics",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetOrderAnalyticsFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"period\": {\n      \"type\": \"string\",\n      \"description\": \"Analytics period: last_7d, last_30d, last_90d. Default last_30d.\"\n    }\n  },\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"period\": {\n      \"type\": \"string\",\n      \"description\": \"Analytics period: last_7d, last_30d, last_90d. Default last_30d.\"\n    }\n  },\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "GetOrderAnalyticsFlow"
+        },
+        {
+          "description": "Urgent shipping alerts with user-only audience annotation.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_shipping_alerts",
+            "handlerDescription": "Returns critical shipping alerts and delivery exceptions that require immediate human attention. This information is shown directly to the human user and is not consumed by the LLM. audience=[user] (human only), priority=1.0 (highest importance, urgent).",
+            "toolTitle": "Get Shipping Alerts",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetShippingAlertsFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"severity\": {\n      \"type\": \"string\",\n      \"description\": \"Filter by alert severity: critical, warning, or all. Default all.\"\n    }\n  },\n  \"additionalProperties\": false\n}",
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"severity\": {\n      \"type\": \"string\",\n      \"description\": \"Filter by alert severity: critical, warning, or all. Default all.\"\n    }\n  },\n  \"additionalProperties\": false\n}"
+              }
+            }
+          },
+          "name": "GetShippingAlertsFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GetOrderStatusFlow",
+      "data": {
+        "name": "GetOrderStatusFlow",
+        "description": "Order status with structured content, text and annotations.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "Order ORD-2026-78901: Status SHIPPED. 3 items totaling $247.95. Shipped via FedEx (tracking: FX-9876543210). Estimated delivery: 2026-06-28. Items: 1x Wireless Keyboard K500 ($79.99), 1x USB-C Dock Pro ($129.99), 1x Screen Protector ($37.97).",
+                      "audience": [
+                        "user",
+                        "assistant"
+                      ],
+                      "priority": 0.9
+                    }
+                  },
+                  "structuredContent": {
+                    "mapping": {
+                      "order_id": "ORD-2026-78901",
+                      "status": "shipped",
+                      "item_count": 3,
+                      "total_usd": 247.95,
+                      "estimated_delivery": "2026-06-28",
+                      "shipping_carrier": "FedEx",
+                      "tracking_number": "FX-9876543210"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNzQsInkiOjQyfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"order_id\":{\"type\":\"string\",\"description\":\"The order ID to look up (e.g. ORD-2026-78901)\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "structuredContent",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"order_id\":{\"type\":\"string\",\"description\":\"The order identifier\"},\"status\":{\"type\":\"string\",\"description\":\"Current order status (e.g. processing, shipped, delivered)\"},\"item_count\":{\"type\":\"integer\",\"description\":\"Number of items in the order\"},\"total_usd\":{\"type\":\"number\",\"description\":\"Order total in USD\"},\"estimated_delivery\":{\"type\":\"string\",\"description\":\"Estimated delivery date in ISO 8601 format\"},\"shipping_carrier\":{\"type\":\"string\",\"description\":\"Shipping carrier name\"},\"tracking_number\":{\"type\":\"string\",\"description\":\"Shipment tracking number\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ECommerceOrdersServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"order_id\":{\"type\":\"string\",\"description\":\"The order ID to look up (e.g. ORD-2026-78901)\"}},\"required\":[\"order_id\"],\"additionalProperties\":false},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}},\"structuredContent\":{\"type\":\"object\",\"properties\":{\"order_id\":{\"type\":\"string\",\"description\":\"The order identifier\"},\"status\":{\"type\":\"string\",\"description\":\"Current order status (e.g. processing, shipped, delivered)\"},\"item_count\":{\"type\":\"integer\",\"description\":\"Number of items in the order\"},\"total_usd\":{\"type\":\"number\",\"description\":\"Order total in USD\"},\"estimated_delivery\":{\"type\":\"string\",\"description\":\"Estimated delivery date in ISO 8601 format\"},\"shipping_carrier\":{\"type\":\"string\",\"description\":\"Shipping carrier name\"},\"tracking_number\":{\"type\":\"string\",\"description\":\"Shipment tracking number\"}},\"required\":[\"order_id\",\"status\",\"item_count\",\"total_usd\"]}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetOrderAnalyticsFlow",
+      "data": {
+        "name": "GetOrderAnalyticsFlow",
+        "description": "Internal order analytics with assistant-only audience annotation.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "INTERNAL ORDER ANALYTICS (last 30 days): Total orders: 4,832 | Revenue: $1,247,650 | Avg order value: $258.21 | Fulfillment rate: 96.3% | Avg ship time: 2.1 days | Return rate: 4.7% | Top category: Electronics (38%) | Repeat customer rate: 62% | Cart abandonment: 23.1% | Customer satisfaction: 4.6/5.0 | Peak order hour: 2pm-4pm EST | Mobile orders: 67%",
+                      "audience": [
+                        "assistant"
+                      ],
+                      "priority": 0.3
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTcsInkiOjU4fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"period\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"period\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetShippingAlertsFlow",
+      "data": {
+        "name": "GetShippingAlertsFlow",
+        "description": "Urgent shipping alerts with user-only audience annotation.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "SHIPPING ALERTS: [CRITICAL] ORD-2026-78845 — Package stuck at customs (Miami hub) for 5 days. Customer contacted support twice. Escalation required. | [CRITICAL] ORD-2026-78902 — Delivery attempt failed: incorrect address on file. Package returning to sender. Contact customer immediately. | [WARNING] ORD-2026-78867 — Carrier reports weather delay in Pacific Northwest. New ETA: 2 days later than original estimate. | [WARNING] ORD-2026-78910 — Fragile item shipped without protective packaging. Monitor for damage claim.",
+                      "audience": [
+                        "user"
+                      ],
+                      "priority": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTYsInkiOjQ3fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"severity\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9097"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMyIsInRhZyI6IjEuMC4zLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9097",
+        "title": "ECommerceOrdersServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}

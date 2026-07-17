@@ -1,0 +1,301 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver"
+  ],
+  "name": "KnowledgeBaseMCPServer",
+  "description": "MCP server providing IT knowledge base articles and troubleshooting steps — used as a backend for the ITHelpDeskAdvisor sample",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "IT Knowledge Base MCP Server",
+      "settings": {
+        "serverName": "KnowledgeBaseMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": true,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "KnowledgeBaseServer",
+      "handlers": [
+        {
+          "description": "Search the IT knowledge base for articles matching a query",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "search_kb_articles",
+            "handlerDescription": "Search the IT knowledge base for articles matching a keyword or topic. Returns a list of relevant articles with titles, summaries, and article IDs.",
+            "toolTitle": "Search KB Articles",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:SearchKBArticlesFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"Search keyword or topic (e.g. WiFi, VPN, password reset)\"}},\"required\":[\"query\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"Search keyword or topic (e.g. WiFi, VPN, password reset)\"}},\"required\":[\"query\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "SearchKBArticlesFlow"
+        },
+        {
+          "description": "Retrieve step-by-step troubleshooting instructions for a specific KB article",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_troubleshooting_steps",
+            "handlerDescription": "Retrieve detailed step-by-step troubleshooting instructions for a specific knowledge base article by its article ID.",
+            "toolTitle": "Get Troubleshooting Steps",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetTroubleshootingStepsFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"article_id\":{\"type\":\"string\",\"description\":\"The KB article ID (e.g. KB-1001)\"}},\"required\":[\"article_id\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"article_id\":{\"type\":\"string\",\"description\":\"The KB article ID (e.g. KB-1001)\"}},\"required\":[\"article_id\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "GetTroubleshootingStepsFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:SearchKBArticlesFlow",
+      "data": {
+        "name": "SearchKBArticlesFlow",
+        "description": "Returns mock KB article search results",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"articles\":[{\"article_id\":\"KB-1001\",\"title\":\"WiFi Connection Troubleshooting Guide\",\"summary\":\"Step-by-step guide for resolving common WiFi connectivity issues on corporate laptops including driver resets, network profile recreation, and proxy configuration.\",\"category\":\"Networking\",\"last_updated\":\"2026-05-15\"},{\"article_id\":\"KB-1002\",\"title\":\"VPN Connection Setup and Troubleshooting\",\"summary\":\"How to configure and troubleshoot the corporate VPN client, including split-tunneling issues, certificate renewal, and firewall exceptions.\",\"category\":\"Networking\",\"last_updated\":\"2026-06-01\"},{\"article_id\":\"KB-1003\",\"title\":\"Password Reset and Account Lockout Recovery\",\"summary\":\"Self-service password reset procedures, account lockout recovery steps, and MFA device re-enrollment instructions.\",\"category\":\"Security\",\"last_updated\":\"2026-04-20\"}],\"total_results\":3}"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNzQsInkiOjQyfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"query\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetTroubleshootingStepsFlow",
+      "data": {
+        "name": "GetTroubleshootingStepsFlow",
+        "description": "Returns mock troubleshooting steps for a KB article",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"article_id\":\"KB-1001\",\"title\":\"WiFi Connection Troubleshooting Guide\",\"steps\":[{\"step\":1,\"action\":\"Open Settings > Network & Internet > WiFi and toggle WiFi OFF, wait 10 seconds, toggle back ON\"},{\"step\":2,\"action\":\"Forget the corporate network (CorpNet-5G) and reconnect using your Active Directory credentials\"},{\"step\":3,\"action\":\"Open Command Prompt as Administrator and run: netsh winsock reset && netsh int ip reset\"},{\"step\":4,\"action\":\"Restart the laptop and try connecting again\"},{\"step\":5,\"action\":\"If still failing, open Device Manager > Network Adapters, right-click your WiFi adapter, select Update Driver\"},{\"step\":6,\"action\":\"Run the Network Diagnostics tool: Settings > Network & Internet > Advanced Network Settings > Network Troubleshooter\"},{\"step\":7,\"action\":\"If none of the above work, contact IT Help Desk to create a support ticket for on-site investigation\"}],\"estimated_time_minutes\":15,\"difficulty\":\"Beginner\"}"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNzQsInkiOjQyfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"article_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"article_id\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9201"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMyIsInRhZyI6IjEuMC4zLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9201",
+        "title": "KnowledgeBaseServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.5"
+  }
+}
