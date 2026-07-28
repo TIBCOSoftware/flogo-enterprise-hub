@@ -1,0 +1,190 @@
+{
+  "contrib": "W3siaWQiOiJBZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwidGFnIjoiMC45LjQtaGYxLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjAuOS40LUhGMSJ9XQ==",
+  "data": {
+    "description": "Receives event travel requests via REST and invokes the EventTravelAgent.",
+    "explicitReply": true,
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiSW52b2tlRXZlbnRUcmF2ZWxBZ2VudCI6eyJ4IjozMDAsInkiOjEwMH0sIlJldHVybiI6eyJ4Ijo1MDAsInkiOjEwMH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to InvokeEventTravelAgent",
+        "to": "InvokeEventTravelAgent",
+        "type": "label"
+      },
+      {
+        "from": "InvokeEventTravelAgent",
+        "id": 2,
+        "label": "InvokeEventTravelAgent to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\": \"object\", \"title\": \"ReceiveHTTPMessage\", \"properties\": {\"pathParams\": {\"type\": \"object\", \"properties\": {\"eventId\": {\"type\": \"string\"}}, \"required\": []}, \"headers\": {\"type\": \"object\", \"properties\": {\"Accept\": {\"type\": \"string\", \"visible\": false}, \"Accept-Charset\": {\"type\": \"string\", \"visible\": false}, \"Accept-Encoding\": {\"type\": \"string\", \"visible\": false}, \"Authorization\": {\"type\": \"string\", \"visible\": false}, \"Connection\": {\"type\": \"string\", \"visible\": false}, \"Content-Length\": {\"type\": \"string\", \"visible\": false}, \"Content-Type\": {\"type\": \"string\", \"visible\": false}, \"Cookie\": {\"type\": \"string\", \"visible\": false}, \"Pragma\": {\"type\": \"string\", \"visible\": false}}, \"required\": []}, \"body\": {\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"properties\": {\"request\": {\"type\": \"string\"}}}, \"requestURI\": {\"type\": \"string\", \"required\": false}, \"method\": {\"type\": \"string\", \"required\": false}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"string\"}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "pathParams",
+          "schema": {
+            "type": "json",
+            "value": "{\"eventId\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "headers",
+          "schema": {
+            "type": "json",
+            "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "body",
+          "schema": {
+            "type": "json",
+            "value": "{\"request\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "requestURI",
+          "type": "string"
+        },
+        {
+          "name": "method",
+          "type": "string"
+        }
+      ],
+      "output": [
+        {
+          "name": "code",
+          "type": "integer"
+        },
+        {
+          "name": "data",
+          "schema": {
+            "type": "json",
+            "value": "{\"response\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "event_travel_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "agentName": "EventTravelAgent",
+            "conversationId": "=$flow.pathParams.eventId",
+            "prompt": "=$flow.body.request",
+            "structuredOutput": false
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/callagent"
+        },
+        "description": "Invokes the EventTravelAgent with the travel coordination request.",
+        "id": "InvokeEventTravelAgent",
+        "name": "InvokeEventTravelAgent"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "code": 200,
+              "data": {
+                "mapping": {
+                  "response": "=$activity[InvokeEventTravelAgent].response"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the agent response to the caller.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "body": {
+              "mapping": {
+                "request": "=$.body.request"
+              }
+            },
+            "headers": "=$.headers",
+            "pathParams": "=$.pathParams"
+          },
+          "output": {
+            "code": "=$.code",
+            "data": "=$.data"
+          }
+        },
+        "description": "Receives event travel requests via REST and invokes the EventTravelAgent.",
+        "reply": {
+          "code": 200,
+          "configureResponseCodes": false,
+          "message": {}
+        },
+        "schemas": {
+          "output": {
+            "body": {
+              "fe_metadata": "{\"request\":\"I need to book travel for a speaker attending the European Tech Summit.\"}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"request\":{\"type\":\"string\"}}}"
+            },
+            "headers": {
+              "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+            },
+            "pathParams": {
+              "fe_metadata": "[{\"parameterName\":\"eventId\",\"type\":\"string\"}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"eventId\":{\"type\":\"string\"}},\"required\":[]}"
+            }
+          },
+          "reply": {
+            "data": {
+              "fe_metadata": "{\"response\":\"agent reply\"}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"string\"}}}"
+            },
+            "responseBody": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+            }
+          }
+        },
+        "settings": {
+          "Method": "POST",
+          "OutputValidation": false,
+          "Path": "/event-travel/{eventId}",
+          "reqType": "application/json"
+        },
+        "trigger": "trigger://ReceiveHTTPMessage.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/callagent",
+    "github.com/project-flogo/contrib/activity/actreturn"
+  ],
+  "type": "flogo:flow"
+}

@@ -1,0 +1,162 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Custom PHI Guardrail: Receives pre-processed customGuardrailInput (SSN already redacted at handler level) and applies additional DOB and MRN redaction before returning sanitized data to the LLM pipeline.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nUEhJR3VhcmRyYWlsIjp7IngiOjI3NSwieSI6OTJ9LCJSZXR1cm5TYW5pdGl6ZWREYXRhIjp7IngiOjQ4MCwieSI6OTF9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogPHIGuardrail",
+        "to": "LogPHIGuardrail",
+        "type": "label"
+      },
+      {
+        "from": "LogPHIGuardrail",
+        "id": 2,
+        "label": "LogPHIGuardrail to ReturnSanitizedData",
+        "to": "ReturnSanitizedData",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"HealthcarePatientAgent\",\"properties\":{\"customGuardrailInput\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"isRequest\":{\"type\":\"boolean\"}},\"required\":[\"data\",\"isRequest\"]}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "customGuardrailInput",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"isRequest\":{\"type\":\"boolean\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "phi_guardrail_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[PHIGuardrail] direction=\", string.concat(coerce.toString($flow.customGuardrailInput.isRequest), \" — PHI redaction applied\"))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Logs the guardrail invocation direction (input=patient→LLM, output=LLM→patient)",
+        "id": "LogPHIGuardrail",
+        "name": "LogPHIGuardrail"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "=string.replaceRegEx(\"MRN-\\\\d{6,10}\", string.replaceRegEx(\"\\\\d{4}-\\\\d{2}-\\\\d{2}\", $flow.customGuardrailInput.data, \"****-**-**\"), \"MRN-XXXXXXXX\")",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns sanitized data: SSN was already redacted by the handler-level @conditional; applies DOB (\\d{4}-\\d{2}-\\d{2} → ****-**-**) and MRN (MRN-\\d{6,10} → MRN-XXXXXXXX) on the handler-processed value.",
+        "id": "ReturnSanitizedData",
+        "name": "ReturnSanitizedData"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "customGuardrailInput": {
+              "@conditional": [
+                {
+                  "string.contains($.customGuardrailInput.data, \"\\\\d{3}-\\\\d{2}-\\\\d{4}\")": {
+                    "data": "=string.replaceRegEx(\"\\\\d{3}-\\\\d{2}-\\\\d{4}\", $.customGuardrailInput.data, \"XXX-XX-XXXX\")",
+                    "isRequest": "=$.customGuardrailInput.isRequest"
+                  }
+                },
+                {
+                  "@otherwise": {
+                    "data": "=$.customGuardrailInput.data",
+                    "isRequest": "=$.customGuardrailInput.isRequest"
+                  }
+                }
+              ]
+            }
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Custom PHI Guardrail: Receives pre-processed customGuardrailInput (SSN already redacted at handler level) and applies additional DOB and MRN redaction before returning sanitized data to the LLM pipeline.",
+        "schemas": {
+          "output": {
+            "customConversationStoreOpInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+            },
+            "customGuardrailInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+            }
+          },
+          "reply": {
+            "customConversationStoreOpOutput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+            },
+            "response": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "agentToolDescription": "",
+          "agentToolName": "",
+          "customConversationStoreOperation": "STORE",
+          "customGuardrailType": "BOTH",
+          "handlerType": "Custom Guardrail"
+        },
+        "trigger": "trigger://HealthcarePatientAgent.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

@@ -1,0 +1,225 @@
+{
+  "contrib": "W3siaWQiOiJHb29nbGVTaGVldHMiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiR29vZ2xlIFNoZWV0cyIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vd2ktZ3NoZWV0cy9zcmMvYXBwL0dvb2dsZVNoZWV0cyIsInMzbG9jYXRpb24iOiJUaWJjby9Hb29nbGVTaGVldHMiLCJ0YWciOiIzLjAuMC1oZjEtYjA0LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy4wLjAtSEYxIn0seyJpZCI6IkdlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiR2VuZXJhbCIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsInRhZyI6IjMuNi4xNS1iMTctdjMtbWFpbiIsInZlcnNpb24iOiIzLjYuMTUifV0=",
+  "data": {
+    "description": "Tool to query the ATS customer insights tracker",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUXVlcnlBVFNUcmFja2VyU2hlZXQiOnsieCI6MjQ1LCJ5IjoxNTZ9LCJMb2dBVFNJbnNpZ2h0cyI6eyJ4Ijo0MzgsInkiOjk3fSwiUmV0dXJuU3VjY2VzcyI6eyJ4Ijo2NjcsInkiOjk5fSwiTG9nRXJyb3IiOnsieCI6NDQ0LCJ5IjoyOTN9LCJSZXR1cm5FcnJvciI6eyJ4Ijo2NzYsInkiOjI5N319",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to GetGoogleSheetData",
+        "to": "QueryATSTrackerSheet",
+        "type": "label"
+      },
+      {
+        "from": "QueryATSTrackerSheet",
+        "id": 2,
+        "label": "GetGoogleSheetData to LogMessage",
+        "to": "LogATSInsights",
+        "type": "label"
+      },
+      {
+        "from": "LogATSInsights",
+        "id": 3,
+        "label": "LogMessage to Return",
+        "to": "ReturnSuccess",
+        "type": "label"
+      },
+      {
+        "from": "QueryATSTrackerSheet",
+        "id": 4,
+        "label": "QueryATSTrackerSheet to LogMessage",
+        "to": "LogError",
+        "type": "error"
+      },
+      {
+        "from": "LogError",
+        "id": 5,
+        "label": "LogMessage to Return1",
+        "to": "ReturnError",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "ATS_Customer_Relation_metrics",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Connection": "conn://ats-tracker-gsheet.fgconn",
+            "Input": {
+              "mapping": {
+                "cellRange": "A1:H103",
+                "sheetId": "TIBCO Accounts",
+                "spreadsheetId": "1PRpxypo6tGEQ1zP62DuCw03RaVgNFy52FSJvPKEMXKE"
+              }
+            },
+            "dateTimeRenderOption": "FORMATTED_STRING",
+            "majorDimension": "ROWS",
+            "valueRenderOption": "FORMATTED_VALUE"
+          },
+          "ref": "github.com/tibco/wi-gsheets/src/app/GoogleSheets/activity/get",
+          "schemas": {
+            "input": {
+              "Input": {
+                "fe_metadata": "{\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"properties\":{\"spreadsheetId\":{\"type\":\"string\"},\"sheetId\":{\"type\":\"string\",\"description\":\"Enter the sheet name\"},\"cellRange\":{\"type\":\"string\",\"description\":\"Enter the range of cells to get\"}}}",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"properties\":{\"spreadsheetId\":{\"type\":\"string\"},\"sheetId\":{\"type\":\"string\",\"description\":\"Enter the sheet name\"},\"cellRange\":{\"type\":\"string\",\"description\":\"Enter the range of cells to get\"}}}"
+              }
+            },
+            "output": {
+              "Output": {
+                "fe_metadata": "{\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"properties\":{\"majorDimension\":{\"type\":\"string\"},\"spreadsheetId\":{\"type\":\"string\"},\"sheetId\":{\"type\":\"string\",\"description\":\"Enter the sheet name\"},\"cellRange\":{\"type\":\"string\",\"description\":\"Enter the range of cells to get\"},\"Rows\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Row\":{\"type\":\"array\",\"items\":{\"type\":\"any\"}}}}}}}",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"definitions\":{},\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"properties\":{\"majorDimension\":{\"type\":\"string\"},\"spreadsheetId\":{\"type\":\"string\"},\"sheetId\":{\"type\":\"string\",\"description\":\"Enter the sheet name\"},\"cellRange\":{\"type\":\"string\",\"description\":\"Enter the range of cells to get\"},\"Rows\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Row\":{\"type\":\"array\",\"items\":{\"type\":\"any\"}}}}}}}"
+              }
+            }
+          }
+        },
+        "description": "Get Google Sheet Data",
+        "id": "QueryATSTrackerSheet",
+        "name": "QueryATSTrackerSheet"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=coerce.toString($activity[QueryATSTrackerSheet].Output.Rows)"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogATSInsights",
+        "name": "LogATSInsights"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "=coerce.toString($activity[QueryATSTrackerSheet].Output)"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "ReturnSuccess",
+        "name": "ReturnSuccess"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=coerce.toString($error[QueryATSTrackerSheet])"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogError",
+        "name": "LogError"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "error": "=coerce.toString($error[QueryATSTrackerSheet])"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "ReturnError",
+        "name": "ReturnError"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Tool to query the ATS customer insights tracker",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "handlerDescription": "get customers relation insights information from the google sheet",
+          "handlerName": "GetHealthInsightsFromATS",
+          "handlerType": "Tool",
+          "resourceUri": ""
+        },
+        "trigger": "trigger://MCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-gsheets/src/app/GoogleSheets/activity/get",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

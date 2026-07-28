@@ -1,0 +1,128 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Urgent shipping alerts with user-only audience annotation.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTYsInkiOjQ3fX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"severity\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "GetShippingAlertsFlow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "audience": [
+                    "user"
+                  ],
+                  "data": "SHIPPING ALERTS: [CRITICAL] ORD-2026-78845 — Package stuck at customs (Miami hub) for 5 days. Customer contacted support twice. Escalation required. | [CRITICAL] ORD-2026-78902 — Delivery attempt failed: incorrect address on file. Package returning to sender. Contact customer immediately. | [WARNING] ORD-2026-78867 — Carrier reports weather delay in Pacific Northwest. New ETA: 2 days later than original estimate. | [WARNING] ORD-2026-78910 — Fragile item shipped without protective packaging. Monitor for damage claim.",
+                  "priority": 1
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Urgent shipping alerts with user-only audience annotation.",
+        "reply": {
+          "outputSchema": ""
+        },
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"severity\": {\n      \"type\": \"string\",\n      \"description\": \"Filter by alert severity: critical, warning, or all. Default all.\"\n    }\n  },\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"severity\": {\n      \"type\": \"string\",\n      \"description\": \"Filter by alert severity: critical, warning, or all. Default all.\"\n    }\n  },\n  \"additionalProperties\": false\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Returns critical shipping alerts and delivery exceptions that require immediate human attention. This information is shown directly to the human user and is not consumed by the LLM. audience=[user] (human only), priority=1.0 (highest importance, urgent).",
+          "handlerName": "get_shipping_alerts",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": true,
+          "resourceUri": "",
+          "scope": "",
+          "toolTitle": "Get Shipping Alerts"
+        },
+        "trigger": "trigger://ECommerceOrdersServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn"
+  ],
+  "type": "flogo:flow"
+}

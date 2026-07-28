@@ -1,0 +1,140 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Get the dependency map for a service",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5IjogeyJ4IjogMTAwLCAieSI6IDEwMH0sICJMb2dTdGFydCI6IHsieCI6IDIxNSwgInkiOiA4OX0sICJSZXR1cm4iOiB7IngiOiA0MjcsICJ5IjogODl9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogStart",
+        "to": "LogStart",
+        "type": "label"
+      },
+      {
+        "from": "LogStart",
+        "id": 2,
+        "label": "LogStart to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\": \"object\", \"title\": \"InfraMonitoringMCPServer\", \"properties\": {\"arguments\": {\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"properties\": {}}, \"httpHeaders\": {\"type\": \"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "get_service_dependencies",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogStart",
+        "name": "LogStart"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "{\"service_name\":\"payment-api\",\"dependencies\":[{\"name\":\"postgres-primary\",\"type\":\"database\",\"status\":\"healthy\",\"latency_ms\":8},{\"name\":\"redis-cache\",\"type\":\"cache\",\"status\":\"healthy\",\"latency_ms\":2},{\"name\":\"user-service\",\"type\":\"service\",\"status\":\"healthy\",\"latency_ms\":15},{\"name\":\"stripe-api\",\"type\":\"external\",\"status\":\"healthy\",\"latency_ms\":120},{\"name\":\"notification-service\",\"type\":\"service\",\"status\":\"degraded\",\"latency_ms\":250}],\"dependents\":[{\"name\":\"checkout-ui\",\"type\":\"frontend\"},{\"name\":\"order-service\",\"type\":\"service\"},{\"name\":\"analytics-pipeline\",\"type\":\"service\"}]}",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Get the dependency map for a service",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"service_name\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the service\"\n    }\n  },\n  \"required\": [\n    \"service_name\"\n  ],\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"service_name\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the service\"\n    }\n  },\n  \"required\": [\n    \"service_name\"\n  ],\n  \"additionalProperties\": false\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Get the dependency graph for a service showing all upstream and downstream services, databases, caches, and external APIs it depends on, along with their current health status.",
+          "handlerName": "get_service_dependencies",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": true,
+          "readOnlyToolHint": false,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://InfraMonitoringMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

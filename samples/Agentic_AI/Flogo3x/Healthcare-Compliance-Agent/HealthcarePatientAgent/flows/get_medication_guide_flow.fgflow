@@ -1,0 +1,152 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Tool handler: Returns general (non-diagnostic) medication guidance. Replace Return with InvokeRestService to a pharmacology database API in production.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVkR3VpZGUiOnsieCI6MjcwLCJ5Ijo5Mn0sIlJldHVybk1lZGljYXRpb24iOnsieCI6NDgwLCJ5Ijo5MX19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogMedGuide",
+        "to": "LogMedGuide",
+        "type": "label"
+      },
+      {
+        "from": "LogMedGuide",
+        "id": 2,
+        "label": "LogMedGuide to ReturnMedication",
+        "to": "ReturnMedication",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"medicationName\":{\"type\":\"string\"},\"infoType\":{\"type\":\"string\"}}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "toolParams",
+          "schema": {
+            "type": "json",
+            "value": "{\"medicationName\":{\"type\":\"string\"},\"infoType\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "get_medication_guide_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[GetMedicationGuide] Requested: \", coerce.toString($flow.toolParams))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Logs the medication guide request",
+        "id": "LogMedGuide",
+        "name": "LogMedGuide"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "{\"medication\":\"Metformin\",\"infoType\":\"SideEffects\",\"information\":\"Common side effects include nausea, vomiting, diarrhea, and stomach pain, especially when starting the medication. These often improve over time. Take with food to reduce stomach upset. Rare but serious: lactic acidosis — seek immediate medical attention if you experience unusual muscle pain, difficulty breathing, or stomach pain with nausea. Always consult your prescribing physician before making any changes to your medication regimen.\",\"disclaimer\":\"This information is for general educational purposes only and is not a substitute for professional medical advice. Always follow your doctor's instructions.\"}",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns mock medication guidance. Replace with InvokeRestService to a pharmacology API in production.",
+        "id": "ReturnMedication",
+        "name": "ReturnMedication"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "toolParams": "=$.toolParams"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Tool handler: Returns general (non-diagnostic) medication guidance. Replace Return with InvokeRestService to a pharmacology database API in production.",
+        "schemas": {
+          "output": {
+            "customConversationStoreOpInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+            },
+            "customGuardrailInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+            },
+            "toolParams": {
+              "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"medicationName\": {\"type\": \"string\"},\n    \"infoType\": {\"type\": \"string\"}\n  },\n  \"required\": [\"medicationName\", \"infoType\"]\n}",
+              "type": "json",
+              "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"medicationName\": {\"type\": \"string\"},\n    \"infoType\": {\"type\": \"string\"}\n  },\n  \"required\": [\"medicationName\", \"infoType\"]\n}"
+            }
+          },
+          "reply": {
+            "customConversationStoreOpOutput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+            },
+            "response": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "agentToolDescription": "Returns general, non-diagnostic medication information such as common side effects, storage instructions, food interactions, and general dosage guidance. Never recommends dosage changes — always directs patients to consult their prescribing doctor for personal medical decisions.",
+          "agentToolName": "GetMedicationGuide",
+          "customConversationStoreOperation": "STORE",
+          "customGuardrailType": "BOTH",
+          "handlerType": "Tool"
+        },
+        "trigger": "trigger://HealthcarePatientAgent.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

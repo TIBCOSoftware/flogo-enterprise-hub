@@ -1,0 +1,157 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Read-only coverage check.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTEsInkiOjUxfX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"PolicyLookupMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"policy_number\":{\"type\":\"string\",\"description\":\"The insurance policy number\"},\"claim_type\":{\"type\":\"string\",\"description\":\"Type of claim to check coverage for (e.g. collision, theft, medical, property_damage, liability, natural_disaster)\"}},\"required\":[\"policy_number\",\"claim_type\"],\"additionalProperties\":false},\"httpHeaders\":{\"type\":\"object\",\"properties\":{\"Authorization\":{\"type\":\"string\"}}}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"policy_number\":{\"type\":\"string\",\"description\":\"The insurance policy number\"},\"claim_type\":{\"type\":\"string\",\"description\":\"Type of claim to check coverage for (e.g. collision, theft, medical, property_damage, liability, natural_disaster)\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "schema": {
+            "type": "json",
+            "value": "{\"Authorization\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "check_coverage_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "@conditional": [
+                  {
+                    "$flow.arguments.policy_number != '' \u0026\u0026 $flow.arguments.claim_type != ''": {
+                      "data": "=string.concat(\"{\\\"policyNumber\\\":\\\"\",$flow.arguments.policy_number,\"\\\",\\\"claimType\\\":\\\"\",$flow.arguments.claim_type,\"\\\",\\\"coverageStatus\\\":\\\"COVERED\\\",\\\"coverageLimit\\\":50000,\\\"deductible\\\":1000,\\\"coPayPercentage\\\":20,\\\"exclusions\\\":[\\\"Intentional damage\\\",\\\"Racing or speed contests\\\",\\\"Commercial use of vehicle\\\"],\\\"conditions\\\":[\\\"Police report required for claims over $2,000\\\",\\\"Photos of damage must be submitted within 72 hours\\\",\\\"Rental car coverage limited to 30 days\\\"],\\\"priorAuthorization\\\":false,\\\"estimatedProcessingDays\\\":10}\")"
+                    }
+                  },
+                  {
+                    "@otherwise": {
+                      "error": "Both policy_number and claim_type are required"
+                    }
+                  }
+                ]
+              },
+              "structuredContent": {
+                "mapping": {
+                  "claimType": "=$flow.arguments.claim_type",
+                  "coPayPercentage": 20,
+                  "coverageLimit": 50000,
+                  "coverageStatus": "COVERED",
+                  "deductible": 1000,
+                  "estimatedProcessingDays": 10,
+                  "policyNumber": "=$flow.arguments.policy_number",
+                  "priorAuthorization": false
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns mock coverage check.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments",
+            "httpHeaders": "=$.httpHeaders",
+            "tokenInfo": "=$.tokenInfo"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Read-only coverage check.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"policy_number\": {\n      \"type\": \"string\",\n      \"description\": \"The insurance policy number\"\n    },\n    \"claim_type\": {\n      \"type\": \"string\",\n      \"description\": \"Type of claim to check coverage for (e.g. collision, theft, medical, property_damage, liability, natural_disaster)\"\n    }\n  },\n  \"required\": [\"policy_number\", \"claim_type\"],\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"policy_number\": {\n      \"type\": \"string\",\n      \"description\": \"The insurance policy number\"\n    },\n    \"claim_type\": {\n      \"type\": \"string\",\n      \"description\": \"Type of claim to check coverage for (e.g. collision, theft, medical, property_damage, liability, natural_disaster)\"\n    }\n  },\n  \"required\": [\"policy_number\", \"claim_type\"],\n  \"additionalProperties\": false\n}"
+            },
+            "httpHeaders": {
+              "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"Authorization\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+              "type": "json",
+              "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"Authorization\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+            },
+            "tokenInfo": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": [\r\n        {\r\n          \"type\": \"string\"\r\n        }\r\n      ]\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": [\r\n        {\r\n          \"type\": \"string\"\r\n        }\r\n      ]\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    }\r\n  }\r\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Check whether a specific claim type is covered under an insurance policy. Returns coverage status (COVERED/NOT_COVERED/PARTIALLY_COVERED), applicable coverage limit, deductible amount, co-pay percentage, and any exclusions or conditions. Read-only, closed-domain.",
+          "handlerName": "check_coverage",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": true,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://PolicyLookupMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

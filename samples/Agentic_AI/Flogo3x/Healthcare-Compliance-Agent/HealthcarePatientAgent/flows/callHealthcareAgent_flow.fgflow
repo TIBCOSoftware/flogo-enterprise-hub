@@ -1,0 +1,143 @@
+{
+  "contrib": "W3siaWQiOiJBZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwidGFnIjoiMC45LjQtaGYxLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjAuOS40LUhGMSJ9LHsiaWQiOiJ3ZWJzb2NrZXQiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiV2Vic29ja2V0IiwicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby13ZWJzb2NrZXQtY29ubmVjdG9yL3NyYy9hcHAvd2Vic29ja2V0IiwiczNsb2NhdGlvbiI6IlRpYmNvL3dlYnNvY2tldCIsInRhZyI6IjMuMC4yLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjMuMC4yIn1d",
+  "data": {
+    "description": "Receives patient messages via WebSocket and dispatches them to the HealthcarePatientAgent",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxIZWFsdGhjYXJlQWdlbnQiOnsieCI6MjExLCJ5Ijo1M30sIldlYnNvY2tldFdyaXRlRGF0YSI6eyJ4Ijo0MTYsInkiOjQ5fX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to CallHealthcareAgent",
+        "to": "CallHealthcareAgent",
+        "type": "label"
+      },
+      {
+        "from": "CallHealthcareAgent",
+        "id": 2,
+        "label": "CallHealthcareAgent to WebsocketWriteData",
+        "to": "WebsocketWriteData",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"WebsocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"params\"},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+      },
+      "input": [
+        {
+          "name": "pathParams",
+          "type": "params"
+        },
+        {
+          "name": "queryParams",
+          "type": "params"
+        },
+        {
+          "name": "headers",
+          "schema": {
+            "type": "json",
+            "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "content",
+          "type": "any"
+        },
+        {
+          "name": "wsconnection",
+          "type": "any"
+        }
+      ],
+      "output": []
+    },
+    "name": "callHealthcareAgent_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "agentBaseUrl": "",
+            "agentName": "HealthcarePatientAgent",
+            "conversationId": "=coerce.toString($flow.queryParams.sessionId)",
+            "prompt": "=coerce.toString($flow.content)",
+            "structuredOutput": false
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/callagent",
+          "settings": {
+            "agentType": "Local"
+          }
+        },
+        "description": "Invokes the Healthcare Patient Agent. The sessionId query parameter is used as the conversationId for multi-turn memory and the custom conversation store file name.",
+        "id": "CallHealthcareAgent",
+        "name": "CallHealthcareAgent"
+      },
+      {
+        "activity": {
+          "input": {
+            "message": "=$activity[CallHealthcareAgent].response",
+            "wsconnection": "=$flow.wsconnection"
+          },
+          "ref": "github.com/tibco/flogo-websocket-connector/src/app/websocket/activity/wswritedata",
+          "settings": {
+            "format": "String",
+            "jsonSchema": ""
+          }
+        },
+        "description": "Streams the agent's response back to the patient over WebSocket",
+        "id": "WebsocketWriteData",
+        "name": "WebsocketWriteData"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "content": "=$.content",
+            "headers": "=$.headers",
+            "pathParams": "=$.pathParams",
+            "queryParams": "=$.queryParams",
+            "wsconnection": "=$.wsconnection"
+          }
+        },
+        "description": "Receives patient messages via WebSocket and dispatches them to the HealthcarePatientAgent",
+        "schemas": {
+          "output": {
+            "headers": {
+              "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Key\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Version\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Upgrade\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+            },
+            "queryParams": {
+              "fe_metadata": "[{\"parameterName\":\"sessionId\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"sessionId\":{\"type\":\"string\"}},\"required\":[]}"
+            }
+          }
+        },
+        "settings": {
+          "format": "String",
+          "jsonSchema": "",
+          "method": "GET",
+          "mode": "Data",
+          "path": "/patient-support"
+        },
+        "trigger": "trigger://WebsocketServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/callagent",
+    "github.com/tibco/flogo-websocket-connector/src/app/websocket/activity/wswritedata",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

@@ -1,0 +1,136 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Return current production capacity for all suppliers",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogStart",
+        "to": "LogStart",
+        "type": "label"
+      },
+      {
+        "from": "LogStart",
+        "id": 2,
+        "label": "LogStart to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"SupplierMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "GetSupplierCapacity",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogStart",
+        "name": "LogStart"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "{\"supplier_capacity\":[{\"supplier_id\":\"S001\",\"supplier_name\":\"TechParts Inc.\",\"current_utilization_pct\":65,\"available_capacity\":\"High\",\"next_available_slot\":\"Immediate\",\"max_order_volume\":10000,\"notes\":\"Operating at normal capacity\"},{\"supplier_id\":\"S002\",\"supplier_name\":\"Pacific Components Ltd.\",\"current_utilization_pct\":90,\"available_capacity\":\"Low\",\"next_available_slot\":\"2025-04-20\",\"max_order_volume\":5000,\"notes\":\"High demand period, limited slots available\"},{\"supplier_id\":\"S003\",\"supplier_name\":\"EuroMech GmbH\",\"current_utilization_pct\":45,\"available_capacity\":\"High\",\"next_available_slot\":\"Immediate\",\"max_order_volume\":8000,\"notes\":\"Increased capacity after facility expansion\"},{\"supplier_id\":\"S004\",\"supplier_name\":\"QuickShip Supplies\",\"current_utilization_pct\":30,\"available_capacity\":\"Very High\",\"next_available_slot\":\"Immediate\",\"max_order_volume\":3000,\"notes\":\"Specializes in rush orders\"}]}",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Return current production capacity for all suppliers",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "handlerDescription": "Get current production capacity for all suppliers including utilization percentage, available capacity level (Very High, High, Low), next available production slot, maximum order volume, and operational notes",
+          "handlerName": "GetSupplierCapacity",
+          "handlerType": "Tool",
+          "resourceUri": ""
+        },
+        "trigger": "trigger://SupplierMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

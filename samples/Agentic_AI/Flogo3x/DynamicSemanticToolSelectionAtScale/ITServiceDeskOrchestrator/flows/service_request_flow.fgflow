@@ -1,0 +1,260 @@
+{
+  "contrib": "W3siaWQiOiJBZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwidGFnIjoiMC45LjQtaGYxLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjAuOS40LUhGMSJ9XQ==",
+  "data": {
+    "description": "Process service request via LLMClient with 3 MCP servers.",
+    "explicitReply": true,
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMwLCJ5IjoxMDh9LCJQcm9jZXNzUmVxdWVzdCI6eyJ4IjoyMDAsInkiOjEwMH0sIlByb2Nlc3NBSUFnZW50Ijp7IngiOjQxOCwieSI6MTAzfSwiUmV0dXJuUmVzdWx0Ijp7IngiOjYyNiwieSI6MTA0fX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to ProcessRequest",
+        "to": "ProcessRequest",
+        "type": "label"
+      },
+      {
+        "from": "ProcessRequest",
+        "id": 2,
+        "label": "ProcessRequest to ProcessAIAgent",
+        "to": "ProcessAIAgent",
+        "type": "label"
+      },
+      {
+        "from": "ProcessAIAgent",
+        "id": 3,
+        "label": "ProcessAIAgent to ReturnResult",
+        "to": "ReturnResult",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"object\",\"properties\":{}}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "headers",
+          "schema": {
+            "type": "json",
+            "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "body",
+          "schema": {
+            "type": "json",
+            "value": "{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "requestURI",
+          "type": "string"
+        },
+        {
+          "name": "method",
+          "type": "string"
+        }
+      ],
+      "output": [
+        {
+          "name": "code",
+          "type": "integer"
+        },
+        {
+          "name": "data",
+          "schema": {
+            "type": "json",
+            "value": "{\"result\":{\"type\":\"object\",\"properties\":{}}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "service_request_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "llmConfiguration": {
+              "mapping": {
+                "apiKey": "=$property[\"LLMClient.openai.LLM_APIKey\"]",
+                "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                "providerBaseUrl": "",
+                "temparature": 0.3
+              }
+            },
+            "systemPrompt": "=$property[\"LLMClient.systemPrompt\"]",
+            "userPrompt": "=string.concat(\"Employee ID: \", coerce.toString($flow.body.employee_id), \"\\nRequest: \", coerce.toString($flow.body.request))"
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+          "schemas": {
+            "input": {
+              "llmConfiguration": {
+                "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                "type": "json",
+                "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+              }
+            },
+            "output": {
+              "response": {
+                "fe_metadata": "{\"tools\":[\"foo\",\"bar\"]}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"tools\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"
+              },
+              "responseJSONSchema": {
+                "fe_metadata": "{\"tools\":[\"foo\",\"bar\"]}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"tools\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"
+              }
+            }
+          },
+          "settings": {
+            "mcpServers": [],
+            "remoteAgents": [],
+            "responseType": "JSON"
+          }
+        },
+        "description": "LLMClient with 3 MCP servers for dynamic semantic tool selection.",
+        "id": "ProcessRequest",
+        "name": "ProcessRequest"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "conversationId": "=$flow.body.employee_id",
+            "filteredToolNames": "=$activity[ProcessRequest].response.tools",
+            "userPrompt": "=string.concat(\"Employee ID: \", coerce.toString($flow.body.employee_id), \"\\nRequest: \", coerce.toString($flow.body.request))"
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+          "schemas": {
+            "input": {
+              "filteredToolNames": {
+                "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+              }
+            }
+          },
+          "settings": {
+            "agentHandoffs": "",
+            "conversationStoreType": "None",
+            "enableGuardrails": false,
+            "llmProviderConnection": "conn://OpenAI.fgconn",
+            "mcpServers": [
+              "conn://IdentityAccessMCPServer.fgconn",
+              "conn://InfraMonitoringMCPServer.fgconn",
+              "conn://TicketingMCPServer.fgconn"
+            ],
+            "memoryMaxSize": 10,
+            "model": "=$property[\"AgenticAI.OpenAI.LLM_Model\"]",
+            "rateLimit": 25,
+            "reasoning": "",
+            "redactSensitiveData": false,
+            "remoteAgents": [],
+            "responseType": "Text",
+            "systemPrompt": "=$property[\"AgenticAI.systemPrompt\"]",
+            "temperature": 0.7,
+            "tokenLimit": 2048
+          }
+        },
+        "description": "AI Agent that executes the service request using pre-filtered tools.",
+        "id": "ProcessAIAgent",
+        "name": "ProcessAIAgent"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "code": 200,
+              "data": {
+                "mapping": {
+                  "result": "=$activity[ProcessAIAgent].response"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the LLM response as HTTP 200 JSON.",
+        "id": "ReturnResult",
+        "name": "ReturnResult"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "body": "=$.body",
+            "headers": "=$.headers"
+          },
+          "output": {
+            "code": "=$.code",
+            "data": "=$.data"
+          }
+        },
+        "description": "Process service request via LLMClient with 3 MCP servers.",
+        "reply": {
+          "code": 200,
+          "configureResponseCodes": false,
+          "message": {}
+        },
+        "schemas": {
+          "output": {
+            "body": {
+              "fe_metadata": "{\"request\":\"\",\"employee_id\":\"\"}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}}"
+            },
+            "headers": {
+              "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+            }
+          },
+          "reply": {
+            "data": {
+              "fe_metadata": "{\"result\":{}}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"object\",\"properties\":{}}}}"
+            },
+            "responseBody": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+            }
+          }
+        },
+        "settings": {
+          "Method": "POST",
+          "OutputValidation": false,
+          "Path": "/service-request",
+          "reqType": "application/json"
+        },
+        "trigger": "trigger://ReceiveHTTPMessage.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

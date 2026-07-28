@@ -1,0 +1,130 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Builds and confirms the final travel itinerary.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"TravelPlannerA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"tripName\":{\"type\":\"string\"},\"travelerName\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"endDate\":{\"type\":\"string\"},\"selectedFlightIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"selectedHotelId\":{\"type\":\"string\"},\"notes\":{\"type\":\"string\"}}}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "toolParams",
+          "schema": {
+            "type": "json",
+            "value": "{\"tripName\":{\"type\":\"string\"},\"travelerName\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"endDate\":{\"type\":\"string\"},\"selectedFlightIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"selectedHotelId\":{\"type\":\"string\"},\"notes\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "build_itinerary_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "{\"itineraryId\":\"ITIN-2026-88210\",\"status\":\"Confirmed\",\"tripName\":\"Paris Summer Getaway\",\"travelerName\":\"Jane Doe\",\"startDate\":\"2026-07-13\",\"endDate\":\"2026-07-17\",\"flights\":[{\"flightId\":\"FL-001\",\"label\":\"Outbound: UA 456 JFK→CDG\",\"departure\":\"2026-07-13 08:30\",\"arrival\":\"2026-07-13 22:15\",\"priceUSD\":598}],\"hotel\":{\"hotelId\":\"HTL-003\",\"name\":\"Boutique Marais\",\"checkIn\":\"2026-07-13\",\"checkOut\":\"2026-07-17\",\"totalUSD\":860},\"totalEstimatedCostUSD\":1458,\"currency\":\"USD\",\"message\":\"Your itinerary has been built and confirmed. Reference ID: ITIN-2026-88210. Keep this for check-in and any modifications.\",\"nextSteps\":[\"E-ticket for UA 456 will arrive at your registered email within 24h\",\"Hotel voucher will be sent to your registered email within 24h\",\"Free cancellation on hotel until 72h before check-in\"]}",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns mock itinerary confirmation. Replace with booking API calls in production.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "toolParams": "=$.toolParams"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Builds and confirms the final travel itinerary.",
+        "schemas": {
+          "output": {
+            "customConversationStoreOpInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+            },
+            "customGuardrailInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+            },
+            "toolParams": {
+              "fe_metadata": "{\"tripName\": \"Paris Summer Getaway\", \"travelerName\": \"Jane Doe\", \"startDate\": \"2026-07-13\", \"endDate\": \"2026-07-17\", \"selectedFlightIds\": [\"FL-001\"], \"selectedHotelId\": \"HTL-003\", \"notes\": \"Window seat preferred\"}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"tripName\":{\"type\":\"string\"},\"travelerName\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"endDate\":{\"type\":\"string\"},\"selectedFlightIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"selectedHotelId\":{\"type\":\"string\"},\"notes\":{\"type\":\"string\"}}}"
+            }
+          },
+          "reply": {
+            "customConversationStoreOpOutput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+            },
+            "response": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "agentSkillExamples": "Build a complete itinerary for my Paris trip from July 13 to July 17.|Create a travel plan for Jane Doe's European vacation with flight FL-001 and hotel HTL-003.|Confirm my trip with the nonstop United flight and the 4-star Boutique Marais hotel.|Finalize and summarize the travel plan I've selected.|Save my travel plan and give me a reference number.",
+          "agentSkillTags": "BuildItinerary,itinerary,trip,booking,confirmation,travel_plan",
+          "agentToolDescription": "Compile the final travel itinerary from the user's selected flights and hotel. Generates a unique itinerary reference ID, calculates the total estimated cost, and returns a complete trip plan the caller can display to the end user. Always call this only after the user explicitly confirms their selections.",
+          "agentToolName": "BuildItinerary",
+          "customConversationStoreOperation": "STORE",
+          "customGuardrailType": "BOTH",
+          "handlerType": "Tool"
+        },
+        "trigger": "trigger://TravelPlannerA2AServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn"
+  ],
+  "type": "flogo:flow"
+}

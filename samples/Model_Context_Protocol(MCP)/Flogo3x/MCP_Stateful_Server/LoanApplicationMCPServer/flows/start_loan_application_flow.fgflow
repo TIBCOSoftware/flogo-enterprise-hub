@@ -1,0 +1,175 @@
+{
+  "contrib": "W3siaWQiOiJGaWxlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkZpbGUiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWZpbGVzL3NyYy9hcHAvRmlsZSIsInMzbG9jYXRpb24iOiJUaWJjby9GaWxlIiwidGFnIjoiMy4wLjAtYjAxLXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy4wLjAifV0=",
+  "data": {
+    "description": "Step 1: Creates session state file with applicant details.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIldyaXRlQXBwbGljYXRpb25TdGF0ZSI6eyJ4IjoyMjksInkiOjQzfSwiUmV0dXJuIjp7IngiOjQ2MCwieSI6NDd9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to WriteApplicationState",
+        "to": "WriteApplicationState",
+        "type": "label"
+      },
+      {
+        "from": "WriteApplicationState",
+        "id": 2,
+        "label": "WriteApplicationState to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicant_name\":{\"type\":\"string\"},\"applicant_email\":{\"type\":\"string\"},\"loan_type\":{\"type\":\"string\"},\"requested_amount_usd\":{\"type\":\"number\"},\"loan_term_months\":{\"type\":\"number\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"applicant_name\":{\"type\":\"string\"},\"applicant_email\":{\"type\":\"string\"},\"loan_type\":{\"type\":\"string\"},\"requested_amount_usd\":{\"type\":\"number\"},\"loan_term_months\":{\"type\":\"number\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "start_loan_application_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "createNonExistingDir": true,
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_LOAN-\",coerce.toString($flow.arguments.loan_type),\"-20260414.json\")",
+                "overwrite": true,
+                "textContent": "=string.concat(\"{\\\"application_ref\\\":\\\"LOAN-\",coerce.toString($flow.arguments.loan_type),\"-20260414\\\",\\\"status\\\":\\\"DRAFT\\\",\\\"applicant_name\\\":\\\"\",coerce.toString($flow.arguments.applicant_name),\"\\\",\\\"applicant_email\\\":\\\"\",coerce.toString($flow.arguments.applicant_email),\"\\\",\\\"loan_type\\\":\\\"\",coerce.toString($flow.arguments.loan_type),\"\\\",\\\"requested_amount_usd\\\":\",coerce.toString($flow.arguments.requested_amount_usd),\",\\\"loan_term_months\\\":\",coerce.toString($flow.arguments.loan_term_months),\",\\\"financial_profile_complete\\\":false}\")"
+              }
+            },
+            "writeAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/write",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "Writes applicant details to session state file. Replace with DB/cache in production.",
+        "id": "WriteApplicationState",
+        "name": "WriteApplicationState"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "@conditional": [
+                  {
+                    "$flow.arguments.applicant_name != '' \u0026\u0026 $flow.arguments.applicant_email != '' \u0026\u0026 $flow.arguments.loan_type != ''": {
+                      "data": "=string.concat(\"Loan application started | Application Ref: LOAN-\",$flow.arguments.loan_type,\"-20260414 | Applicant: \",$flow.arguments.applicant_name,\" (\",$flow.arguments.applicant_email,\") | Type: \",$flow.arguments.loan_type,\" | Amount: $\",coerce.toString($flow.arguments.requested_amount_usd),\" USD | Term: \",coerce.toString($flow.arguments.loan_term_months),\" months | Status: DRAFT | Next step: Call submit_financial_profile with Application Ref LOAN-\",$flow.arguments.loan_type,\"-20260414 to add your financial details.\")"
+                    }
+                  },
+                  {
+                    "@otherwise": {
+                      "error": "applicant_name, applicant_email, loan_type, requested_amount_usd, and loan_term_months are required"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "description": "Returns application reference ID and next-step prompt.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Step 1: Creates session state file with applicant details.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"applicant_name\": {\n      \"type\": \"string\",\n      \"description\": \"Full legal name of the applicant\"\n    },\n    \"applicant_email\": {\n      \"type\": \"string\",\n      \"description\": \"Applicant's email address for correspondence\"\n    },\n    \"loan_type\": {\n      \"type\": \"string\",\n      \"description\": \"Type of loan: HOME_LOAN, PERSONAL_LOAN, AUTO_LOAN, BUSINESS_LOAN\"\n    },\n    \"requested_amount_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Loan amount requested in USD\"\n    },\n    \"loan_term_months\": {\n      \"type\": \"integer\",\n      \"description\": \"Requested loan term in months (e.g. 12, 24, 36, 60, 120, 240, 360)\"\n    }\n  },\n  \"required\": [\"applicant_name\", \"applicant_email\", \"loan_type\", \"requested_amount_usd\", \"loan_term_months\"],\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"applicant_name\": {\n      \"type\": \"string\",\n      \"description\": \"Full legal name of the applicant\"\n    },\n    \"applicant_email\": {\n      \"type\": \"string\",\n      \"description\": \"Applicant's email address for correspondence\"\n    },\n    \"loan_type\": {\n      \"type\": \"string\",\n      \"description\": \"Type of loan: HOME_LOAN, PERSONAL_LOAN, AUTO_LOAN, BUSINESS_LOAN\"\n    },\n    \"requested_amount_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Loan amount requested in USD\"\n    },\n    \"loan_term_months\": {\n      \"type\": \"integer\",\n      \"description\": \"Requested loan term in months (e.g. 12, 24, 36, 60, 120, 240, 360)\"\n    }\n  },\n  \"required\": [\"applicant_name\", \"applicant_email\", \"loan_type\", \"requested_amount_usd\", \"loan_term_months\"],\n  \"additionalProperties\": false\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Starts a new loan application session for an applicant. Records the applicant's name, email, loan type, and requested amount. Returns a unique application reference ID. Call this tool first — it initialises the session state used by subsequent tools in this wizard.",
+          "handlerName": "start_loan_application",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": false,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://LoanApplicationMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

@@ -1,0 +1,243 @@
+{
+  "contrib": "W3siaWQiOiJBZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwidGFnIjoiMC45LjQtaGYxLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjAuOS40LUhGMSJ9XQ==",
+  "data": {
+    "description": "Processes insurance claims using LLMClient with policy MCP and fraud A2A.",
+    "explicitReply": true,
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMwLCJ5IjoxMDh9LCJMb29rdXBQb2xpY3kiOnsieCI6MTYzLCJ5IjoxMDB9LCJBc3Nlc3NGcmF1ZCI6eyJ4IjozNjIsInkiOjEwMX0sIlJldHVybkRlY2lzaW9uIjp7IngiOjU1MCwieSI6MTAwfX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LookupPolicy",
+        "to": "LookupPolicy",
+        "type": "label"
+      },
+      {
+        "from": "LookupPolicy",
+        "id": 2,
+        "label": "LookupPolicy to AssessFraud",
+        "to": "AssessFraud",
+        "type": "label"
+      },
+      {
+        "from": "AssessFraud",
+        "id": 3,
+        "label": "AssessFraud to ReturnDecision",
+        "to": "ReturnDecision",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"policy_number\":{\"type\":\"string\"},\"claim_type\":{\"type\":\"string\"},\"claim_amount\":{\"type\":\"number\"},\"incident_description\":{\"type\":\"string\"},\"incident_date\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"object\",\"properties\":{}}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "headers",
+          "schema": {
+            "type": "json",
+            "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "body",
+          "schema": {
+            "type": "json",
+            "value": "{\"policy_number\":{\"type\":\"string\"},\"claim_type\":{\"type\":\"string\"},\"claim_amount\":{\"type\":\"number\"},\"incident_description\":{\"type\":\"string\"},\"incident_date\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "requestURI",
+          "type": "string"
+        },
+        {
+          "name": "method",
+          "type": "string"
+        }
+      ],
+      "output": [
+        {
+          "name": "code",
+          "type": "integer"
+        },
+        {
+          "name": "data",
+          "schema": {
+            "type": "json",
+            "value": "{\"result\":{\"type\":\"object\",\"properties\":{}}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "process_claim_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "llmConfiguration": {
+              "mapping": {
+                "apiKey": "=$property[\"LLMClient.openai.API_Key\"]",
+                "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                "providerBaseUrl": "",
+                "temparature": 0.3
+              }
+            },
+            "systemPrompt": "=$property[\"LLMClient.policyLookupPrompt\"]",
+            "userPrompt": "=string.concat(\"Policy Number: \", coerce.toString($flow.body.policy_number), \"\\nClaim Type: \", coerce.toString($flow.body.claim_type), \"\\nClaim Amount (USD): \", coerce.toString($flow.body.claim_amount))"
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+          "schemas": {
+            "input": {
+              "llmConfiguration": {
+                "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                "type": "json",
+                "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+              }
+            }
+          },
+          "settings": {
+            "mcpServers": [
+              "conn://PolicyLookupMCPServer.fgconn"
+            ],
+            "remoteAgents": [],
+            "responseType": "Text"
+          }
+        },
+        "description": "LLMClient with MCP to verify policy and check coverage.",
+        "id": "LookupPolicy",
+        "name": "LookupPolicy"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "llmConfiguration": {
+              "mapping": {
+                "apiKey": "=$property[\"LLMClient.openai.API_Key\"]",
+                "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                "providerBaseUrl": "",
+                "temparature": 0.3
+              }
+            },
+            "systemPrompt": "=$property[\"LLMClient.fraudAssessmentPrompt\"]",
+            "userPrompt": "=string.concat(\"Claim Details:\\nPolicy Number: \", coerce.toString($flow.body.policy_number), \"\\nClaim Type: \", coerce.toString($flow.body.claim_type), \"\\nClaim Amount (USD): \", coerce.toString($flow.body.claim_amount), \"\\nIncident Date: \", coerce.toString($flow.body.incident_date), \"\\nIncident Description: \", coerce.toString($flow.body.incident_description), \"\\n\\nPolicy Verification and Coverage Result from Step 1:\\n\", coerce.toString($activity[LookupPolicy].response))"
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+          "schemas": {
+            "input": {
+              "llmConfiguration": {
+                "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                "type": "json",
+                "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+              }
+            }
+          },
+          "settings": {
+            "mcpServers": [],
+            "remoteAgents": [
+              "conn://FraudDetectionA2A.fgconn"
+            ],
+            "responseType": "Text"
+          }
+        },
+        "description": "LLMClient with A2A to assess fraud risk using policy data from step 1.",
+        "id": "AssessFraud",
+        "name": "AssessFraud"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "code": 200,
+              "data": {
+                "mapping": {
+                  "result": "=$activity[AssessFraud].response"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the claims processing decision as HTTP 200 JSON.",
+        "id": "ReturnDecision",
+        "name": "ReturnDecision"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "body": "=$.body",
+            "headers": "=$.headers"
+          },
+          "output": {
+            "code": "=$.code",
+            "data": "=$.data"
+          }
+        },
+        "description": "Processes insurance claims using LLMClient with policy MCP and fraud A2A.",
+        "reply": {
+          "code": 200,
+          "configureResponseCodes": false,
+          "message": {}
+        },
+        "schemas": {
+          "output": {
+            "body": {
+              "fe_metadata": "{\"policy_number\":\"\",\"claim_type\":\"\",\"claim_amount\":0,\"incident_description\":\"\",\"incident_date\":\"\"}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"policy_number\":{\"type\":\"string\"},\"claim_type\":{\"type\":\"string\"},\"claim_amount\":{\"type\":\"number\"},\"incident_description\":{\"type\":\"string\"},\"incident_date\":{\"type\":\"string\"}}}"
+            },
+            "headers": {
+              "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+            }
+          },
+          "reply": {
+            "data": {
+              "fe_metadata": "{\"result\":{}}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"object\",\"properties\":{}}}}"
+            },
+            "responseBody": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+            }
+          }
+        },
+        "settings": {
+          "Method": "POST",
+          "OutputValidation": false,
+          "Path": "/process-claim",
+          "reqType": "application/json"
+        },
+        "trigger": "trigger://ReceiveHTTPMessage.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

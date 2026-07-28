@@ -1,0 +1,135 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Destructive, idempotent write, closed-domain. destructive=true, idempotent=true.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"account_id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"confirm\":{\"type\":\"boolean\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"account_id\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"confirm\":{\"type\":\"boolean\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "close_account_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "@conditional": [
+                  {
+                    "$flow.arguments.account_id != '' \u0026\u0026 coerce.toString($flow.arguments.confirm) == 'true'": {
+                      "data": "=string.concat(\"Account closed | Account: \",$flow.arguments.account_id,\" | Status: CLOSED | Closed At: 2026-04-14T09:30:00Z | Reason: \",coerce.toString($flow.arguments.reason),\" | WARNING: Destructive — this action cannot be reversed without manual bank operations intervention. Idempotent — closing an already-closed account returns this same result.\")"
+                    }
+                  },
+                  {
+                    "$flow.arguments.account_id != '' \u0026\u0026 coerce.toString($flow.arguments.confirm) != 'true'": {
+                      "error": "confirm must be set to true to authorise this irreversible destructive operation"
+                    }
+                  },
+                  {
+                    "@otherwise": {
+                      "error": "account_id and confirm=true are required"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "description": "Returns closure confirmation. Replace with account lifecycle API in production.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Destructive, idempotent write, closed-domain. destructive=true, idempotent=true.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique account identifier to close\"\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"description\": \"Reason for account closure (e.g. customer request, fraud, inactivity)\"\n    },\n    \"confirm\": {\n      \"type\": \"boolean\",\n      \"description\": \"Must be set to true to confirm this irreversible destructive operation\"\n    }\n  },\n  \"required\": [\"account_id\", \"confirm\"],\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_id\": {\n      \"type\": \"string\",\n      \"description\": \"The unique account identifier to close\"\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"description\": \"Reason for account closure (e.g. customer request, fraud, inactivity)\"\n    },\n    \"confirm\": {\n      \"type\": \"boolean\",\n      \"description\": \"Must be set to true to confirm this irreversible destructive operation\"\n    }\n  },\n  \"required\": [\"account_id\", \"confirm\"],\n  \"additionalProperties\": false\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": true,
+          "handlerDescription": "Permanently closes a bank account and archives all associated data. Destructive — the action cannot be reversed without manual intervention by bank operations staff. Idempotent — closing an already-closed account returns the same result without causing additional side effects.",
+          "handlerName": "close_account",
+          "handlerType": "Tool",
+          "idempotentToolHint": true,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": false,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://BankingOperationsMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

@@ -1,0 +1,35 @@
+{
+  "contrib": "W3siaWQiOiJBZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwidGFnIjoiMC45LjQtaGYxLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjAuOS40LUhGMSJ9XQ==",
+  "data": {
+    "description": "Supply chain agent trigger with MCP server list and custom CreatePurchaseOrder tool",
+    "id": "SupplyChainAgentTrigger",
+    "name": "flogo-agenticai-agent",
+    "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "settings": {
+      "agentDescription": "=$property[\"Trigger_Settings.AgentDescription\"]",
+      "agentName": "=$property[\"Trigger_Settings.AgentName\"]",
+      "agentPort": 8080,
+      "agentType": "Local",
+      "conversationStoreType": "Memory",
+      "enableGuardrails": true,
+      "llmProviderConnection": "conn://openai.fgconn",
+      "mcpServers": [
+        "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "c3d4e5f6-a7b8-9012-cdef-012345678902"
+      ],
+      "memoryMaxSize": 20,
+      "model": "=$property[\"Trigger_Settings.LLM_Model\"]",
+      "rateLimit": "=$property[\"Trigger_Settings.Rate_Limit\"]",
+      "reasoning": "high",
+      "redactSensitiveData": "=$property[\"Trigger_Settings.Redact_Sensitive_Data\"]",
+      "systemPrompt": "You are an intelligent Supply Chain Procurement Assistant with simultaneous access to two live data sources via MCP and the ability to create purchase orders.\n\n## Data Sources (via MCP)\n\n1. Inventory MCP Server (port 9091):\n   - GetProductCatalog: full product list with stock levels, reorder points, and preferred_supplier_id\n   - GetStockAlerts: products at or below reorder threshold with alert_level (LOW, CRITICAL, OUT_OF_STOCK)\n   - GetWarehouseLocations: physical storage locations per warehouse\n\n2. Supplier MCP Server (port 9092):\n   - GetSuppliers: supplier details including reliability_score, average_lead_days, certifications\n   - GetPurchaseOrders: open and recent POs with status and expected delivery\n   - GetSupplierCapacity: current production capacity utilization and available order slots\n\n## Write Capability (Custom Tool)\n\n- CreatePurchaseOrder: create a new purchase order in the system. Always show the user the details (supplier, product, quantity, unit price, estimated total) and ask for explicit confirmation BEFORE calling this tool.\n\n## Key Data Relationships\n- product.preferred_supplier_id links to supplier.supplier_id\n- purchase_order.product_id links to product.product_id\n- purchase_order.supplier_id links to supplier.supplier_id\n\n## Behavior Rules\n- For read-only questions: query the appropriate MCP server(s)\n- For cross-domain questions: query both MCP servers and correlate using shared IDs\n- Before creating a PO: always summarize what you are about to create and wait for the user to say yes\n- After creating a PO: confirm the PO ID and next steps\n- For stock alerts with no existing PO: proactively suggest raising a PO and offer to do it\n- Present tabular data in markdown tables\n- Always close with a Recommendation when an action is implied",
+      "temperature": "=$property[\"Trigger_Settings.LLM_temperature\"]",
+      "tokenLimit": "=$property[\"Trigger_Settings.Token_Limit\"]"
+    },
+    "title": "SupplyChainAgentTrigger"
+  },
+  "imports": [
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent"
+  ],
+  "type": "flogo:trigger"
+}

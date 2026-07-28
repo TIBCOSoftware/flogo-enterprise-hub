@@ -1,0 +1,152 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "ScheduleTechnicianVisit tool flow for TechnicalSupportAgent. Books a field technician visit.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nVmlzaXQiOnsieCI6MjgwLCJ5IjoxMDB9LCJSZXR1cm5WaXNpdCI6eyJ4Ijo0ODAsInkiOjEwMH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogVisit",
+        "to": "LogVisit",
+        "type": "label"
+      },
+      {
+        "from": "LogVisit",
+        "id": 2,
+        "label": "LogVisit to ReturnVisit",
+        "to": "ReturnVisit",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"accountId\":{\"type\":\"string\"},\"preferredDate\":{\"type\":\"string\"},\"issueDescription\":{\"type\":\"string\"}}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "toolParams",
+          "schema": {
+            "type": "json",
+            "value": "{\"accountId\":{\"type\":\"string\"},\"preferredDate\":{\"type\":\"string\"},\"issueDescription\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "schedule_tech_visit_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[ScheduleTechnicianVisit] accountId=\", coerce.toString($flow.toolParams.accountId), \" preferredDate=\", coerce.toString($flow.toolParams.preferredDate))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "",
+        "id": "LogVisit",
+        "name": "LogVisit"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "{\"accountId\":\"ACC-10045\",\"ticketNumber\":\"TKT-2026-04-18943\",\"status\":\"Scheduled\",\"scheduledDate\":\"2026-04-08\",\"timeSlot\":\"10:00 AM - 12:00 PM\",\"technicianId\":\"TECH-0234\",\"technicianName\":\"Carlos Rivera\",\"issueDescription\":\"Intermittent LTE connectivity and SIM provisioning issue\",\"notes\":\"Technician will inspect SIM provisioning, run on-site network tests, and verify device settings. Please keep device on and accessible.\",\"confirmationSentTo\":\"sarah.johnson@email.com\",\"cancellationDeadline\":\"2026-04-07T18:00:00Z\",\"rescheduleUrl\":\"https://myaccount.Mobile.example.com/tech-visit/TKT-2026-04-18943\"}",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns mock technician booking confirmation.",
+        "id": "ReturnVisit",
+        "name": "ReturnVisit"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "toolParams": "=$.toolParams"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "ScheduleTechnicianVisit tool flow for TechnicalSupportAgent. Books a field technician visit.",
+        "schemas": {
+          "output": {
+            "customConversationStoreOpInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+            },
+            "customGuardrailInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+            },
+            "toolParams": {
+              "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"preferredDate\": {\"type\": \"string\"},\n    \"issueDescription\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\", \"preferredDate\", \"issueDescription\"]\n}",
+              "type": "json",
+              "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"accountId\": {\"type\": \"string\"},\n    \"preferredDate\": {\"type\": \"string\"},\n    \"issueDescription\": {\"type\": \"string\"}\n  },\n  \"required\": [\"accountId\", \"preferredDate\", \"issueDescription\"]\n}"
+            }
+          },
+          "reply": {
+            "customConversationStoreOpOutput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+            },
+            "response": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "agentToolDescription": "Books a Mobile field technician to visit the customer's registered address for hands-on diagnosis and repair. Use when RunLineDiagnostics reveals an issue that cannot be resolved remotely (e.g., hardware fault, cable damage, signal amplifier needed). Returns a ticket number, confirmed appointment slot, and technician assignment.",
+          "agentToolName": "ScheduleTechnicianVisit",
+          "customConversationStoreOperation": "STORE",
+          "customGuardrailType": "BOTH",
+          "handlerType": "Tool"
+        },
+        "trigger": "trigger://TechnicalSupportAgent.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

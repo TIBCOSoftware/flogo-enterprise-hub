@@ -1,0 +1,129 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Read-only, open-world. readOnly=true, openWorld=true.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"from_currency\":{\"type\":\"string\"},\"to_currency\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"from_currency\":{\"type\":\"string\"},\"to_currency\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "get_forex_rate_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "@conditional": [
+                  {
+                    "$flow.arguments.from_currency != '' \u0026\u0026 $flow.arguments.to_currency != ''": {
+                      "data": "=string.concat(\"Rate: \",$flow.arguments.from_currency,\" -\u003e \",$flow.arguments.to_currency,\" = 0.9215 | Source: External Forex API | Timestamp: 2026-04-14T09:30:00Z | Rate Type: Mid-market\")"
+                    }
+                  },
+                  {
+                    "@otherwise": {
+                      "error": "from_currency and to_currency are required"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "description": "Returns mock forex rate. Replace with forex API in production.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Read-only, open-world. readOnly=true, openWorld=true.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"from_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Source ISO 4217 currency code (e.g. USD)\"\n    },\n    \"to_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Target ISO 4217 currency code (e.g. EUR)\"\n    }\n  },\n  \"required\": [\"from_currency\", \"to_currency\"],\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"from_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Source ISO 4217 currency code (e.g. USD)\"\n    },\n    \"to_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Target ISO 4217 currency code (e.g. EUR)\"\n    }\n  },\n  \"required\": [\"from_currency\", \"to_currency\"],\n  \"additionalProperties\": false\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Fetches the live foreign exchange rate between two currencies from an external market data provider. Read-only, but open-world — it reaches outside the bank's closed systems to query external foreign exchange APIs.",
+          "handlerName": "get_forex_rate",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": true,
+          "readOnlyToolHint": true,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://BankingOperationsMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

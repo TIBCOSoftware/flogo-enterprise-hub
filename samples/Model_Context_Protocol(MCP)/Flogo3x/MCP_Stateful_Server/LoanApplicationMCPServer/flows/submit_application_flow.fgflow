@@ -1,0 +1,177 @@
+{
+  "contrib": "W3siaWQiOiJGaWxlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkZpbGUiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWZpbGVzL3NyYy9hcHAvRmlsZSIsInMzbG9jYXRpb24iOiJUaWJjby9GaWxlIiwidGFnIjoiMy4wLjAtYjAxLXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy4wLjAifV0=",
+  "data": {
+    "description": "Step 4: Reads session state and submits to loan origination API. Not idempotent.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRGaW5hbFN0YXRlIjp7IngiOjIyMywieSI6NDl9LCJSZXR1cm4iOnsieCI6NDQ2LCJ5Ijo1NH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to ReadFinalState",
+        "to": "ReadFinalState",
+        "type": "label"
+      },
+      {
+        "from": "ReadFinalState",
+        "id": 2,
+        "label": "ReadFinalState to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"application_ref\":{\"type\":\"string\"},\"applicant_consent\":{\"type\":\"boolean\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"application_ref\":{\"type\":\"string\"},\"applicant_consent\":{\"type\":\"boolean\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "submit_application_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_\",coerce.toString($flow.arguments.application_ref),\".json\")"
+              }
+            },
+            "readAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/read",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "Reads complete session state for final submission. Replace with DB + external API in production.",
+        "id": "ReadFinalState",
+        "name": "ReadFinalState"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "@conditional": [
+                  {
+                    "$flow.arguments.application_ref != '' \u0026\u0026 coerce.toString($flow.arguments.applicant_consent) == 'true'": {
+                      "data": "=string.concat(\"=== APPLICATION SUBMITTED === | Application Ref: \",$flow.arguments.application_ref,\" | Tracking Number: TRK-\",$flow.arguments.application_ref,\"-093042 | Session State Submitted: \",$activity[ReadFinalState].output.fileContent.textContent,\" | Status: SUBMITTED_FOR_UNDERWRITING | Estimated Decision: 3-5 business days | Confirmation email sent to applicant | Next step: Use Tracking Number TRK-\",$flow.arguments.application_ref,\"-093042 to check application status with the bank. NOT idempotent — do not submit again.\")"
+                    }
+                  },
+                  {
+                    "$flow.arguments.application_ref != '' \u0026\u0026 coerce.toString($flow.arguments.applicant_consent) != 'true'": {
+                      "error": "applicant_consent must be true — the applicant must review and consent before this application can be submitted"
+                    }
+                  },
+                  {
+                    "@otherwise": {
+                      "error": "application_ref and applicant_consent=true are required"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "description": "Returns unique tracking number. Not idempotent.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Step 4: Reads session state and submits to loan origination API. Not idempotent.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID to submit\"\n    },\n    \"applicant_consent\": {\n      \"type\": \"boolean\",\n      \"description\": \"Must be true — confirms the applicant has reviewed the application and consents to submission and credit check\"\n    }\n  },\n  \"required\": [\"application_ref\", \"applicant_consent\"],\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID to submit\"\n    },\n    \"applicant_consent\": {\n      \"type\": \"boolean\",\n      \"description\": \"Must be true — confirms the applicant has reviewed the application and consents to submission and credit check\"\n    }\n  },\n  \"required\": [\"application_ref\", \"applicant_consent\"],\n  \"additionalProperties\": false\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Finalises and submits the completed loan application to the bank's underwriting system. Reads all state accumulated during the session (applicant profile + financial data) and dispatches it to the external loan origination platform. NOT idempotent — each call creates a new submission record. Open-world: calls the external loan origination API. Requires the applicant to have reviewed the application first.",
+          "handlerName": "submit_application",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": true,
+          "readOnlyToolHint": false,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://LoanApplicationMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-files/src/app/File/activity/read",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

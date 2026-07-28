@@ -1,0 +1,140 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Return sales performance breakdown by geographic region",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogStart",
+        "to": "LogStart",
+        "type": "label"
+      },
+      {
+        "from": "LogStart",
+        "id": 2,
+        "label": "LogStart to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"SalesDataMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "get_regional_breakdown",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogStart",
+        "name": "LogStart"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "{\"reportPeriod\":\"2026-06-02 to 2026-06-08\",\"regions\":[{\"region\":\"North America\",\"revenue\":1254000,\"pctOfTotal\":44.0,\"orderCount\":742,\"avgDealSize\":1690,\"quarterOverQuarterChangePct\":11.2,\"quarterTarget\":5000000,\"quarterActual\":3850000,\"quarterAttainmentPct\":77.0,\"topDeal\":{\"client\":\"Acme Corp\",\"amount\":125000}},{\"region\":\"Europe\",\"revenue\":812500,\"pctOfTotal\":28.5,\"orderCount\":498,\"avgDealSize\":1632,\"quarterOverQuarterChangePct\":6.8,\"quarterTarget\":3500000,\"quarterActual\":2640000,\"quarterAttainmentPct\":75.4,\"topDeal\":{\"client\":\"Siemens Digital\",\"amount\":89000}},{\"region\":\"Asia Pacific\",\"revenue\":498000,\"pctOfTotal\":17.5,\"orderCount\":389,\"avgDealSize\":1280,\"quarterOverQuarterChangePct\":15.3,\"quarterTarget\":2000000,\"quarterActual\":1620000,\"quarterAttainmentPct\":81.0,\"topDeal\":{\"client\":\"Samsung SDS\",\"amount\":67000}},{\"region\":\"Latin America\",\"revenue\":183000,\"pctOfTotal\":6.4,\"orderCount\":124,\"avgDealSize\":1476,\"quarterOverQuarterChangePct\":-3.2,\"quarterTarget\":800000,\"quarterActual\":545000,\"quarterAttainmentPct\":68.1,\"topDeal\":{\"client\":\"Banco Itau\",\"amount\":42000}},{\"region\":\"Middle East \u0026 Africa\",\"revenue\":100000,\"pctOfTotal\":3.5,\"orderCount\":70,\"avgDealSize\":1429,\"quarterOverQuarterChangePct\":22.1,\"quarterTarget\":500000,\"quarterActual\":385000,\"quarterAttainmentPct\":77.0,\"topDeal\":{\"client\":\"Emirates NBD\",\"amount\":35000}}]}",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Return sales performance breakdown by geographic region",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Get sales performance breakdown by geographic region for the current week including revenue per region, order count, average deal size, quarter-over-quarter trend, and quarterly target attainment",
+          "handlerName": "get_regional_breakdown",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": true,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://SalesDataMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

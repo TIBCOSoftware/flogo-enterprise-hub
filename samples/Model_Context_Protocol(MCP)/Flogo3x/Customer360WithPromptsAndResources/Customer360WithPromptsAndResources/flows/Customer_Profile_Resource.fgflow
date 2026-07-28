@@ -1,0 +1,247 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Dynamic resource that returns a single customer full profile by ID. The AI client reads this URI with the customer ID to retrieve the matching record.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjE3OCwieSI6NDF9LCJJbnZva2VSRVNUU2VydmljZSI6eyJ4IjozNzIsInkiOjQ5fSwiTG9nTWVzc2FnZSI6eyJ4Ijo1MzcsInkiOjUxfSwiUmV0dXJuIjp7IngiOjcxNywieSI6NDV9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "Start",
+        "to": "LogStart",
+        "type": "label"
+      },
+      {
+        "from": "LogStart",
+        "id": 2,
+        "label": "Fetch customer",
+        "to": "InvokeRESTService",
+        "type": "label"
+      },
+      {
+        "from": "InvokeRESTService",
+        "id": 3,
+        "label": "InvokeRESTService to LogMessage",
+        "to": "LogMessage",
+        "type": "label"
+      },
+      {
+        "from": "LogMessage",
+        "id": 4,
+        "label": "LogMessage to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"description\":\"The customer ID\"}},\"required\":[\"id\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}},\"required\":[\"text\",\"mimeType\"]}},\"blobResourceContents\":{\"type\":\"array\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"id\":{\"type\":\"string\",\"description\":\"The customer ID\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}},\"required\":[\"text\",\"mimeType\"]}},\"blobResourceContents\":{\"type\":\"array\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "Customer_Profile_Resource",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"Customer_Profile_Resource reading id=\", coerce.toString($flow.arguments.id))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Log resource read",
+        "id": "LogStart",
+        "name": "LogStart"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Client Certificate": "",
+            "Client Key": "",
+            "Method": "GET",
+            "Server Certificate": "",
+            "Timeout": 0,
+            "Uri": "=$property[\"CustByIdInvokeRESTServiceURL\"]",
+            "Use certificate for verification": false,
+            "authorization": false,
+            "authorizationConn": "",
+            "configureAPISpec": false,
+            "disableKeepAlives": false,
+            "disableSSLVerification": false,
+            "enableASR": false,
+            "followRedirects": true,
+            "host": "",
+            "mutualAuth": false,
+            "pathParams": "=$flow.arguments",
+            "proxy": "",
+            "requestType": "application/json",
+            "resourcePath": "",
+            "serviceName": "",
+            "serviceUrl": "",
+            "swagger": ""
+          },
+          "output": {
+            "configureResponseCodes": false,
+            "responseOutput": "JSON Object",
+            "responseType": "application/json",
+            "throwError": false
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/rest",
+          "schemas": {
+            "input": {
+              "dynamicRequestHeaders": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+              },
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "pathParams": {
+                "fe_metadata": "[{\"parameterName\":\"id\",\"type\":\"string\"}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[]}"
+              }
+            },
+            "output": {
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "responseBody": "schema://CustomerByIdSchema.json"
+            }
+          }
+        },
+        "description": "Fetch single customer from REST API by ID",
+        "id": "InvokeRESTService",
+        "name": "InvokeRESTService",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"Fetched customer profile for customer ID: \", coerce.toString($flow.arguments.id))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage",
+        "name": "LogMessage"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "textResourceContents": [
+                    {
+                      "mimeType": "application/json",
+                      "text": "=coerce.toString($activity[InvokeRESTService].responseBody)",
+                      "uri": "=string.concat(\"customers://\", coerce.toString($flow.arguments.id), \"/profile\")"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Return customer profile as JSON resource content",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Dynamic resource that returns a single customer full profile by ID. The AI client reads this URI with the customer ID to retrieve the matching record.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"]}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"]}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "handlerDescription": "Dynamic customer profile resource. Returns the full profile for a specific customer by ID using the URI template customers://{id}/profile.",
+          "handlerName": "customer_profile",
+          "handlerType": "Resource",
+          "resourceUri": "customers://{id}/profile"
+        },
+        "trigger": "trigger://MCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

@@ -1,0 +1,172 @@
+{
+  "contrib": "W3siaWQiOiJGaWxlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkZpbGUiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWZpbGVzL3NyYy9hcHAvRmlsZSIsInMzbG9jYXRpb24iOiJUaWJjby9GaWxlIiwidGFnIjoiMy4wLjAtYjAxLXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy4wLjAifV0=",
+  "data": {
+    "description": "Step 3: Read-only review of accumulated session state.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRBcHBsaWNhdGlvblN0YXRlIjp7IngiOjIwOCwieSI6NDd9LCJSZXR1cm4iOnsieCI6NDQyLCJ5Ijo1Mn19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to ReadApplicationState",
+        "to": "ReadApplicationState",
+        "type": "label"
+      },
+      {
+        "from": "ReadApplicationState",
+        "id": 2,
+        "label": "ReadApplicationState to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"application_ref\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"application_ref\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "review_application_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_\",coerce.toString($flow.arguments.application_ref),\".json\")"
+              }
+            },
+            "readAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/read",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "Reads full accumulated session state. Replace with DB/cache in production.",
+        "id": "ReadApplicationState",
+        "name": "ReadApplicationState"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "@conditional": [
+                  {
+                    "$flow.arguments.application_ref != ''": {
+                      "data": "=string.concat(\"=== LOAN APPLICATION REVIEW === | Application Ref: \",$flow.arguments.application_ref,\" | Session State: \",$activity[ReadApplicationState].output.fileContent.textContent,\" | --- | If all details are correct, call submit_application with this ref and applicant_consent=true to finalise. To update financial details, call submit_financial_profile again (idempotent).\")"
+                    }
+                  },
+                  {
+                    "@otherwise": {
+                      "error": "application_ref is required"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "description": "Returns full application summary for review.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Step 3: Read-only review of accumulated session state.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID to review\"\n    }\n  },\n  \"required\": [\"application_ref\"],\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID to review\"\n    }\n  },\n  \"required\": [\"application_ref\"],\n  \"additionalProperties\": false\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Returns a full read-only summary of the in-progress loan application — all applicant details and financial data collected so far — so the applicant can review and confirm before final submission. Reads session state accumulated across previous tool calls within the same Mcp-Session-Id.",
+          "handlerName": "review_application",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": true,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://LoanApplicationMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-files/src/app/File/activity/read",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}
