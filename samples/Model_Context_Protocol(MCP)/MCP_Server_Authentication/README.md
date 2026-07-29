@@ -306,7 +306,6 @@ OAuth 2.0 mode integrates with external OAuth 2.0 / OpenID Connect providers. In
 | Setting | Description |
 |---|---|
 | `authType` | `OAuth 2.0` |
-| `authToken` | JWT validation secret (stored encrypted) |
 | `oauthIssuer` | Expected token issuer (`iss` claim) |
 | `oauthJWKSURL` | JWKS endpoint URL for public key discovery |
 | `oauthAudience` | Expected audience (`aud` claim) |
@@ -323,7 +322,6 @@ OAuth 2.0 mode integrates with external OAuth 2.0 / OpenID Connect providers. In
     "serverEndpointPath": "/",
     "enableTLS": true,
     "authType": "OAuth 2.0",
-    "authToken": "=$property[\"FlogoMcpServer.JWT_TOKEN_SECRET\"]",
     "oauthIssuer": "https://auth.example.com/realms/demo",
     "oauthJWKSURL": "https://auth.example.com/realms/demo/protocol/openid-connect/certs",
     "oauthAudience": "http://localhost:8000",
@@ -532,7 +530,7 @@ All four authentication types can be combined with **TLS encryption** for secure
 ## Related Resources
 
 - [MCP Specification](https://modelcontextprotocol.io)
-- [MCP Authorization — RFC 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization)
+- [MCP Authorization Specification (2025-06-18 revision)](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization)
 - [TIBCO Flogo® MCP Connector Documentation](https://docs.tibco.com)
 
 ---

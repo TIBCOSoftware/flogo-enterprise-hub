@@ -41,7 +41,7 @@ Instead of validating a token with an HMAC (HS256) shared secret, the trigger fe
           │                     6. Enforce oauthRequiredScopes (server level)
           │                     7. Enforce handler scope (per tool)
           │<────────────────────────────────────│
-          │     Tool result / 401 + WWW-Authenticate
+          │     Tool result / 401 (no/invalid token) or 403 (missing scope) + WWW-Authenticate
 ```
 
 ### Two layers of scope enforcement
@@ -228,7 +228,7 @@ Verify the two-layer enforcement:
 
 - **`doctor`** → sees `get_patient_summary` and `get_medical_records`; not the write/inspect tools.
 - **`admin`** → sees all four tools.
-- **`guest`** (no `mcp:tools`) → request rejected at the server level with `401` and a `WWW-Authenticate` challenge.
+- **`guest`** (no `mcp:tools`) → request rejected at the server level with `403 Forbidden` (valid token, but missing the required scope) and a `WWW-Authenticate` challenge.
 
 ### MCP Client Configuration
 
@@ -279,7 +279,7 @@ Verify the two-layer enforcement:
 - **`invalid_grant` / "Token is not active" at runtime** with the Authorization Code grant means the stored refresh token expired between design-time login and runtime. Prefer **Client Credentials** for unattended runtime, or increase the Keycloak SSO Session Idle/Max, or add the `offline_access` scope.
 - **Token rejected with audience error** — ensure the audience mapper set `aud` to the resource URL that matches `oauthAudience` (the script does this automatically).
 - **Tool not visible** — the caller's token is missing the handler scope; check the decoded `scopes` array and the user's role assignments.
-- **All requests rejected** — the token lacks the server-level `mcp:tools` scope.
+- **All requests rejected with `403 Forbidden`** — the token is valid but lacks the server-level `mcp:tools` scope. (A `401 Unauthorized` instead means the token is missing, expired, or failed signature/issuer/audience validation.)
 
 ---
 
