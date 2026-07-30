@@ -1,0 +1,672 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/jsexec",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "rest_1 github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/tibco/flogo-general/src/app/General/trigger/timer",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "morning-briefing",
+  "description": "Daily morning briefing that aggregates Slack messages, email, calendar events, and reminders, then calls Claude AI to produce a prioritized markdown report in three tiers: Needs Attention, Important Today, and Awareness.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest_1",
+      "name": "tibco-wi-rest",
+      "description": "On-demand REST endpoint - GET /api/morning-briefing to trigger a briefing immediately",
+      "settings": {
+        "port": "=$property[\"App.Port\"]",
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "MorningBriefingRESTTrigger",
+      "handlers": [
+        {
+          "description": "Three-phase morning briefing pipeline: Gather data from Slack, email, calendar and reminders, build Claude AI prompt, return prioritized markdown report",
+          "settings": {
+            "APISpecPath": "/api/morning-briefing",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/api/morning-briefing",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:MorningBriefingMain"
+            },
+            "output": {
+              "code": "=$.code",
+              "responseBody": "=$.responseBody"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"briefing\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"briefing\":{\"type\":\"string\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "MorningBriefingMain"
+        }
+      ]
+    },
+    {
+      "ref": "#timer",
+      "name": "tibco-wi-timer",
+      "description": "Automatic 7 AM daily timer - fires every morning and runs the briefing flow",
+      "settings": {},
+      "id": "MorningBriefingTimerTrigger",
+      "handlers": [
+        {
+          "description": "Three-phase morning briefing pipeline: Gather data from Slack, email, calendar and reminders, build Claude AI prompt, return prioritized markdown report",
+          "settings": {
+            "Scheduler Options": "Cron",
+            "Repeating": true,
+            "Delayed Start": true,
+            "Delayed Start Time": "23:59",
+            "Time Interval": 1440,
+            "Interval Unit": "Minute",
+            "Cron Expression": "0 7 * * *"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:MorningBriefingMain"
+            }
+          },
+          "name": "MorningBriefingMain"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:MorningBriefingMain",
+      "data": {
+        "name": "MorningBriefingMain",
+        "description": "Three-phase morning briefing pipeline: Gather data from Slack, email, calendar and reminders, build Claude AI prompt, return prioritized markdown report",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GetSlackMessages",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "GetSlackMessages",
+            "to": "GetEmails",
+            "type": "label",
+            "label": "got slack"
+          },
+          {
+            "id": 3,
+            "from": "GetEmails",
+            "to": "GetCalendarEvents",
+            "type": "label",
+            "label": "got emails"
+          },
+          {
+            "id": 4,
+            "from": "GetCalendarEvents",
+            "to": "GetReminders",
+            "type": "label",
+            "label": "got calendar"
+          },
+          {
+            "id": 5,
+            "from": "GetReminders",
+            "to": "BuildBriefingPrompt",
+            "type": "label",
+            "label": "got reminders"
+          },
+          {
+            "id": 9,
+            "from": "LogBriefing",
+            "to": "ReturnBriefing",
+            "type": "label",
+            "label": "logged"
+          },
+          {
+            "id": 10,
+            "from": "BuildBriefingPrompt",
+            "to": "GenerateBriefing"
+          },
+          {
+            "id": 11,
+            "from": "GenerateBriefing",
+            "to": "LogBriefing"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "GetSlackMessages",
+            "name": "GetSlackMessages",
+            "description": "Fetch Slack messages from the last 24 hours across monitored channels and DMs",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"Slack.ApiUrl\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 30,
+                "proxy": "",
+                "host": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": true,
+                "responseType": "application/json",
+                "responseOutput": "String"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "GetEmails",
+            "name": "GetEmails",
+            "description": "Fetch unread emails from MailHog (demo) or real email API",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"Email.MailHogUrl\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 30,
+                "proxy": "",
+                "host": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": true,
+                "responseType": "application/json",
+                "responseOutput": "String"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "GetCalendarEvents",
+            "name": "GetCalendarEvents",
+            "description": "Fetch today's committed calendar events (skipping Free and Tentative entries)",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"Calendar.ApiUrl\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 30,
+                "proxy": "",
+                "host": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": true,
+                "responseType": "application/json",
+                "responseOutput": "String"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "GetReminders",
+            "name": "GetReminders",
+            "description": "Fetch reminders and tasks due today plus any overdue items",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"Reminders.ApiUrl\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 30,
+                "proxy": "",
+                "host": ""
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": true,
+                "responseType": "application/json",
+                "responseOutput": "String"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "BuildBriefingPrompt",
+            "name": "BuildBriefingPrompt",
+            "description": "Assemble the Anthropic API request body from all four data sources",
+            "activity": {
+              "ref": "#jsexec",
+              "settings": {
+                "script": "var nl = String.fromCharCode(10); var today = new Date().toISOString().split(\"T\")[0]; var slack = JSON.stringify(parameters.slackMessages || {}); var email = JSON.stringify(parameters.emails || {}); var cal = JSON.stringify(parameters.calendarEvents || {}); var rem = JSON.stringify(parameters.reminders || {}); result.userPrompt = \"Today: \" + today + nl + nl + \"SLACK MESSAGES (last 24h):\" + nl + slack + nl + nl + \"UNREAD EMAILS:\" + nl + email + nl + nl + \"TODAYS CALENDAR:\" + nl + cal + nl + nl + \"TODAYS REMINDERS:\" + nl + rem;"
+              },
+              "input": {
+                "parameters": {
+                  "mapping": {
+                    "slackMessages": "=$activity[GetSlackMessages].responseBody",
+                    "emails": "=$activity[GetEmails].responseBody",
+                    "calendarEvents": "=$activity[GetCalendarEvents].responseBody",
+                    "reminders": "=$activity[GetReminders].responseBody"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "GenerateBriefing",
+            "name": "GenerateBriefing",
+            "description": "Call LLM to generate the morning briefing",
+            "activity": {
+              "ref": "#agentactivity",
+              "settings": {
+                "llmProviderConnection": "conn://5dea6b37-7fb7-4df0-91c8-ad657a5ec8d8",
+                "model": "=$property[\"LLM_MODEL\"]",
+                "reasoning": "",
+                "temperature": 0.3,
+                "enableGuardrails": false,
+                "rateLimit": 1000,
+                "tokenLimit": 4096,
+                "redactSensitiveData": false,
+                "responseType": "Text",
+                "agentHandoffs": "",
+                "mcpServers": [],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10,
+                "systemPrompt": "You are a personal morning briefing assistant. Analyze the provided data and create a structured morning briefing formatted in Markdown. Use three priority tiers: Needs Attention (someone blocked on you, overdue tasks, urgent messages), Important Today (meetings needing prep, emails needing reply, key tasks), Awareness (FYI items). Keep each item to 1-2 lines. Omit empty sections entirely. Produce these sections in order: 1. Needs Attention 2. Important Today 3. Today Schedule (table: time | meeting | type) 4. Today Tasks (checklist, flag overdue) 5. Unread Emails 6. Slack Activity 7. Awareness"
+              },
+              "input": {
+                "userPrompt": "=$activity[BuildBriefingPrompt].result.userPrompt",
+                "conversationId": "\"morning-briefing\""
+              }
+            }
+          },
+          {
+            "id": "LogBriefing",
+            "name": "LogBriefing",
+            "description": "Log the formatted morning briefing to the Flogo engine output",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=$activity[GenerateBriefing].response",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ReturnBriefing",
+            "name": "ReturnBriefing",
+            "description": "Return the morning briefing as HTTP 200 JSON response",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "responseBody": "=$activity[GenerateBriefing].response"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6NTl9LCJHZXRTbGFja01lc3NhZ2VzIjp7IngiOjM1MCwieSI6NTB9LCJHZXRFbWFpbHMiOnsieCI6NjAwLCJ5Ijo1MH0sIkdldENhbGVuZGFyRXZlbnRzIjp7IngiOjg1MCwieSI6NTB9LCJHZXRSZW1pbmRlcnMiOnsieCI6MTEwMCwieSI6NTB9LCJCdWlsZEJyaWVmaW5nUHJvbXB0Ijp7IngiOjEzNTAsInkiOjUwfSwiQ2FsbENsYXVkZUFJIjp7IngiOjE2MDAsInkiOjUwfSwiTG9nQnJpZWZpbmciOnsieCI6MTg1MCwieSI6NTB9fQ==",
+        "metadata": {
+          "input": [],
+          "output": [
+            {
+              "name": "code",
+              "type": "float64"
+            },
+            {
+              "name": "responseBody",
+              "type": "object"
+            }
+          ],
+          "fe_metadata": {
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"code\":{\"type\":\"number\"},\"responseBody\":{\"type\":\"object\",\"properties\":{}}}}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "App.Port",
+      "type": "float64",
+      "value": 9095
+    },
+    {
+      "name": "Slack.ApiUrl",
+      "type": "string",
+      "value": "http://localhost:8523/slack/messages"
+    },
+    {
+      "name": "Email.MailHogUrl",
+      "type": "string",
+      "value": "http://localhost:8025/api/v2/messages"
+    },
+    {
+      "name": "Calendar.ApiUrl",
+      "type": "string",
+      "value": "http://localhost:8523/calendar/events"
+    },
+    {
+      "name": "Reminders.ApiUrl",
+      "type": "string",
+      "value": "http://localhost:8523/reminders"
+    },
+    {
+      "name": "OpenAI.ApiUrl",
+      "type": "string",
+      "value": "https://api.openai.com/v1/chat/completions"
+    },
+    {
+      "name": "OpenAI.Model",
+      "type": "string",
+      "value": "gpt-4o"
+    },
+    {
+      "name": "OpenAI.MaxTokens",
+      "type": "string",
+      "value": "2048"
+    },
+    {
+      "name": "OpenAI.ApiKey",
+      "type": "string",
+      "value": "Bearer <YOUR_OPENAI_API_KEY>"
+    },
+    {
+      "name": "AgenticAI.LLMConn.LLM_Provider",
+      "type": "string",
+      "value": "openai"
+    },
+    {
+      "name": "AgenticAI.LLMConn.LLM_Base_URL",
+      "type": "string",
+      "value": "https://api.openai.com/v1"
+    },
+    {
+      "name": "AgenticAI.LLMConn.API_Key",
+      "type": "string",
+      "value": "<YOUR_OPENAI_API_KEY>"
+    },
+    {
+      "name": "LLM_MODEL",
+      "type": "string",
+      "value": "gpt-4o"
+    }
+  ],
+  "connections": {
+    "5dea6b37-7fb7-4df0-91c8-ad657a5ec8d8": {
+      "id": "5dea6b37-7fb7-4df0-91c8-ad657a5ec8d8",
+      "name": "LLMConn",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "LLMConn",
+        "description": "OpenAI provider for morning briefing",
+        "llmProvider": "=$property[\"AgenticAI.LLMConn.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.LLMConn.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.LLMConn.LLM_Base_URL\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTIiLCJ0YWciOiIxLjYuMTItYjA2IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9095",
+        "spec": {
+          "name": "morning-briefing",
+          "version": "1.0.0"
+        },
+        "title": "MorningBriefingRESTTrigger",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "morning-briefing",
+            "version": "1.0.0",
+            "description": "On-demand REST endpoint - GET /api/morning-briefing to trigger a briefing immediately"
+          },
+          "paths": {
+            "/api/morning-briefing": {
+              "get": {
+                "summary": "MorningBriefingMain",
+                "operationId": "get_api_morning-briefing",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Three-phase morning briefing pipeline: Gather data from Slack, email, calendar and reminders, build Claude AI prompt, return prioritized markdown report"
+              }
+            }
+          },
+          "definitions": {}
+        }
+      }
+    ],
+    "flogoVersion": "2.26.2"
+  }
+}
