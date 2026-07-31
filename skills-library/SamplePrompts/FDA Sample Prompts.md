@@ -187,8 +187,6 @@ A collection of sample prompts for creating Flogo applications using the FDA CLI
 > I don't have a real Weather API. Create a dummy Flogo REST server using the same OpenAPI spec `<path>/weather-forecast-api.json` on port 9999 that returns sample data for all endpoints.
 > Add a Mapper activity in each flow between Log and ConfigureHTTPResponse to set the dummy response data, then pass it to ConfigureHTTPResponse.
 
-**Note:** After adding activities in between existing ones, verify that all activities (including Return) are visible on the UI canvas. If any activity is missing, update the flow's `fe_metadata` (base64 canvas positions) to include all activities in correct link order with proper spacing.
-
 ---
 
 ## Sample Prompt 13 — Insert Activity Between Existing Activities
