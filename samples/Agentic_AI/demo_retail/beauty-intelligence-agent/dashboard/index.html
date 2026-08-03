@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BeautyCo — Beauty Intelligence Agent Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d0f14; color: #e2e8f0; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+
+    header {
+      background: linear-gradient(135deg, #1a1c2e 0%, #2d1b4e 100%);
+      border-bottom: 1px solid #3730a3;
+      padding: 16px 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    header .logo { font-size: 22px; font-weight: 700; color: #a78bfa; letter-spacing: -0.5px; }
+    header .subtitle { font-size: 13px; color: #94a3b8; }
+    header .live-badge {
+      margin-left: auto; background: #16a34a; color: #fff;
+      font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    header .live-badge::before {
+      content: ''; width: 7px; height: 7px; background: #4ade80;
+      border-radius: 50%; animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 1px; background: #1e2030; border-bottom: 1px solid #1e2030;
+    }
+    .stat-card {
+      background: #151824; padding: 16px 20px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-card .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #a78bfa; line-height: 1; }
+    .stat-card .delta { font-size: 11px; color: #4ade80; }
+
+    .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; height: calc(100vh - 130px); }
+
+    .left-panel { overflow-y: auto; border-right: 1px solid #1e2030; }
+    .right-panel { overflow-y: auto; background: #0f1117; }
+
+    .panel-header {
+      padding: 14px 20px; font-size: 12px; font-weight: 600;
+      color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid #1e2030; background: #0d0f14; position: sticky; top: 0; z-index: 10;
+    }
+
+    /* Tool calls table */
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 10px 16px; font-size: 11px; font-weight: 600;
+      color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid #1e2030; text-align: left; background: #0d0f14;
+      position: sticky; top: 41px;
+    }
+    tbody tr { border-bottom: 1px solid #1a1c2e; transition: background 0.15s; }
+    tbody tr:hover { background: #151824; }
+    tbody td { padding: 10px 16px; }
+    td.ts { color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.member { font-weight: 600; color: #e2e8f0; }
+    td.tool { color: #7c3aed; }
+    td.ms { text-align: right; color: #94a3b8; font-variant-numeric: tabular-nums; }
+    .badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .badge-ok  { background: #14532d; color: #4ade80; }
+    .badge-err { background: #7f1d1d; color: #f87171; }
+
+    /* Tier badges */
+    .tier-diamond  { color: #67e8f9; font-weight: 700; }
+    .tier-platinum { color: #c4b5fd; font-weight: 700; }
+    .tier-member   { color: #94a3b8; font-weight: 600; }
+
+    /* Right panel — consultations */
+    .consultation-card {
+      margin: 12px; padding: 14px 16px; background: #151824;
+      border-radius: 8px; border: 1px solid #1e2030;
+    }
+    .consultation-card .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .consultation-card .card-header .member-name { font-weight: 700; font-size: 15px; }
+    .consultation-card .card-header .ts { margin-left: auto; font-size: 11px; color: #64748b; }
+    .consultation-card .tools-used { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+    .tool-chip {
+      font-size: 10px; padding: 2px 7px; background: #2d1b4e; color: #a78bfa;
+      border-radius: 6px; border: 1px solid #4c1d95;
+    }
+    .reasoning {
+      font-size: 12px; color: #94a3b8; line-height: 1.6;
+      border-top: 1px solid #1e2030; padding-top: 8px; margin-top: 4px;
+    }
+    .reasoning strong { color: #e2e8f0; display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .confidence {
+      display: flex; align-items: center; gap: 8px; margin-top: 8px;
+    }
+    .conf-bar { flex: 1; height: 4px; background: #1e2030; border-radius: 2px; }
+    .conf-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+    .conf-label { font-size: 11px; color: #4ade80; font-weight: 600; min-width: 36px; text-align: right; }
+
+    /* Audit log */
+    .audit-entry {
+      padding: 10px 20px; border-bottom: 1px solid #1a1c2e;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .audit-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .audit-dot-info { background: #7c3aed; }
+    .audit-dot-ok   { background: #16a34a; }
+    .audit-dot-err  { background: #dc2626; }
+    .audit-text { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+    .audit-text strong { color: #e2e8f0; }
+    .audit-ts { font-size: 11px; color: #475569; margin-top: 2px; }
+
+    .empty-state { padding: 40px; text-align: center; color: #475569; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">✦ BeautyCo Intelligence Agent</div>
+    <div class="subtitle">GlowRewards MCP Tool Server · Port 8036 · PostgreSQL beauty_db</div>
+  </div>
+  <div class="live-badge">LIVE</div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="label">Consultations Today</div>
+    <div class="value" id="stat-consultations">—</div>
+    <div class="delta" id="stat-consultations-delta"></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Tool Calls Today</div>
+    <div class="value" id="stat-tool-calls">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Avg Tools / Consultation</div>
+    <div class="value" id="stat-avg-tools">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Offers Created</div>
+    <div class="value" id="stat-offers">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Mktg Sequences</div>
+    <div class="value" id="stat-sequences">—</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="left-panel">
+    <div class="panel-header">Live Tool Call Stream</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Member</th>
+          <th>Tool</th>
+          <th>Status</th>
+          <th style="text-align:right">ms</th>
+        </tr>
+      </thead>
+      <tbody id="tool-calls-body">
+        <tr><td colspan="5" class="empty-state">Waiting for tool calls…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-header">Recent Consultations</div>
+    <div id="consultations-container">
+      <div class="empty-state">No consultations yet today</div>
+    </div>
+
+    <div class="panel-header" style="margin-top: 8px;">Agent Audit Log</div>
+    <div id="audit-log-container">
+      <div class="empty-state">No audit entries yet</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Config ─────────────────────────────────────────────────────────────────
+  const API_BASE = '';  // same origin — served by dashboard_server.py
+  const POLL_MS  = 2000;
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let seenConsultationIds = new Set();
+  let seenAuditIds        = new Set();
+  let toolCallRows        = [];
+  let startOfDay          = new Date(); startOfDay.setHours(0,0,0,0);
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function fmtTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+  function tierClass(tier) {
+    if (!tier) return '';
+    const t = tier.toUpperCase();
+    if (t === 'DIAMOND')  return 'tier-diamond';
+    if (t === 'PLATINUM') return 'tier-platinum';
+    return 'tier-member';
+  }
+
+  // ── Dashboard data fetch ─────────────────────────────────────────────────
+  async function fetchDashboard() {
+    try {
+      const resp = await fetch(`${API_BASE}/dashboard`);
+      if (!resp.ok) throw new Error(resp.status);
+      return await resp.json();
+    } catch {
+      return null;
+    }
+  }
+
+  // ── Render stats ───────────────────────────────────────────────────────────
+  function renderStats(data) {
+    const consultations = data.consultationsToday ?? 0;
+    const toolCalls     = data.toolCallsToday     ?? 0;
+    const offers        = data.offersCreatedToday  ?? 0;
+    const sequences     = data.sequencesToday      ?? 0;
+    const avgTools      = consultations > 0 ? (toolCalls / consultations).toFixed(1) : '0';
+
+    document.getElementById('stat-consultations').textContent = consultations;
+    document.getElementById('stat-tool-calls').textContent    = toolCalls;
+    document.getElementById('stat-avg-tools').textContent     = avgTools;
+    document.getElementById('stat-offers').textContent        = offers;
+    document.getElementById('stat-sequences').textContent     = sequences;
+  }
+
+  // ── Render tool calls ──────────────────────────────────────────────────────
+  function addToolCallRow(entry) {
+    toolCallRows.unshift(entry);
+    if (toolCallRows.length > 50) toolCallRows.pop();
+
+    const tbody = document.getElementById('tool-calls-body');
+    if (tbody.children.length === 1 && tbody.children[0].querySelector('.empty-state')) {
+      tbody.innerHTML = '';
+    }
+
+    const tr = document.createElement('tr');
+    const statusBadge = entry.status === 'OK'
+      ? '<span class="badge badge-ok">OK</span>'
+      : '<span class="badge badge-err">ERR</span>';
+
+    tr.innerHTML = `
+      <td class="ts">${fmtTime(entry.timestamp)}</td>
+      <td class="member ${tierClass(entry.tier)}">${entry.memberDisplay || entry.memberId || '—'}</td>
+      <td class="tool">${entry.tool}</td>
+      <td>${statusBadge}</td>
+      <td class="ms">${entry.responseMs ?? '—'}</td>
+    `;
+    tbody.insertBefore(tr, tbody.firstChild);
+    while (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+  }
+
+  // ── Render consultation cards ──────────────────────────────────────────────
+  function renderConsultation(c) {
+    const container = document.getElementById('consultations-container');
+    if (container.querySelector('.empty-state')) container.innerHTML = '';
+
+    const card = document.createElement('div');
+    card.className = 'consultation-card';
+
+    const conf = c.confidence_score ? Math.round(c.confidence_score * 100) : null;
+    const tools = Array.isArray(c.tools_used) ? c.tools_used : (c.tools_used || '').split(',').filter(Boolean);
+
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="member-name ${tierClass(c.tier)}">${c.first_name || ''} ${c.last_name || c.member_id}</div>
+        <div class="ts">${fmtTime(c.created_at)}</div>
+      </div>
+      <div class="tools-used">
+        ${tools.map(t => `<span class="tool-chip">${t.trim()}</span>`).join('')}
+      </div>
+      <div class="reasoning">
+        <strong>Agent Reasoning</strong>
+        ${c.agent_reasoning || 'No reasoning captured'}
+      </div>
+      ${conf !== null ? `
+      <div class="confidence">
+        <div class="conf-bar"><div class="conf-fill" style="width:${conf}%"></div></div>
+        <div class="conf-label">${conf}%</div>
+      </div>` : ''}
+    `;
+
+    container.insertBefore(card, container.firstChild);
+  }
+
+  // ── Render audit log ───────────────────────────────────────────────────────
+  function renderAuditEntry(entry) {
+    const container = document.getElementById('audit-log-container');
+    if (container.querySelector('.empty-state')) container.innerHTML = '';
+
+    const el = document.createElement('div');
+    el.className = 'audit-entry';
+
+    const dotClass = entry.status === 'ERROR' ? 'audit-dot-err'
+                   : entry.status === 'OK'    ? 'audit-dot-ok'
+                   : 'audit-dot-info';
+
+    el.innerHTML = `
+      <div class="audit-dot ${dotClass}"></div>
+      <div>
+        <div class="audit-text">
+          <strong>${entry.member_id || 'SYSTEM'}</strong> · ${entry.outcome || entry.message || ''}
+        </div>
+        <div class="audit-ts">${fmtTime(entry.created_at)}</div>
+      </div>
+    `;
+
+    container.insertBefore(el, container.firstChild);
+    while (container.children.length > 20) container.removeChild(container.lastChild);
+  }
+
+  // ── Main poll loop ─────────────────────────────────────────────────────────
+  async function poll() {
+    const data = await fetchDashboard();
+    if (!data) return;
+
+    renderStats(data);
+
+    // Tool calls (most recent first from API)
+    if (Array.isArray(data.recentToolCalls)) {
+      data.recentToolCalls.forEach(tc => {
+        const key = `${tc.timestamp}:${tc.tool}:${tc.memberId}`;
+        if (!seenAuditIds.has(key)) {
+          seenAuditIds.add(key);
+          addToolCallRow(tc);
+        }
+      });
+    }
+
+    // Consultations
+    if (Array.isArray(data.consultations)) {
+      data.consultations.forEach(c => {
+        if (!seenConsultationIds.has(c.id)) {
+          seenConsultationIds.add(c.id);
+          renderConsultation(c);
+        }
+      });
+    }
+
+    // Agent audit log
+    if (Array.isArray(data.agentLog)) {
+      data.agentLog.forEach(e => {
+        const key = `${e.created_at}:${e.member_id}`;
+        if (!seenAuditIds.has(key)) {
+          seenAuditIds.add(key);
+          renderAuditEntry(e);
+        }
+      });
+    }
+  }
+
+  poll();
+  setInterval(poll, POLL_MS);
+</script>
+
+</body>
+</html>
