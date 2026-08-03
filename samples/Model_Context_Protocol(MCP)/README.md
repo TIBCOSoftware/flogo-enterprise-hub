@@ -19,6 +19,8 @@ Build and deploy **MCP servers** with **TIBCO Flogo®** — the low-code way to 
 | 9 | [MCP JWT Scope Access Control](./MCP_JWT_Scope_Access_Control/) | JWT Scope + TokenInfo | Healthcare patient records with per-tool JWT scope enforcement and enhanced tokenInfo claims (iss, sub, aud, name, email) for audit logging |
 | 10 | [MCP Structured Content & Annotations](./MCP_Structured_Content_And_Annotations/) | Structured Content + Annotations | E-commerce orders with Tool Output Schema, structuredContent mapping, and audience/priority annotations |
 | 11 | [MCP Client Activity](./MCP_Client_Activity/) | MCP Client Activity | MCP Gateway pattern — an MCP server that uses mcpclient activities to call tools on backend MCP servers |
+| 12 | [MCP Server Authentication](./MCP_Server_Authentication/) | Auth Types Guide | Reference guide comparing all authentication types (None, API Key, JWT Token, OAuth 2.0) — scope enforcement, tokenInfo claims, and JWKS-based IdP integration |
+| 13 | [MCP OAuth 2.0 Access Control](./MCP_OAuth2_Access_Control/) | OAuth 2.0 + External IdP | Healthcare patient records secured with OAuth 2.0 — external IdP (Keycloak) via JWKS/RS256, issuer/audience validation, and server-level + per-handler scopes. Includes a Keycloak setup script |
 
 ---
 
@@ -36,12 +38,14 @@ Build and deploy **MCP servers** with **TIBCO Flogo®** — the low-code way to 
 8. **JWT Scope Access Control** — Protect tools with JWT scopes and use tokenInfo for audit logging
 9. **Structured Content & Annotations** — Return typed JSON alongside text, control audience visibility
 10. **MCP Client Activity** — Use Flogo as an MCP client to call tools on other MCP servers
+11. **MCP Server Authentication** — Choose and configure the right authentication type (None, API Key, JWT Token, OAuth 2.0)
+12. **MCP OAuth 2.0 Access Control** — Secure tools with an external identity provider (Keycloak) using JWKS, issuer/audience validation, and two-layer scopes
 
 ---
 
 ## Prerequisites
 
-- **TIBCO Flogo® 2.26.1 or later** (Smart Incident Response requires 2.26.3+; JWT Scope, Structured Content, and MCP Client samples require 2.26.5+)
+- **TIBCO Flogo® 2.26.1 or later** (Smart Incident Response requires 2.26.3+; JWT Scope, Structured Content, and MCP Client samples require 2.26.5+; the OAuth 2.0 Access Control sample requires 2.26.6+)
   - For more information, refer to the [MCP Connector documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/mcp/mcp-overview.htm)
 - **AI Agent client** for testing: [Claude Desktop](https://claude.ai/download), GitHub Copilot in VS Code, or any MCP-compatible client
 - **TLS certificates** (required only for the Auth sample)
