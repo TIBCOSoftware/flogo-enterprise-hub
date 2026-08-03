@@ -13,7 +13,7 @@ Custom-built activities and connectors extending **TIBCO Flogo®** capabilities 
 | [Pongo2](./pongo2/docs/) | Activity | Dynamic prompt engineering using Django/Jinja2-style templates for LLMs |
 | [OpenPGP](./openpgp/) | Activity | Encrypt, decrypt, and generate OpenPGP key pairs |
 | [Custom Log Palette](./custom-log-palette/) | Connector | Structured logging activities with text and JSON output. Contributed by [P4Future](https://www.p4future.com/en/) |
-| [OpenAI API Client](./openAI/) | Activity library | OpenAI API client activities — Files API and Vector Store API (create / search / list / delete), plus Responses (text & image), image generation, and embeddings. Built on the official OpenAI Go library. *Preview — some activities in progress.* |
+| [OpenAI](./openAI/) | Activity library | Activities for the OpenAI platform — file management, vector stores, semantic vector search (RAG), and image generation. Built on the official OpenAI Go library |
 
 ---
 
@@ -26,7 +26,7 @@ Custom-built activities and connectors extending **TIBCO Flogo®** capabilities 
 | pongo2 | 1.0.0 | 18th December 2025, New |
 | openpgp | 1.0.0 | 18th March 2026, New |
 | custom-log-palette | 1.0.0 | Contributed by P4Future |
-| openAI | Preview | In progress — Files & Vector Store APIs complete; Responses / Images / Embeddings in development |
+| openAI | 1.0.1 | File, Vector Store, Vector Search & Image Generation activities |
 
 ---
 
