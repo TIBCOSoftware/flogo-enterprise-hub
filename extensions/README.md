@@ -1,6 +1,6 @@
 # **TIBCO Flogo® Extensions**
 
-Custom-built activities and connectors extending **TIBCO Flogo®** capabilities — SSH remote execution, GCP cloud authentication, OpenPGP encryption, dynamic **AI prompt engineering**, and structured logging. Build your own Flogo extensions to add custom functionality to the low-code integration platform.
+Custom-built activities and connectors extending **TIBCO Flogo®** capabilities — SSH remote execution, GCP cloud authentication, OpenPGP encryption, dynamic **AI prompt engineering**, **OpenAI API client activities**, and structured logging. Build your own Flogo extensions to add custom functionality to the low-code integration platform.
 
 ---
 
@@ -13,6 +13,7 @@ Custom-built activities and connectors extending **TIBCO Flogo®** capabilities 
 | [Pongo2](./pongo2/docs/) | Activity | Dynamic prompt engineering using Django/Jinja2-style templates for LLMs |
 | [OpenPGP](./openpgp/) | Activity | Encrypt, decrypt, and generate OpenPGP key pairs |
 | [Custom Log Palette](./custom-log-palette/) | Connector | Structured logging activities with text and JSON output. Contributed by [P4Future](https://www.p4future.com/en/) |
+| [OpenAI API Client](./openAI/) | Activity library | OpenAI API client activities — Files API and Vector Store API (create / search / list / delete), plus Responses (text & image), image generation, and embeddings. Built on the official OpenAI Go library. *Preview — some activities in progress.* |
 
 ---
 
@@ -25,6 +26,7 @@ Custom-built activities and connectors extending **TIBCO Flogo®** capabilities 
 | pongo2 | 1.0.0 | 18th December 2025, New |
 | openpgp | 1.0.0 | 18th March 2026, New |
 | custom-log-palette | 1.0.0 | Contributed by P4Future |
+| openAI | Preview | In progress — Files & Vector Store APIs complete; Responses / Images / Embeddings in development |
 
 ---
 
@@ -34,6 +36,6 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo, Flogo Extensions, SSH, GCP, OpenPGP, Prompt Engineering, Low-Code, Custom Activities, iPaaS, GoLang, Enterprise Integration, Custom Connector -->
+<!-- SEO Keywords: TIBCO Flogo, Flogo Extensions, SSH, GCP, OpenPGP, Prompt Engineering, OpenAI, OpenAI API, Embeddings, Vector Store, Low-Code, Custom Activities, iPaaS, GoLang, Enterprise Integration, Custom Connector -->
 
 **Topics:** `Flogo Extensions` · `SSH` · `Prompt Engineering` · `Low-Code` · `GoLang`
