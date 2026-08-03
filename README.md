@@ -24,8 +24,10 @@ If you have purchased commercial support for TIBCO Flogo®, please create a Serv
 
 Build AI-powered agents, expose business data via MCP, and orchestrate intelligent workflows.
 
-- **[Agentic AI Samples](./samples/Agentic_AI/)** — AI agents with custom guardrails, multi-agent handoff, MCP server integration, A2A (Agent-to-Agent) protocol, LLM Client Activity, memory conversation store, dynamic MCP/A2A server configuration, dynamic semantic tool selection at scale (150 tools), scheduled reasoning with automated report generation and email delivery, and incident triage. Supports OpenAI, Gemini, Anthropic, Ollama, and vLLM.
+- **[Agentic AI Samples](./samples/Agentic_AI/)** — AI agents with custom guardrails, multi-agent handoff, MCP server integration, the "Flogo as an MCP tool server" pattern, A2A (Agent-to-Agent) protocol, LLM Client Activity, memory conversation store, dynamic MCP/A2A server configuration, dynamic semantic tool selection at scale (150 tools), scheduled reasoning with automated report generation and email delivery, and incident triage. Supports OpenAI, Gemini, Anthropic, Ollama, and vLLM.
 - **[Model Context Protocol (MCP) Samples](./samples/Model_Context_Protocol(MCP)/)** — MCP servers exposing business data as AI-accessible tools: stateless, stateful, authenticated, annotated, advanced primitives (elicitation, logging, sampling), JWT and OAuth 2.0 access control (external IdP via JWKS), structured content with annotations, and MCP client gateway.
+- **[OpenAI RAG & Vector Search Extension](./extensions/openAI/)** — Flogo activities for the OpenAI platform: file management, vector-store lifecycle, semantic vector search (RAG), and image generation — build retrieval-augmented AI flows with no code.
+- **[AI Alert Agent Demo](./demos/flogo-ai-alert-agent/)** — Autonomous AI Agent (Flogo AI Agent Activity) that investigates TIBCO Platform application alerts using Platform MCP services as tools and reports its root-cause findings automatically.
 - **[AI-Powered Customer Service Demo](./demos/ai-powered-customer-service/)** — End-to-end demo integrating CRM, orders, and notifications as MCP tools for AI agents.
 - **[AI-Powered MFT Demo](./demos/flogo-mcp-mft/)** — MCP server for TIBCO Managed File Transfer — AI-powered B2B file transfer management.
 - **[Pongo2 Prompt Engine Extension](./extensions/pongo2/)** — Dynamic prompt engineering activity using Django/Jinja2-style templates for LLMs.
@@ -42,7 +44,6 @@ Design Flogo applications with enterprise connectors, API protocols, and flow pa
 - **[GCP Extension](./extensions/gcp/)** — Generate OIDC ID tokens from GCP metadata server.
 - **[OpenPGP Extension](./extensions/openpgp/)** — Encrypt, decrypt, and generate OpenPGP key pairs.
 - **[Custom Log Palette Extension](./extensions/custom-log-palette/)** — Structured logging activities with text and JSON output formats. Contributed by [P4Future](https://www.p4future.com/en/).
-- **[OpenAI API RAG extensions](./extensions/openAI/)** - OpenAI API activities to interact with OpenAI API complient end points.
 
 ---
 
@@ -142,6 +143,6 @@ Thank you for being part of the Flogo® community!
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo, MCP Server, Model Context Protocol, Build MCP Server, AI Agents, Agentic AI, LLM Orchestration, Low-Code Integration, No-Code Integration, iPaaS, Integration Platform as a Service, Enterprise Integration, API Development, REST API, gRPC, GraphQL, Visual Flow Designer, Event-Driven Architecture, Microservices, Edge Computing, Serverless Integration, AI Workflow Automation, Prompt Engineering, OpenAI, Anthropic Claude, Google Gemini, Ollama, Enterprise Connectors, Salesforce Integration, SAP Integration, Kafka, PostgreSQL, Oracle Database, Redis, Azure Service Bus, Docker Deployment, Kubernetes, TIBCO Platform, Go Golang, VS Code Extension, AI Design Assistant, MCP Tools, MCP Resources, MCP Prompts, Custom AI Guardrails, Multi-Agent Systems, AI-Powered Automation, B2B Integration, Machine Learning Integration, Real-Time Processing, Cloud-Native Integration -->
+<!-- SEO Keywords: TIBCO Flogo, MCP Server, Model Context Protocol, Build MCP Server, AI Agents, Agentic AI, LLM Orchestration, Low-Code Integration, No-Code Integration, iPaaS, Integration Platform as a Service, Enterprise Integration, API Development, REST API, gRPC, GraphQL, Visual Flow Designer, Event-Driven Architecture, Microservices, Edge Computing, Serverless Integration, AI Workflow Automation, Prompt Engineering, RAG, Retrieval Augmented Generation, Vector Store, Vector Search, Semantic Search, Embeddings, Image Generation, OpenAI, Anthropic Claude, Google Gemini, Ollama, Enterprise Connectors, Salesforce Integration, SAP Integration, Kafka, PostgreSQL, Oracle Database, Redis, Azure Service Bus, Docker Deployment, Kubernetes, TIBCO Platform, Go Golang, VS Code Extension, AI Design Assistant, MCP Tools, MCP Resources, MCP Prompts, Custom AI Guardrails, Multi-Agent Systems, AI-Powered Automation, B2B Integration, Machine Learning Integration, Real-Time Processing, Cloud-Native Integration -->
 
 **Topics:** `MCP Server` · `AI Agents` · `Agentic AI` · `Low-Code` · `No-Code` · `iPaaS` · `Enterprise Integration` · `LLM Orchestration`
