@@ -1,6 +1,9 @@
-# FDA Prompts
 
-A collection of sample prompts for creating Flogo applications using the FDA CLI.
+# Flogo Design Assistant (FDA) Sample Prompts
+
+This readme file features ready-to-use prompts for building a range of Flogo applications using the FDA CLI.
+Prompts cover REST APIs, databases, AWS, OpenAPI spec, schema mapping, and more.
+Use these as templates for rapid app creation, noting any manual post-prompt steps described below.
 
 ---
 
