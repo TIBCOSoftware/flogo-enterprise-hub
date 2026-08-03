@@ -2,7 +2,7 @@
 
 This directory contains **real-world sample applications** demonstrating the full capabilities of the **TIBCO Flogo® Agentic AI Connector** — the enterprise-grade way to build, orchestrate, and govern AI agents inside Flogo integration flows.
 
-New here? Jump straight to the **[Sample Catalog](#sample-catalog)** to pick a sample by industry vertical, then follow the **[Quick Start](#quick-start)**.
+New here? Browse the **[Sample Catalog](#sample-catalog)** by industry vertical, follow the **[Suggested Learning Order](#suggested-learning-order)**, then see the **[Quick Start](#quick-start)**.
 
 ---
 
@@ -95,6 +95,25 @@ Samples grouped by **industry vertical**, plus a browser chat client for testing
 | Tool | Purpose |
 |---|---|
 | [Flogo Chatbot](./Chatbot/) | Browser-based WebSocket test client for any sample that exposes a WebSocket endpoint. Multiple sessions, editable WS URL, connection status. |
+
+---
+
+## Suggested Learning Order
+
+New to the Agentic AI Connector? This path moves from the simplest building block to the most advanced, so each sample builds on the last:
+
+1. **[Scheduled Reasoning Agent](./ScheduledReasoningAgent/)** — start with the **LLM Client Activity**: chained, stateless LLM calls driven by a timer and fed from an MCP server.
+2. **[Insurance Claims Processor](./InsuranceClaimsProcessor/)** — chain LLM Client calls across an MCP server and an A2A agent to reach a decision.
+3. **[IT Help Desk Advisor](./LLMClient-Dynamic-Config-And-Memory/)** — add multi-turn memory and dynamic MCP/A2A configuration to the LLM Client.
+4. **[Dynamic Semantic Tool Selection at Scale](./DynamicSemanticToolSelectionAtScale/)** — combine an LLM Client selector with an AI Agent Activity to handle very large tool sets.
+5. **[Morning Briefing](./morning-briefing/)** — move to the **AI Agent Activity** to summarize aggregated data inside a flow.
+6. **[AI-Powered Incident Triage Agent](./Ai-Triage-Agent/)** — give the AI Agent Activity MCP tools and reasoning to deduplicate incidents.
+7. **[Mobile Customer Care Multi-Agent Hub](./Mobile-Customer-Care-Multi-Agent/)** — use the AI Agent Activity as a dispatcher with multi-agent handoff.
+8. **[Healthcare Patient Support Agent](./Healthcare-Compliance-Agent/)** — build a full **AI Agent Trigger** with a custom guardrail and custom conversation store.
+9. **[Smart Supply Chain Assistant](./Smart-Supply-Chain-Assistant/)** — connect an Agent Trigger to multiple MCP servers plus a custom write tool.
+10. **[Travel Itinerary Planner with A2A Server](./Travel-Itinerary-Planner/)** — orchestrate agents across apps with the Agent-to-Agent (A2A) protocol.
+11. **[BeautyCo Retail Intelligence](./demo_retail/)** — turn Flogo into an **MCP tool server** that external AI clients (e.g. Claude Desktop) can call.
+12. **[Mortgage AI Processor](./mortgagedemo/)** — apply the MCP-server pattern to autonomous, auditable decisioning.
 
 ---
 

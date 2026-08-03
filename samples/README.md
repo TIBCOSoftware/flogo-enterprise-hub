@@ -41,15 +41,15 @@ Expose enterprise business data and operations as AI-accessible tools with **Flo
 | [Customer 360 with Auth](./Model_Context_Protocol(MCP)/Customer360WithAuth/) | Sales, CRM & Customer Success | Tools secured with TLS/HTTPS + token auth |
 | [Customer 360 with Prompts & Resources](./Model_Context_Protocol(MCP)/Customer360WithPromptsAndResources/) | Sales, CRM & Customer Success | All three MCP primitives — Tools + Resources + Prompts |
 | [Customer Health Monitor](./Model_Context_Protocol(MCP)/customer-health-monitor/) | Sales, CRM & Customer Success | Multi-source tools across Salesforce, Google Sheets & PostgreSQL |
-| [MCP JWT Scope Access Control](./Model_Context_Protocol(MCP)/MCP_JWT_Scope_Access_Control/) | Healthcare | Per-tool JWT scope enforcement + enhanced `tokenInfo` claims |
-| [MCP OAuth 2.0 Access Control](./Model_Context_Protocol(MCP)/MCP_OAuth2_Access_Control/) | Healthcare | OAuth 2.0 with an external IdP (Keycloak, JWKS/RS256) + two-layer scopes |
-| [MCP Stateful Server](./Model_Context_Protocol(MCP)/MCP_Stateful_Server/) | Banking & Financial Services | Stateful sessions (`Mcp-Session-Id`) for a multi-step loan wizard |
-| [MCP Tool Annotations](./Model_Context_Protocol(MCP)/MCP_Tool_Annotations/) | Banking & Financial Services | Tool annotation hints (`readOnly` / `destructive` / `idempotent` / `openWorld`) |
-| [MCP Stateless Server](./Model_Context_Protocol(MCP)/MCP_Stateless_Server/) | Retail & E-commerce | Stateless mode (`statelessServer: true`) for a scalable product catalog |
-| [MCP Structured Content & Annotations](./Model_Context_Protocol(MCP)/MCP_Structured_Content_And_Annotations/) | Retail & E-commerce | Structured Content (output schema) + audience/priority annotations |
+| [Patient Records with Scoped Access (JWT)](./Model_Context_Protocol(MCP)/MCP_JWT_Scope_Access_Control/) | Healthcare | Per-tool JWT scope enforcement + enhanced `tokenInfo` claims |
+| [Patient Records with OAuth 2.0 (External IdP)](./Model_Context_Protocol(MCP)/MCP_OAuth2_Access_Control/) | Healthcare | OAuth 2.0 with an external IdP (Keycloak, JWKS/RS256) + two-layer scopes |
+| [Loan Application Wizard (Stateful)](./Model_Context_Protocol(MCP)/MCP_Stateful_Server/) | Banking & Financial Services | Stateful sessions (`Mcp-Session-Id`) for a multi-step loan application |
+| [Banking Operations Assistant (Tool Annotations)](./Model_Context_Protocol(MCP)/MCP_Tool_Annotations/) | Banking & Financial Services | Tool annotation hints (`readOnly` / `destructive` / `idempotent` / `openWorld`) |
+| [Product Catalog Service (Stateless)](./Model_Context_Protocol(MCP)/MCP_Stateless_Server/) | Retail & E-commerce | Stateless mode (`statelessServer: true`) for a scalable product catalog |
+| [E-Commerce Order Insights (Structured Content)](./Model_Context_Protocol(MCP)/MCP_Structured_Content_And_Annotations/) | Retail & E-commerce | Structured Content (output schema) + audience/priority annotations |
 | [Smart Incident Response Assistant](./Model_Context_Protocol(MCP)/Smart_Incident_Response_Assistant/) | IT Operations | Elicitation + Logging + Sampling for guided incident triage |
-| [MCP Client Activity](./Model_Context_Protocol(MCP)/MCP_Client_Activity/) | Cross-Industry / Reference | MCP gateway aggregating backend MCP servers via `#mcpclient` |
-| [MCP Server Authentication](./Model_Context_Protocol(MCP)/MCP_Server_Authentication/) | Cross-Industry / Reference | Reference guide comparing all auth types (None / API Key / JWT / OAuth 2.0) |
+| [Enterprise MCP Gateway (MCP Client)](./Model_Context_Protocol(MCP)/MCP_Client_Activity/) | Cross-Industry / Reference | MCP gateway aggregating backend MCP servers via `#mcpclient` |
+| [MCP Server Security Guide](./Model_Context_Protocol(MCP)/MCP_Server_Authentication/) | Cross-Industry / Reference | Reference guide comparing all auth types (None / API Key / JWT / OAuth 2.0) |
 
 ---
 

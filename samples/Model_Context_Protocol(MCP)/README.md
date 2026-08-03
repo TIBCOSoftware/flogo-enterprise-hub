@@ -23,22 +23,22 @@ Samples grouped by **industry vertical**. The **MCP Features Demonstrated** colu
 
 | Sample | Business Scenario | MCP Features Demonstrated | Auth |
 |---|---|---|---|
-| [MCP JWT Scope Access Control](./MCP_JWT_Scope_Access_Control/) | Patient-records server with per-tool access enforcement | Tools · **JWT scopes per handler** · enhanced `tokenInfo` claims (iss/sub/aud/name/email) | JWT Token + scopes |
-| [MCP OAuth 2.0 Access Control](./MCP_OAuth2_Access_Control/) | Patient records secured by an external identity provider | Tools · **OAuth 2.0 + Keycloak (JWKS/RS256)** · issuer/audience validation · server + per-handler scopes · protected-resource discovery | OAuth 2.0 + IdP |
+| [Patient Records with Scoped Access (JWT)](./MCP_JWT_Scope_Access_Control/) | Patient-records server with per-tool access enforcement | Tools · **JWT scopes per handler** · enhanced `tokenInfo` claims (iss/sub/aud/name/email) | JWT Token + scopes |
+| [Patient Records with OAuth 2.0 (External IdP)](./MCP_OAuth2_Access_Control/) | Patient records secured by an external identity provider | Tools · **OAuth 2.0 + Keycloak (JWKS/RS256)** · issuer/audience validation · server + per-handler scopes · protected-resource discovery | OAuth 2.0 + IdP |
 
 ### Banking & Financial Services
 
 | Sample | Business Scenario | MCP Features Demonstrated | Auth |
 |---|---|---|---|
-| [MCP Stateful Server](./MCP_Stateful_Server/) | Multi-step loan-application wizard that accumulates session state | Tools · **stateful sessions** (`Mcp-Session-Id`, DELETE lifecycle) · file-based state · tool annotations | None |
-| [MCP Tool Annotations](./MCP_Tool_Annotations/) | Banking operations demonstrating every tool behavior hint | Tools · **Tool Annotations** (`readOnly` / `destructive` / `idempotent` / `openWorld`) | None |
+| [Loan Application Wizard (Stateful)](./MCP_Stateful_Server/) | Multi-step loan application that accumulates session state | Tools · **stateful sessions** (`Mcp-Session-Id`, DELETE lifecycle) · file-based state · tool annotations | None |
+| [Banking Operations Assistant (Tool Annotations)](./MCP_Tool_Annotations/) | Banking operations demonstrating every tool behavior hint | Tools · **Tool Annotations** (`readOnly` / `destructive` / `idempotent` / `openWorld`) | None |
 
 ### Retail & E-commerce
 
 | Sample | Business Scenario | MCP Features Demonstrated | Auth |
 |---|---|---|---|
-| [MCP Stateless Server](./MCP_Stateless_Server/) | Read-only product catalog, horizontally scalable | Tools · **stateless mode** (`statelessServer: true`, no session ID) · `readOnly` hints | None |
-| [MCP Structured Content & Annotations](./MCP_Structured_Content_And_Annotations/) | E-commerce orders returning typed output with routing hints | Tools · **Structured Content** (Tool Output Schema + `structuredContent`) · **content annotations** (audience / priority) | None |
+| [Product Catalog Service (Stateless)](./MCP_Stateless_Server/) | Read-only product catalog, horizontally scalable | Tools · **stateless mode** (`statelessServer: true`, no session ID) · `readOnly` hints | None |
+| [E-Commerce Order Insights (Structured Content)](./MCP_Structured_Content_And_Annotations/) | Order-management server returning typed output with routing hints | Tools · **Structured Content** (Tool Output Schema + `structuredContent`) · **content annotations** (audience / priority) | None |
 
 ### IT Operations
 
@@ -50,8 +50,8 @@ Samples grouped by **industry vertical**. The **MCP Features Demonstrated** colu
 
 | Sample | Business Scenario | MCP Features Demonstrated | Auth |
 |---|---|---|---|
-| [MCP Client Activity](./MCP_Client_Activity/) | MCP gateway that aggregates multiple backend MCP servers | **MCP Client Activity** (`#mcpclient`) · gateway/aggregator pattern · Streamable-HTTP · client auth None / Static Token / OAuth 2.0 | None (gateway) |
-| [MCP Server Authentication](./MCP_Server_Authentication/) | Reference guide comparing every MCP server authentication type | Conceptual: **None · API Key · JWT Token · OAuth 2.0** + TLS, across Tools / Resources / Prompts | All (reference) |
+| [Enterprise MCP Gateway (MCP Client)](./MCP_Client_Activity/) | An MCP gateway that aggregates multiple backend MCP servers | **MCP Client Activity** (`#mcpclient`) · gateway/aggregator pattern · Streamable-HTTP · client auth None / Static Token / OAuth 2.0 | None (gateway) |
+| [MCP Server Security Guide](./MCP_Server_Authentication/) | Reference guide comparing every MCP server authentication type | Conceptual: **None · API Key · JWT Token · OAuth 2.0** + TLS, across Tools / Resources / Prompts | All (reference) |
 
 ---
 
@@ -62,23 +62,23 @@ New to MCP in Flogo? This path walks from the foundations to advanced capabiliti
 1. **[Customer 360](./Customer360/)** — foundation pattern: a REST backend exposed as read-only MCP tools.
 2. **[Customer 360 with Auth](./Customer360WithAuth/)** — add production security (TLS + token auth).
 3. **[Customer 360 with Prompts & Resources](./Customer360WithPromptsAndResources/)** — learn when to use Resources vs. Tools vs. Prompts.
-4. **[Stateless](./MCP_Stateless_Server/)** vs. **[Stateful](./MCP_Stateful_Server/)** — understand the session-design trade-off for your use case.
-5. **[Tool Annotations](./MCP_Tool_Annotations/)** — guide AI-client behavior with `readOnly` / `destructive` / `idempotent` / `openWorld` hints.
-6. **[Structured Content & Annotations](./MCP_Structured_Content_And_Annotations/)** — return typed JSON alongside text and control audience visibility.
-7. **[Smart Incident Response](./Smart_Incident_Response_Assistant/)** — advanced interaction: Elicitation, Logging, and Sampling.
+4. **[Product Catalog Service (Stateless)](./MCP_Stateless_Server/)** vs. **[Loan Application Wizard (Stateful)](./MCP_Stateful_Server/)** — understand the session-design trade-off for your use case.
+5. **[Banking Operations Assistant (Tool Annotations)](./MCP_Tool_Annotations/)** — guide AI-client behavior with `readOnly` / `destructive` / `idempotent` / `openWorld` hints.
+6. **[E-Commerce Order Insights (Structured Content)](./MCP_Structured_Content_And_Annotations/)** — return typed JSON alongside text and control audience visibility.
+7. **[Smart Incident Response Assistant](./Smart_Incident_Response_Assistant/)** — advanced interaction: Elicitation, Logging, and Sampling.
 8. **[Customer Health Monitor](./customer-health-monitor/)** — real-world multi-source integration.
-9. **[MCP Server Authentication](./MCP_Server_Authentication/)** — choose and configure the right auth type.
-10. **[JWT Scope Access Control](./MCP_JWT_Scope_Access_Control/)** → **[OAuth 2.0 Access Control](./MCP_OAuth2_Access_Control/)** — enforce per-tool scopes, then secure with an external IdP.
-11. **[MCP Client Activity](./MCP_Client_Activity/)** — use Flogo as an MCP *client* to call and aggregate other MCP servers.
+9. **[MCP Server Security Guide](./MCP_Server_Authentication/)** — choose and configure the right auth type.
+10. **[Patient Records with Scoped Access (JWT)](./MCP_JWT_Scope_Access_Control/)** → **[Patient Records with OAuth 2.0 (External IdP)](./MCP_OAuth2_Access_Control/)** — enforce per-tool scopes, then secure with an external IdP.
+11. **[Enterprise MCP Gateway (MCP Client)](./MCP_Client_Activity/)** — use Flogo as an MCP *client* to call and aggregate other MCP servers.
 
 ---
 
 ## Prerequisites
 
 - **TIBCO Flogo® 2.26.1 or later**. Some samples need a newer build:
-  - Smart Incident Response — **2.26.3+**
-  - JWT Scope, Structured Content, and MCP Client Activity — **2.26.5+**
-  - OAuth 2.0 Access Control — **2.26.6+**
+  - Smart Incident Response Assistant — **2.26.3+**
+  - Patient Records with Scoped Access (JWT), E-Commerce Order Insights, and Enterprise MCP Gateway — **2.26.5+**
+  - Patient Records with OAuth 2.0 — **2.26.6+**
   - See the [MCP Connector documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/mcp/mcp-overview.htm) for details.
 - **AI Agent client** for testing: [Claude Desktop](https://claude.ai/download), GitHub Copilot in VS Code, or any MCP-compatible client.
 - **TLS certificates** — required only for the Auth sample.
