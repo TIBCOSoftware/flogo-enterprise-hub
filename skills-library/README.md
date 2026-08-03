@@ -237,6 +237,8 @@ The skills reference a few placeholder values that you should set once in your p
 - *"Build the `Flogo_Apps/customer-api.flogo` app and run it locally for 5 seconds, then show me the logs."*
 - *"Deploy the `Flogo_Apps/customer-api.flogo` app to dataplane `MyDataPlane`."*
 
+> **Note:** For more sample prompts, see [skills-library/SamplePrompts/README.md](SamplePrompts/README.md).
+
 ## Skills overview
 
 | Skill | Purpose |
