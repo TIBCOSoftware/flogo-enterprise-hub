@@ -4,7 +4,6 @@ An enterprise-ready demo showcasing TIBCO Flogo as the integration backbone for 
 
 > **Branding:** All assets use "BeautyCo" / "GlowRewards" as placeholders. Swap to the actual customer name in PostgreSQL seed data and app property values before the demo — no code changes required.
 
-[View Presentation](beauty-intelligence-agent/presentation/PRESENTATION.md) · [Flow Infographic](beauty-intelligence-agent/presentation/flow-infographic.md)
 
 ![Demo GIF](beauty-intelligence-agent/retailco-demo.gif)
 

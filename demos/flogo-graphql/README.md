@@ -17,7 +17,7 @@ Make file uses calls to flogobuild tool. The flogobuild tool can be downloaded f
 You'll need to setup your context first. E.g.
 
 ```bash
-flogobuild create-context -n latest -v /home/mmussett/flogo-vscode-linux-x64-1.3.0-1008.vsix --set-default
+flogobuild create-context -n latest -v <path-to-flogo-vscode-*.vsix> --set-default
 ```
 
 Whatever you decide to call your context, it needs to be the same as set in the FLOGO_CONTEXT variable in the Makefile, thus..

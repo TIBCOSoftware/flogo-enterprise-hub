@@ -1,6 +1,6 @@
 # **TIBCO Flogo® Core & Connector Samples**
 
-Build **enterprise integration flows** visually with **TIBCO Flogo®** — the low-code / no-code iPaaS inside VS Code. These samples cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, and more; flow design patterns; and unit testing — all without writing boilerplate code.
+Build **enterprise integration flows** visually with **TIBCO Flogo®** — the low-code / no-code iPaaS inside VS Code. These samples cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, Google Cloud Storage, TIBCO FTL, and more; flow design patterns; and unit testing — all without writing boilerplate code.
 
 ---
 
@@ -37,10 +37,17 @@ Build **enterprise integration flows** visually with **TIBCO Flogo®** — the l
 | [PostgreSQL CRUD](./Connectors/Databases/PostgreSQL-CRUD/) | Insert, update, delete, and query operations with TLS/SSL authentication |
 | [Redis](./Connectors/Databases/Redis/) | Redis Sets group commands |
 
+### Google Cloud
+| Sample | Description |
+|--------|-------------|
+| [Google Cloud Storage — CRUD](./Connectors/GoogleCloudStorage/) | Full GCS lifecycle across all 6 GCS activities — create bucket/object, upload a large file, list, get, update metadata & ACL, and delete |
+| [Google Connection — Service Account Key Override](./Connectors/GoogleConnection/OverrideServiceAccountKey/) | Override the Google service-account key at runtime via app property — Base64, raw JSON, `file://` path, or Kubernetes secret |
+
 ### Messaging
 | Sample | Description |
 |--------|-------------|
 | [EMS Request-Reply](./Connectors/Messaging/EMS/RequestReply/) | TIBCO Enterprise Message Service with TLS, queue and topic subscriptions |
+| [FTL Publish-Subscribe](./Connectors/Messaging/FTL/PublishSubscribe/) | TIBCO FTL publish-subscribe with binary file transfer — Read File → FTL Publisher → FTL Subscriber trigger → Write File |
 | [Kafka Producer-Consumer](./Connectors/Messaging/Kafka/Basic-producer-consumer-flow/) | Basic Kafka publish-subscribe pattern |
 
 ### SAP
@@ -89,9 +96,11 @@ Build **enterprise integration flows** visually with **TIBCO Flogo®** — the l
   - Salesforce: Salesforce developer account and connected app
   - Azure: Azure subscription and service credentials
   - EMS: TIBCO Enterprise Message Service broker
+  - FTL: TIBCO FTL server (realm/server)
   - Kafka: Kafka broker (local or cloud)
   - SAP: SAP S/4HANA system with RFC SDK
   - Redis: Redis server instance
+  - Google Cloud Storage: GCP project with a service-account key and a GCS bucket
 
 ## Quick Start
 
@@ -110,6 +119,6 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<!-- SEO Keywords: Integration Flows, REST API, gRPC, GraphQL, Enterprise Connectors, Low-Code Integration, No-Code iPaaS, Visual Flow Designer, Salesforce Connector, SAP S/4HANA, Oracle Database, PostgreSQL, Redis, Kafka, Azure Service Bus, TIBCO EMS, API Development, Microservices, Event-Driven Architecture, Unit Testing, VS Code Extension, TIBCO Flogo -->
+<!-- SEO Keywords: Integration Flows, REST API, gRPC, GraphQL, Enterprise Connectors, Low-Code Integration, No-Code iPaaS, Visual Flow Designer, Salesforce Connector, SAP S/4HANA, Oracle Database, PostgreSQL, Redis, Kafka, Azure Service Bus, TIBCO EMS, TIBCO FTL, Google Cloud Storage, GCS, API Development, Microservices, Event-Driven Architecture, Unit Testing, VS Code Extension, TIBCO Flogo -->
 
 **Topics:** `REST API` · `gRPC` · `GraphQL` · `Enterprise Connectors` · `Low-Code` · `iPaaS`
