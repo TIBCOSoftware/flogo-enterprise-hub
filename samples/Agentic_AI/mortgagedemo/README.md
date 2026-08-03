@@ -272,18 +272,6 @@ Each `tools/call` request is handled by a dedicated Flogo flow. The flow reads f
 
 ---
 
-## Competitor Positioning
-
-| Capability | Flogo 2.26.2 | n8n | MuleSoft |
-|---|---|---|---|
-| Native MCP tool server | **Yes** | No | No |
-| Compiles to Go binary | **Yes** | No (Node.js) | No (JVM) |
-| On-prem, behind firewall | **Yes** | Cloud-first | Complex |
-| AI cannot override routing | **Yes** (link conditions) | No | Partial |
-| Time to demo | **Hours** | Days | Weeks |
-
----
-
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
