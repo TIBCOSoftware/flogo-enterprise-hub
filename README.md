@@ -42,6 +42,7 @@ Design Flogo applications with enterprise connectors, API protocols, and flow pa
 - **[GCP Extension](./extensions/gcp/)** — Generate OIDC ID tokens from GCP metadata server.
 - **[OpenPGP Extension](./extensions/openpgp/)** — Encrypt, decrypt, and generate OpenPGP key pairs.
 - **[Custom Log Palette Extension](./extensions/custom-log-palette/)** — Structured logging activities with text and JSON output formats. Contributed by [P4Future](https://www.p4future.com/en/).
+- **[OpenAI API RAG extensions](./extensions/openAI/)** - OpenAI API activities to interact with OpenAI API complient end points.
 
 ---
 

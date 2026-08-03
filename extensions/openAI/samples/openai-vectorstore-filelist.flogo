@@ -1,0 +1,226 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/vectorStoreFileList",
+    "github.com/tibco/flogo-general/src/app/General/activity/mapper",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "name": "openaiVectorStore-openAI",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#startuphook",
+      "name": "tibco-appstartup",
+      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "settings": {},
+      "id": "AppStartupTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:List_files_in_vectorstore"
+            }
+          },
+          "name": "List_files_in_vectorstore"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:List_files_in_vectorstore",
+      "data": {
+        "note": {
+          "author": {
+            "name": "VS code user",
+            "userId": "vscode"
+          },
+          "content": "Prerequesit:\n- openAI vectorstore with one or more files associated to it.",
+          "createAt": 1779879034356,
+          "lastUpdatedAt": 1779879034356,
+          "title": "Flow Note"
+        },
+        "name": "List files in vectorstore",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "VectorStoreFileList",
+            "type": "label",
+            "label": "StartActivity to VectorStoreFileList"
+          },
+          {
+            "id": 2,
+            "from": "VectorStoreFileList",
+            "to": "Mapper",
+            "type": "label",
+            "label": "VectorStoreFileList to Mapper"
+          },
+          {
+            "id": 3,
+            "from": "Mapper",
+            "to": "LogOutput",
+            "type": "label",
+            "label": "Mapper to LogOutput"
+          },
+          {
+            "id": 4,
+            "from": "LogOutput",
+            "to": "Return",
+            "type": "label",
+            "label": "LogOutput to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "VectorStoreFileList",
+            "name": "VectorStoreFileList",
+            "description": "This activity lists files in an OpenAI vector store with support for filtering and pagination",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectorStoreFileList",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]"
+              },
+              "input": {
+                "vectorStoreID": "=$property[\"VECTORSTORE_ID\"]",
+                "filter": "",
+                "order": "",
+                "after": "",
+                "before": ""
+              },
+              "schemas": {
+                "output": {
+                  "files": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"OpenAI Vector Store Files\", \"description\": \"Array of vector store file objects returned by the OpenAI list files API\", \"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"created_at\", \"last_error\", \"object\", \"status\", \"usage_bytes\", \"vector_store_id\", \"attributes\", \"chunking_strategy\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"description\": \"Unique identifier for the file\", \"pattern\": \"^file-[a-zA-Z0-9]+$\"}, \"created_at\": {\"type\": \"integer\", \"description\": \"Unix timestamp when the file was created\", \"minimum\": 0}, \"last_error\": {\"type\": \"object\", \"description\": \"Information about the last error encountered (empty strings when no error)\", \"required\": [\"code\", \"message\"], \"additionalProperties\": false, \"properties\": {\"code\": {\"type\": \"string\", \"description\": \"Error code, empty string when no error\"}, \"message\": {\"type\": \"string\", \"description\": \"Error message, empty string when no error\"}}}, \"object\": {\"type\": \"string\", \"description\": \"Object type identifier\", \"enum\": [\"vector_store.file\"]}, \"status\": {\"type\": \"string\", \"description\": \"Processing status of the file\", \"enum\": [\"in_progress\", \"completed\", \"failed\", \"cancelled\"]}, \"usage_bytes\": {\"type\": \"integer\", \"description\": \"Number of bytes used by the file\", \"minimum\": 0}, \"vector_store_id\": {\"type\": \"string\", \"description\": \"ID of the vector store containing this file\", \"pattern\": \"^vs_[a-zA-Z0-9]+$\"}, \"attributes\": {\"type\": \"object\", \"description\": \"Custom attributes associated with the file (free-form key/value pairs)\", \"additionalProperties\": {\"type\": [\"string\", \"number\", \"boolean\", \"null\"]}}, \"chunking_strategy\": {\"type\": \"object\", \"description\": \"Strategy used for chunking the file\", \"required\": [\"type\"], \"additionalProperties\": false, \"properties\": {\"type\": {\"type\": \"string\", \"description\": \"Type of chunking strategy\", \"enum\": [\"static\", \"auto\"]}, \"static\": {\"type\": \"object\", \"description\": \"Static chunking configuration (present when type is static)\", \"required\": [\"chunk_overlap_tokens\", \"max_chunk_size_tokens\"], \"additionalProperties\": false, \"properties\": {\"chunk_overlap_tokens\": {\"type\": \"integer\", \"description\": \"Number of tokens to overlap between chunks\", \"minimum\": 0}, \"max_chunk_size_tokens\": {\"type\": \"integer\", \"description\": \"Maximum size of each chunk in tokens\", \"minimum\": 0}}}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"OpenAI Vector Store Files\", \"description\": \"Array of vector store file objects returned by the OpenAI list files API\", \"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"created_at\", \"last_error\", \"object\", \"status\", \"usage_bytes\", \"vector_store_id\", \"attributes\", \"chunking_strategy\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"description\": \"Unique identifier for the file\", \"pattern\": \"^file-[a-zA-Z0-9]+$\"}, \"created_at\": {\"type\": \"integer\", \"description\": \"Unix timestamp when the file was created\", \"minimum\": 0}, \"last_error\": {\"type\": \"object\", \"description\": \"Information about the last error encountered (empty strings when no error)\", \"required\": [\"code\", \"message\"], \"additionalProperties\": false, \"properties\": {\"code\": {\"type\": \"string\", \"description\": \"Error code, empty string when no error\"}, \"message\": {\"type\": \"string\", \"description\": \"Error message, empty string when no error\"}}}, \"object\": {\"type\": \"string\", \"description\": \"Object type identifier\", \"enum\": [\"vector_store.file\"]}, \"status\": {\"type\": \"string\", \"description\": \"Processing status of the file\", \"enum\": [\"in_progress\", \"completed\", \"failed\", \"cancelled\"]}, \"usage_bytes\": {\"type\": \"integer\", \"description\": \"Number of bytes used by the file\", \"minimum\": 0}, \"vector_store_id\": {\"type\": \"string\", \"description\": \"ID of the vector store containing this file\", \"pattern\": \"^vs_[a-zA-Z0-9]+$\"}, \"attributes\": {\"type\": \"object\", \"description\": \"Custom attributes associated with the file (free-form key/value pairs)\", \"additionalProperties\": {\"type\": [\"string\", \"number\", \"boolean\", \"null\"]}}, \"chunking_strategy\": {\"type\": \"object\", \"description\": \"Strategy used for chunking the file\", \"required\": [\"type\"], \"additionalProperties\": false, \"properties\": {\"type\": {\"type\": \"string\", \"description\": \"Type of chunking strategy\", \"enum\": [\"static\", \"auto\"]}, \"static\": {\"type\": \"object\", \"description\": \"Static chunking configuration (present when type is static)\", \"required\": [\"chunk_overlap_tokens\", \"max_chunk_size_tokens\"], \"additionalProperties\": false, \"properties\": {\"chunk_overlap_tokens\": {\"type\": \"integer\", \"description\": \"Number of tokens to overlap between chunks\", \"minimum\": 0}, \"max_chunk_size_tokens\": {\"type\": \"integer\", \"description\": \"Maximum size of each chunk in tokens\", \"minimum\": 0}}}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Mapper",
+            "name": "Mapper",
+            "description": "Mapper Activity",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": {
+                  "mapping": {
+                    "files": {
+                      "@foreach($activity[VectorStoreFileList].files,files)": {
+                        "=": "$loop"
+                      }
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\r\n  \"title\": \"OpenAI Vector Store Files Response\",\r\n  \"description\": \"Schema for OpenAI Vector Store list files API response\",\r\n  \"type\": \"object\",\r\n  \"required\": [\"files\"],\r\n  \"properties\": {\r\n    \"files\": {\r\n      \"type\": \"array\",\r\n      \"description\": \"Array of vector store file objects\",\r\n      \"items\": {\r\n        \"type\": \"object\",\r\n        \"required\": [\r\n          \"id\",\r\n          \"created_at\",\r\n          \"last_error\",\r\n          \"object\",\r\n          \"status\",\r\n          \"usage_bytes\",\r\n          \"vector_store_id\",\r\n          \"attributes\",\r\n          \"chunking_strategy\"\r\n        ],\r\n        \"properties\": {\r\n          \"id\": {\r\n            \"type\": \"string\",\r\n            \"description\": \"Unique identifier for the file\",\r\n            \"pattern\": \"^file-[a-zA-Z0-9]+$\"\r\n          },\r\n          \"created_at\": {\r\n            \"type\": \"integer\",\r\n            \"description\": \"Unix timestamp when the file was created\",\r\n            \"minimum\": 0\r\n          },\r\n          \"last_error\": {\r\n            \"type\": \"object\",\r\n            \"description\": \"Information about the last error encountered\",\r\n            \"required\": [\"code\", \"message\"],\r\n            \"properties\": {\r\n              \"code\": {\r\n                \"type\": \"string\",\r\n                \"description\": \"Error code\"\r\n              },\r\n              \"message\": {\r\n                \"type\": \"string\",\r\n                \"description\": \"Error message\"\r\n              }\r\n            }\r\n          },\r\n          \"object\": {\r\n            \"type\": \"string\",\r\n            \"description\": \"Object type identifier\",\r\n            \"enum\": [\"vector_store.file\"]\r\n          },\r\n          \"status\": {\r\n            \"type\": \"string\",\r\n            \"description\": \"Processing status of the file\",\r\n            \"enum\": [\"completed\", \"processing\", \"failed\", \"cancelled\"]\r\n          },\r\n          \"usage_bytes\": {\r\n            \"type\": \"integer\",\r\n            \"description\": \"Number of bytes used by the file\",\r\n            \"minimum\": 0\r\n          },\r\n          \"vector_store_id\": {\r\n            \"type\": \"string\",\r\n            \"description\": \"ID of the vector store containing this file\",\r\n            \"pattern\": \"^vs_[a-zA-Z0-9]+$\"\r\n          },\r\n          \"attributes\": {\r\n            \"type\": \"object\",\r\n            \"description\": \"Custom attributes associated with the file\",\r\n            \"additionalProperties\": false,\r\n            \"properties\": {\r\n              \"DocGroup\": {\r\n                \"$ref\": \"#/definitions/AttributeValue\"\r\n              },\r\n              \"DocType\": {\r\n                \"$ref\": \"#/definitions/AttributeValue\"\r\n              },\r\n              \"Download URL\": {\r\n                \"$ref\": \"#/definitions/AttributeValue\"\r\n              }\r\n            }\r\n          },\r\n          \"chunking_strategy\": {\r\n            \"type\": \"object\",\r\n            \"description\": \"Strategy used for chunking the file\",\r\n            \"required\": [\"type\"],\r\n            \"properties\": {\r\n              \"type\": {\r\n                \"type\": \"string\",\r\n                \"description\": \"Type of chunking strategy\",\r\n                \"enum\": [\"static\", \"auto\"]\r\n              },\r\n              \"static\": {\r\n                \"type\": \"object\",\r\n                \"description\": \"Static chunking configuration\",\r\n                \"required\": [\"chunk_overlap_tokens\", \"max_chunk_size_tokens\"],\r\n                \"properties\": {\r\n                  \"chunk_overlap_tokens\": {\r\n                    \"type\": \"integer\",\r\n                    \"description\": \"Number of tokens to overlap between chunks\",\r\n                    \"minimum\": 0\r\n                  },\r\n                  \"max_chunk_size_tokens\": {\r\n                    \"type\": \"integer\",\r\n                    \"description\": \"Maximum size of each chunk in tokens\",\r\n                    \"minimum\": 0\r\n                  }\r\n                }\r\n              }\r\n            }\r\n          }\r\n        }\r\n      }\r\n    }\r\n  },\r\n  \"definitions\": {\r\n    \"AttributeValue\": {\r\n      \"type\": \"object\",\r\n      \"description\": \"Custom attribute value with typed fields\",\r\n      \"required\": [\"OfString\", \"OfFloat\", \"OfBool\"],\r\n      \"properties\": {\r\n        \"OfString\": {\r\n          \"type\": \"string\",\r\n          \"description\": \"String value of the attribute\"\r\n        },\r\n        \"OfFloat\": {\r\n          \"type\": \"number\",\r\n          \"description\": \"Float value of the attribute\"\r\n        },\r\n        \"OfBool\": {\r\n          \"type\": \"boolean\",\r\n          \"description\": \"Boolean value of the attribute\"\r\n        }\r\n      }\r\n    }\r\n  }\r\n}",
+                    "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\r\n  \"title\": \"OpenAI Vector Store Files Response\",\r\n  \"description\": \"Schema for OpenAI Vector Store list files API response\",\r\n  \"type\": \"object\",\r\n  \"required\": [\"files\"],\r\n  \"properties\": {\r\n    \"files\": {\r\n      \"type\": \"array\",\r\n      \"description\": \"Array of vector store file objects\",\r\n      \"items\": {\r\n        \"type\": \"object\",\r\n        \"required\": [\r\n          \"id\",\r\n          \"created_at\",\r\n          \"last_error\",\r\n          \"object\",\r\n          \"status\",\r\n          \"usage_bytes\",\r\n          \"vector_store_id\",\r\n          \"attributes\",\r\n          \"chunking_strategy\"\r\n        ],\r\n        \"properties\": {\r\n          \"id\": {\r\n            \"type\": \"string\",\r\n            \"description\": \"Unique identifier for the file\",\r\n            \"pattern\": \"^file-[a-zA-Z0-9]+$\"\r\n          },\r\n          \"created_at\": {\r\n            \"type\": \"integer\",\r\n            \"description\": \"Unix timestamp when the file was created\",\r\n            \"minimum\": 0\r\n          },\r\n          \"last_error\": {\r\n            \"type\": \"object\",\r\n            \"description\": \"Information about the last error encountered\",\r\n            \"required\": [\"code\", \"message\"],\r\n            \"properties\": {\r\n              \"code\": {\r\n                \"type\": \"string\",\r\n                \"description\": \"Error code\"\r\n              },\r\n              \"message\": {\r\n                \"type\": \"string\",\r\n                \"description\": \"Error message\"\r\n              }\r\n            }\r\n          },\r\n          \"object\": {\r\n            \"type\": \"string\",\r\n            \"description\": \"Object type identifier\",\r\n            \"enum\": [\"vector_store.file\"]\r\n          },\r\n          \"status\": {\r\n            \"type\": \"string\",\r\n            \"description\": \"Processing status of the file\",\r\n            \"enum\": [\"completed\", \"processing\", \"failed\", \"cancelled\"]\r\n          },\r\n          \"usage_bytes\": {\r\n            \"type\": \"integer\",\r\n            \"description\": \"Number of bytes used by the file\",\r\n            \"minimum\": 0\r\n          },\r\n          \"vector_store_id\": {\r\n            \"type\": \"string\",\r\n            \"description\": \"ID of the vector store containing this file\",\r\n            \"pattern\": \"^vs_[a-zA-Z0-9]+$\"\r\n          },\r\n          \"attributes\": {\r\n            \"type\": \"object\",\r\n            \"description\": \"Custom attributes associated with the file\",\r\n            \"additionalProperties\": false,\r\n            \"properties\": {\r\n              \"DocGroup\": {\r\n                \"$ref\": \"#/definitions/AttributeValue\"\r\n              },\r\n              \"DocType\": {\r\n                \"$ref\": \"#/definitions/AttributeValue\"\r\n              },\r\n              \"Download URL\": {\r\n                \"$ref\": \"#/definitions/AttributeValue\"\r\n              }\r\n            }\r\n          },\r\n          \"chunking_strategy\": {\r\n            \"type\": \"object\",\r\n            \"description\": \"Strategy used for chunking the file\",\r\n            \"required\": [\"type\"],\r\n            \"properties\": {\r\n              \"type\": {\r\n                \"type\": \"string\",\r\n                \"description\": \"Type of chunking strategy\",\r\n                \"enum\": [\"static\", \"auto\"]\r\n              },\r\n              \"static\": {\r\n                \"type\": \"object\",\r\n                \"description\": \"Static chunking configuration\",\r\n                \"required\": [\"chunk_overlap_tokens\", \"max_chunk_size_tokens\"],\r\n                \"properties\": {\r\n                  \"chunk_overlap_tokens\": {\r\n                    \"type\": \"integer\",\r\n                    \"description\": \"Number of tokens to overlap between chunks\",\r\n                    \"minimum\": 0\r\n                  },\r\n                  \"max_chunk_size_tokens\": {\r\n                    \"type\": \"integer\",\r\n                    \"description\": \"Maximum size of each chunk in tokens\",\r\n                    \"minimum\": 0\r\n                  }\r\n                }\r\n              }\r\n            }\r\n          }\r\n        }\r\n      }\r\n    }\r\n  },\r\n  \"definitions\": {\r\n    \"AttributeValue\": {\r\n      \"type\": \"object\",\r\n      \"description\": \"Custom attribute value with typed fields\",\r\n      \"required\": [\"OfString\", \"OfFloat\", \"OfBool\"],\r\n      \"properties\": {\r\n        \"OfString\": {\r\n          \"type\": \"string\",\r\n          \"description\": \"String value of the attribute\"\r\n        },\r\n        \"OfFloat\": {\r\n          \"type\": \"number\",\r\n          \"description\": \"Float value of the attribute\"\r\n        },\r\n        \"OfBool\": {\r\n          \"type\": \"boolean\",\r\n          \"description\": \"Boolean value of the attribute\"\r\n        }\r\n      }\r\n    }\r\n  }\r\n}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"OpenAI Vector Store Files Response\",\n  \"description\": \"Schema for OpenAI Vector Store list files API response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"files\"\n  ],\n  \"properties\": {\n    \"files\": {\n      \"type\": \"array\",\n      \"description\": \"Array of vector store file objects\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"created_at\",\n          \"last_error\",\n          \"object\",\n          \"status\",\n          \"usage_bytes\",\n          \"vector_store_id\",\n          \"attributes\",\n          \"chunking_strategy\"\n        ],\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"description\": \"Unique identifier for the file\",\n            \"pattern\": \"^file-[a-zA-Z0-9]+$\"\n          },\n          \"created_at\": {\n            \"type\": \"integer\",\n            \"description\": \"Unix timestamp when the file was created\",\n            \"minimum\": 0\n          },\n          \"last_error\": {\n            \"type\": \"object\",\n            \"description\": \"Information about the last error encountered\",\n            \"required\": [\n              \"code\",\n              \"message\"\n            ],\n            \"properties\": {\n              \"code\": {\n                \"type\": \"string\",\n                \"description\": \"Error code\"\n              },\n              \"message\": {\n                \"type\": \"string\",\n                \"description\": \"Error message\"\n              }\n            }\n          },\n          \"object\": {\n            \"type\": \"string\",\n            \"description\": \"Object type identifier\",\n            \"enum\": [\n              \"vector_store.file\"\n            ]\n          },\n          \"status\": {\n            \"type\": \"string\",\n            \"description\": \"Processing status of the file\",\n            \"enum\": [\n              \"completed\",\n              \"processing\",\n              \"failed\",\n              \"cancelled\"\n            ]\n          },\n          \"usage_bytes\": {\n            \"type\": \"integer\",\n            \"description\": \"Number of bytes used by the file\",\n            \"minimum\": 0\n          },\n          \"vector_store_id\": {\n            \"type\": \"string\",\n            \"description\": \"ID of the vector store containing this file\",\n            \"pattern\": \"^vs_[a-zA-Z0-9]+$\"\n          },\n          \"attributes\": {\n            \"type\": \"object\",\n            \"description\": \"Custom attributes associated with the file\",\n            \"additionalProperties\": false,\n            \"properties\": {\n              \"DocGroup\": {\n                \"$ref\": \"#/definitions/AttributeValue\"\n              },\n              \"DocType\": {\n                \"$ref\": \"#/definitions/AttributeValue\"\n              },\n              \"Download URL\": {\n                \"$ref\": \"#/definitions/AttributeValue\"\n              }\n            }\n          },\n          \"chunking_strategy\": {\n            \"type\": \"object\",\n            \"description\": \"Strategy used for chunking the file\",\n            \"required\": [\n              \"type\"\n            ],\n            \"properties\": {\n              \"type\": {\n                \"type\": \"string\",\n                \"description\": \"Type of chunking strategy\",\n                \"enum\": [\n                  \"static\",\n                  \"auto\"\n                ]\n              },\n              \"static\": {\n                \"type\": \"object\",\n                \"description\": \"Static chunking configuration\",\n                \"required\": [\n                  \"chunk_overlap_tokens\",\n                  \"max_chunk_size_tokens\"\n                ],\n                \"properties\": {\n                  \"chunk_overlap_tokens\": {\n                    \"type\": \"integer\",\n                    \"description\": \"Number of tokens to overlap between chunks\",\n                    \"minimum\": 0\n                  },\n                  \"max_chunk_size_tokens\": {\n                    \"type\": \"integer\",\n                    \"description\": \"Maximum size of each chunk in tokens\",\n                    \"minimum\": 0\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  },\n  \"definitions\": {\n    \"AttributeValue\": {\n      \"type\": \"object\",\n      \"description\": \"Custom attribute value with typed fields\",\n      \"required\": [\n        \"OfString\",\n        \"OfFloat\",\n        \"OfBool\"\n      ],\n      \"properties\": {\n        \"OfString\": {\n          \"type\": \"string\",\n          \"description\": \"String value of the attribute\"\n        },\n        \"OfFloat\": {\n          \"type\": \"number\",\n          \"description\": \"Float value of the attribute\"\n        },\n        \"OfBool\": {\n          \"type\": \"boolean\",\n          \"description\": \"Boolean value of the attribute\"\n        }\n      }\n    }\n  }\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"OpenAI Vector Store Files Response\",\n  \"description\": \"Schema for OpenAI Vector Store list files API response\",\n  \"type\": \"object\",\n  \"required\": [\n    \"files\"\n  ],\n  \"properties\": {\n    \"files\": {\n      \"type\": \"array\",\n      \"description\": \"Array of vector store file objects\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\",\n          \"created_at\",\n          \"last_error\",\n          \"object\",\n          \"status\",\n          \"usage_bytes\",\n          \"vector_store_id\",\n          \"attributes\",\n          \"chunking_strategy\"\n        ],\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\",\n            \"description\": \"Unique identifier for the file\",\n            \"pattern\": \"^file-[a-zA-Z0-9]+$\"\n          },\n          \"created_at\": {\n            \"type\": \"integer\",\n            \"description\": \"Unix timestamp when the file was created\",\n            \"minimum\": 0\n          },\n          \"last_error\": {\n            \"type\": \"object\",\n            \"description\": \"Information about the last error encountered\",\n            \"required\": [\n              \"code\",\n              \"message\"\n            ],\n            \"properties\": {\n              \"code\": {\n                \"type\": \"string\",\n                \"description\": \"Error code\"\n              },\n              \"message\": {\n                \"type\": \"string\",\n                \"description\": \"Error message\"\n              }\n            }\n          },\n          \"object\": {\n            \"type\": \"string\",\n            \"description\": \"Object type identifier\",\n            \"enum\": [\n              \"vector_store.file\"\n            ]\n          },\n          \"status\": {\n            \"type\": \"string\",\n            \"description\": \"Processing status of the file\",\n            \"enum\": [\n              \"completed\",\n              \"processing\",\n              \"failed\",\n              \"cancelled\"\n            ]\n          },\n          \"usage_bytes\": {\n            \"type\": \"integer\",\n            \"description\": \"Number of bytes used by the file\",\n            \"minimum\": 0\n          },\n          \"vector_store_id\": {\n            \"type\": \"string\",\n            \"description\": \"ID of the vector store containing this file\",\n            \"pattern\": \"^vs_[a-zA-Z0-9]+$\"\n          },\n          \"attributes\": {\n            \"type\": \"object\",\n            \"description\": \"Custom attributes associated with the file\",\n            \"additionalProperties\": false,\n            \"properties\": {\n              \"DocGroup\": {\n                \"$ref\": \"#/definitions/AttributeValue\"\n              },\n              \"DocType\": {\n                \"$ref\": \"#/definitions/AttributeValue\"\n              },\n              \"Download URL\": {\n                \"$ref\": \"#/definitions/AttributeValue\"\n              }\n            }\n          },\n          \"chunking_strategy\": {\n            \"type\": \"object\",\n            \"description\": \"Strategy used for chunking the file\",\n            \"required\": [\n              \"type\"\n            ],\n            \"properties\": {\n              \"type\": {\n                \"type\": \"string\",\n                \"description\": \"Type of chunking strategy\",\n                \"enum\": [\n                  \"static\",\n                  \"auto\"\n                ]\n              },\n              \"static\": {\n                \"type\": \"object\",\n                \"description\": \"Static chunking configuration\",\n                \"required\": [\n                  \"chunk_overlap_tokens\",\n                  \"max_chunk_size_tokens\"\n                ],\n                \"properties\": {\n                  \"chunk_overlap_tokens\": {\n                    \"type\": \"integer\",\n                    \"description\": \"Number of tokens to overlap between chunks\",\n                    \"minimum\": 0\n                  },\n                  \"max_chunk_size_tokens\": {\n                    \"type\": \"integer\",\n                    \"description\": \"Maximum size of each chunk in tokens\",\n                    \"minimum\": 0\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  },\n  \"definitions\": {\n    \"AttributeValue\": {\n      \"type\": \"object\",\n      \"description\": \"Custom attribute value with typed fields\",\n      \"required\": [\n        \"OfString\",\n        \"OfFloat\",\n        \"OfBool\"\n      ],\n      \"properties\": {\n        \"OfString\": {\n          \"type\": \"string\",\n          \"description\": \"String value of the attribute\"\n        },\n        \"OfFloat\": {\n          \"type\": \"number\",\n          \"description\": \"Float value of the attribute\"\n        },\n        \"OfBool\": {\n          \"type\": \"boolean\",\n          \"description\": \"Boolean value of the attribute\"\n        }\n      }\n    }\n  }\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogOutput",
+            "name": "LogOutput",
+            "description": "Simple Log Message Activity",
+            "type": "iterator",
+            "settings": {
+              "iterate": "=$activity[VectorStoreFileList].files",
+              "accumulate": false
+            },
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($iteration[value])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn"
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlZlY3RvclN0b3JlRmlsZUxpc3QiOnsieCI6MjM5LCJ5Ijo0Nn0sIk1hcHBlciI6eyJ4Ijo1NDUsInkiOjQwfSwiTG9nT3V0cHV0Ijp7IngiOjc3NywieSI6Mzh9LCJSZXR1cm4iOnsieCI6OTk4LCJ5IjozOX19",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "OPENAI_API_ENDPOINT_URL",
+      "type": "string",
+      "value": "https://api.openai.com/v1"
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "type": "string",
+      "value": "REPLACE ME"
+    },
+    {
+      "name": "VECTORSTORE_ID",
+      "type": "string",
+      "value": "REPLACE ME"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9USUJDT1NvZnR3YXJlL2Zsb2dvLWVudGVycHJpc2UtaHViL2V4dGVuc2lvbnMvb3BlbkFJIiwiaWQiOiJvcGVuQUkiLCJ2ZXJzaW9uIjoiMS4wLjEiLCJ0YWciOiIxLjAuMSIsIm5hbWUiOiJPcGVuQUkiLCJzM2xvY2F0aW9uIjoie1VTRVJJRH0vb3BlbkFJIiwiaXNVc2VyRXh0ZW5zaW9uIjp0cnVlfV0=",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.0"
+  }
+}
