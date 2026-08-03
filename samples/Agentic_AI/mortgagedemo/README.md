@@ -2,7 +2,6 @@
 
 An autonomous mortgage assessment system built on **TIBCO Flogo 2.26.2**. Exposes 10 enterprise tools via the **Model Context Protocol (MCP)**, enabling Claude Desktop (or any MCP-compatible AI agent) to conduct a complete loan assessment — pulling credit scores, verifying employment, calculating DTI, and issuing a binding decision — in under 3 seconds, without the mortgage officer touching a single internal system.
 
-[View Presentation](presentation/mortgage-ai-processor-demo.md)
 
 ![Demo GIF](mortgage-mcp-demo.gif)
 
