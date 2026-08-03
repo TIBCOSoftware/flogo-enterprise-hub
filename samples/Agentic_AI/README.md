@@ -36,7 +36,7 @@ A fourth pattern in this folder — **Flogo as an MCP Tool Server** — turns a 
 
 ## Sample Catalog
 
-**12 samples**, grouped by **industry vertical**, plus a browser chat client for testing. The **Flogo Features Used** column lists the Agentic AI building blocks, activities, triggers, and MCP/A2A features each sample exercises. Click any sample name to open its folder and full README.
+Samples grouped by **industry vertical**, plus a browser chat client for testing. The **Flogo Features Used** column lists the Agentic AI building blocks, activities, triggers, and MCP/A2A features each sample exercises. Click any sample name to open its folder and full README.
 
 ### Banking, Financial Services & Insurance
 
