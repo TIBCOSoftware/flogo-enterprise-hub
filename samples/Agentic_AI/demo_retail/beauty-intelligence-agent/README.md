@@ -4,7 +4,6 @@ A hyper-personalization engine for retail built on **TIBCO Flogo 2.26.2**. Expos
 
 > **Branding:** All assets use "BeautyCo" / "GlowRewards" as demo placeholders. Swap member names and store IDs in the PostgreSQL seed data only — no code changes required.
 
-[View Presentation](presentation/PRESENTATION.md) · [Flow Infographic](presentation/flow-infographic.md)
 
 ![Demo GIF](retailco-demo.gif)
 
