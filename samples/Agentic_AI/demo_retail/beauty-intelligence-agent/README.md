@@ -263,26 +263,6 @@ In Claude Desktop, try any of these prompts:
 
 ---
 
-## Running the Presentation
-
-Open `presentation/index.html` directly in any browser — no server required, fully self-contained.
-
-**Navigation:** `←` `→` arrow keys or `Space`
-
-**Slides:**
-1. Title — Beauty Intelligence Agent
-2. The Challenge — data-rich but time-poor advisors
-3. The Solution — Flogo as MCP bridge
-4. Architecture — end-to-end data flow
-5. The 12 Tools — tool grid by connector type
-6. Scenario 1 — VIP consultation (Asha)
-7. Scenario 2 — Birthday WOW (Cassandra)
-8. Scenario 3 — Allergy safety (June)
-9. Business Value — metrics (3s response, 0 custom code, 100% audit trail)
-10. Next Steps — Pilot → Expand → Productionise → Scale
-
----
-
 ## Running the Tests
 
 ```bash
