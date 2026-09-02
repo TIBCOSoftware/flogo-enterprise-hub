@@ -1,0 +1,2752 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/insert",
+    "github.com/tibco/flogo-ems/src/app/EMS/activity/sendmessage",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection",
+    "github.com/tibco/flogo-ems/src/app/EMS/connector/ems"
+  ],
+  "name": "mortgage-mcp-server",
+  "description": "Autonomous Mortgage AI Processor — 10 MCP tools exposing PostgreSQL, REST and EMS to Claude AI agent",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "MCP Server exposing 10 mortgage processing tools to Claude AI agent on port 8035",
+      "settings": {
+        "serverName": "MortgageMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"MCPServer.Port\"]",
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": ""
+      },
+      "id": "MortgageMCPServer",
+      "handlers": [
+        {
+          "description": "Query applicant profile from PostgreSQL applicants table",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetApplicantProfile",
+            "handlerDescription": "Get applicant demographics, KYC status, and risk band from PostgreSQL applicants table"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetApplicantProfileFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "GetApplicantProfileFlow"
+        },
+        {
+          "description": "Call credit bureau REST API and return credit score data",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetCreditScore",
+            "handlerDescription": "Retrieve credit score, defaults, payment history, and utilization rate from credit bureau API"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetCreditScoreFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "GetCreditScoreFlow"
+        },
+        {
+          "description": "Call property valuation REST API with POST request",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "GetPropertyValuation",
+            "handlerDescription": "Get estimated property value, LTV ratio, and confidence score from property valuation service"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetPropertyValuationFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "GetPropertyValuationFlow"
+        },
+        {
+          "description": "Query all existing debt records for the applicant from PostgreSQL",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "CheckExistingDebts",
+            "handlerDescription": "Get all existing debt records and monthly obligations from PostgreSQL existing_debts table"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:CheckExistingDebtsFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "CheckExistingDebtsFlow"
+        },
+        {
+          "description": "Call employment verification REST API",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "VerifyEmployment",
+            "handlerDescription": "Verify employment status, annual income, and tenure from employment verification API"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:VerifyEmploymentFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "VerifyEmploymentFlow"
+        },
+        {
+          "description": "Call DTI calculation REST API with income and debt figures",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "CalculateDTI",
+            "handlerDescription": "Calculate Debt-To-Income ratio and affordability flag given monthly income, existing debts, and proposed mortgage payment"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:CalculateDTIFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "CalculateDTIFlow"
+        },
+        {
+          "description": "Insert approval decision into PostgreSQL mortgage_decisions table",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "ApproveMortgage",
+            "handlerDescription": "Record mortgage approval decision in PostgreSQL mortgage_decisions table with loan terms and DTI ratio"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:ApproveMortgageFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "ApproveMortgageFlow"
+        },
+        {
+          "description": "Send escalation message to EMS UNDERWRITING.QUEUE and log to PostgreSQL audit table",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "EscalateToUnderwriter",
+            "handlerDescription": "Escalate borderline mortgage application to human underwriter via EMS UNDERWRITING.QUEUE and log to PostgreSQL audit table"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:EscalateToUnderwriterFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "EscalateToUnderwriterFlow"
+        },
+        {
+          "description": "Insert decline decision into PostgreSQL mortgage_decisions table",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "DeclineMortgage",
+            "handlerDescription": "Record mortgage decline decision in PostgreSQL mortgage_decisions table with decline reason"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:DeclineMortgageFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "DeclineMortgageFlow"
+        },
+        {
+          "description": "Insert full decision record into audit_log table for regulatory compliance",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "LogDecision",
+            "handlerDescription": "Append a full decision record to the audit_log table for regulatory compliance including tools used and AI reasoning"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:LogDecisionFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicationId\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "LogDecisionFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GetApplicantProfileFlow",
+      "data": {
+        "name": "GetApplicantProfileFlow",
+        "description": "Query applicant profile from PostgreSQL applicants table",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "QueryApplicant",
+            "type": "label",
+            "label": "query"
+          },
+          {
+            "id": 3,
+            "from": "QueryApplicant",
+            "to": "LogResult",
+            "type": "label",
+            "label": "result"
+          },
+          {
+            "id": 4,
+            "from": "LogResult",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          },
+          {
+            "id": 5,
+            "from": "QueryApplicant",
+            "to": "LogQueryError",
+            "type": "error",
+            "label": "query error"
+          },
+          {
+            "id": 6,
+            "from": "LogQueryError",
+            "to": "ErrorReturn",
+            "type": "label",
+            "label": "exit"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log tool invocation",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"GetApplicantProfile called for: \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "QueryApplicant",
+            "name": "QueryApplicant",
+            "description": "SELECT applicant record from PostgreSQL",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://mortgage-pg-conn-001",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT id, first_name, last_name, date_of_birth, email, phone, address, national_id, kyc_status, risk_band FROM applicants WHERE id = ?applicantId LIMIT 1;",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "applicantId",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "38e76903-762f-484e-bded-ca9e16517726",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "applicantId": "=$flow.arguments.applicantId"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResult",
+            "name": "LogResult",
+            "description": "Log query result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Applicant found: \", coerce.toString($activity[QueryApplicant].Output.records))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return applicant profile to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[QueryApplicant].Output.records)",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "LogQueryError",
+            "name": "LogQueryError",
+            "description": "Log PostgreSQL query error",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "ERROR",
+                "flowInfo": true,
+                "message": "=string.concat(\"GetApplicantProfile query failed: \", $error[QueryApplicant].message)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ErrorReturn",
+            "name": "ErrorReturn",
+            "description": "Return error to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "",
+                      "error": "=$error[QueryApplicant].message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTQ5fSwiUXVlcnlBcHBsaWNhbnQiOnsieCI6NDUwLCJ5IjoyNDl9LCJMb2dSZXN1bHQiOnsieCI6NjUwLCJ5IjozNTB9LCJSZXR1cm4iOnsieCI6ODUwLCJ5Ijo0NTB9LCJMb2dRdWVyeUVycm9yIjp7IngiOjY1MCwieSI6NTUwfSwiRXJyb3JSZXR1cm4iOnsieCI6ODUwLCJ5Ijo2NTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicantId\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetCreditScoreFlow",
+      "data": {
+        "name": "GetCreditScoreFlow",
+        "description": "Call credit bureau REST API and return credit score data",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "CallCreditBureauAPI",
+            "type": "label",
+            "label": "call"
+          },
+          {
+            "id": 3,
+            "from": "CallCreditBureauAPI",
+            "to": "LogResult",
+            "type": "label",
+            "label": "result"
+          },
+          {
+            "id": 4,
+            "from": "LogResult",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log tool invocation",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"GetCreditScore called for: \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "CallCreditBureauAPI",
+            "name": "CallCreditBureauAPI",
+            "description": "Call credit bureau REST API",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"API.CreditBureau.URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 30,
+                "proxy": "",
+                "host": "",
+                "queryParams": {
+                  "mapping": {
+                    "applicantId": "=$flow.arguments.applicantId"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "queryParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"creditScore\":{\"type\":\"integer\"},\"creditGrade\":{\"type\":\"string\"},\"defaults\":{\"type\":\"integer\"},\"utilizationRate\":{\"type\":\"number\"},\"bureau\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"creditScore\":{\"type\":\"integer\"},\"creditGrade\":{\"type\":\"string\"},\"defaults\":{\"type\":\"integer\"},\"utilizationRate\":{\"type\":\"number\"},\"bureau\":{\"type\":\"string\"}}}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResult",
+            "name": "LogResult",
+            "description": "Log API response",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Credit bureau response: \", coerce.toString($activity[CallCreditBureauAPI].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return credit score data to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[CallCreditBureauAPI].responseBody)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTQ5fSwiQ2FsbENyZWRpdEJ1cmVhdUFQSSI6eyJ4Ijo0NTAsInkiOjI1MH0sIkxvZ1Jlc3VsdCI6eyJ4Ijo2NTAsInkiOjM1MH0sIlJldHVybiI6eyJ4Ijo4NTAsInkiOjQ1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicantId\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:GetPropertyValuationFlow",
+      "data": {
+        "name": "GetPropertyValuationFlow",
+        "description": "Call property valuation REST API with POST request",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "CallValuationAPI",
+            "type": "label",
+            "label": "call"
+          },
+          {
+            "id": 3,
+            "from": "CallValuationAPI",
+            "to": "LogResult",
+            "type": "label",
+            "label": "result"
+          },
+          {
+            "id": 4,
+            "from": "LogResult",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log tool invocation",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"GetPropertyValuation called for: \", coerce.toString($flow.arguments.propertyAddress))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "CallValuationAPI",
+            "name": "CallValuationAPI",
+            "description": "POST property details to valuation service",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "POST",
+                "Uri": "=$property[\"API.PropertyValuation.URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 30,
+                "proxy": "",
+                "host": "",
+                "body": {
+                  "mapping": {
+                    "propertyAddress": "=$flow.arguments.propertyAddress",
+                    "estimatedValue": "=$flow.arguments.estimatedValue"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  },
+                  "body": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"},\"confidenceScore\":{\"type\":\"number\"},\"ltvRatio\":{\"type\":\"number\"},\"propertyType\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"},\"confidenceScore\":{\"type\":\"number\"},\"ltvRatio\":{\"type\":\"number\"},\"propertyType\":{\"type\":\"string\"}}}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResult",
+            "name": "LogResult",
+            "description": "Log valuation response",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Valuation response: \", coerce.toString($activity[CallValuationAPI].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return valuation data to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[CallValuationAPI].responseBody)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiQ2FsbFZhbHVhdGlvbkFQSSI6eyJ4Ijo0NTAsInkiOjI1MH0sIkxvZ1Jlc3VsdCI6eyJ4Ijo2NTAsInkiOjM1MH0sIlJldHVybiI6eyJ4Ijo4NTAsInkiOjQ1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:CheckExistingDebtsFlow",
+      "data": {
+        "name": "CheckExistingDebtsFlow",
+        "description": "Query all existing debt records for the applicant from PostgreSQL",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "QueryDebts",
+            "type": "label",
+            "label": "query"
+          },
+          {
+            "id": 3,
+            "from": "QueryDebts",
+            "to": "LogResult",
+            "type": "label",
+            "label": "result"
+          },
+          {
+            "id": 4,
+            "from": "LogResult",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          },
+          {
+            "id": 5,
+            "from": "QueryDebts",
+            "to": "LogQueryError",
+            "type": "error",
+            "label": "query error"
+          },
+          {
+            "id": 6,
+            "from": "LogQueryError",
+            "to": "ErrorReturn",
+            "type": "label",
+            "label": "exit"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log tool invocation",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"CheckExistingDebts called for: \", coerce.toString($flow.arguments.applicantId))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "QueryDebts",
+            "name": "QueryDebts",
+            "description": "SELECT all debt records for applicant from PostgreSQL",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://mortgage-pg-conn-001",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT debt_type, lender, outstanding_balance, monthly_payment, interest_rate, months_remaining FROM existing_debts WHERE applicant_id = ?applicantId ORDER BY monthly_payment DESC;",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "applicantId",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "c3856cf2-af2f-4421-a578-c9d13b4da507",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "applicantId": "=$flow.arguments.applicantId"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResult",
+            "name": "LogResult",
+            "description": "Log debt query result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Existing debts found: \", coerce.toString($activity[QueryDebts].Output.records))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return debt records to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[QueryDebts].Output.records)",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "LogQueryError",
+            "name": "LogQueryError",
+            "description": "Log PostgreSQL query error",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "ERROR",
+                "flowInfo": true,
+                "message": "=string.concat(\"CheckExistingDebts query failed: \", $error[QueryDebts].message)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ErrorReturn",
+            "name": "ErrorReturn",
+            "description": "Return error to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "",
+                      "error": "=$error[QueryDebts].message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiUXVlcnlEZWJ0cyI6eyJ4Ijo0NTAsInkiOjI1MH0sIkxvZ1Jlc3VsdCI6eyJ4Ijo2NTAsInkiOjM1MH0sIlJldHVybiI6eyJ4Ijo4NTAsInkiOjQ1MH0sIkxvZ1F1ZXJ5RXJyb3IiOnsieCI6NjUwLCJ5Ijo1NTB9LCJFcnJvclJldHVybiI6eyJ4Ijo4NTAsInkiOjY1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicantId\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:VerifyEmploymentFlow",
+      "data": {
+        "name": "VerifyEmploymentFlow",
+        "description": "Call employment verification REST API",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "CallEmploymentAPI",
+            "type": "label",
+            "label": "call"
+          },
+          {
+            "id": 3,
+            "from": "CallEmploymentAPI",
+            "to": "LogResult",
+            "type": "label",
+            "label": "result"
+          },
+          {
+            "id": 4,
+            "from": "LogResult",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log tool invocation",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"VerifyEmployment called for: \", coerce.toString($flow.arguments.applicantId))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "CallEmploymentAPI",
+            "name": "CallEmploymentAPI",
+            "description": "Call employment verification API",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"API.Employment.URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 30,
+                "proxy": "",
+                "host": "",
+                "queryParams": {
+                  "mapping": {
+                    "applicantId": "=$flow.arguments.applicantId"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "queryParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"employmentStatus\":{\"type\":\"string\"},\"employerName\":{\"type\":\"string\"},\"annualIncome\":{\"type\":\"number\"},\"monthlyIncome\":{\"type\":\"number\"},\"incomeVerified\":{\"type\":\"boolean\"},\"yearsEmployed\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"employmentStatus\":{\"type\":\"string\"},\"employerName\":{\"type\":\"string\"},\"annualIncome\":{\"type\":\"number\"},\"monthlyIncome\":{\"type\":\"number\"},\"incomeVerified\":{\"type\":\"boolean\"},\"yearsEmployed\":{\"type\":\"number\"}}}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResult",
+            "name": "LogResult",
+            "description": "Log employment API response",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Employment response: \", coerce.toString($activity[CallEmploymentAPI].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return employment data to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[CallEmploymentAPI].responseBody)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiQ2FsbEVtcGxveW1lbnRBUEkiOnsieCI6NDUwLCJ5IjoyNTB9LCJMb2dSZXN1bHQiOnsieCI6NjUwLCJ5IjozNTB9LCJSZXR1cm4iOnsieCI6ODUwLCJ5Ijo0NTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicantId\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:CalculateDTIFlow",
+      "data": {
+        "name": "CalculateDTIFlow",
+        "description": "Call DTI calculation REST API with income and debt figures",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "CallDTIAPI",
+            "type": "label",
+            "label": "call"
+          },
+          {
+            "id": 3,
+            "from": "CallDTIAPI",
+            "to": "LogResult",
+            "type": "label",
+            "label": "result"
+          },
+          {
+            "id": 4,
+            "from": "LogResult",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log tool invocation with inputs",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"CalculateDTI called — income: \", coerce.toString($flow.arguments.monthlyIncome), \", debts: \", coerce.toString($flow.arguments.totalMonthlyDebts), \", mortgage: \", coerce.toString($flow.arguments.proposedMortgagePayment))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "CallDTIAPI",
+            "name": "CallDTIAPI",
+            "description": "Call DTI calculation API",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#rest",
+              "input": {
+                "enableASR": false,
+                "swagger": "",
+                "authorization": false,
+                "authorizationConn": "",
+                "serviceName": "",
+                "resourcePath": "",
+                "Method": "GET",
+                "Uri": "=$property[\"API.CalculateDTI.URL\"]",
+                "requestType": "application/json",
+                "Use certificate for verification": false,
+                "mutualAuth": false,
+                "Client Certificate": "",
+                "Client Key": "",
+                "Server Certificate": "",
+                "disableSSLVerification": false,
+                "disableKeepAlives": false,
+                "followRedirects": true,
+                "Timeout": 30,
+                "proxy": "",
+                "host": "",
+                "queryParams": {
+                  "mapping": {
+                    "monthlyIncome": "=coerce.toString($flow.arguments.monthlyIncome)",
+                    "totalMonthlyDebts": "=coerce.toString($flow.arguments.totalMonthlyDebts)",
+                    "proposedMortgagePayment": "=coerce.toString($flow.arguments.proposedMortgagePayment)"
+                  }
+                }
+              },
+              "output": {
+                "configureResponseCodes": false,
+                "throwError": false,
+                "responseType": "application/json",
+                "responseOutput": "JSON Object"
+              },
+              "schemas": {
+                "input": {
+                  "queryParams": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"monthlyIncome\":{\"type\":\"string\"},\"totalMonthlyDebts\":{\"type\":\"string\"},\"proposedMortgagePayment\":{\"type\":\"string\"}}}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  },
+                  "dynamicRequestHeaders": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                },
+                "output": {
+                  "responseBody": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"dtiRatio\":{\"type\":\"number\"},\"dtiPercent\":{\"type\":\"string\"},\"affordabilityFlag\":{\"type\":\"string\"},\"maxAllowedDTI\":{\"type\":\"number\"},\"headroom\":{\"type\":\"number\"},\"totalMonthlyObligations\":{\"type\":\"number\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"dtiRatio\":{\"type\":\"number\"},\"dtiPercent\":{\"type\":\"string\"},\"affordabilityFlag\":{\"type\":\"string\"},\"maxAllowedDTI\":{\"type\":\"number\"},\"headroom\":{\"type\":\"number\"},\"totalMonthlyObligations\":{\"type\":\"number\"}}}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                    "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResult",
+            "name": "LogResult",
+            "description": "Log DTI calculation result",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"DTI result: \", coerce.toString($activity[CallDTIAPI].responseBody))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return DTI calculation to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[CallDTIAPI].responseBody)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiQ2FsbERUSUFQSSI6eyJ4Ijo0NTAsInkiOjI1MH0sIkxvZ1Jlc3VsdCI6eyJ4Ijo2NTAsInkiOjM1MH0sIlJldHVybiI6eyJ4Ijo4NTAsInkiOjQ1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"monthlyIncome\":{\"type\":\"number\"},\"totalMonthlyDebts\":{\"type\":\"number\"},\"proposedMortgagePayment\":{\"type\":\"number\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"monthlyIncome\":{\"type\":\"number\"},\"totalMonthlyDebts\":{\"type\":\"number\"},\"proposedMortgagePayment\":{\"type\":\"number\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:ApproveMortgageFlow",
+      "data": {
+        "name": "ApproveMortgageFlow",
+        "description": "Insert approval decision into PostgreSQL mortgage_decisions table",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InsertDecision",
+            "type": "label",
+            "label": "insert"
+          },
+          {
+            "id": 3,
+            "from": "InsertDecision",
+            "to": "LogApproved",
+            "type": "label",
+            "label": "logged"
+          },
+          {
+            "id": 4,
+            "from": "LogApproved",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log approval decision",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"ApproveMortgage: applicant=\", coerce.toString($flow.arguments.applicantId), \" amount=\", coerce.toString($flow.arguments.loanAmount), \" term=\", coerce.toString($flow.arguments.termYears), \"yr rate=\", coerce.toString($flow.arguments.interestRate), \"%\")",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InsertDecision",
+            "name": "InsertDecision",
+            "description": "INSERT approval into mortgage_decisions table",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://mortgage-pg-conn-001",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO mortgage_decisions (applicant_id, decision, loan_amount, term_years, interest_rate, dti_ratio, decided_by, decided_at) VALUES (?applicantId, 'APPROVED', ?loanAmount, ?termYears, ?interestRate, ?dtiRatio, 'Claude-AI', NOW());",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "applicantId",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "loanAmount",
+                    "Type": "NUMERIC",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "termYears",
+                    "Type": "INTEGER",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "interestRate",
+                    "Type": "NUMERIC",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "dtiRatio",
+                    "Type": "NUMERIC",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "6b600a5d-13d0-4854-a690-06ad8d3c9565",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "applicantId": "=$flow.arguments.applicantId",
+                      "loanAmount": "=$flow.arguments.loanAmount",
+                      "termYears": "=$flow.arguments.termYears",
+                      "interestRate": "=$flow.arguments.interestRate",
+                      "dtiRatio": "=$flow.arguments.dtiRatio"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"loanAmount\":{\"type\":\"number\"},\"termYears\":{\"type\":\"integer\"},\"interestRate\":{\"type\":\"number\"},\"dtiRatio\":{\"type\":\"number\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"loanAmount\":{\"type\":\"number\"},\"termYears\":{\"type\":\"integer\"},\"interestRate\":{\"type\":\"number\"},\"dtiRatio\":{\"type\":\"number\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"loanAmount\":{\"type\":\"number\"},\"termYears\":{\"type\":\"integer\"},\"interestRate\":{\"type\":\"number\"},\"dtiRatio\":{\"type\":\"number\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"loanAmount\":{\"type\":\"number\"},\"termYears\":{\"type\":\"integer\"},\"interestRate\":{\"type\":\"number\"},\"dtiRatio\":{\"type\":\"number\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogApproved",
+            "name": "LogApproved",
+            "description": "Log successful approval",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Mortgage APPROVED and recorded for applicant: \", coerce.toString($flow.arguments.applicantId))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return approval confirmation to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat('{\"status\":\"APPROVED\",\"applicantId\":\"', $flow.arguments.applicantId, '\",\"loanAmount\":', coerce.toString($flow.arguments.loanAmount), ',\"termYears\":', coerce.toString($flow.arguments.termYears), ',\"interestRate\":', coerce.toString($flow.arguments.interestRate), ',\"dtiRatio\":', coerce.toString($flow.arguments.dtiRatio), ',\"decidedBy\":\"Claude-AI\"}')"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiSW5zZXJ0RGVjaXNpb24iOnsieCI6NDUwLCJ5IjoyNTB9LCJMb2dBcHByb3ZlZCI6eyJ4Ijo2NTAsInkiOjM1MH0sIlJldHVybiI6eyJ4Ijo4NTAsInkiOjQ1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicantId\":{\"type\":\"string\"},\"loanAmount\":{\"type\":\"number\"},\"termYears\":{\"type\":\"number\"},\"interestRate\":{\"type\":\"number\"},\"dtiRatio\":{\"type\":\"number\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"loanAmount\":{\"type\":\"number\"},\"termYears\":{\"type\":\"number\"},\"interestRate\":{\"type\":\"number\"},\"dtiRatio\":{\"type\":\"number\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:EscalateToUnderwriterFlow",
+      "data": {
+        "name": "EscalateToUnderwriterFlow",
+        "description": "Send escalation message to EMS UNDERWRITING.QUEUE and log to PostgreSQL audit table",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "SendToEMS",
+            "type": "label",
+            "label": "send"
+          },
+          {
+            "id": 3,
+            "from": "SendToEMS",
+            "to": "InsertAuditLog",
+            "type": "label",
+            "label": "log"
+          },
+          {
+            "id": 4,
+            "from": "InsertAuditLog",
+            "to": "LogEscalated",
+            "type": "label",
+            "label": "escalated"
+          },
+          {
+            "id": 5,
+            "from": "LogEscalated",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          },
+          {
+            "id": 6,
+            "from": "SendToEMS",
+            "to": "LogEMSError",
+            "type": "error",
+            "label": "ems error"
+          },
+          {
+            "id": 7,
+            "from": "LogEMSError",
+            "to": "ErrorReturn",
+            "type": "label",
+            "label": "exit"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log escalation request",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"EscalateToUnderwriter: applicant=\", coerce.toString($flow.arguments.applicantId), \" confidence=\", coerce.toString($flow.arguments.confidenceScore), \" reason=\", coerce.toString($flow.arguments.reason))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "SendToEMS",
+            "name": "SendToEMS",
+            "description": "Send escalation message to EMS UNDERWRITING.QUEUE",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sendmessage",
+              "settings": {
+                "connection": "conn://mortgage-ems-conn-001",
+                "destinationType": "Queue",
+                "settingDestination": "EMS.UnderwritingQueue",
+                "deliveryDelay": 0
+              },
+              "input": {
+                "message": "=string.concat('{\"applicantId\":\"', $flow.arguments.applicantId, '\",\"reason\":\"', $flow.arguments.reason, '\",\"confidenceScore\":', coerce.toString($flow.arguments.confidenceScore), ',\"status\":\"ESCALATED\",\"escalatedBy\":\"Claude-AI\"}')",
+                "destination": ""
+              },
+              "schemas": {
+                "input": {
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"correlationID\":{\"type\":\"string\"},\"replyTo\":{\"type\":\"string\"},\"deliveryMode\":{\"type\":\"string\"},\"expiration\":{\"type\":\"integer\"},\"priority\":{\"type\":\"integer\"}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"correlationID\":{\"type\":\"string\"},\"replyTo\":{\"type\":\"string\"},\"deliveryMode\":{\"type\":\"string\"},\"expiration\":{\"type\":\"integer\"},\"priority\":{\"type\":\"integer\"}}}"
+                  },
+                  "messageProperties": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"property\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"property\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "InsertAuditLog",
+            "name": "InsertAuditLog",
+            "description": "INSERT escalation record into audit_log table",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://mortgage-pg-conn-001",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO audit_log (applicant_id, action, details, created_at) VALUES (?applicantId, 'ESCALATED', ?reason, NOW());",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "applicantId",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "14a43556-0b19-4e0f-97ad-d11f8f6d3829",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "applicantId": "=$flow.arguments.applicantId",
+                      "reason": "=$flow.arguments.reason"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogEscalated",
+            "name": "LogEscalated",
+            "description": "Log successful escalation",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Escalated to UNDERWRITING.QUEUE and audit log recorded for: \", coerce.toString($flow.arguments.applicantId))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return escalation confirmation to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat('{\"status\":\"ESCALATED\",\"applicantId\":\"', $flow.arguments.applicantId, '\",\"queue\":\"UNDERWRITING.QUEUE\",\"confidenceScore\":', coerce.toString($flow.arguments.confidenceScore), ',\"escalatedBy\":\"Claude-AI\"}')"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "LogEMSError",
+            "name": "LogEMSError",
+            "description": "Log EMS send failure",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "ERROR",
+                "flowInfo": true,
+                "message": "=string.concat(\"EMS send to UNDERWRITING.QUEUE failed for applicant \", $flow.arguments.applicantId, \": \", $error[SendToEMS].message)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "ErrorReturn",
+            "name": "ErrorReturn",
+            "description": "Return EMS error to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "",
+                      "error": "=$error[SendToEMS].message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiU2VuZFRvRU1TIjp7IngiOjQ1MCwieSI6MjQ5fSwiSW5zZXJ0QXVkaXRMb2ciOnsieCI6NjUwLCJ5IjozNTB9LCJMb2dFc2NhbGF0ZWQiOnsieCI6ODUwLCJ5Ijo0NTB9LCJSZXR1cm4iOnsieCI6MTA1MCwieSI6NTUwfSwiTG9nRU1TRXJyb3IiOnsieCI6NjUwLCJ5Ijo2NTB9LCJFcnJvclJldHVybiI6eyJ4Ijo4NTAsInkiOjc1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"confidenceScore\":{\"type\":\"number\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"confidenceScore\":{\"type\":\"number\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:DeclineMortgageFlow",
+      "data": {
+        "name": "DeclineMortgageFlow",
+        "description": "Insert decline decision into PostgreSQL mortgage_decisions table",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InsertDecision",
+            "type": "label",
+            "label": "insert"
+          },
+          {
+            "id": 3,
+            "from": "InsertDecision",
+            "to": "LogDeclined",
+            "type": "label",
+            "label": "logged"
+          },
+          {
+            "id": 4,
+            "from": "LogDeclined",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log decline decision",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"DeclineMortgage: applicant=\", coerce.toString($flow.arguments.applicantId), \" reason=\", coerce.toString($flow.arguments.reason))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InsertDecision",
+            "name": "InsertDecision",
+            "description": "INSERT decline into mortgage_decisions table",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://mortgage-pg-conn-001",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO mortgage_decisions (applicant_id, decision, reason, decided_by, decided_at) VALUES (?applicantId, 'DECLINED', ?reason, 'Claude-AI', NOW());",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "applicantId",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "647d7352-9146-44fe-9f08-73a64a9b388f",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "applicantId": "=$flow.arguments.applicantId",
+                      "reason": "=$flow.arguments.reason"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogDeclined",
+            "name": "LogDeclined",
+            "description": "Log successful decline record",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Mortgage DECLINED and recorded for applicant: \", coerce.toString($flow.arguments.applicantId))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return decline confirmation to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat('{\"status\":\"DECLINED\",\"applicantId\":\"', $flow.arguments.applicantId, '\",\"reason\":\"', $flow.arguments.reason, '\",\"decidedBy\":\"Claude-AI\"}')"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiSW5zZXJ0RGVjaXNpb24iOnsieCI6NDUwLCJ5IjoyNTB9LCJMb2dEZWNsaW5lZCI6eyJ4Ijo2NTAsInkiOjM1MH0sIlJldHVybiI6eyJ4Ijo4NTAsInkiOjQ1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:LogDecisionFlow",
+      "data": {
+        "name": "LogDecisionFlow",
+        "description": "Insert full decision record into audit_log table for regulatory compliance",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "start"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "InsertAuditLog",
+            "type": "label",
+            "label": "insert"
+          },
+          {
+            "id": 3,
+            "from": "InsertAuditLog",
+            "to": "Return",
+            "type": "label",
+            "label": "done"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Log audit record write",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"LogDecision: applicant=\", coerce.toString($flow.arguments.applicantId), \" decision=\", coerce.toString($flow.arguments.decision))",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "InsertAuditLog",
+            "name": "InsertAuditLog",
+            "description": "INSERT full audit record into audit_log table",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://mortgage-pg-conn-001",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO audit_log (applicant_id, action, details, tools_used, created_at) VALUES (?applicantId, ?decision, ?reasoning, ?toolsUsed, NOW());",
+                "manualmode": true,
+                "Fields": [
+                  {
+                    "FieldName": "applicantId",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "decision",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "reasoning",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  },
+                  {
+                    "FieldName": "toolsUsed",
+                    "Type": "VARCHAR",
+                    "Selected": "true",
+                    "Parameter": "true",
+                    "isEditable": true,
+                    "Value": "false"
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "c27c6dd9-ce0f-41e5-9657-c49bf58f1762",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "applicantId": "=$flow.arguments.applicantId",
+                      "decision": "=$flow.arguments.decision",
+                      "reasoning": "=$flow.arguments.reasoning",
+                      "toolsUsed": "=$flow.arguments.toolsUsed"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"decision\":{\"type\":\"string\"},\"reasoning\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"decision\":{\"type\":\"string\"},\"reasoning\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"decision\":{\"type\":\"string\"},\"reasoning\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"decision\":{\"type\":\"string\"},\"reasoning\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return audit confirmation to MCP caller",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=string.concat('{\"status\":\"LOGGED\",\"applicantId\":\"', $flow.arguments.applicantId, '\",\"decision\":\"', $flow.arguments.decision, '\",\"auditTable\":\"audit_log\"}')"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI1MCwieSI6MTUwfSwiSW5zZXJ0QXVkaXRMb2ciOnsieCI6NDUwLCJ5IjoyNTB9LCJSZXR1cm4iOnsieCI6NjUwLCJ5IjozNTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"applicantId\":{\"type\":\"string\"},\"decision\":{\"type\":\"string\"},\"reasoning\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"decision\":{\"type\":\"string\"},\"reasoning\":{\"type\":\"string\"},\"toolsUsed\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Port",
+      "type": "float64",
+      "value": "5432"
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Database_Name",
+      "type": "string",
+      "value": "mortgage_db"
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Password",
+      "type": "string",
+      "value": "SECRET:UBjdfioZm+3fgsg23g0gpzDAml//HUsJ"
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 10
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": "0s"
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 1000
+    },
+    {
+      "name": "PostgreSQL.MortgageDBConnection.Connection_Timeout",
+      "type": "float64",
+      "value": 30
+    },
+    {
+      "name": "EMS.MortgageEMSConnection.Server_URL",
+      "type": "string",
+      "value": "tcp://localhost:7222"
+    },
+    {
+      "name": "EMS.MortgageEMSConnection.User_Name",
+      "type": "string",
+      "value": "admin"
+    },
+    {
+      "name": "EMS.MortgageEMSConnection.Password",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "EMS.MortgageEMSConnection.Client_ID",
+      "type": "string",
+      "value": "flogo-mortgage-mcp"
+    },
+    {
+      "name": "EMS.MortgageEMSConnection.Reconnect_Count",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "EMS.MortgageEMSConnection.Reconnect_Delay",
+      "type": "float64",
+      "value": 2000
+    },
+    {
+      "name": "EMS.MortgageEMSConnection.Retry_Timeout",
+      "type": "float64",
+      "value": 30000
+    },
+    {
+      "name": "MCPServer.Port",
+      "type": "string",
+      "value": "8035"
+    },
+    {
+      "name": "API.CreditBureau.URL",
+      "type": "string",
+      "value": "http://localhost:9091/credit"
+    },
+    {
+      "name": "API.Employment.URL",
+      "type": "string",
+      "value": "http://localhost:9091/employment"
+    },
+    {
+      "name": "API.PropertyValuation.URL",
+      "type": "string",
+      "value": "http://localhost:9091/valuation"
+    },
+    {
+      "name": "API.CalculateDTI.URL",
+      "type": "string",
+      "value": "http://localhost:9091/calculate-dti"
+    }
+  ],
+  "connections": {
+    "mortgage-pg-conn-001": {
+      "id": "mortgage-pg-conn-001",
+      "name": "MortgageDBConnection",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "MortgageDBConnection",
+        "description": "PostgreSQL connection for the mortgage AI processor",
+        "host": "=$property[\"PostgreSQL.MortgageDBConnection.Host\"]",
+        "port": "=$property[\"PostgreSQL.MortgageDBConnection.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.MortgageDBConnection.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.MortgageDBConnection.User\"]",
+        "password": "=$property[\"PostgreSQL.MortgageDBConnection.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.MortgageDBConnection.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.MortgageDBConnection.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.MortgageDBConnection.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.MortgageDBConnection.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.MortgageDBConnection.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.MortgageDBConnection.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    },
+    "mortgage-ems-conn-001": {
+      "id": "mortgage-ems-conn-001",
+      "name": "MortgageEMSConnection",
+      "ref": "#ems",
+      "isGlobal": false,
+      "settings": {
+        "name": "MortgageEMSConnection",
+        "description": "EMS connection for mortgage underwriting escalation queue",
+        "connectionFactoryType": "Direct",
+        "serverUrl": "=$property[\"EMS.MortgageEMSConnection.Server_URL\"]",
+        "factoryName": "",
+        "factoryUsername": "",
+        "factoryPassword": "",
+        "factorySslPassword": "",
+        "authenticationMode": "Username Password",
+        "userName": "=$property[\"EMS.MortgageEMSConnection.User_Name\"]",
+        "password": "=$property[\"EMS.MortgageEMSConnection.Password\"]",
+        "clientID": "=$property[\"EMS.MortgageEMSConnection.Client_ID\"]",
+        "enablemTLS": false,
+        "clientCert": "",
+        "clientKey": "",
+        "caCert": "",
+        "privateKeyPassword": "",
+        "noVerifyHostname": false,
+        "reconnectCount": "=$property[\"EMS.MortgageEMSConnection.Reconnect_Count\"]",
+        "reconnectDelay": "=$property[\"EMS.MortgageEMSConnection.Reconnect_Delay\"]",
+        "reconnectTimeout": "=$property[\"EMS.MortgageEMSConnection.Retry_Timeout\"]"
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuMSIsInRhZyI6IjEuMC4xLWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTIiLCJ0YWciOiIxLjYuMTItYjA2IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjEiLCJ0YWciOiIyLjcuMS1iMDEiLCJuYW1lIjoiUG9zdGdyZVNRTCIsInMzbG9jYXRpb24iOiJUaWJjby9Qb3N0Z3JlU1FMIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWVtcy9zcmMvYXBwL0VNUyIsImlkIjoiRU1TIiwidmVyc2lvbiI6IjEuMC40IiwidGFnIjoiMS4wLjQtYjAxIiwibmFtZSI6IlRJQkNPIEVudGVycHJpc2UgTWVzc2FnZSBTZXJ2aWNlIiwiczNsb2NhdGlvbiI6IlRpYmNvL0VNUyIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "8035",
+        "title": "MortgageMCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.2"
+  }
+}

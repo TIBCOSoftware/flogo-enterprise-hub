@@ -1,0 +1,821 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/jsexec",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest"
+  ],
+  "name": "beauty-mock-apis",
+  "description": "BeautyCo Demo 1 — REST mock API server providing hardcoded realistic retail responses for campaigns, inventory, store context, and marketing sequence endpoints. Backing service for beauty-intelligence-agent MCP server.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "REST trigger serving mock BeautyCo API endpoints on port 8091",
+      "settings": {
+        "port": 8091,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "BeautyMockAPIServer",
+      "handlers": [
+        {
+          "description": "Returns active GlowRewards promotional campaigns eligible for a member",
+          "settings": {
+            "APISpecPath": "",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/campaigns",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetCampaignsFlow"
+            },
+            "input": {
+              "memberId": "=$.queryParams.memberId"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "queryParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"memberId\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"memberId\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "GetCampaignsFlow"
+        },
+        {
+          "description": "Returns stock levels and GWP promotions for a product SKU at a given store",
+          "settings": {
+            "APISpecPath": "",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/inventory/{sku}",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetInventoryFlow"
+            },
+            "input": {
+              "sku": "=$.pathParams.sku",
+              "storeId": "=$.queryParams.storeid"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "queryParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"storeid\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"storeid\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]"
+              },
+              "pathParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"sku\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"sku\",\"type\":\"string\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "GetInventoryFlow"
+        },
+        {
+          "description": "Returns store details, hours, upcoming events, and beauty advisor availability",
+          "settings": {
+            "APISpecPath": "",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/store/{storeId}",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetStoreFlow"
+            },
+            "input": {
+              "storeId": "=$.pathParams.storeId"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "pathParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"storeId\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"storeId\",\"type\":\"string\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "GetStoreFlow"
+        },
+        {
+          "description": "Accepts a marketing sequence payload and returns a sequenceId confirming enqueue",
+          "settings": {
+            "APISpecPath": "",
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/marketing/sequence",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:PostMarketingFlow"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "PostMarketingFlow"
+        },
+        {
+          "description": "Health check endpoint returning service status UP",
+          "settings": {
+            "APISpecPath": "",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/health",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetHealthFlow"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "GetHealthFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GetCampaignsFlow",
+      "data": {
+        "name": "GetCampaignsFlow",
+        "description": "Returns active GlowRewards promotional campaigns eligible for a member",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "BuildCampaignsResponse",
+            "type": "label",
+            "label": "StartActivity to BuildCampaignsResponse"
+          },
+          {
+            "id": 2,
+            "from": "BuildCampaignsResponse",
+            "to": "ReturnCampaigns",
+            "type": "label",
+            "label": "BuildCampaignsResponse to ReturnCampaigns"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "BuildCampaignsResponse",
+            "name": "BuildCampaignsResponse",
+            "description": "Build hardcoded campaigns JSON for the requested memberId",
+            "activity": {
+              "ref": "#jsexec",
+              "settings": {
+                "script": "function Execute(ctx) { var memberId = ctx.memberId || \"unknown\"; var now = new Date(); var exp = new Date(now.getTime() + 14 * 86400000).toISOString().split(\"T\")[0]; return { result: { campaigns: [ { campaign_id: \"CAMP-GLOW-001\", offer_type: \"BONUS_POINTS\", description: \"Earn 3x points on all skincare this weekend\", bonus_points_multiplier: 3, eligible_brands: [\"Charlotte Tilbury\",\"Dr. Jart+\",\"Drunk Elephant\",\"La Roche-Posay\"], expiry: exp, member_eligible: true }, { campaign_id: \"CAMP-GLOW-002\", offer_type: \"PRODUCT_DISCOUNT\", description: \"20% off fragrance with any skincare purchase over $50\", discount_value: 20, eligible_brands: [\"Maison Margiela\",\"Valentino\",\"Yves Saint Laurent\"], expiry: exp, member_eligible: true }, { campaign_id: \"CAMP-GLOW-003\", offer_type: \"GWP\", description: \"Free 7-piece mini set with $75+ haircare purchase\", eligible_brands: [\"Olaplex\",\"Dyson\",\"K18\"], expiry: exp, member_eligible: true } ], member_id: memberId, fetched_at: now.toISOString() } }; }"
+              },
+              "input": {
+                "parameters": {
+                  "mapping": {
+                    "memberId": "=$flow.memberId"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "ReturnCampaigns",
+            "name": "ReturnCampaigns",
+            "description": "Return campaigns JSON to caller with HTTP 200",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[BuildCampaignsResponse].result"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkJ1aWxkQ2FtcGFpZ25zUmVzcG9uc2UiOnsieCI6MjUwLCJ5IjoxNTB9LCJSZXR1cm5DYW1wYWlnbnMiOnsieCI6NDUwLCJ5IjoyNTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "memberId",
+              "type": "string"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"memberId\":{\"type\":\"string\"}}}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:GetInventoryFlow",
+      "data": {
+        "name": "GetInventoryFlow",
+        "description": "Returns stock levels and GWP promotions for a product SKU at a given store",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "BuildInventoryResponse",
+            "type": "label",
+            "label": "StartActivity to BuildInventoryResponse"
+          },
+          {
+            "id": 2,
+            "from": "BuildInventoryResponse",
+            "to": "ReturnInventory",
+            "type": "label",
+            "label": "BuildInventoryResponse to ReturnInventory"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "BuildInventoryResponse",
+            "name": "BuildInventoryResponse",
+            "description": "Build hardcoded inventory JSON for the requested SKU and storeId",
+            "activity": {
+              "ref": "#jsexec",
+              "settings": {
+                "script": "function Execute(ctx) { var sku = ctx.sku || \"UNKNOWN\"; var storeId = ctx.storeId || \"0847\"; var stockMap = { \"CT-WONDERGLOW-01\": 12, \"OLP-007-100ML\": 0, \"DR-VITC-SERUM\": 8, \"CT-PILLOWTALK-L\": 24, \"DRP-MOISTURISER\": 5, \"FB-GLOSS-BOMB-210\": 18, \"CER-GENTLE-FACE\": 32, \"LA-ROCHE-SENSI\": 14, \"RB-SOFT-PINCH-14\": 9, \"DYS-AIRWRAP-V2\": 2 }; var qty = (stockMap[sku] !== undefined) ? stockMap[sku] : 7; return { result: { sku: sku, store_id: storeId, quantity_on_hand: qty, online_available: qty > 0, low_stock: qty > 0 && qty < 5, stockout: qty === 0, reorder_in_days: qty === 0 ? 3 : null, gwp_promotion: qty > 0 ? { promo_id: \"GWP-\" + sku.substring(0,6), description: \"Free deluxe sample with purchase\", threshold_spend: 45.00, gift_item: \"Brand Discovery Mini Set\" } : null, fetched_at: new Date().toISOString() } }; }"
+              },
+              "input": {
+                "parameters": {
+                  "mapping": {
+                    "sku": "=$flow.sku",
+                    "storeId": "=$flow.storeId"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "ReturnInventory",
+            "name": "ReturnInventory",
+            "description": "Return inventory JSON to caller with HTTP 200",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[BuildInventoryResponse].result"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkJ1aWxkSW52ZW50b3J5UmVzcG9uc2UiOnsieCI6MjUwLCJ5IjoxNTB9LCJSZXR1cm5JbnZlbnRvcnkiOnsieCI6NDUwLCJ5IjoyNTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "sku",
+              "type": "string"
+            },
+            {
+              "name": "storeId",
+              "type": "string"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"sku\":{\"type\":\"string\"},\"storeId\":{\"type\":\"string\"}}}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:GetStoreFlow",
+      "data": {
+        "name": "GetStoreFlow",
+        "description": "Returns store details, hours, upcoming events, and beauty advisor availability",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "BuildStoreResponse",
+            "type": "label",
+            "label": "StartActivity to BuildStoreResponse"
+          },
+          {
+            "id": 2,
+            "from": "BuildStoreResponse",
+            "to": "ReturnStore",
+            "type": "label",
+            "label": "BuildStoreResponse to ReturnStore"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "BuildStoreResponse",
+            "name": "BuildStoreResponse",
+            "description": "Build hardcoded store details JSON for the requested storeId",
+            "activity": {
+              "ref": "#jsexec",
+              "settings": {
+                "script": "function Execute(ctx) { var storeId = ctx.storeId || \"0847\"; var stores = { \"0847\": { name: \"BeautyCo Beverly Hills\", address: \"8500 Wilshire Blvd, Beverly Hills, CA 90211\", phone: \"310-555-0847\", hours: { mon_sat: \"10:00-21:00\", sun: \"11:00-19:00\" }, beauty_advisors_available: 3, upcoming_events: [ { event: \"Skincare Masterclass with Charlotte Tilbury\", date: new Date(Date.now() + 3*86400000).toISOString().split(\"T\")[0], spots_remaining: 8 }, { event: \"Fragrance Discovery Session\", date: new Date(Date.now() + 7*86400000).toISOString().split(\"T\")[0], spots_remaining: 12 } ], store_promotions: [\"In-store GWP on purchases over $50\",\"Double points Saturdays\"] }, \"1204\": { name: \"BeautyCo Santa Monica\", address: \"395 Santa Monica Place, Santa Monica, CA 90401\", phone: \"310-555-1204\", hours: { mon_sat: \"10:00-20:00\", sun: \"11:00-18:00\" }, beauty_advisors_available: 2, upcoming_events: [], store_promotions: [\"15% off first in-store visit\"] } }; var store = stores[storeId] || stores[\"0847\"]; store.store_id = storeId; store.fetched_at = new Date().toISOString(); return { result: store }; }"
+              },
+              "input": {
+                "parameters": {
+                  "mapping": {
+                    "storeId": "=$flow.storeId"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "ReturnStore",
+            "name": "ReturnStore",
+            "description": "Return store details JSON to caller with HTTP 200",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[BuildStoreResponse].result"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkJ1aWxkU3RvcmVSZXNwb25zZSI6eyJ4IjoyNTAsInkiOjE1MH0sIlJldHVyblN0b3JlIjp7IngiOjQ1MCwieSI6MjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "storeId",
+              "type": "string"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"storeId\":{\"type\":\"string\"}}}"
+          }
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:PostMarketingFlow",
+      "data": {
+        "name": "PostMarketingFlow",
+        "description": "Accepts a marketing sequence payload and returns a sequenceId confirming enqueue",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "BuildMarketingResponse",
+            "type": "label",
+            "label": "StartActivity to BuildMarketingResponse"
+          },
+          {
+            "id": 2,
+            "from": "BuildMarketingResponse",
+            "to": "ReturnMarketing",
+            "type": "label",
+            "label": "BuildMarketingResponse to ReturnMarketing"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "BuildMarketingResponse",
+            "name": "BuildMarketingResponse",
+            "description": "Build marketing sequence confirmation response with generated sequenceId",
+            "activity": {
+              "ref": "#jsexec",
+              "settings": {
+                "script": "function Execute(ctx) { var chars = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\"; var seqId = \"SEQ-\"; for (var i = 0; i < 8; i++) { seqId += chars.charAt(Math.floor(Math.random() * chars.length)); } return { result: { sequence_id: seqId, status: \"QUEUED\", estimated_send_hours: 2, message: \"Marketing sequence successfully queued\", queued_at: new Date().toISOString() } }; }"
+              },
+              "input": {
+                "parameters": {
+                  "mapping": {}
+                }
+              }
+            }
+          },
+          {
+            "id": "ReturnMarketing",
+            "name": "ReturnMarketing",
+            "description": "Return marketing sequence confirmation with HTTP 201",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 201,
+                  "data": "=$activity[BuildMarketingResponse].result"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkJ1aWxkTWFya2V0aW5nUmVzcG9uc2UiOnsieCI6MjUwLCJ5IjoxNTB9LCJSZXR1cm5NYXJrZXRpbmciOnsieCI6NDUwLCJ5IjoyNTB9fQ==",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        },
+        "explicitReply": true
+      }
+    },
+    {
+      "id": "flow:GetHealthFlow",
+      "data": {
+        "name": "GetHealthFlow",
+        "description": "Health check endpoint returning service status UP",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "BuildHealthResponse",
+            "type": "label",
+            "label": "StartActivity to BuildHealthResponse"
+          },
+          {
+            "id": 2,
+            "from": "BuildHealthResponse",
+            "to": "ReturnHealth",
+            "type": "label",
+            "label": "BuildHealthResponse to ReturnHealth"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "BuildHealthResponse",
+            "name": "BuildHealthResponse",
+            "description": "Build health check response",
+            "activity": {
+              "ref": "#jsexec",
+              "settings": {
+                "script": "function Execute(ctx) { return { result: { status: \"UP\", service: \"beauty-mock-apis\", version: \"1.0.0\", timestamp: new Date().toISOString() } }; }"
+              },
+              "input": {
+                "parameters": {
+                  "mapping": {}
+                }
+              }
+            }
+          },
+          {
+            "id": "ReturnHealth",
+            "name": "ReturnHealth",
+            "description": "Return health status with HTTP 200",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": "=$activity[BuildHealthResponse].result"
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkJ1aWxkSGVhbHRoUmVzcG9uc2UiOnsieCI6MjUwLCJ5IjoxNTB9LCJSZXR1cm5IZWFsdGgiOnsieCI6NDUwLCJ5IjoyNTB9fQ==",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTIiLCJ0YWciOiIxLjYuMTItYjA2IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "8091",
+        "spec": {
+          "name": "beauty-mock-apis",
+          "version": "1.0.0"
+        },
+        "title": "BeautyMockAPIServer",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "beauty-mock-apis",
+            "version": "1.0.0",
+            "description": "REST trigger serving mock BeautyCo API endpoints on port 8091"
+          },
+          "paths": {
+            "/campaigns": {
+              "get": {
+                "summary": "GetCampaignsFlow",
+                "operationId": "get_campaigns",
+                "parameters": [
+                  {
+                    "name": "memberId",
+                    "in": "query",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  },
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Returns active GlowRewards promotional campaigns eligible for a member"
+              }
+            },
+            "/inventory/{sku}": {
+              "get": {
+                "summary": "GetInventoryFlow",
+                "operationId": "get_inventory_sku",
+                "parameters": [
+                  {
+                    "name": "storeid",
+                    "in": "query",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  },
+                  {
+                    "name": "sku",
+                    "in": "path",
+                    "description": "Request parameter",
+                    "required": true,
+                    "type": "string"
+                  },
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Returns stock levels and GWP promotions for a product SKU at a given store"
+              }
+            },
+            "/store/{storeId}": {
+              "get": {
+                "summary": "GetStoreFlow",
+                "operationId": "get_store_storeId",
+                "parameters": [
+                  {
+                    "name": "storeId",
+                    "in": "path",
+                    "description": "Request parameter",
+                    "required": true,
+                    "type": "string"
+                  },
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Returns store details, hours, upcoming events, and beauty advisor availability"
+              }
+            },
+            "/marketing/sequence": {
+              "post": {
+                "summary": "PostMarketingFlow",
+                "operationId": "post_marketing_sequence",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Accepts a marketing sequence payload and returns a sequenceId confirming enqueue",
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            },
+            "/health": {
+              "get": {
+                "summary": "GetHealthFlow",
+                "operationId": "get_health",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "type": "string"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Health check endpoint returning service status UP"
+              }
+            }
+          },
+          "definitions": {}
+        }
+      }
+    ],
+    "flogoVersion": "2.26.2"
+  }
+}

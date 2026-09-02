@@ -349,8 +349,8 @@ Turn 4: Go ahead and create the purchase order at their standard price.
     "agentName": "SupplyChainAgent",
     "model": "gpt-4o",
     "mcpServers": [
-      "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-      "c3d4e5f6-a7b8-9012-cdef-012345678902"
+      "conn://b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "conn://c3d4e5f6-a7b8-9012-cdef-012345678902"
     ],
     "conversationStoreType": "Memory",
     "memoryMaxSize": 20
@@ -368,7 +368,7 @@ Turn 4: Go ahead and create the purchase order at their standard price.
 }
 ```
 
-Each string in `mcpServers` is a **connection ID** referencing an MCP Server connection. The Agentic AI Connector:
+Each string in `mcpServers` is a **connection reference** in the form `conn://<connection-id>`, pointing at an MCP Server connection. The Agentic AI Connector:
 
 1. Connects to both MCP servers at startup
 2. Discovers tools from each: `GetProductCatalog`, `GetStockAlerts`, `GetWarehouseLocations`, `GetSuppliers`, `GetPurchaseOrders`, `GetSupplierCapacity`
@@ -400,7 +400,7 @@ The `sessionId` URL parameter keeps conversation history separate per user sessi
 |---|---|---|
 | Use a real ERP or WMS backend | Replace `actreturn` in each MCP tool flow | Call REST/JDBC activity instead of returning static data |
 | Make CreatePurchaseOrder call a real API | `create_po_flow` | Add HTTP or JDBC activity before the return |
-| Add more MCP servers | `SupplyChainAgent.flogo` Agent Trigger settings | Add a third connection ID to `mcpServers` |
+| Add more MCP servers | `SupplyChainAgent.flogo` Agent Trigger settings | Add a third `conn://<connection-id>` reference to `mcpServers` |
 | Add a spending guardrail | Agent Trigger handler | Add a `CustomGuardrail` handler that rejects orders above a threshold |
 | Use a durable conversation store | Agent Trigger settings | Change `conversationStoreType` to `Custom` and add a store handler backed by a database |
 | Use Anthropic Claude | LLM Provider connection | Change `llmProvider` to `Anthropic` and set model to `claude-opus-4-5` |
@@ -428,6 +428,6 @@ The `mcpServers` feature on the Agent Trigger gives you the enterprise integrati
 2. **Connect `create_po_flow`** to your actual procurement API or message queue instead of returning mock data
 3. **Add a spending guardrail** — a `CustomGuardrail` handler on the Agent Trigger that rejects or flags orders above an approval threshold before the LLM calls `CreatePurchaseOrder`
 4. **Switch to a durable conversation store** for audit trails — add a `CustomConversationStore` handler backed by a database
-5. **Add a third MCP server** (e.g., a Logistics MCP Server with shipment tracking) — just add its connection ID to `mcpServers`
+5. **Add a third MCP server** (e.g., a Logistics MCP Server with shipment tracking) — just add its `conn://<connection-id>` reference to `mcpServers`
 
 See the [Healthcare Compliance Agent](../Healthcare-Compliance-Agent/) sample for a full demonstration of custom guardrails and durable conversation stores.

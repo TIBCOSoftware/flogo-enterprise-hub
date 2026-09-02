@@ -61,7 +61,7 @@ Flogo Enterprise applications require a license file to run in production mode. 
 ```bash
 docker run -it -p 9999:9999 \
   -e TIB_ACTIVATION=/build/license/92-Days-10-24-FLOGO_S_ANY_LOCAL_Eval-DoNotREDISTRIBUTE.bin \
-  -v "/home/rgoyal/prod-docker-images/prod-docker-images/":/build/license/ \
+  -v "<path-to-license-dir>":/build/license/ \
   flogo-app:debian
 ```
 

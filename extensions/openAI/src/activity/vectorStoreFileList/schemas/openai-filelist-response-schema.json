@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OpenAI Vector Store Files",
+  "description": "Array of vector store file objects returned by the OpenAI list files API",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "created_at",
+      "last_error",
+      "object",
+      "status",
+      "usage_bytes",
+      "vector_store_id",
+      "attributes",
+      "chunking_strategy"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Unique identifier for the file",
+        "pattern": "^file-[a-zA-Z0-9]+$",
+        "examples": ["file-7Ksr2QJdoEmtKhHb6JDYjd"]
+      },
+      "created_at": {
+        "type": "integer",
+        "description": "Unix timestamp when the file was created",
+        "minimum": 0,
+        "examples": [1777623630]
+      },
+      "last_error": {
+        "type": "object",
+        "description": "Information about the last error encountered (empty strings when no error)",
+        "required": ["code", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Error code, empty string when no error"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message, empty string when no error"
+          }
+        }
+      },
+      "object": {
+        "type": "string",
+        "description": "Object type identifier",
+        "enum": ["vector_store.file"]
+      },
+      "status": {
+        "type": "string",
+        "description": "Processing status of the file",
+        "enum": ["in_progress", "completed", "failed", "cancelled"]
+      },
+      "usage_bytes": {
+        "type": "integer",
+        "description": "Number of bytes used by the file",
+        "minimum": 0,
+        "examples": [39619]
+      },
+      "vector_store_id": {
+        "type": "string",
+        "description": "ID of the vector store containing this file",
+        "pattern": "^vs_[a-zA-Z0-9]+$",
+        "examples": ["vs_69f461edba448191a6542cb71c1a7a20"]
+      },
+      "attributes": {
+        "type": "object",
+        "description": "Custom attributes associated with the file (free-form key/value pairs)",
+        "additionalProperties": {
+          "type": ["string", "number", "boolean", "null"]
+        }
+      },
+      "chunking_strategy": {
+        "type": "object",
+        "description": "Strategy used for chunking the file",
+        "required": ["type"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of chunking strategy",
+            "enum": ["static", "auto"]
+          },
+          "static": {
+            "type": "object",
+            "description": "Static chunking configuration (present when type is 'static')",
+            "required": ["chunk_overlap_tokens", "max_chunk_size_tokens"],
+            "additionalProperties": false,
+            "properties": {
+              "chunk_overlap_tokens": {
+                "type": "integer",
+                "description": "Number of tokens to overlap between chunks",
+                "minimum": 0,
+                "examples": [400]
+              },
+              "max_chunk_size_tokens": {
+                "type": "integer",
+                "description": "Maximum size of each chunk in tokens",
+                "minimum": 0,
+                "examples": [800]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    [
+      {
+        "id": "file-7Ksr2QJdoEmtKhHb6JDYjd",
+        "created_at": 1777623630,
+        "last_error": { "code": "", "message": "" },
+        "object": "vector_store.file",
+        "status": "completed",
+        "usage_bytes": 39619,
+        "vector_store_id": "vs_69f461edba448191a6542cb71c1a7a20",
+        "attributes": {},
+        "chunking_strategy": {
+          "static": { "chunk_overlap_tokens": 400, "max_chunk_size_tokens": 800 },
+          "type": "static"
+        }
+      }
+    ]
+  ]
+}

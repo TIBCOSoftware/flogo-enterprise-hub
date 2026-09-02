@@ -1,0 +1,221 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/mapper",
+    "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/fileUpload",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "openaiVectorStore-openAI",
+  "description": "Upload file and associate to vectore store",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#startuphook",
+      "name": "tibco-appstartup",
+      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "settings": {},
+      "id": "AppStartupTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:File_upload_and_associate_to_Vector_Store"
+            }
+          },
+          "name": "File_upload_and_associate_to_Vector_Store"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:File_upload_and_associate_to_Vector_Store",
+      "data": {
+        "name": "File upload and associate to Vector Store",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Mapper",
+            "type": "label",
+            "label": "StartActivity to Mapper"
+          },
+          {
+            "id": 2,
+            "from": "Mapper",
+            "to": "UploadFile",
+            "type": "label",
+            "label": "Mapper to UploadFile"
+          },
+          {
+            "id": 3,
+            "from": "UploadFile",
+            "to": "LogOutput",
+            "type": "label",
+            "label": "UploadFile to LogMessage1"
+          },
+          {
+            "id": 4,
+            "from": "LogOutput",
+            "to": "Return",
+            "type": "label",
+            "label": "LogOutput to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Mapper",
+            "name": "Mapper",
+            "description": "Mapper Activity",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": {
+                  "mapping": {
+                    "attributes": [
+                      {
+                        "key": "DocGroup",
+                        "value": "UserGuide"
+                      },
+                      {
+                        "key": "DocType",
+                        "value": "Markdown"
+                      },
+                      {
+                        "key": "Download URL",
+                        "value": "link"
+                      }
+                    ],
+                    "filename": "flogo-enterprise-hub/extensions/openAI/testdata/AL-243-342_Operating_Guide.md"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"File with Attributes\",\n  \"description\": \"A schema for a file with a name and a list of key-value attributes.\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"filename\": {\n      \"description\": \"The name of the file.\",\n      \"type\": \"string\"\n    },\n    \"attributes\": {\n      \"description\": \"A list of key-value pairs associated with the file.\",\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"key\": {\n            \"description\": \"The attribute's key or name.\",\n            \"type\": \"string\"\n          },\n          \"value\": {\n            \"description\": \"The attribute's value.\",\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"key\",\n          \"value\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"filename\",\n    \"attributes\"\n  ]\n}   ",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"File with Attributes\",\n  \"description\": \"A schema for a file with a name and a list of key-value attributes.\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"filename\": {\n      \"description\": \"The name of the file.\",\n      \"type\": \"string\"\n    },\n    \"attributes\": {\n      \"description\": \"A list of key-value pairs associated with the file.\",\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"key\": {\n            \"description\": \"The attribute's key or name.\",\n            \"type\": \"string\"\n          },\n          \"value\": {\n            \"description\": \"The attribute's value.\",\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"key\",\n          \"value\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"filename\",\n    \"attributes\"\n  ]\n}   "
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"File with Attributes\",\n  \"description\": \"A schema for a file with a name and a list of key-value attributes.\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"filename\": {\n      \"description\": \"The name of the file.\",\n      \"type\": \"string\"\n    },\n    \"attributes\": {\n      \"description\": \"A list of key-value pairs associated with the file.\",\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"key\": {\n            \"description\": \"The attribute's key or name.\",\n            \"type\": \"string\"\n          },\n          \"value\": {\n            \"description\": \"The attribute's value.\",\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"key\",\n          \"value\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"filename\",\n    \"attributes\"\n  ]\n}",
+                    "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"File with Attributes\",\n  \"description\": \"A schema for a file with a name and a list of key-value attributes.\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"filename\": {\n      \"description\": \"The name of the file.\",\n      \"type\": \"string\"\n    },\n    \"attributes\": {\n      \"description\": \"A list of key-value pairs associated with the file.\",\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"key\": {\n            \"description\": \"The attribute's key or name.\",\n            \"type\": \"string\"\n          },\n          \"value\": {\n            \"description\": \"The attribute's value.\",\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"key\",\n          \"value\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"filename\",\n    \"attributes\"\n  ]\n}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "UploadFile",
+            "name": "UploadFile",
+            "description": "This activity uploads files to OpenAI file store",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#fileUpload",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]",
+                "operation": "Upload new file",
+                "purpose": "assistants",
+                "maxChunkSizeTokens": 800,
+                "chunkOverlapTokens": 400,
+                "timeoutSeconds": 300
+              },
+              "input": {
+                "filename": "=$activity[Mapper].output.filename",
+                "fileId": "",
+                "vectorStoreID": "=$property[\"VECTORSTORE_ID\"]",
+                "fileAttributes": {
+                  "mapping": {
+                    "@foreach($activity[Mapper].output.attributes,attributes)": {
+                      "=": "$loop"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "LogOutput",
+            "name": "LogOutput",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"id: \",$activity[UploadFile].id, \" object: \", $activity[UploadFile].object)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn"
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUsInkiOjkzfSwiTWFwcGVyIjp7IngiOjE4NiwieSI6ODl9LCJVcGxvYWRGaWxlIjp7IngiOjQ1NiwieSI6OTN9LCJMb2dPdXRwdXQiOnsieCI6NzM5LCJ5Ijo5N30sIlJldHVybiI6eyJ4Ijo5ODcsInkiOjk1fX0=",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "VECTORSTORE_ID",
+      "type": "string",
+      "value": "REPLACE ME"
+    },
+    {
+      "name": "OPENAI_API_ENDPOINT_URL",
+      "type": "string",
+      "value": "https://api.openai.com/v1"
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "type": "string",
+      "value": "REPLACE ME"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9USUJDT1NvZnR3YXJlL2Zsb2dvLWVudGVycHJpc2UtaHViL2V4dGVuc2lvbnMvb3BlbkFJIiwiaWQiOiJvcGVuQUkiLCJ2ZXJzaW9uIjoiMS4wLjEiLCJ0YWciOiIxLjAuMSIsIm5hbWUiOiJPcGVuQUkiLCJzM2xvY2F0aW9uIjoie1VTRVJJRH0vb3BlbkFJIiwiaXNVc2VyRXh0ZW5zaW9uIjp0cnVlfV0=",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.0"
+  }
+}

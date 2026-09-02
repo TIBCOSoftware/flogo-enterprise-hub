@@ -1,0 +1,87 @@
+{
+  "name": "openai-vector-store-file-list",
+  "version": "1.0.0",
+  "type": "flogo:activity",
+  "title": "Vector Store File List",
+  "author": "TIBCO Software",
+  "ref": "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/vectorStoreFileList",
+  "display": {
+    "category": "openAI",
+    "visible": true,
+    "description": "This activity lists files in an OpenAI vector store with support for filtering and pagination",
+    "smallIcon": "icons/openAPISmall.png",
+    "largeIcon": "icons/openAPILarge.png"
+  },
+  "feature": {
+    "retry": {
+      "enabled": true
+    }
+  },
+  "settings": [
+    {
+      "name": "endPointURL",
+      "type": "string",
+      "required": true,
+      "display": {
+        "name": "API Endpoint URL",
+        "description": "Endpoint URL for the OpenAI API, for example https://api.openai.com/v1",
+        "appPropertySupport": true
+      }
+    },
+    {
+      "name": "apiKey",
+      "type": "string",
+      "required": true,
+      "display": {
+        "name": "OpenAI API Key",
+        "description": "OpenAI API key that is required to authenticate with the OpenAI API",
+        "appPropertySupport": true
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "name": "vectorStoreID",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "limit",
+      "type": "integer",
+      "required": false
+    },
+    {
+      "name": "filter",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "order",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "after",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "before",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "timeoutSeconds",
+      "type": "integer",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "files",
+      "type": "array",
+      "enablecoercing": true,
+      "value": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"OpenAI Vector Store Files\", \"description\": \"Array of vector store file objects returned by the OpenAI list files API\", \"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"created_at\", \"last_error\", \"object\", \"status\", \"usage_bytes\", \"vector_store_id\", \"attributes\", \"chunking_strategy\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"description\": \"Unique identifier for the file\", \"pattern\": \"^file-[a-zA-Z0-9]+$\"}, \"created_at\": {\"type\": \"integer\", \"description\": \"Unix timestamp when the file was created\", \"minimum\": 0}, \"last_error\": {\"type\": \"object\", \"description\": \"Information about the last error encountered (empty strings when no error)\", \"required\": [\"code\", \"message\"], \"additionalProperties\": false, \"properties\": {\"code\": {\"type\": \"string\", \"description\": \"Error code, empty string when no error\"}, \"message\": {\"type\": \"string\", \"description\": \"Error message, empty string when no error\"}}}, \"object\": {\"type\": \"string\", \"description\": \"Object type identifier\", \"enum\": [\"vector_store.file\"]}, \"status\": {\"type\": \"string\", \"description\": \"Processing status of the file\", \"enum\": [\"in_progress\", \"completed\", \"failed\", \"cancelled\"]}, \"usage_bytes\": {\"type\": \"integer\", \"description\": \"Number of bytes used by the file\", \"minimum\": 0}, \"vector_store_id\": {\"type\": \"string\", \"description\": \"ID of the vector store containing this file\", \"pattern\": \"^vs_[a-zA-Z0-9]+$\"}, \"attributes\": {\"type\": \"object\", \"description\": \"Custom attributes associated with the file (free-form key/value pairs)\", \"additionalProperties\": {\"type\": [\"string\", \"number\", \"boolean\", \"null\"]}}, \"chunking_strategy\": {\"type\": \"object\", \"description\": \"Strategy used for chunking the file\", \"required\": [\"type\"], \"additionalProperties\": false, \"properties\": {\"type\": {\"type\": \"string\", \"description\": \"Type of chunking strategy\", \"enum\": [\"static\", \"auto\"]}, \"static\": {\"type\": \"object\", \"description\": \"Static chunking configuration (present when type is static)\", \"required\": [\"chunk_overlap_tokens\", \"max_chunk_size_tokens\"], \"additionalProperties\": false, \"properties\": {\"chunk_overlap_tokens\": {\"type\": \"integer\", \"description\": \"Number of tokens to overlap between chunks\", \"minimum\": 0}, \"max_chunk_size_tokens\": {\"type\": \"integer\", \"description\": \"Maximum size of each chunk in tokens\", \"minimum\": 0}}}}}}}}"
+    }
+  ]
+}

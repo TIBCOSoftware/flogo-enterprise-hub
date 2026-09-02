@@ -1,0 +1,523 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/tibco/flogo-general/src/app/General/activity/log"
+  ],
+  "name": "mortgage-mock-apis",
+  "description": "Mock REST API server for the Autonomous Mortgage AI Processor demo — provides hardcoded realistic responses for credit bureau, employment verification, property valuation, and DTI calculation endpoints",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Mock REST API server — 4 endpoints for mortgage processing demo",
+      "settings": {
+        "port": "=$property[\"MockAPI.Port\"]",
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "apiVersion": "1.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "MortgageMockAPIServer",
+      "handlers": [
+        {
+          "description": "Returns mock credit score and history for an applicant",
+          "settings": {
+            "APISpecPath": "/credit",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/credit",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetCreditScoreFlow"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "responseBody": "=$.responseBody"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"creditScore\":{\"type\":\"number\"},\"creditGrade\":{\"type\":\"string\"},\"defaults\":{\"type\":\"number\"},\"paymentHistoryMonths\":{\"type\":\"number\"},\"utilizationRate\":{\"type\":\"number\"},\"openAccounts\":{\"type\":\"number\"},\"oldestAccountYears\":{\"type\":\"number\"},\"bureau\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"creditScore\":{\"type\":\"number\"},\"creditGrade\":{\"type\":\"string\"},\"defaults\":{\"type\":\"number\"},\"paymentHistoryMonths\":{\"type\":\"number\"},\"utilizationRate\":{\"type\":\"number\"},\"openAccounts\":{\"type\":\"number\"},\"oldestAccountYears\":{\"type\":\"number\"},\"bureau\":{\"type\":\"string\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{}}"
+              }
+            }
+          },
+          "name": "GetCreditScoreFlow"
+        },
+        {
+          "description": "Returns mock employment verification data for an applicant",
+          "settings": {
+            "APISpecPath": "/employment",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/employment",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetEmploymentFlow"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "responseBody": "=$.responseBody"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"employmentStatus\":{\"type\":\"string\"},\"employerName\":{\"type\":\"string\"},\"jobTitle\":{\"type\":\"string\"},\"yearsEmployed\":{\"type\":\"number\"},\"annualIncome\":{\"type\":\"number\"},\"monthlyIncome\":{\"type\":\"number\"},\"incomeVerified\":{\"type\":\"boolean\"},\"employmentType\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"applicantId\":{\"type\":\"string\"},\"employmentStatus\":{\"type\":\"string\"},\"employerName\":{\"type\":\"string\"},\"jobTitle\":{\"type\":\"string\"},\"yearsEmployed\":{\"type\":\"number\"},\"annualIncome\":{\"type\":\"number\"},\"monthlyIncome\":{\"type\":\"number\"},\"incomeVerified\":{\"type\":\"boolean\"},\"employmentType\":{\"type\":\"string\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{}}"
+              }
+            }
+          },
+          "name": "GetEmploymentFlow"
+        },
+        {
+          "description": "Returns mock property valuation data for a given address",
+          "settings": {
+            "APISpecPath": "/valuation",
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/valuation",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:GetPropertyValuationFlow"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "responseBody": "=$.responseBody"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"},\"confidenceScore\":{\"type\":\"number\"},\"lastSoldPrice\":{\"type\":\"number\"},\"lastSoldDate\":{\"type\":\"string\"},\"propertyType\":{\"type\":\"string\"},\"bedrooms\":{\"type\":\"number\"},\"bathrooms\":{\"type\":\"number\"},\"squareFeet\":{\"type\":\"number\"},\"ltvRatio\":{\"type\":\"number\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"},\"confidenceScore\":{\"type\":\"number\"},\"lastSoldPrice\":{\"type\":\"number\"},\"lastSoldDate\":{\"type\":\"string\"},\"propertyType\":{\"type\":\"string\"},\"bedrooms\":{\"type\":\"number\"},\"bathrooms\":{\"type\":\"number\"},\"squareFeet\":{\"type\":\"number\"},\"ltvRatio\":{\"type\":\"number\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"propertyAddress\":{\"type\":\"string\"},\"estimatedValue\":{\"type\":\"number\"}}}"
+              }
+            }
+          },
+          "name": "GetPropertyValuationFlow"
+        },
+        {
+          "description": "Calculates Debt-To-Income ratio and affordability flag from income and debt figures",
+          "settings": {
+            "APISpecPath": "/calculate-dti",
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/calculate-dti",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:CalculateDTIFlow"
+            },
+            "input": {
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "responseBody": "=$.responseBody"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"monthlyIncome\":{\"type\":\"number\"},\"existingMonthlyDebts\":{\"type\":\"number\"},\"proposedMortgagePayment\":{\"type\":\"number\"},\"totalMonthlyObligations\":{\"type\":\"number\"},\"dtiRatio\":{\"type\":\"number\"},\"dtiPercent\":{\"type\":\"string\"},\"affordabilityFlag\":{\"type\":\"string\"},\"maxAllowedDTI\":{\"type\":\"number\"},\"headroom\":{\"type\":\"number\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"monthlyIncome\":{\"type\":\"number\"},\"existingMonthlyDebts\":{\"type\":\"number\"},\"proposedMortgagePayment\":{\"type\":\"number\"},\"totalMonthlyObligations\":{\"type\":\"number\"},\"dtiRatio\":{\"type\":\"number\"},\"dtiPercent\":{\"type\":\"string\"},\"affordabilityFlag\":{\"type\":\"string\"},\"maxAllowedDTI\":{\"type\":\"number\"},\"headroom\":{\"type\":\"number\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{}}"
+              }
+            }
+          },
+          "name": "CalculateDTIFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:GetCreditScoreFlow",
+      "data": {
+        "name": "GetCreditScoreFlow",
+        "description": "Returns mock credit bureau data — credit score 742, grade A, 0 defaults",
+        "links": [
+          {"id": 1, "from": "StartActivity", "to": "LogRequest", "type": "label", "label": "start"},
+          {"id": 2, "from": "LogRequest", "to": "Return", "type": "label", "label": "return mock data"}
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {"ref": "#noop"}
+          },
+          {
+            "id": "LogRequest",
+            "name": "LogRequest",
+            "description": "Log incoming credit score request",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "Mock Credit Bureau API called — returning score 742 for APP-001",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return hardcoded credit score response",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "responseBody": {
+                    "applicantId": "APP-001",
+                    "creditScore": 742,
+                    "creditGrade": "A",
+                    "defaults": 0,
+                    "paymentHistoryMonths": 84,
+                    "utilizationRate": 0.28,
+                    "openAccounts": 4,
+                    "oldestAccountYears": 8,
+                    "bureau": "Equifax"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MjAwfSwiTG9nUmVxdWVzdCI6eyJ4IjozNTAsInkiOjIwMH0sIlJldHVybiI6eyJ4Ijo2MDAsInkiOjIwMH19",
+        "metadata": {
+          "input": [{"name": "body", "type": "object"}],
+          "output": [
+            {"name": "code", "type": "integer"},
+            {"name": "responseBody", "type": "object"}
+          ],
+          "fe_metadata": {}
+        }
+      }
+    },
+    {
+      "id": "flow:GetEmploymentFlow",
+      "data": {
+        "name": "GetEmploymentFlow",
+        "description": "Returns mock employment verification data — employed at Meridian Technologies, income $125k",
+        "links": [
+          {"id": 1, "from": "StartActivity", "to": "LogRequest", "type": "label", "label": "start"},
+          {"id": 2, "from": "LogRequest", "to": "Return", "type": "label", "label": "return mock data"}
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {"ref": "#noop"}
+          },
+          {
+            "id": "LogRequest",
+            "name": "LogRequest",
+            "description": "Log incoming employment verification request",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "Mock Employment Verification API called — returning EMPLOYED status for APP-001",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return hardcoded employment verification response",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "responseBody": {
+                    "applicantId": "APP-001",
+                    "employmentStatus": "EMPLOYED",
+                    "employerName": "Meridian Technologies Ltd",
+                    "jobTitle": "Senior Software Engineer",
+                    "yearsEmployed": 5.5,
+                    "annualIncome": 125000,
+                    "monthlyIncome": 10416.67,
+                    "incomeVerified": true,
+                    "employmentType": "PERMANENT"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MjAwfSwiTG9nUmVxdWVzdCI6eyJ4IjozNTAsInkiOjIwMH0sIlJldHVybiI6eyJ4Ijo2MDAsInkiOjIwMH19",
+        "metadata": {
+          "input": [{"name": "body", "type": "object"}],
+          "output": [
+            {"name": "code", "type": "integer"},
+            {"name": "responseBody", "type": "object"}
+          ],
+          "fe_metadata": {}
+        }
+      }
+    },
+    {
+      "id": "flow:GetPropertyValuationFlow",
+      "data": {
+        "name": "GetPropertyValuationFlow",
+        "description": "Returns mock property valuation — 47 Maple Grove valued at $485,000, LTV 72%",
+        "links": [
+          {"id": 1, "from": "StartActivity", "to": "LogRequest", "type": "label", "label": "start"},
+          {"id": 2, "from": "LogRequest", "to": "Return", "type": "label", "label": "return mock data"}
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {"ref": "#noop"}
+          },
+          {
+            "id": "LogRequest",
+            "name": "LogRequest",
+            "description": "Log incoming property valuation request",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "Mock Property Valuation API called — returning $485,000 estimate for 47 Maple Grove",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return hardcoded property valuation response",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "responseBody": {
+                    "propertyAddress": "47 Maple Grove, Austin TX 78701",
+                    "estimatedValue": 485000,
+                    "confidenceScore": 0.92,
+                    "lastSoldPrice": 420000,
+                    "lastSoldDate": "2021-03-15",
+                    "propertyType": "Single Family",
+                    "bedrooms": 3,
+                    "bathrooms": 2,
+                    "squareFeet": 1850,
+                    "ltvRatio": 0.72
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MjAwfSwiTG9nUmVxdWVzdCI6eyJ4IjozNTAsInkiOjIwMH0sIlJldHVybiI6eyJ4Ijo2MDAsInkiOjIwMH19",
+        "metadata": {
+          "input": [{"name": "body", "type": "object"}],
+          "output": [
+            {"name": "code", "type": "integer"},
+            {"name": "responseBody", "type": "object"}
+          ],
+          "fe_metadata": {}
+        }
+      }
+    },
+    {
+      "id": "flow:CalculateDTIFlow",
+      "data": {
+        "name": "CalculateDTIFlow",
+        "description": "Returns DTI calculation — monthly obligations $3,100 on income $10,417 = 29.8% DTI (AFFORDABLE)",
+        "links": [
+          {"id": 1, "from": "StartActivity", "to": "LogRequest", "type": "label", "label": "start"},
+          {"id": 2, "from": "LogRequest", "to": "Return", "type": "label", "label": "return calculation"}
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "Flow entry point",
+            "activity": {"ref": "#noop"}
+          },
+          {
+            "id": "LogRequest",
+            "name": "LogRequest",
+            "description": "Log incoming DTI calculation request",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "Mock DTI Calculation API called — DTI 29.8% (AFFORDABLE, under 43% threshold)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return DTI calculation result — 29.8% DTI is within acceptable limits",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "responseBody": {
+                    "monthlyIncome": 10416.67,
+                    "existingMonthlyDebts": 1250,
+                    "proposedMortgagePayment": 1850,
+                    "totalMonthlyObligations": 3100,
+                    "dtiRatio": 0.298,
+                    "dtiPercent": "29.8%",
+                    "affordabilityFlag": "AFFORDABLE",
+                    "maxAllowedDTI": 0.43,
+                    "headroom": 1381.67
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MjAwfSwiTG9nUmVxdWVzdCI6eyJ4IjozNTAsInkiOjIwMH0sIlJldHVybiI6eyJ4Ijo2MDAsInkiOjIwMH19",
+        "metadata": {
+          "input": [{"name": "body", "type": "object"}],
+          "output": [
+            {"name": "code", "type": "integer"},
+            {"name": "responseBody", "type": "object"}
+          ],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "MockAPI.Port",
+      "type": "string",
+      "value": "9091"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTIiLCJ0YWciOiIxLjYuMTItYjA2IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9091",
+        "title": "MortgageMockAPIServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.2"
+  }
+}
