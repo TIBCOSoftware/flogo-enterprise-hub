@@ -1,0 +1,194 @@
+{
+  "type": "flogo:flow",
+  "data": {
+    "name": "MainFlow",
+    "description": "",
+    "links": [
+      {
+        "id": 1,
+        "from": "MySQLQuery1",
+        "to": "RecordTutorialLog",
+        "type": "label",
+        "label": "MySQLQuery1 to LogMessage"
+      },
+      {
+        "id": 2,
+        "from": "RecordTutorialLog",
+        "to": "Return",
+        "type": "label",
+        "label": "LogMessage to Return"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "MySQLQuery1",
+        "name": "MySQLQuery1",
+        "description": "This activity executes query on a MySQL database",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        },
+        "activity": {
+          "ref": "github.com/tibco/wi-mysql/src/app/MySQL/activity/query",
+          "input": {
+            "Connection": "conn://MySQLSSL_conn.fgconn",
+            "QueryName": "",
+            "Query": "SELECT tutorial_title\nFROM tutorials_tbl_New\nWHERE tutorial_id= \"14101992\";",
+            "manualmode": false,
+            "Fields": [
+              {
+                "FieldName": "tutorial_title",
+                "Parameter": false,
+                "Selected": true,
+                "Type": "VARCHAR",
+                "isEditable": false
+              }
+            ],
+            "State": "e8cecc10-7991-4b6d-be30-56fa009e0fa2SELECT tutorial_title\nFROM tutorials_tbl_New\nWHERE tutorial_id= \"14101992\";"
+          },
+          "schemas": {
+            "input": {
+              "input": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{}}}}"
+              }
+            },
+            "output": {
+              "Output": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"tutorial_title\":{\"type\":\"string\"}}}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"tutorial_title\":{\"type\":\"string\"}}}}}}"
+              }
+            }
+          },
+          "feSchemaMap": {}
+        }
+      },
+      {
+        "id": "RecordTutorialLog",
+        "name": "RecordTutorialLog",
+        "description": "Simple Log Message Activity",
+        "activity": {
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log",
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "message": "=utility.renderJSON($activity[MySQLQuery1].Output, false)",
+            "logLevel": ""
+          }
+        }
+      },
+      {
+        "id": "Return",
+        "name": "Return",
+        "description": "Simple Return Activity",
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "code": 200,
+              "data": {
+                "mapping": {
+                  "output": "=$activity[MySQLQuery1].Output"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "fe_metadata": "eyJNeVNRTFF1ZXJ5MSI6eyJ4IjoxMCwieSI6NTl9LCJSZWNvcmRUdXRvcmlhbExvZyI6eyJ4IjoyMTQsInkiOjc3fSwiUmV0dXJuIjp7IngiOjQyNiwieSI6NDl9fQ==",
+    "metadata": {
+      "input": [
+        {
+          "name": "headers",
+          "type": "object",
+          "schema": {
+            "type": "json",
+            "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+          }
+        }
+      ],
+      "output": [
+        {
+          "name": "code",
+          "type": "integer"
+        },
+        {
+          "name": "data",
+          "type": "object",
+          "schema": {
+            "type": "json",
+            "value": "{\"output\":{\"type\":\"object\",\"properties\":{}}}"
+          }
+        }
+      ],
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"object\",\"properties\":{}}}}},\"required\":[]}"
+      }
+    },
+    "explicitReply": true,
+    "triggerHandlers": [
+      {
+        "trigger": "trigger://ReceiveHTTPMessage.fgtrigger",
+        "action": {
+          "input": {
+            "headers": "=$.headers"
+          },
+          "output": {
+            "code": "=$.code",
+            "data": {
+              "mapping": {
+                "output": "=$.data.output"
+              }
+            }
+          }
+        },
+        "reply": {
+          "code": 200,
+          "configureResponseCodes": false,
+          "message": {}
+        },
+        "schemas": {
+          "reply": {
+            "data": {
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"object\",\"properties\":{}}}}",
+              "fe_metadata": "{\"output\":{}}"
+            },
+            "responseBody": {
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+            }
+          },
+          "output": {
+            "headers": {
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+              "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+            }
+          }
+        },
+        "settings": {
+          "Method": "GET",
+          "reqType": "application/json",
+          "Path": "/mysql",
+          "OutputValidation": false
+        }
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/tibco/wi-mysql/src/app/MySQL/activity/query",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/utility"
+  ],
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIzLjYuMTUiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL3dpLW15c3FsL3NyYy9hcHAvTXlTUUwiLCJpZCI6Ik15U1FMIiwidmVyc2lvbiI6IjMuNC41IiwidGFnIjoiMy40LjUtYjAxLXYzLW1haW4iLCJuYW1lIjoiT3JhY2xlIE15U1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL015U1FMIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d"
+}

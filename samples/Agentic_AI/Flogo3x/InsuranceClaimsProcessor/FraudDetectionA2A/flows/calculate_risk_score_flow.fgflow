@@ -1,0 +1,131 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Calculates composite fraud risk score.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNjMsInkiOjU0fX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"FraudDetectionA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"claimantName\":{\"type\":\"string\",\"description\":\"Name of the claimant\"},\"policyNumber\":{\"type\":\"string\",\"description\":\"Insurance policy number\"},\"patternAnalysisId\":{\"type\":\"string\",\"description\":\"ID of a prior pattern analysis from AnalyzeClaimPatterns\"},\"claimAmount\":{\"type\":\"number\",\"description\":\"Dollar amount of the insurance claim\"}},\"required\":[\"claimantName\",\"policyNumber\"]}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "toolParams",
+          "schema": {
+            "type": "json",
+            "value": "{\"claimantName\":{\"type\":\"string\",\"description\":\"Name of the claimant\"},\"policyNumber\":{\"type\":\"string\",\"description\":\"Insurance policy number\"},\"patternAnalysisId\":{\"type\":\"string\",\"description\":\"ID of a prior pattern analysis from AnalyzeClaimPatterns\"},\"claimAmount\":{\"type\":\"number\",\"description\":\"Dollar amount of the insurance claim\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "calculate_risk_score_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "=string.concat(\"{\\\"riskScoreId\\\":\\\"RS-2026-20001\\\",\\\"claimantName\\\":\\\"\",$flow.toolParams.claimantName,\"\\\",\\\"policyNumber\\\":\\\"\",$flow.toolParams.policyNumber,\"\\\",\\\"compositeScore\\\":62,\\\"scoreBreakdown\\\":{\\\"claimFrequency\\\":{\\\"score\\\":58,\\\"weight\\\":0.25,\\\"details\\\":\\\"Above-average claim frequency detected in past 24 months\\\"},\\\"amountAnomaly\\\":{\\\"score\\\":74,\\\"weight\\\":0.30,\\\"details\\\":\\\"Claim amount significantly exceeds typical range for this coverage type\\\"},\\\"documentConsistency\\\":{\\\"score\\\":45,\\\"weight\\\":0.25,\\\"details\\\":\\\"Minor inconsistencies in incident timeline; supporting documents pending verification\\\"},\\\"behavioralPattern\\\":{\\\"score\\\":68,\\\"weight\\\":0.20,\\\"details\\\":\\\"Claim filed shortly after policy change and during known high-fraud period\\\"}},\\\"recommendation\\\":\\\"FLAG_FOR_REVIEW\\\",\\\"confidence\\\":0.78,\\\"riskFactors\\\":[\\\"Elevated claim frequency for policy age\\\",\\\"Amount exceeds 90th percentile for claim type\\\",\\\"Temporal correlation with policy modification\\\"],\\\"mitigatingFactors\\\":[\\\"Long-standing customer (5+ years)\\\",\\\"No prior fraud flags on record\\\"],\\\"timestamp\\\":\\\"2026-06-02T10:00:00Z\\\"}\")",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns mock fraud risk score.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "toolParams": "=$.toolParams"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Calculates composite fraud risk score.",
+        "schemas": {
+          "output": {
+            "customConversationStoreOpInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+            },
+            "customGuardrailInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+            },
+            "toolParams": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"claimantName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the claimant\"\n    },\n    \"policyNumber\": {\n      \"type\": \"string\",\n      \"description\": \"Insurance policy number\"\n    },\n    \"patternAnalysisId\": {\n      \"type\": \"string\",\n      \"description\": \"ID of a prior pattern analysis from AnalyzeClaimPatterns\"\n    },\n    \"claimAmount\": {\n      \"type\": \"number\",\n      \"description\": \"Dollar amount of the insurance claim\"\n    }\n  },\n  \"required\": [\"claimantName\", \"policyNumber\"]\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"claimantName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the claimant\"\n    },\n    \"policyNumber\": {\n      \"type\": \"string\",\n      \"description\": \"Insurance policy number\"\n    },\n    \"patternAnalysisId\": {\n      \"type\": \"string\",\n      \"description\": \"ID of a prior pattern analysis from AnalyzeClaimPatterns\"\n    },\n    \"claimAmount\": {\n      \"type\": \"number\",\n      \"description\": \"Dollar amount of the insurance claim\"\n    }\n  },\n  \"required\": [\"claimantName\", \"policyNumber\"]\n}"
+            }
+          },
+          "reply": {
+            "customConversationStoreOpOutput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+            },
+            "response": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+            }
+          }
+        },
+        "settings": {
+          "agentSkillExamples": "Calculate fraud risk score for claimant John Doe, policy POL-12345, with pattern analysis PA-2026-10001.|What is the fraud risk score for a $50,000 property claim by Jane Smith, policy POL-67890?|Run risk scoring on claimant Bob Wilson's medical claim, policy POL-11111, amount $8,500.|Calculate composite fraud score for claimant Alice Brown, policy POL-99999, based on prior pattern analysis.|Quantify fraud risk for a high-value theft claim by Carlos Garcia, policy POL-55555.",
+          "agentSkillTags": "CalculateRiskScore,fraud_score,risk,insurance,claims,quantification",
+          "agentToolDescription": "Calculate a composite fraud risk score (0-100) for an insurance claim based on multiple fraud dimensions including claim frequency, amount anomaly, document consistency, and behavioral patterns. Returns a risk score ID, composite score, detailed score breakdown by category, a recommendation (APPROVE/FLAG_FOR_REVIEW/DENY), and a confidence level (0-1). Used by claims adjusters and underwriting orchestrators for fraud risk quantification.",
+          "agentToolName": "CalculateRiskScore",
+          "customConversationStoreOperation": "STORE",
+          "customGuardrailType": "BOTH",
+          "handlerType": "Tool"
+        },
+        "trigger": "trigger://FraudDetectionA2AServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

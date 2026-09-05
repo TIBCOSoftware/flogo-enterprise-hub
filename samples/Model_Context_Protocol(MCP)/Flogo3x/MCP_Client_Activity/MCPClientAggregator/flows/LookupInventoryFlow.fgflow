@@ -1,0 +1,210 @@
+{
+  "contrib": "W3siaWQiOiJNQ1AiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiTW9kZWwgQ29udGV4dCBQcm90b2NvbCAoTUNQKSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tbWNwL3NyYy9hcHAvTUNQIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsInRhZyI6IjMuMC40LWIwMS12My1tYWluIiwidmVyc2lvbiI6IjMuMC40In0seyJpZCI6IkdlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiR2VuZXJhbCIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsInRhZyI6IjMuNi4xNS1iMTctdjMtbWFpbiIsInZlcnNpb24iOiIzLjYuMTUifV0=",
+  "data": {
+    "description": "Calls InventoryService MCP server via mcpclient to retrieve product inventory",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxJbnZlbnRvcnlTZXJ2aWNlIjp7IngiOjI1MCwieSI6NTB9LCJMb2dSZXN1bHQiOnsieCI6NDUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4Ijo2NTAsInkiOjUwfX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to CallInventoryService",
+        "to": "CallInventoryService",
+        "type": "label"
+      },
+      {
+        "from": "CallInventoryService",
+        "id": 2,
+        "label": "CallInventoryService to LogResult",
+        "to": "LogResult",
+        "type": "label"
+      },
+      {
+        "from": "LogResult",
+        "id": 3,
+        "label": "LogResult to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"product_id\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "LookupInventoryFlow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "toolArguments": {
+              "mapping": {
+                "product_id": "=$flow.arguments.product_id"
+              }
+            }
+          },
+          "output": {
+            "isError": false
+          },
+          "ref": "github.com/tibco/flogo-mcp/src/app/MCP/activity/mcpclient",
+          "schemas": {
+            "input": {
+              "toolArguments": {
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"product_id\":{\"description\":\"The product ID to look up (e.g. PROD-5001)\",\"type\":\"string\"}},\"required\":[\"product_id\"],\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false}",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"product_id\":{\"description\":\"The product ID to look up (e.g. PROD-5001)\",\"type\":\"string\"}},\"required\":[\"product_id\"],\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false}"
+              }
+            },
+            "output": {
+              "responseJSONSchema": {
+                "fe_metadata": "{\"data\":\"string\"}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}"
+              },
+              "result": {
+                "fe_metadata": "{\"data\":\"string\"}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "settings": {
+            "authMode": "None",
+            "authorizationConn": "",
+            "clientName": "InventoryServiceClient",
+            "clientVersion": "1.0.0",
+            "command": "",
+            "commandArgs": "",
+            "endpoint": "=$property[\"InventoryService.ENDPOINT\"]",
+            "responseType": "JSON",
+            "staticToken": "",
+            "timeout": 30,
+            "toolName": "get_product_inventory",
+            "transportType": "Streamable-HTTP"
+          }
+        },
+        "description": "MCP Client Activity — calls get_product_inventory on InventoryService MCP server",
+        "id": "CallInventoryService",
+        "name": "CallInventoryService"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[LookupInventory] InventoryService response: \", coerce.toString($activity[CallInventoryService].result))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogResult",
+        "name": "LogResult"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "=coerce.toString($activity[CallInventoryService].result)"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Calls InventoryService MCP server via mcpclient to retrieve product inventory",
+        "reply": {
+          "outputSchema": ""
+        },
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\",\"description\":\"The product ID to look up (e.g. PROD-5001)\"}},\"required\":[\"product_id\"],\"additionalProperties\":false}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_id\":{\"type\":\"string\",\"description\":\"The product ID to look up (e.g. PROD-5001)\"}},\"required\":[\"product_id\"],\"additionalProperties\":false}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Look up a product by product ID. This tool internally calls the InventoryService MCP server to retrieve inventory details.",
+          "handlerName": "lookup_inventory",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": true,
+          "resourceUri": "",
+          "scope": "",
+          "toolTitle": "Lookup Inventory"
+        },
+        "trigger": "trigger://AggregatorServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-mcp/src/app/MCP/activity/mcpclient",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

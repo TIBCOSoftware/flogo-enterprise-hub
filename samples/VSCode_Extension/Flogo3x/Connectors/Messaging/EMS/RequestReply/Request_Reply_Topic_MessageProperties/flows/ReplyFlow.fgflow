@@ -1,0 +1,220 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE1LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In0seyJpZCI6IkVNUyIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2UsIm5hbWUiOiJUSUJDTyBFbnRlcnByaXNlIE1lc3NhZ2UgU2VydmljZSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZW1zL3NyYy9hcHAvRU1TIiwiczNsb2NhdGlvbiI6IlRpYmNvL0VNUyIsInRhZyI6IjMuMC40LWIwMS12My1tYWluIiwidmVyc2lvbiI6IjEuMC40LUhGMSJ9XQ==",
+  "data": {
+    "description": "Add description",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjE0LCJ5Ijo3M30sIkxvZ01lc3NhZ2UiOnsieCI6OTIsInkiOjYxfSwiTG9nTWVzc2FnZTEiOnsieCI6MjQxLCJ5Ijo2NH0sIkVNU0Fja25vd2xlZGdlIjp7IngiOjQwOCwieSI6NTh9LCJFTVNTZW5kTWVzc2FnZSI6eyJ4Ijo1OTIsInkiOjYyfSwiTG9nTWVzc2FnZTIiOnsieCI6Nzc3LCJ5Ijo1OH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogMessage",
+        "to": "LogMessage",
+        "type": "label"
+      },
+      {
+        "from": "LogMessage",
+        "id": 2,
+        "label": "LogMessage to LogMessage1",
+        "to": "LogMessage1",
+        "type": "label"
+      },
+      {
+        "from": "LogMessage1",
+        "id": 3,
+        "label": "LogMessage1 to EMSAcknowledge",
+        "to": "EMSAcknowledge",
+        "type": "label"
+      },
+      {
+        "from": "EMSAcknowledge",
+        "id": 4,
+        "label": "EMSAcknowledge to EMSSendMessage",
+        "to": "EMSSendMessage",
+        "type": "label"
+      },
+      {
+        "from": "EMSSendMessage",
+        "id": 5,
+        "label": "EMSSendMessage to LogMessage2",
+        "to": "LogMessage2",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"ReceiveEMSMessage\",\"properties\":{\"message\":{\"type\":\"string\",\"required\":false},\"headers\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"destination\":{\"type\":\"string\"},\"replyTo\":{\"type\":\"string\"},\"deliveryMode\":{\"type\":\"string\"},\"messageID\":{\"type\":\"string\"},\"timestamp\":{\"type\":\"integer\"},\"expiration\":{\"type\":\"integer\"},\"reDelivered\":{\"type\":\"boolean\"},\"priority\":{\"type\":\"integer\"},\"correlationID\":{\"type\":\"string\"}}},\"messageProperties\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"property\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}}}"
+      },
+      "input": [
+        {
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "name": "headers",
+          "schema": {
+            "type": "json",
+            "value": "{\"destination\":{\"type\":\"string\"},\"replyTo\":{\"type\":\"string\"},\"deliveryMode\":{\"type\":\"string\"},\"messageID\":{\"type\":\"string\"},\"timestamp\":{\"type\":\"integer\"},\"expiration\":{\"type\":\"integer\"},\"reDelivered\":{\"type\":\"boolean\"},\"priority\":{\"type\":\"integer\"},\"correlationID\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "messageProperties",
+          "schema": {
+            "type": "json",
+            "value": "{\"property\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": []
+    },
+    "name": "ReplyFlow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=\"Request Message Received is: \"+$flow.message"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage",
+        "name": "LogMessage"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=\" Request Message headers and Message properties: \"\r\n+coerce.toString($flow.headers)+coerce.toString($flow.messageProperties)"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage1",
+        "name": "LogMessage1"
+      },
+      {
+        "activity": {
+          "ref": "github.com/tibco/flogo-ems/src/app/EMS/activity/acknowledge"
+        },
+        "description": "EMS acknowledge activity acknowledges message in explicit client ack mode",
+        "id": "EMSAcknowledge",
+        "name": "EMSAcknowledge"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "destination": "=$flow.headers.replyTo",
+            "headers": {
+              "mapping": {
+                "correlationID": "=$flow.headers.correlationID",
+                "deliveryMode": "=$flow.headers.deliveryMode",
+                "expiration": 0,
+                "priority": 4
+              }
+            },
+            "message": "This is a reply msg",
+            "messageProperties": "=$flow.messageProperties"
+          },
+          "ref": "github.com/tibco/flogo-ems/src/app/EMS/activity/sendmessage",
+          "schemas": {
+            "input": {
+              "headers": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"correlationID\":{\"type\":\"string\"},\"replyTo\":{\"type\":\"string\"},\"deliveryMode\":{\"type\":\"string\"},\"expiration\":{\"type\":\"integer\"},\"priority\":{\"type\":\"integer\"}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"correlationID\":{\"type\":\"string\"},\"replyTo\":{\"type\":\"string\"},\"deliveryMode\":{\"type\":\"string\"},\"expiration\":{\"type\":\"integer\"},\"priority\":{\"type\":\"integer\"}}}"
+              },
+              "messageProperties": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"property\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"property\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+              }
+            }
+          },
+          "settings": {
+            "connection": "conn://EMSmtlsfalse.fgconn",
+            "deliveryDelay": "=$property[\"Deliver_Delay\"]",
+            "destinationType": "=$property[\"Destination_Type\"]",
+            "settingDestination": "=$property[\"Reply_To_Destination\"]"
+          }
+        },
+        "description": "",
+        "id": "EMSSendMessage",
+        "name": "EMSSendMessage"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=\"Reply Message ID: \"+$activity[EMSSendMessage].messageId"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage2",
+        "name": "LogMessage2"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "headers": "=$.headers",
+            "message": "=$.message",
+            "messageProperties": "=$.messageProperties"
+          }
+        },
+        "description": "Add description",
+        "schemas": {
+          "output": {
+            "headers": {
+              "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"destination\":{\"type\":\"string\"},\"replyTo\":{\"type\":\"string\"},\"deliveryMode\":{\"type\":\"string\"},\"messageID\":{\"type\":\"string\"},\"timestamp\":{\"type\":\"integer\"},\"expiration\":{\"type\":\"integer\"},\"reDelivered\":{\"type\":\"boolean\"},\"priority\":{\"type\":\"integer\"},\"correlationID\":{\"type\":\"string\"}}}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"destination\":{\"type\":\"string\"},\"replyTo\":{\"type\":\"string\"},\"deliveryMode\":{\"type\":\"string\"},\"messageID\":{\"type\":\"string\"},\"timestamp\":{\"type\":\"integer\"},\"expiration\":{\"type\":\"integer\"},\"reDelivered\":{\"type\":\"boolean\"},\"priority\":{\"type\":\"integer\"},\"correlationID\":{\"type\":\"string\"}}}"
+            },
+            "messageProperties": {
+              "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"property\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"property\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+            }
+          }
+        },
+        "settings": {
+          "ackMode": "Auto",
+          "destination": "=$property[\"Destination\"]",
+          "destinationType": "Topic",
+          "durableSubscriber": false,
+          "enableFlowLimit": false,
+          "maxConcurrentMessages": 200,
+          "processingMode": "Sync",
+          "sharedDurableSubscriber": false
+        },
+        "trigger": "trigger://ReceiveEMSMessage.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-ems/src/app/EMS/activity/acknowledge",
+    "github.com/tibco/flogo-ems/src/app/EMS/activity/sendmessage",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

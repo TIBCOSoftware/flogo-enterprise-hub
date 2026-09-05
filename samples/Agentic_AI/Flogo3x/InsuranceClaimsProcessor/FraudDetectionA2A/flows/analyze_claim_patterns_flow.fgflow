@@ -1,0 +1,131 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Analyzes claim patterns for fraud indicators.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjUwfX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"FraudDetectionA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"claimantName\":{\"type\":\"string\",\"description\":\"Name of the claimant filing the insurance claim\"},\"policyNumber\":{\"type\":\"string\",\"description\":\"Insurance policy number associated with the claim\"},\"claimType\":{\"type\":\"string\",\"description\":\"Type of insurance claim (e.g., auto_collision, property_damage, medical, theft, liability)\"},\"claimAmount\":{\"type\":\"number\",\"description\":\"Dollar amount of the insurance claim\"},\"incidentDate\":{\"type\":\"string\",\"description\":\"Date of the incident in ISO 8601 format\"},\"incidentDescription\":{\"type\":\"string\",\"description\":\"Brief description of the incident leading to the claim\"}},\"required\":[\"claimantName\",\"policyNumber\"]}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "toolParams",
+          "schema": {
+            "type": "json",
+            "value": "{\"claimantName\":{\"type\":\"string\",\"description\":\"Name of the claimant filing the insurance claim\"},\"policyNumber\":{\"type\":\"string\",\"description\":\"Insurance policy number associated with the claim\"},\"claimType\":{\"type\":\"string\",\"description\":\"Type of insurance claim (e.g., auto_collision, property_damage, medical, theft, liability)\"},\"claimAmount\":{\"type\":\"number\",\"description\":\"Dollar amount of the insurance claim\"},\"incidentDate\":{\"type\":\"string\",\"description\":\"Date of the incident in ISO 8601 format\"},\"incidentDescription\":{\"type\":\"string\",\"description\":\"Brief description of the incident leading to the claim\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "analyze_claim_patterns_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "=string.concat(\"{\\\"analysisId\\\":\\\"PA-2026-10001\\\",\\\"claimantName\\\":\\\"\",$flow.toolParams.claimantName,\"\\\",\\\"policyNumber\\\":\\\"\",$flow.toolParams.policyNumber,\"\\\",\\\"patternsFound\\\":[{\\\"pattern\\\":\\\"CLAIM_FREQUENCY\\\",\\\"description\\\":\\\"3 claims filed in the past 12 months, exceeding the policy average of 0.8 claims per year\\\",\\\"severity\\\":\\\"MEDIUM\\\"},{\\\"pattern\\\":\\\"AMOUNT_ANOMALY\\\",\\\"description\\\":\\\"Claim amount is 2.4x the average for this claim type and coverage tier\\\",\\\"severity\\\":\\\"HIGH\\\"},{\\\"pattern\\\":\\\"TIMING_PATTERN\\\",\\\"description\\\":\\\"Claim filed within 45 days of policy renewal, matching a known staging pattern\\\",\\\"severity\\\":\\\"MEDIUM\\\"}],\\\"suspiciousIndicators\\\":[\\\"Multiple claims across different coverage types in short timeframe\\\",\\\"Incident description lacks specific details and timestamps\\\",\\\"Claim amount just below the threshold requiring independent adjuster review\\\"],\\\"overallAssessment\\\":\\\"MEDIUM_RISK\\\",\\\"claimsHistoryCount\\\":3,\\\"averageClaimAmount\\\":12500,\\\"timestamp\\\":\\\"2026-06-02T10:00:00Z\\\"}\")",
+                  "error": ""
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns mock claim pattern analysis.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "toolParams": "=$.toolParams"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Analyzes claim patterns for fraud indicators.",
+        "schemas": {
+          "output": {
+            "customConversationStoreOpInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+            },
+            "customGuardrailInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+            },
+            "toolParams": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"claimantName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the claimant filing the insurance claim\"\n    },\n    \"policyNumber\": {\n      \"type\": \"string\",\n      \"description\": \"Insurance policy number associated with the claim\"\n    },\n    \"claimType\": {\n      \"type\": \"string\",\n      \"description\": \"Type of insurance claim (e.g., auto_collision, property_damage, medical, theft, liability)\"\n    },\n    \"claimAmount\": {\n      \"type\": \"number\",\n      \"description\": \"Dollar amount of the insurance claim\"\n    },\n    \"incidentDate\": {\n      \"type\": \"string\",\n      \"description\": \"Date of the incident in ISO 8601 format\"\n    },\n    \"incidentDescription\": {\n      \"type\": \"string\",\n      \"description\": \"Brief description of the incident leading to the claim\"\n    }\n  },\n  \"required\": [\"claimantName\", \"policyNumber\"]\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"claimantName\": {\n      \"type\": \"string\",\n      \"description\": \"Name of the claimant filing the insurance claim\"\n    },\n    \"policyNumber\": {\n      \"type\": \"string\",\n      \"description\": \"Insurance policy number associated with the claim\"\n    },\n    \"claimType\": {\n      \"type\": \"string\",\n      \"description\": \"Type of insurance claim (e.g., auto_collision, property_damage, medical, theft, liability)\"\n    },\n    \"claimAmount\": {\n      \"type\": \"number\",\n      \"description\": \"Dollar amount of the insurance claim\"\n    },\n    \"incidentDate\": {\n      \"type\": \"string\",\n      \"description\": \"Date of the incident in ISO 8601 format\"\n    },\n    \"incidentDescription\": {\n      \"type\": \"string\",\n      \"description\": \"Brief description of the incident leading to the claim\"\n    }\n  },\n  \"required\": [\"claimantName\", \"policyNumber\"]\n}"
+            }
+          },
+          "reply": {
+            "customConversationStoreOpOutput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+            },
+            "response": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+            }
+          }
+        },
+        "settings": {
+          "agentSkillExamples": "Analyze claim patterns for claimant John Doe on policy POL-12345 with a $15,000 auto collision claim.|Check for suspicious patterns on a $50,000 property damage claim filed by Jane Smith, policy POL-67890.|Run pattern analysis on a medical claim of $8,500 for claimant Bob Wilson, policy POL-11111.|Investigate claim frequency for claimant Alice Brown, policy POL-99999, who filed 3 claims this year.|Analyze a $25,000 theft claim from an unusual location for claimant Carlos Garcia, policy POL-55555.",
+          "agentSkillTags": "AnalyzeClaimPatterns,fraud,insurance,claims,pattern_analysis,risk_assessment",
+          "agentToolDescription": "Analyze an insurance claim for suspicious patterns including claim frequency anomalies, timing irregularities, amount outliers, and location-based red flags. Returns an analysis ID, list of detected patterns with severity ratings, suspicious indicators, and an overall risk assessment (LOW_RISK/MEDIUM_RISK/HIGH_RISK). Used by claims processing orchestrators to flag potentially fraudulent claims.",
+          "agentToolName": "AnalyzeClaimPatterns",
+          "customConversationStoreOperation": "STORE",
+          "customGuardrailType": "BOTH",
+          "handlerType": "Tool"
+        },
+        "trigger": "trigger://FraudDetectionA2AServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

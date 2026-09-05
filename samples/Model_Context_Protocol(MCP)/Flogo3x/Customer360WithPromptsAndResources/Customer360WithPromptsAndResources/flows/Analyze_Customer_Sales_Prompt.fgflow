@@ -1,0 +1,145 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Prompt that returns a structured sales analysis instruction for a named customer and period. Returns role and content message pairs to start the analysis conversation.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjIxMywieSI6NDJ9LCJSZXR1cm4iOnsieCI6NDQ3LCJ5Ijo0OH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "Start",
+        "to": "LogStart",
+        "type": "label"
+      },
+      {
+        "from": "LogStart",
+        "id": 2,
+        "label": "Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer\"},\"period\":{\"type\":\"string\",\"description\":\"The sales period, e.g. Q1 2025\"}},\"required\":[\"customer_name\",\"period\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer\"},\"period\":{\"type\":\"string\",\"description\":\"The sales period, e.g. Q1 2025\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "Analyze_Customer_Sales_Prompt",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"Analyze_Customer_Sales_Prompt invoked: customer=\", coerce.toString($flow.arguments.customer_name), \" period=\", coerce.toString($flow.arguments.period))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Log prompt invocation",
+        "id": "LogStart",
+        "name": "LogStart"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "description": "=string.concat(\"Sales analysis for \", coerce.toString($flow.arguments.customer_name), \" - \", coerce.toString($flow.arguments.period))",
+                  "messages": [
+                    {
+                      "content": "=string.concat(\"You are a Customer 360 sales analyst. Using the data available from the GetCustomers, GetProducts, and GetSales tools, please perform a comprehensive sales analysis for the customer named '\", coerce.toString($flow.arguments.customer_name), \"' covering the period '\", coerce.toString($flow.arguments.period), \"'.\\n\\nYour analysis should include:\\n1. Total number of transactions and total spend for this customer during the period.\\n2. A breakdown of all products purchased, including product name, unit price and quantity.\\n3. The customer's average order value compared to the overall customer average.\\n4. The top-selling product category this customer has purchased from.\\n5. Any noticeable purchase trends or patterns (e.g. repeat purchases, increasing spend, seasonal behaviour).\\n6. A one-paragraph executive summary.\\n\\nCall the necessary tools to retrieve the data, then present the analysis in a clear, structured format.\")",
+                      "role": "user"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Return prompt messages for customer sales analysis",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Prompt that returns a structured sales analysis instruction for a named customer and period. Returns role and content message pairs to start the analysis conversation.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer to analyse, e.g. Bruce Wayne\"},\"period\":{\"type\":\"string\",\"description\":\"The sales period to analyse, e.g. Q1 2025 or March 2025\"}},\"required\":[\"customer_name\",\"period\"]}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer to analyse, e.g. Bruce Wayne\"},\"period\":{\"type\":\"string\",\"description\":\"The sales period to analyse, e.g. Q1 2025 or March 2025\"}},\"required\":[\"customer_name\",\"period\"]}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "handlerDescription": "Prompt template for deep customer sales analysis. Provide customer_name and period to get a structured analysis instruction covering purchase history, spend trends and product details.",
+          "handlerName": "analyze_customer_sales",
+          "handlerType": "Prompt",
+          "resourceUri": ""
+        },
+        "trigger": "trigger://MCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

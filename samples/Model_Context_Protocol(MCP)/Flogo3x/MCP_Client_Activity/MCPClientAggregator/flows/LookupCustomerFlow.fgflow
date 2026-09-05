@@ -1,0 +1,210 @@
+{
+  "contrib": "W3siaWQiOiJNQ1AiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiTW9kZWwgQ29udGV4dCBQcm90b2NvbCAoTUNQKSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tbWNwL3NyYy9hcHAvTUNQIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsInRhZyI6IjMuMC40LWIwMS12My1tYWluIiwidmVyc2lvbiI6IjMuMC40In0seyJpZCI6IkdlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiR2VuZXJhbCIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsInRhZyI6IjMuNi4xNS1iMTctdjMtbWFpbiIsInZlcnNpb24iOiIzLjYuMTUifV0=",
+  "data": {
+    "description": "Calls CustomerService MCP server via mcpclient to retrieve customer profile",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxDdXN0b21lclNlcnZpY2UiOnsieCI6MjUwLCJ5Ijo1MH0sIkxvZ1Jlc3VsdCI6eyJ4Ijo0NTAsInkiOjUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6NTB9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to CallCustomerService",
+        "to": "CallCustomerService",
+        "type": "label"
+      },
+      {
+        "from": "CallCustomerService",
+        "id": 2,
+        "label": "CallCustomerService to LogResult",
+        "to": "LogResult",
+        "type": "label"
+      },
+      {
+        "from": "LogResult",
+        "id": 3,
+        "label": "LogResult to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"customer_id\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "LookupCustomerFlow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "toolArguments": {
+              "mapping": {
+                "customer_id": "=$flow.arguments.customer_id"
+              }
+            }
+          },
+          "output": {
+            "isError": false
+          },
+          "ref": "github.com/tibco/flogo-mcp/src/app/MCP/activity/mcpclient",
+          "schemas": {
+            "input": {
+              "toolArguments": {
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"customer_id\":{\"description\":\"The customer ID to look up (e.g. CUST-1001)\",\"type\":\"string\"}},\"required\":[\"customer_id\"],\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false}",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"customer_id\":{\"description\":\"The customer ID to look up (e.g. CUST-1001)\",\"type\":\"string\"}},\"required\":[\"customer_id\"],\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"additionalProperties\":false}"
+              }
+            },
+            "output": {
+              "responseJSONSchema": {
+                "fe_metadata": "{\"data\":\"string\"}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}"
+              },
+              "result": {
+                "fe_metadata": "{\"data\":\"string\"}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "settings": {
+            "authMode": "None",
+            "authorizationConn": "",
+            "clientName": "CustomerServiceClient",
+            "clientVersion": "1.0.0",
+            "command": "",
+            "commandArgs": "",
+            "endpoint": "=$property[\"CustomerService.ENDPOINT\"]",
+            "responseType": "JSON",
+            "staticToken": "",
+            "timeout": 30,
+            "toolName": "get_customer_profile",
+            "transportType": "Streamable-HTTP"
+          }
+        },
+        "description": "MCP Client Activity — calls get_customer_profile on CustomerService MCP server",
+        "id": "CallCustomerService",
+        "name": "CallCustomerService"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[LookupCustomer] CustomerService response: \", coerce.toString($activity[CallCustomerService].result))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogResult",
+        "name": "LogResult"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "=coerce.toString($activity[CallCustomerService].result)"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Calls CustomerService MCP server via mcpclient to retrieve customer profile",
+        "reply": {
+          "outputSchema": ""
+        },
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\",\"description\":\"The customer ID to look up (e.g. CUST-1001)\"}},\"required\":[\"customer_id\"],\"additionalProperties\":false}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"customer_id\":{\"type\":\"string\",\"description\":\"The customer ID to look up (e.g. CUST-1001)\"}},\"required\":[\"customer_id\"],\"additionalProperties\":false}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Look up a customer by customer ID. This tool internally calls the CustomerService MCP server to retrieve the customer profile.",
+          "handlerName": "lookup_customer",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": true,
+          "resourceUri": "",
+          "scope": "",
+          "toolTitle": "Lookup Customer"
+        },
+        "trigger": "trigger://AggregatorServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-mcp/src/app/MCP/activity/mcpclient",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

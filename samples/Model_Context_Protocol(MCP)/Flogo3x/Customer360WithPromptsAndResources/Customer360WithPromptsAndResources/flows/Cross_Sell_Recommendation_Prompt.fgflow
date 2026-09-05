@@ -1,0 +1,145 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Prompt that returns a cross-sell recommendation instruction for a named customer. Guides the AI to compare purchase history against the catalog and suggest complementary products.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0YXJ0Ijp7IngiOjI0NSwieSI6NDV9LCJSZXR1cm4iOnsieCI6NDYwLCJ5Ijo0OH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "Start",
+        "to": "LogStart",
+        "type": "label"
+      },
+      {
+        "from": "LogStart",
+        "id": 2,
+        "label": "Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer\"}},\"required\":[\"customer_name\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"description\":{\"type\":\"string\"},\"messages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"role\",\"content\"]}},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "Cross_Sell_Recommendation_Prompt",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"Cross_Sell_Recommendation_Prompt invoked: customer=\", coerce.toString($flow.arguments.customer_name))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Log prompt invocation",
+        "id": "LogStart",
+        "name": "LogStart"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "description": "=string.concat(\"Cross-sell recommendations for \", coerce.toString($flow.arguments.customer_name))",
+                  "messages": [
+                    {
+                      "content": "=string.concat(\"You are a Customer 360 product recommendation engine. Using the GetCustomers, GetProducts, and GetSales tools, identify personalised cross-sell opportunities for the customer named '\", coerce.toString($flow.arguments.customer_name), \"'.\\n\\nFollow these steps:\\n1. Retrieve all sales transactions for this customer using GetSales and filter by their name.\\n2. Retrieve the complete product catalog using GetProducts (or the products://catalog resource if available).\\n3. Identify which products the customer has NEVER purchased.\\n4. From those unpurchased products, recommend up to 3 that are most complementary to what the customer has already bought (consider product category, price range, and typical bundle patterns).\\n5. For each recommended product provide:\\n   - Product name and MSRP\\n   - Why it complements the customer's existing purchases\\n   - A personalised one-sentence pitch\\n\\nPresent the recommendations in a structured, sales-ready format.\")",
+                      "role": "user"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Return prompt messages for cross-sell recommendation",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Prompt that returns a cross-sell recommendation instruction for a named customer. Guides the AI to compare purchase history against the catalog and suggest complementary products.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer to generate recommendations for, e.g. Bruce Wayne\"}},\"required\":[\"customer_name\"]}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"customer_name\":{\"type\":\"string\",\"description\":\"The full name of the customer to generate recommendations for, e.g. Bruce Wayne\"}},\"required\":[\"customer_name\"]}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"description\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"messages\": {\r\n      \"type\": \"array\",\r\n      \"items\": \r\n        {\r\n          \"type\": \"object\",\r\n          \"properties\": {\r\n            \"role\": {\r\n              \"type\": \"string\"\r\n            },\r\n            \"content\": {\r\n              \"type\": \"string\"\r\n            }\r\n          },\r\n          \"required\": [\r\n            \"role\",\r\n            \"content\"\r\n          ]\r\n        }\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "handlerDescription": "Prompt template for cross-sell product recommendations. Provide customer_name to get an instruction that compares the customer purchase history against the full product catalog and proposes complementary products.",
+          "handlerName": "cross_sell_recommendation",
+          "handlerType": "Prompt",
+          "resourceUri": ""
+        },
+        "trigger": "trigger://MCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

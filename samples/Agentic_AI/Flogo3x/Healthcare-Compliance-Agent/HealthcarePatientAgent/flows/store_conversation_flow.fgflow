@@ -1,0 +1,331 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In0seyJpZCI6IkZpbGUiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiRmlsZSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZmlsZXMvc3JjL2FwcC9GaWxlIiwiczNsb2NhdGlvbiI6IlRpYmNvL0ZpbGUiLCJ0YWciOiIzLjAuMC1iMDEtdjMtbWFpbiIsInZlcnNpb24iOiIzLjAuMCJ9XQ==",
+  "data": {
+    "description": "Custom Conversation Store STORE: Reads the existing per-session JSON file, appends the new message enriched with HIPAA-context metadata, then writes the updated session back. Per-session isolation: each patient conversationId maps to its own {conversationId}.json file under HealthcareAgent.ConversationDir. Pattern follows the AI_CustSore.json reference: Read -\u003e ParseJSON -\u003e array.append -\u003e Write.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvZ1N0b3JlIjp7IngiOjE0NCwieSI6NDJ9LCJSZWFkU2Vzc2lvbkZpbGUiOnsieCI6MzIzLCJ5Ijo0M30sIlBhcnNlU2Vzc2lvbkpTT04iOnsieCI6NTQxLCJ5Ijo0M30sIldyaXRlVXBkYXRlZFNlc3Npb24iOnsieCI6NzAwLCJ5Ijo0NH0sIlJldHVyblN0b3JlU3VjY2VzcyI6eyJ4Ijo3MDAsInkiOjI0Mn0sIldyaXRlTmV3U2Vzc2lvbiI6eyJ4Ijo0MDgsInkiOjE1N319",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogStore",
+        "to": "LogStore",
+        "type": "label"
+      },
+      {
+        "from": "LogStore",
+        "id": 2,
+        "label": "LogStore to ReadSessionFile",
+        "to": "ReadSessionFile",
+        "type": "label"
+      },
+      {
+        "from": "ReadSessionFile",
+        "id": 3,
+        "label": "ReadSessionFile to ParseSessionJSON",
+        "to": "ParseSessionJSON",
+        "type": "label"
+      },
+      {
+        "from": "ParseSessionJSON",
+        "id": 4,
+        "label": "ParseSessionJSON to WriteUpdatedSession",
+        "to": "WriteUpdatedSession",
+        "type": "label"
+      },
+      {
+        "from": "WriteUpdatedSession",
+        "id": 5,
+        "label": "WriteUpdatedSession to ReturnStoreSuccess",
+        "to": "ReturnStoreSuccess",
+        "type": "label"
+      },
+      {
+        "from": "ReadSessionFile",
+        "id": 6,
+        "label": "ReadSessionFile to WriteNewSession (new session bootstrap)",
+        "to": "WriteNewSession",
+        "type": "error"
+      },
+      {
+        "from": "WriteNewSession",
+        "id": 7,
+        "label": "WriteNewSession to ReturnStoreSuccess",
+        "to": "ReturnStoreSuccess",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customConversationStoreOpInput\":{\"type\":\"object\",\"properties\":{\"conversationId\":{\"type\":\"string\"},\"message\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"object\",\"properties\":{}}}}}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"customConversationStoreOpOutput\":{\"type\":\"object\",\"properties\":{\"success\":{\"type\":\"boolean\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "customConversationStoreOpInput",
+          "schema": {
+            "type": "json",
+            "value": "{\"conversationId\":{\"type\":\"string\"},\"message\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"object\",\"properties\":{}}}}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "customConversationStoreOpOutput",
+          "schema": {
+            "type": "json",
+            "value": "{\"success\":{\"type\":\"boolean\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "store_conversation_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[PHIConvStore STORE] conversationId=\",$flow.customConversationStoreOpInput.conversationId,\" role=\",$flow.customConversationStoreOpInput.message.role)"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Logs the store operation with role and conversationId for HIPAA audit observability",
+        "id": "LogStore",
+        "name": "LogStore"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"HealthcareAgent.ConversationDir\"],\"/\",$flow.customConversationStoreOpInput.conversationId,\".json\")"
+              }
+            },
+            "readAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/read",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "Reads the existing per-session conversation JSON file. Format: {conversationId, messages[]}. Each patient conversationId maps to its own isolated file. Self-bootstrapping: if the file does not exist (new session), the error link routes to WriteNewSession to create it automatically.",
+        "id": "ReadSessionFile",
+        "name": "ReadSessionFile"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "jsonString": "=$activity[ReadSessionFile].output.fileContent.textContent",
+            "validate": false
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/parsejson",
+          "schemas": {
+            "output": {
+              "jsonObject": {
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"conversationId\": {\"type\": \"string\"},\n    \"messages\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"role\": {\"type\": \"string\", \"enum\": [\"user\", \"assistant\", \"system\", \"tool\"]},\n          \"content\": {\"type\": \"string\"},\n          \"metadata\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"sessionId\": {\"type\": \"string\"},\n              \"channel\": {\"type\": \"string\"},\n              \"phiHandled\": {\"type\": \"boolean\"},\n              \"dataClassification\": {\"type\": \"string\"},\n              \"patientPortalVersion\": {\"type\": \"string\"}\n            }\n          }\n        },\n        \"required\": [\"role\", \"content\"],\n        \"additionalProperties\": false\n      }\n    }\n  },\n  \"required\": [\"conversationId\", \"messages\"],\n  \"additionalProperties\": false\n}",
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"conversationId\": {\"type\": \"string\"},\n    \"messages\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"role\": {\"type\": \"string\", \"enum\": [\"user\", \"assistant\", \"system\", \"tool\"]},\n          \"content\": {\"type\": \"string\"},\n          \"metadata\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"sessionId\": {\"type\": \"string\"},\n              \"channel\": {\"type\": \"string\"},\n              \"phiHandled\": {\"type\": \"boolean\"},\n              \"dataClassification\": {\"type\": \"string\"},\n              \"patientPortalVersion\": {\"type\": \"string\"}\n            }\n          }\n        },\n        \"required\": [\"role\", \"content\"],\n        \"additionalProperties\": false\n      }\n    }\n  },\n  \"required\": [\"conversationId\", \"messages\"],\n  \"additionalProperties\": false\n}"
+              }
+            }
+          }
+        },
+        "description": "Parses the session JSON file content into a structured object. Schema matches per-session format: {conversationId, messages[{role,content,metadata}]} with HIPAA metadata fields (sessionId, channel, phiHandled, dataClassification, patientPortalVersion).",
+        "id": "ParseSessionJSON",
+        "name": "ParseSessionJSON"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "createNonExistingDir": true,
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"HealthcareAgent.ConversationDir\"],\"/\",$flow.customConversationStoreOpInput.conversationId,\".json\")",
+                "overwrite": "=boolean.true()",
+                "textContent": "=string.concat(\"{\\\"conversationId\\\":\\\"\",$flow.customConversationStoreOpInput.conversationId,\"\\\",\\\"messages\\\":\",coerce.toString(array.append(($activity[ParseSessionJSON].jsonObject.messages),$flow.customConversationStoreOpInput.message)),\"}\")"
+              }
+            },
+            "writeAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/write",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "Writes the updated session JSON back to the per-session file using array.append() — identical pattern to the AI_CustSore.json reference app. createNonExistingDir auto-creates the conversations/ directory on first use.",
+        "id": "WriteUpdatedSession",
+        "name": "WriteUpdatedSession"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "customConversationStoreOpOutput": {
+                "mapping": {
+                  "success": "=boolean.true()"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns success to the agent after appending the message to the per-session conversation file.",
+        "id": "ReturnStoreSuccess",
+        "name": "ReturnStoreSuccess"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "createNonExistingDir": true,
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"HealthcareAgent.ConversationDir\"],\"/\",$flow.customConversationStoreOpInput.conversationId,\".json\")",
+                "overwrite": "=boolean.true()",
+                "textContent": "=string.concat(\"{\\\"conversationId\\\":\\\"\",$flow.customConversationStoreOpInput.conversationId,\"\\\",\\\"messages\\\":[\",coerce.toString($flow.customConversationStoreOpInput.message),\"]}\")"
+              }
+            },
+            "writeAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/write",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "New session bootstrap: file did not exist so create a new session JSON with the current message as the first entry. Auto-creates the conversations/ directory. No seed file required.",
+        "id": "WriteNewSession",
+        "name": "WriteNewSession"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "customConversationStoreOpInput": {
+              "mapping": {
+                "conversationId": "=$.customConversationStoreOpInput.conversationId",
+                "message": {
+                  "content": "=$.customConversationStoreOpInput.message.content",
+                  "metadata": {
+                    "channel": "websocket",
+                    "dataClassification": "PHI_PROTECTED",
+                    "patientPortalVersion": "2.0",
+                    "phiHandled": true,
+                    "sessionId": "=$.customConversationStoreOpInput.conversationId"
+                  },
+                  "role": "=$.customConversationStoreOpInput.message.role"
+                }
+              }
+            }
+          },
+          "output": {
+            "customConversationStoreOpOutput": "=$.customConversationStoreOpOutput"
+          }
+        },
+        "description": "Custom Conversation Store STORE: Reads the existing per-session JSON file, appends the new message enriched with HIPAA-context metadata, then writes the updated session back. Per-session isolation: each patient conversationId maps to its own {conversationId}.json file under HealthcareAgent.ConversationDir. Pattern follows the AI_CustSore.json reference: Read -\u003e ParseJSON -\u003e array.append -\u003e Write.",
+        "schemas": {
+          "output": {
+            "customConversationStoreOpInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+            },
+            "customGuardrailInput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+            }
+          },
+          "reply": {
+            "customConversationStoreOpOutput": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+            },
+            "response": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "agentToolDescription": "",
+          "agentToolName": "",
+          "customConversationStoreOperation": "STORE",
+          "customGuardrailType": "BOTH",
+          "handlerType": "Custom Conversation Store"
+        },
+        "trigger": "trigger://HealthcarePatientAgent.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-files/src/app/File/activity/read",
+    "github.com/tibco/flogo-general/src/app/General/activity/parsejson",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/array"
+  ],
+  "type": "flogo:flow"
+}

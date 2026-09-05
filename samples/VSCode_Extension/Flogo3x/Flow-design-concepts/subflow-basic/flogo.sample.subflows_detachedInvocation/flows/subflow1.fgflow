@@ -1,0 +1,154 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTWFwcGVyIjp7IngiOjI5MywieSI6MTA1fSwiU2xlZXAiOnsieCI6NDg0LCJ5IjoxMDV9LCJTdGFydGFTdWJGbG93Ijp7IngiOjY4OSwieSI6MTA4fSwiTG9nTWVzc2FnZSI6eyJ4Ijo5MzIsInkiOjEwOH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivitytoMapper",
+        "to": "Mapper",
+        "type": "label"
+      },
+      {
+        "from": "Mapper",
+        "id": 2,
+        "label": "MappertoSleep",
+        "to": "Sleep",
+        "type": "label"
+      },
+      {
+        "from": "Sleep",
+        "id": 3,
+        "label": "SleeptoStartaSubFlow",
+        "to": "StartaSubFlow",
+        "type": "label"
+      },
+      {
+        "from": "StartaSubFlow",
+        "id": 4,
+        "label": "StartaSubFlowtoLogMessage",
+        "to": "LogMessage",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {},
+      "input": [],
+      "output": []
+    },
+    "name": "subflow1",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "input": {
+              "mapping": {
+                "OP1": "subflow1"
+              }
+            }
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/mapper",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\n    \"OP1\":\" \"\n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"OP1\":{\"type\":\"string\"}}}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\n  \"OP1\": \" \"\n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"OP1\":{\"type\":\"string\"}}}"
+              }
+            }
+          }
+        },
+        "description": "Mapper Activity",
+        "id": "Mapper",
+        "name": "Mapper"
+      },
+      {
+        "activity": {
+          "input": {
+            "Interval": 0,
+            "IntervalSetting": 5,
+            "IntervalTypeSetting": "Second"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/sleep"
+        },
+        "description": "Simple sleep Activity",
+        "id": "Sleep",
+        "name": "Sleep"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/flow/activity/subflow",
+          "settings": {
+            "detached": false,
+            "execTimeout": 0,
+            "flowURI": "res://flow:subflow2.fgflow"
+          }
+        },
+        "description": "Simple SubFlow Activity",
+        "id": "StartaSubFlow",
+        "name": "StartaSubFlow",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "subflow1 execution"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage",
+        "name": "LogMessage"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {},
+        "description": "",
+        "settings": {
+          "Cron Expression": "CRON_TZ=Asia/Calcutta * * * * *",
+          "Delayed Start": false,
+          "Interval Unit": "Second",
+          "Repeating": false,
+          "Scheduler Options": "Timer",
+          "Time Interval": 1
+        },
+        "trigger": "trigger://TimerTrigger.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/mapper",
+    "github.com/tibco/flogo-general/src/app/General/activity/sleep",
+    "github.com/project-flogo/flow/activity/subflow",
+    "github.com/tibco/flogo-general/src/app/General/activity/log"
+  ],
+  "type": "flogo:flow"
+}

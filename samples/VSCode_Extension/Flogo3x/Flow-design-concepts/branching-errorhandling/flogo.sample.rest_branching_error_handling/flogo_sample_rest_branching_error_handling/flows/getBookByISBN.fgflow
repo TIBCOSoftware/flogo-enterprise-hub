@@ -1,0 +1,321 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Get Book By ISBN",
+    "errorHandler": {
+      "fe_metadata": "eyJMb2dNZXNzYWdlMiI6eyJ4IjoyNTAsInkiOjUwfSwiUmV0dXJuMyI6eyJ4Ijo0NTAsInkiOjUwfX0=",
+      "links": [
+        {
+          "from": "LogMessage2",
+          "id": 6,
+          "label": "LogMessage2toReturn3",
+          "to": "Return3",
+          "type": "label"
+        }
+      ],
+      "tasks": [
+        {
+          "activity": {
+            "input": {
+              "Log Level": "INFO",
+              "flowInfo": false,
+              "logLevel": "",
+              "message": "********In Error Handler*******"
+            },
+            "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+          },
+          "description": "Simple Log Message Activity",
+          "id": "LogMessage2",
+          "name": "LogMessage2"
+        },
+        {
+          "activity": {
+            "ref": "github.com/project-flogo/contrib/activity/actreturn",
+            "settings": {
+              "mappings": {
+                "response": "=string.concat($error.activity,\" \", $error.message)"
+              }
+            }
+          },
+          "description": "Simple Return Activity",
+          "id": "Return3",
+          "name": "Return3"
+        }
+      ]
+    },
+    "explicitReply": true,
+    "fe_metadata": "eyJJbnZva2VSRVNUU2VydmljZTEiOnsieCI6NTAsInkiOjUwfSwiUmV0dXJuMSI6eyJ4IjoyNTAsInkiOjUwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyNTAsInkiOjE1MH0sIlJldHVybjIiOnsieCI6NDUwLCJ5IjoxNTB9LCJMb2dNZXNzYWdlMSI6eyJ4IjoyNTAsInkiOjI1MH0sIlRocm93RXJyb3IiOnsieCI6NDUwLCJ5IjoyNTB9fQ==",
+    "links": [
+      {
+        "from": "InvokeRESTService1",
+        "id": 1,
+        "label": "InvokeRESTService1toReturn1",
+        "to": "Return1",
+        "type": "label"
+      },
+      {
+        "from": "InvokeRESTService1",
+        "id": 2,
+        "label": "newtask",
+        "to": "LogMessage",
+        "type": "expression",
+        "value": "string.equals(string.tostring($activity[InvokeRESTService1].responseBody), \"[]\")"
+      },
+      {
+        "from": "LogMessage",
+        "id": 3,
+        "label": "LogMessagetoReturn2",
+        "to": "Return2",
+        "type": "label"
+      },
+      {
+        "from": "InvokeRESTService1",
+        "id": 4,
+        "label": "newtask",
+        "to": "LogMessage1",
+        "type": "expression",
+        "value": "string.regex(\"[^0-9]\", $flow.isbn)"
+      },
+      {
+        "from": "LogMessage1",
+        "id": 5,
+        "label": "LogMessage1toThrowError",
+        "to": "ThrowError",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\n    \"isbn\":\"\"\n}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"string\"}}}"
+      },
+      "input": [
+        {
+          "name": "isbn",
+          "type": "string"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "type": "string"
+        }
+      ]
+    },
+    "name": "getBookByISBN",
+    "tasks": [
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Client Certificate": "",
+            "Client Key": "",
+            "Method": "GET",
+            "Server Certificate": "",
+            "Timeout": 0,
+            "Uri": "=$property[\"URL\"]",
+            "Use certificate for verification": false,
+            "asrDialog": "",
+            "authorization": false,
+            "authorizationConn": "",
+            "configureAPISpec": false,
+            "disableKeepAlives": false,
+            "disableSSLVerification": false,
+            "enableASR": false,
+            "followRedirects": true,
+            "host": "",
+            "mutualAuth": false,
+            "proxy": "",
+            "queryParams": {
+              "mapping": {
+                "isbn": "=$flow.isbn"
+              }
+            },
+            "requestType": "application/json",
+            "resourcePath": "",
+            "serviceName": "",
+            "swagger": ""
+          },
+          "output": {
+            "configureResponseCodes": false,
+            "responseOutput": "JSON Object",
+            "responseType": "application/json",
+            "throwError": false
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/rest",
+          "schemas": {
+            "input": {
+              "dynamicRequestHeaders": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+              },
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "queryParams": {
+                "fe_metadata": "[{\"parameterName\":\"isbn\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"true\",\"isEditable\":true}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"isbn\":{\"type\":\"string\"}},\"required\":[\"isbn\"]}"
+              }
+            },
+            "output": {
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "responseBody": {
+                "fe_metadata": "{\n    \n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}"
+              }
+            }
+          }
+        },
+        "description": "Simple REST Activity",
+        "id": "InvokeRESTService1",
+        "name": "InvokeRESTService1",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": "=utility.renderJSON($activity[InvokeRESTService1].responseBody,boolean.false())"
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return1",
+        "name": "Return1"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "=$property[\"LOG_LEVEL\"]",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "No Book found with the given ISBN Number"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage",
+        "name": "LogMessage"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": "No Book found with the given ISBN Number"
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return2",
+        "name": "Return2"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "=$property[\"LOG_LEVEL\"]",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "**********Invalid ISBN Number********"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage1",
+        "name": "LogMessage1"
+      },
+      {
+        "activity": {
+          "input": {
+            "message": "**********Invalid ISBN Number********"
+          },
+          "ref": "github.com/project-flogo/contrib/activity/error"
+        },
+        "description": "Simple Error Activity",
+        "id": "ThrowError",
+        "name": "ThrowError"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "isbn": "=$.pathParams.isbn"
+          },
+          "output": {
+            "data": {
+              "mapping": {
+                "output": "=$.response"
+              }
+            }
+          }
+        },
+        "description": "Get Book By ISBN",
+        "reply": {
+          "code": 200,
+          "configureResponseCodes": false,
+          "message": ""
+        },
+        "schemas": {
+          "output": {
+            "headers": {
+              "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+            },
+            "pathParams": {
+              "fe_metadata": "[{\"parameterName\":\"isbn\",\"type\":\"string\"}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"isbn\":{\"type\":\"string\"}},\"required\":[]}"
+            }
+          },
+          "reply": {
+            "data": {
+              "fe_metadata": "{\n    \"output\":\"\"\n}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}"
+            },
+            "responseBody": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+            }
+          }
+        },
+        "settings": {
+          "APISpecPath": "",
+          "Method": "GET",
+          "OutputValidation": false,
+          "Path": "/books/{isbn}",
+          "reqType": "application/json"
+        },
+        "trigger": "trigger://ReceiveHTTPMessage.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/error",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+    "github.com/project-flogo/contrib/function/string",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/utility"
+  ],
+  "type": "flogo:flow"
+}

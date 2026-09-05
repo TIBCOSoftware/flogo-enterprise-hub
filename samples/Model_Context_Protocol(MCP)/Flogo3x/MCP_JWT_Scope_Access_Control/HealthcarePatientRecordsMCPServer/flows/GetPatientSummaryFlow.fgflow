@@ -1,0 +1,176 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Retrieve patient demographics",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyNTAsInkiOjEwMH0sIlJldHVybiI6eyJ4Ijo0NTAsInkiOjEwMH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogMessage",
+        "to": "LogMessage",
+        "type": "label"
+      },
+      {
+        "from": "LogMessage",
+        "id": 2,
+        "label": "LogMessage to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"HealthcarePatientRecordsServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"patient_id\":{\"type\":\"string\",\"description\":\"The patient ID to look up (e.g. PAT-10042)\"}},\"required\":[\"patient_id\"]},\"httpHeaders\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Authorization\":{\"type\":\"string\"}}},\"tokenInfo\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"properties\":{\"scopes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"expiration\":{\"type\":\"number\"},\"iss\":{\"type\":\"string\"},\"sub\":{\"type\":\"string\"},\"aud\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"name\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}},\"structuredContent\":{\"type\":\"object\"}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"patient_id\":{\"type\":\"string\",\"description\":\"The patient ID to look up (e.g. PAT-10042)\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "schema": {
+            "type": "json",
+            "value": "{\"Authorization\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "tokenInfo",
+          "schema": {
+            "type": "json",
+            "value": "{\"scopes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"expiration\":{\"type\":\"number\"},\"iss\":{\"type\":\"string\"},\"sub\":{\"type\":\"string\"},\"aud\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"name\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"audience\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"priority\":{\"type\":\"number\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "structuredContent",
+          "type": "object"
+        }
+      ]
+    },
+    "name": "GetPatientSummaryFlow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[GetPatientSummary] Caller: \", coerce.toString($flow.tokenInfo.sub), \" | Email: \", coerce.toString($flow.tokenInfo.email), \" | Args: \", coerce.toString($flow.arguments))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage",
+        "name": "LogMessage"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "{\"patient_id\":\"PAT-10042\",\"first_name\":\"Sarah\",\"last_name\":\"Chen\",\"date_of_birth\":\"1985-03-15\",\"gender\":\"Female\",\"phone\":\"+1-555-0142\",\"email\":\"sarah.chen@email.com\",\"address\":\"742 Elm Street, Springfield, IL 62704\",\"insurance_provider\":\"BlueCross BlueShield\",\"insurance_id\":\"BCB-9920-4401\"}"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments",
+            "httpHeaders": "=$.httpHeaders",
+            "tokenInfo": "=$.tokenInfo"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Retrieve patient demographics",
+        "reply": {
+          "outputSchema": ""
+        },
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"patient_id\": {\r\n      \"type\": \"string\",\r\n      \"description\": \"The patient ID to look up (e.g. PAT-10042)\"\r\n    }\r\n  },\r\n  \"required\": [\"patient_id\"]\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"patient_id\": {\r\n      \"type\": \"string\",\r\n      \"description\": \"The patient ID to look up (e.g. PAT-10042)\"\r\n    }\r\n  },\r\n  \"required\": [\"patient_id\"]\r\n}"
+            },
+            "httpHeaders": {
+              "fe_metadata": "{\"Authorization\":\"Bearer token\"}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Authorization\":{\"type\":\"string\"}}}"
+            },
+            "tokenInfo": {
+              "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n          \"type\": \"string\"\r\n      }\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"iss\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"sub\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"aud\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n          \"type\": \"string\"\r\n        }\r\n    },\r\n    \"name\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"email\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"scopes\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n          \"type\": \"string\"\r\n      }\r\n    },\r\n    \"expiration\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"iss\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"sub\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"aud\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n          \"type\": \"string\"\r\n        }\r\n    },\r\n    \"name\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"email\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+              "type": "json",
+              "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Retrieve patient demographics including name, date of birth, gender, and contact information. Requires the patient:read scope in the JWT token.",
+          "handlerName": "get_patient_summary",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": true,
+          "resourceUri": "",
+          "scope": "patient:read",
+          "toolTitle": "Get Patient Summary"
+        },
+        "trigger": "trigger://HealthcarePatientRecordsServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

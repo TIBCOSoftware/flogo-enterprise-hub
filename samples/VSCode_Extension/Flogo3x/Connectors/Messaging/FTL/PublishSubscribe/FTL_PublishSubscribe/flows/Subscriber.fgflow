@@ -1,0 +1,147 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In0seyJpZCI6IkZpbGUiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiRmlsZSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZmlsZXMvc3JjL2FwcC9GaWxlIiwiczNsb2NhdGlvbiI6IlRpYmNvL0ZpbGUiLCJ0YWciOiIzLjAuMC1iMDEtdjMtbWFpbiIsInZlcnNpb24iOiIzLjAuMCJ9XQ==",
+  "data": {
+    "description": "",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyMDksInkiOjE1M30sIldyaXRlRmlsZSI6eyJ4Ijo0MzIsInkiOjE1OX19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogMessage",
+        "to": "LogMessage",
+        "type": "label"
+      },
+      {
+        "from": "LogMessage",
+        "id": 2,
+        "label": "LogMessage to WriteFile",
+        "to": "WriteFile",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"FTLMessageSubscriber\",\"properties\":{\"message\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "message",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": []
+    },
+    "name": "Subscriber",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=$flow.message.data"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage",
+        "name": "LogMessage"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "createNonExistingDir": false,
+            "input": {
+              "mapping": {
+                "binaryContent": "=$flow.message.data",
+                "fileName": "\u003cpath-to-output-file\u003e",
+                "overwrite": "=boolean.true()"
+              }
+            },
+            "writeAs": "Binary"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/write",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"binaryContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"binaryContent\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"binaryContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"binaryContent\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "This activity writes the content to a file",
+        "id": "WriteFile",
+        "name": "WriteFile"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "message": "=$.message"
+          }
+        },
+        "description": "",
+        "schemas": {
+          "output": {
+            "message": {
+              "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"}}}"
+            }
+          }
+        },
+        "settings": {
+          "acknowledgementMode": "Auto",
+          "acknowledgementStyle": "Sync",
+          "batchDuration": 1,
+          "batchSize": 1,
+          "destinationName": "read",
+          "durableName": "readstandard",
+          "durableType": "Standard",
+          "enableFlowLimit": false,
+          "format": "Opaque",
+          "formatName": "",
+          "matchFilter": "",
+          "maxConcurrentMessages": 200,
+          "noLocalDelivery": false,
+          "prefetchSize": 1,
+          "queueOverflowPolicy": "Discard None",
+          "queueSize": -1,
+          "retryDuration": 0
+        },
+        "trigger": "trigger://FTLMessageSubscriber.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean"
+  ],
+  "type": "flogo:flow"
+}

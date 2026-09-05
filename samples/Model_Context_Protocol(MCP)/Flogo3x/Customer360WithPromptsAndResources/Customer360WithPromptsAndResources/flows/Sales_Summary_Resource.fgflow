@@ -1,0 +1,117 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Static resource returning a pre-aggregated sales summary including total revenue, top products and top customers. The AI client reads this for instant business overview answers.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "Start to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"blobResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"blob\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"blobResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"blob\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "Sales_Summary_Resource",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "textResourceContents": [
+                    {
+                      "mimeType": "application/json",
+                      "text": "{\"sales_summary\":{\"total_revenue\":\"$593,463.00\",\"total_transactions\":10,\"period\":\"2025-01 to 2025-05\",\"top_products\":[{\"product_name\":\"mjolnir hammer\",\"units_sold\":1,\"revenue\":\"$199,999.00\"},{\"product_name\":\"magic lasso\",\"units_sold\":1,\"revenue\":\"$143,953.00\"},{\"product_name\":\"vibranium shield\",\"units_sold\":1,\"revenue\":\"$139,503.00\"}],\"top_customers\":[{\"customer_name\":\"thor odinson\",\"transactions\":1,\"total_spend\":\"$199,999.00\"},{\"customer_name\":\"diana prince\",\"transactions\":1,\"total_spend\":\"$143,953.00\"},{\"customer_name\":\"bruce wayne\",\"transactions\":2,\"total_spend\":\"$26,746.00\"}]}}",
+                      "uri": "sales://summary"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Return sales summary as JSON resource content",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Static resource returning a pre-aggregated sales summary including total revenue, top products and top customers. The AI client reads this for instant business overview answers.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "handlerDescription": "Pre-aggregated sales summary with total revenue, best-selling products and top customers. Read by the AI client as context for business overview questions.",
+          "handlerName": "sales_summary",
+          "handlerType": "Resource",
+          "resourceUri": "sales://summary"
+        },
+        "trigger": "trigger://MCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn"
+  ],
+  "type": "flogo:flow"
+}

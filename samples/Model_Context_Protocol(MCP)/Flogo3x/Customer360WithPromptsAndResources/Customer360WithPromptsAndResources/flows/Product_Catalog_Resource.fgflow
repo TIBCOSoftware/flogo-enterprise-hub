@@ -1,0 +1,117 @@
+{
+  "contrib": "",
+  "data": {
+    "description": "Static resource returning the full product catalog as JSON. The AI client reads this once as context to reduce repeated tool calls.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNTAsInkiOjE1MH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "Start to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"blobResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"blob\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"textResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"blobResourceContents\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"uri\":{\"type\":\"string\"},\"blob\":{\"type\":\"string\"},\"mimeType\":{\"type\":\"string\"}}}},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "Product_Catalog_Resource",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "textResourceContents": [
+                    {
+                      "mimeType": "application/json",
+                      "text": "{\"catalog\":[{\"product_id\":1,\"product_name\":\"red cape\",\"product_cost\":\"1000\",\"product_msrp\":\"2000\",\"product_quantity\":\"20\"},{\"product_id\":2,\"product_name\":\"magic lasso\",\"product_cost\":\"100000\",\"product_msrp\":\"100000\",\"product_quantity\":\"0\"},{\"product_id\":3,\"product_name\":\"pym particles disc\",\"product_cost\":\"8000\",\"product_msrp\":\"20000\",\"product_quantity\":\"4\"},{\"product_id\":4,\"product_name\":\"vibranium shield\",\"product_cost\":\"1000\",\"product_msrp\":\"100000\",\"product_quantity\":\"0\"},{\"product_id\":5,\"product_name\":\"arc reactor\",\"product_cost\":\"10000\",\"product_msrp\":\"50000\",\"product_quantity\":\"2\"},{\"product_id\":6,\"product_name\":\"spider-suit\",\"product_cost\":\"500\",\"product_msrp\":\"2000\",\"product_quantity\":\"5\"},{\"product_id\":7,\"product_name\":\"bat cape\",\"product_cost\":\"1000\",\"product_msrp\":\"10000\",\"product_quantity\":\"10\"},{\"product_id\":8,\"product_name\":\"mjolnir hammer\",\"product_cost\":\"5000\",\"product_msrp\":\"100000\",\"product_quantity\":\"0\"}]}",
+                      "uri": "products://catalog"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Return product catalog as JSON resource content",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Static resource returning the full product catalog as JSON. The AI client reads this once as context to reduce repeated tool calls.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"textResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"text\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"text\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"blobResourceContents\": {\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"uri\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"blob\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"mimeType\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"blob\",\r\n                    \"mimeType\"\r\n                ]\r\n            }\r\n        },\r\n        \"error\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "handlerDescription": "Static product catalog with all products including name, cost, MSRP and quantity. Read by the AI client as context without invoking a tool call.",
+          "handlerName": "product_catalog",
+          "handlerType": "Resource",
+          "resourceUri": "products://catalog"
+        },
+        "trigger": "trigger://MCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn"
+  ],
+  "type": "flogo:flow"
+}

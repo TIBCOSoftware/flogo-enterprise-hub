@@ -1,0 +1,203 @@
+{
+  "contrib": "W3siaWQiOiJBZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwidGFnIjoiMC45LjQtaGYxLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjAuOS40LUhGMSJ9XQ==",
+  "data": {
+    "description": "Process service request directly via AI Agent with all 150 tools.",
+    "explicitReply": true,
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMwLCJ5IjoxMDh9LCJQcm9jZXNzQUlBZ2VudCI6eyJ4IjoyMDksInkiOjEwMX0sIlJldHVyblJlc3VsdCI6eyJ4Ijo0MjQsInkiOjEwNH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to ProcessAIAgent",
+        "to": "ProcessAIAgent",
+        "type": "label"
+      },
+      {
+        "from": "ProcessAIAgent",
+        "id": 2,
+        "label": "ProcessAIAgent to ReturnResult",
+        "to": "ReturnResult",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"object\",\"properties\":{}}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "headers",
+          "schema": {
+            "type": "json",
+            "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "body",
+          "schema": {
+            "type": "json",
+            "value": "{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "requestURI",
+          "type": "string"
+        },
+        {
+          "name": "method",
+          "type": "string"
+        }
+      ],
+      "output": [
+        {
+          "name": "code",
+          "type": "integer"
+        },
+        {
+          "name": "data",
+          "schema": {
+            "type": "json",
+            "value": "{\"result\":{\"type\":\"object\",\"properties\":{}}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "service_request_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "conversationId": "=$flow.body.employee_id",
+            "userPrompt": "=string.concat(\"Employee ID: \", coerce.toString($flow.body.employee_id), \"\\nRequest: \", coerce.toString($flow.body.request))"
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+          "schemas": {
+            "input": {
+              "filteredToolNames": {
+                "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+              }
+            }
+          },
+          "settings": {
+            "agentHandoffs": "",
+            "conversationStoreType": "Memory",
+            "enableGuardrails": false,
+            "llmProviderConnection": "conn://OpenAI.fgconn",
+            "mcpServers": [
+              "conn://IdentityAccessMCPServer.fgconn",
+              "conn://InfraMonitoringMCPServer.fgconn",
+              "conn://TicketingMCPServer.fgconn"
+            ],
+            "memoryMaxSize": 10,
+            "model": "=$property[\"AgenticAI.OpenAI.LLM_Model\"]",
+            "rateLimit": 25,
+            "reasoning": "",
+            "redactSensitiveData": false,
+            "remoteAgents": [],
+            "responseType": "Text",
+            "systemPrompt": "=$property[\"AgenticAI.systemPrompt\"]",
+            "temperature": 0.7,
+            "tokenLimit": 2048
+          }
+        },
+        "description": "AI Agent with all 150 tools — no pre-filtering.",
+        "id": "ProcessAIAgent",
+        "name": "ProcessAIAgent"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "code": 200,
+              "data": {
+                "mapping": {
+                  "result": "=$activity[ProcessAIAgent].response"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the LLM response as HTTP 200 JSON.",
+        "id": "ReturnResult",
+        "name": "ReturnResult"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "body": "=$.body",
+            "headers": "=$.headers"
+          },
+          "output": {
+            "code": "=$.code",
+            "data": "=$.data"
+          }
+        },
+        "description": "Process service request directly via AI Agent with all 150 tools.",
+        "reply": {
+          "code": 200,
+          "configureResponseCodes": false,
+          "message": {}
+        },
+        "schemas": {
+          "output": {
+            "body": {
+              "fe_metadata": "{\"request\":\"\",\"employee_id\":\"\"}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}}"
+            },
+            "headers": {
+              "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+            }
+          },
+          "reply": {
+            "data": {
+              "fe_metadata": "{\"result\":{}}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"object\",\"properties\":{}}}}"
+            },
+            "responseBody": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+            }
+          }
+        },
+        "settings": {
+          "Method": "POST",
+          "OutputValidation": false,
+          "Path": "/service-request",
+          "reqType": "application/json"
+        },
+        "trigger": "trigger://ReceiveHTTPMessage.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

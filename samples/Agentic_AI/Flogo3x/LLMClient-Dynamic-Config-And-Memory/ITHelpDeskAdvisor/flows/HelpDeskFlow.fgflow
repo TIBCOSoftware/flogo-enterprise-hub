@@ -1,0 +1,219 @@
+{
+  "contrib": "W3siaWQiOiJBZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwidGFnIjoiMC45LjQtaGYxLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjAuOS40LUhGMSJ9LHsiaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In0seyJpZCI6IndlYnNvY2tldCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2UsIm5hbWUiOiJXZWJzb2NrZXQiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLXdlYnNvY2tldC1jb25uZWN0b3Ivc3JjL2FwcC93ZWJzb2NrZXQiLCJzM2xvY2F0aW9uIjoiVGliY28vd2Vic29ja2V0IiwidGFnIjoiMy4wLjItYjAxLXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy4wLjIifV0=",
+  "data": {
+    "description": "Multi-turn IT help desk conversation using LLM Client Activity with Memory Conversation Store and dynamic MCP/A2A configs",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkhlbHBEZXNrTExNQ2xpZW50Ijp7IngiOjI1MCwieSI6NTB9LCJMb2dSZXNwb25zZSI6eyJ4Ijo0NTAsInkiOjUwfSwiV2Vic29ja2V0V3JpdGVEYXRhIjp7IngiOjY1MCwieSI6NTB9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to HelpDeskLLMClient",
+        "to": "HelpDeskLLMClient",
+        "type": "label"
+      },
+      {
+        "from": "HelpDeskLLMClient",
+        "id": 2,
+        "label": "HelpDeskLLMClient to LogResponse",
+        "to": "LogResponse",
+        "type": "label"
+      },
+      {
+        "from": "LogResponse",
+        "id": 3,
+        "label": "LogResponse to WebsocketWriteData",
+        "to": "WebsocketWriteData",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"HelpDeskWebSocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"object\",\"properties\":{\"sessionId\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{}},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+      },
+      "input": [
+        {
+          "name": "pathParams",
+          "type": "params"
+        },
+        {
+          "name": "queryParams",
+          "schema": {
+            "type": "json",
+            "value": "{\"sessionId\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "headers",
+          "type": "object"
+        },
+        {
+          "name": "content",
+          "type": "any"
+        },
+        {
+          "name": "wsconnection",
+          "type": "any"
+        }
+      ],
+      "output": []
+    },
+    "name": "HelpDeskFlow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "a2aServerConfigs": {
+              "mapping": [
+                {
+                  "authToken": "",
+                  "authType": "None",
+                  "name": "=$property[\"LLMClient.A2A.Ticket.Server_Name\"]",
+                  "serverUrl": "=$property[\"LLMClient.A2A.Ticket.Server_URL\"]"
+                }
+              ]
+            },
+            "conversationId": "=coerce.toString($flow.queryParams.sessionId)",
+            "llmConfiguration": {
+              "mapping": {
+                "apiKey": "=$property[\"LLMClient.API_Key\"]",
+                "model": "=$property[\"LLMClient.LLM_Model\"]",
+                "provider": "=$property[\"LLMClient.LLM_Provider\"]",
+                "providerBaseUrl": "",
+                "temparature": 0.5
+              }
+            },
+            "mcpServerConfigs": {
+              "mapping": [
+                {
+                  "authToken": "",
+                  "authType": "None",
+                  "httpTransportType": "streamable",
+                  "name": "=$property[\"LLMClient.MCP.KB.Server_Name\"]",
+                  "serverType": "http",
+                  "serverUrl": "=$property[\"LLMClient.MCP.KB.Server_URL\"]"
+                }
+              ]
+            },
+            "systemPrompt": "=$property[\"LLMClient.SystemPrompt\"]",
+            "userPrompt": "=coerce.toString($flow.content)"
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+          "schemas": {
+            "input": {
+              "a2aServerConfigs": {
+                "fe_metadata": "[{\"name\":\"TicketService\",\"serverUrl\":\"http://localhost:9202\",\"authType\":\"None\",\"authToken\":\"\"}]",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"serverUrl\":{\"type\":\"string\"},\"authType\":{\"type\":\"string\"},\"authToken\":{\"type\":\"string\"}}}}"
+              },
+              "llmConfiguration": {
+                "fe_metadata": "{\"provider\":\"OpenAI\",\"apiKey\":\"\",\"model\":\"gpt-4o\",\"providerBaseUrl\":\"\",\"temparature\":0.5,\"azureDeployment\":\"\",\"azureApiVersion\":\"\",\"azureRegion\":\"\",\"azureResourceName\":\"\"}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"provider\":{\"type\":\"string\"},\"apiKey\":{\"type\":\"string\"},\"model\":{\"type\":\"string\"},\"providerBaseUrl\":{\"type\":\"string\"},\"temparature\":{\"type\":\"number\"},\"azureDeployment\":{\"type\":\"string\"},\"azureApiVersion\":{\"type\":\"string\"},\"azureRegion\":{\"type\":\"string\"},\"azureResourceName\":{\"type\":\"string\"}}}"
+              },
+              "mcpServerConfigs": {
+                "fe_metadata": "[{\"name\":\"KnowledgeBase\",\"serverType\":\"http\",\"serverUrl\":\"http://localhost:9201/mcp\",\"httpTransportType\":\"streamable\",\"authType\":\"None\",\"authToken\":\"\"}]",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"serverType\":{\"type\":\"string\"},\"serverUrl\":{\"type\":\"string\"},\"httpTransportType\":{\"type\":\"string\"},\"authType\":{\"type\":\"string\"},\"authToken\":{\"type\":\"string\"}}}}"
+              }
+            }
+          },
+          "settings": {
+            "conversationStoreType": "Memory",
+            "mcpServers": [],
+            "memoryMaxSize": 20,
+            "remoteAgents": [],
+            "responseType": "Text"
+          }
+        },
+        "description": "LLM Client Activity with Memory Conversation Store and dynamic MCP/A2A server configuration",
+        "id": "HelpDeskLLMClient",
+        "name": "HelpDeskLLMClient"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[HelpDesk] Session: \", coerce.toString($flow.queryParams.sessionId), \" | Response: \", coerce.toString($activity[HelpDeskLLMClient].response))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogResponse",
+        "name": "LogResponse"
+      },
+      {
+        "activity": {
+          "input": {
+            "message": "=$activity[HelpDeskLLMClient].response",
+            "wsconnection": "=$flow.wsconnection"
+          },
+          "ref": "github.com/tibco/flogo-websocket-connector/src/app/websocket/activity/wswritedata",
+          "settings": {
+            "format": "String",
+            "jsonSchema": ""
+          }
+        },
+        "description": "Write the LLM response back to the WebSocket client",
+        "id": "WebsocketWriteData",
+        "name": "WebsocketWriteData"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "content": "=$.content",
+            "headers": "=$.headers",
+            "pathParams": "=$.pathParams",
+            "queryParams": "=$.queryParams",
+            "wsconnection": "=$.wsconnection"
+          }
+        },
+        "description": "Multi-turn IT help desk conversation using LLM Client Activity with Memory Conversation Store and dynamic MCP/A2A configs",
+        "schemas": {
+          "output": {
+            "headers": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{}}"
+            },
+            "queryParams": {
+              "fe_metadata": "[{\"parameterName\":\"sessionId\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"sessionId\":{\"type\":\"string\"}},\"required\":[]}"
+            }
+          }
+        },
+        "settings": {
+          "format": "String",
+          "jsonSchema": "",
+          "method": "GET",
+          "mode": "Data",
+          "path": "/helpdesk"
+        },
+        "trigger": "trigger://HelpDeskWebSocketServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-websocket-connector/src/app/websocket/activity/wswritedata",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}

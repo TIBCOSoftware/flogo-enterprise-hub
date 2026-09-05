@@ -1,0 +1,125 @@
+{
+  "contrib": "W3siaWQiOiJLYWZrYSIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2UsIm5hbWUiOiJBcGFjaGUgS2Fma2EiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWthZmthL3NyYy9hcHAvS2Fma2EiLCJzM2xvY2F0aW9uIjoiVGliY28vS2Fma2EiLCJ0YWciOiIzLjMuNS1iMDEtdjMtbWFpbiIsInZlcnNpb24iOiIzLjMuNSJ9LHsiaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Consume messages from topic",
+    "explicitReply": true,
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiS2Fma2FDb21taXRPZmZzZXQiOnsieCI6MTc0LCJ5IjoxNzd9LCJMb2dNZXNzYWdlIjp7IngiOjM3NCwieSI6MTc3fX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to KafkaCommitOffset",
+        "to": "KafkaCommitOffset",
+        "type": "label"
+      },
+      {
+        "from": "KafkaCommitOffset",
+        "id": 2,
+        "label": "KafkaCommitOffset to LogMessage",
+        "to": "LogMessage",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"KafkaConsumer\",\"properties\":{\"topic\":{\"type\":\"string\",\"required\":false},\"partition\":{\"type\":\"integer\",\"required\":false},\"offset\":{\"type\":\"integer\",\"required\":false},\"key\":{\"type\":\"string\",\"required\":false},\"stringValue\":{\"type\":\"string\",\"required\":false},\"headers\":{\"type\":\"object\"}}}"
+      },
+      "input": [
+        {
+          "name": "topic",
+          "type": "string"
+        },
+        {
+          "name": "partition",
+          "type": "integer"
+        },
+        {
+          "name": "offset",
+          "type": "integer"
+        },
+        {
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "name": "stringValue",
+          "type": "string"
+        },
+        {
+          "name": "headers",
+          "type": "object"
+        }
+      ],
+      "output": []
+    },
+    "name": "ConsumerFlow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "ref": "github.com/tibco/flogo-kafka/src/app/Kafka/activity/commit"
+        },
+        "description": "",
+        "id": "KafkaCommitOffset",
+        "name": "KafkaCommitOffset"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=\"Message Received in Consumer on Topic : \"+$flow.topic+\" is: \"+$flow.stringValue"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage",
+        "name": "LogMessage"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "stringValue": "=$.stringValue",
+            "topic": "=$.topic"
+          }
+        },
+        "description": "Consume messages from topic",
+        "settings": {
+          "commitInterval": 5000,
+          "consumerGroup": "=$property[\"cgp\"]",
+          "customPartition": false,
+          "fetchMaxWait": 500,
+          "fetchMinBytes": 0,
+          "heartbeatInterval": 3000,
+          "initialOffset": "Oldest",
+          "partitionId": 0,
+          "seekOffset": 0,
+          "sessionTimeout": 30000,
+          "subjects": "String",
+          "timeStamp": "",
+          "topic": "=$property[\"topic\"]",
+          "topicPattern": "",
+          "valueType": "String",
+          "versions": 1
+        },
+        "trigger": "trigger://KafkaConsumer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-kafka/src/app/Kafka/activity/commit",
+    "github.com/tibco/flogo-general/src/app/General/activity/log"
+  ],
+  "type": "flogo:flow"
+}

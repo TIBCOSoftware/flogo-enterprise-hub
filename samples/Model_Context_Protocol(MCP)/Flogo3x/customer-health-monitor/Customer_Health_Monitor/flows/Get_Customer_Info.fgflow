@@ -1,0 +1,213 @@
+{
+  "contrib": "W3siaWQiOiJTYWxlc2ZvcmNlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IlNhbGVzZm9yY2UiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL3dpLXNhbGVzZm9yY2Uvc3JjL2FwcC9TYWxlc2ZvcmNlIiwiczNsb2NhdGlvbiI6IlRpYmNvL1NhbGVzZm9yY2UiLCJ0YWciOiIzLjMuNy1iMDItdjMtbWFpbiIsInZlcnNpb24iOiIzLjMuNyJ9LHsiaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "Tool to query the salesforce accounts object to get customers data",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiU2FsZXNmb3JjZUFjY291bnRzUXVlcnkiOnsieCI6MjI2LCJ5IjoxNjJ9LCJMb2dBY2NvdW50c1Jlc3VsdEZyb21TRiI6eyJ4Ijo0MjQsInkiOjQ2fSwiUmV0dXJuU3VjY2VzcyI6eyJ4Ijo2ODAsInkiOjcxfSwiTG9nRXJyb3JGcm9tU2FsZXNmb3JjZUFjY291bnRzIjp7IngiOjQzOSwieSI6MjE3fSwiUmV0dXJuRXJyb3IiOnsieCI6Njc2LCJ5IjoyMTZ9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to SalesforceQuery",
+        "to": "SalesforceAccountsQuery",
+        "type": "label"
+      },
+      {
+        "from": "SalesforceAccountsQuery",
+        "id": 2,
+        "label": "SalesforceQuery to LogMessage",
+        "to": "LogAccountsResultFromSF",
+        "type": "label"
+      },
+      {
+        "from": "LogAccountsResultFromSF",
+        "id": 3,
+        "label": "LogMessage to Return",
+        "to": "ReturnSuccess",
+        "type": "label"
+      },
+      {
+        "from": "SalesforceAccountsQuery",
+        "id": 4,
+        "label": "SalesforceQuery to LogMessage1",
+        "to": "LogErrorFromSalesforceAccounts",
+        "type": "error"
+      },
+      {
+        "from": "LogErrorFromSalesforceAccounts",
+        "id": 5,
+        "label": "LogMessage1 to Return1",
+        "to": "ReturnError",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"MCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "Get_Customer_Info",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Connection Name": "conn://customer-account-info-sf.fgconn",
+            "Object Name": "Account",
+            "query": "SELECT Customer_ID__c,Name, Customer_Since__c, Total_Contract_Value__c, Region__c, Next_Renewal_Date__c, Licensed_Applications__c, Active_Users__c, Usage_Score__c, Support_Case_Count__c, CSAT_Score__c, Health_Score__c, Churn_Risk__c FROM Account",
+            "queryType": "Query"
+          },
+          "ref": "github.com/tibco/wi-salesforce/src/app/Salesforce/activity/query",
+          "schemas": {
+            "output": {
+              "output": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Account\":{\"type\":\"object\",\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Id\":{\"type\":\"string\",\"maxLength\":18},\"IsDeleted\":{\"type\":\"boolean\"},\"MasterRecordId\":{\"type\":\"string\",\"maxLength\":18},\"Name\":{\"type\":\"string\",\"maxLength\":255},\"Type\":{\"type\":\"string\",\"maxLength\":255},\"ParentId\":{\"type\":\"string\",\"maxLength\":18},\"BillingStreet\":{\"type\":\"string\",\"maxLength\":255},\"BillingCity\":{\"type\":\"string\",\"maxLength\":40},\"BillingState\":{\"type\":\"string\",\"maxLength\":80},\"BillingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"BillingCountry\":{\"type\":\"string\",\"maxLength\":80},\"BillingLatitude\":{\"type\":\"number\"},\"BillingLongitude\":{\"type\":\"number\"},\"BillingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"BillingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"ShippingStreet\":{\"type\":\"string\",\"maxLength\":255},\"ShippingCity\":{\"type\":\"string\",\"maxLength\":40},\"ShippingState\":{\"type\":\"string\",\"maxLength\":80},\"ShippingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"ShippingCountry\":{\"type\":\"string\",\"maxLength\":80},\"ShippingLatitude\":{\"type\":\"number\"},\"ShippingLongitude\":{\"type\":\"number\"},\"ShippingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"ShippingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"AccountNumber\":{\"type\":\"string\",\"maxLength\":40},\"Website\":{\"type\":\"string\",\"maxLength\":255},\"PhotoUrl\":{\"type\":\"string\",\"maxLength\":255},\"Sic\":{\"type\":\"string\",\"maxLength\":20},\"Industry\":{\"type\":\"string\",\"maxLength\":255},\"AnnualRevenue\":{\"type\":\"number\"},\"NumberOfEmployees\":{\"type\":\"integer\"},\"Ownership\":{\"type\":\"string\",\"maxLength\":255},\"TickerSymbol\":{\"type\":\"string\",\"maxLength\":20},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"Rating\":{\"type\":\"string\",\"maxLength\":255},\"Site\":{\"type\":\"string\",\"maxLength\":80},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"SystemModstamp\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastActivityDate\":{\"type\":\"string\",\"format\":\"date\"},\"LastViewedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastReferencedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawCompanyId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"AccountSource\":{\"type\":\"string\",\"maxLength\":255},\"DunsNumber\":{\"type\":\"string\",\"maxLength\":9},\"Tradestyle\":{\"type\":\"string\",\"maxLength\":255},\"NaicsCode\":{\"type\":\"string\",\"maxLength\":8},\"NaicsDesc\":{\"type\":\"string\",\"maxLength\":120},\"YearStarted\":{\"type\":\"string\",\"maxLength\":4},\"SicDesc\":{\"type\":\"string\",\"maxLength\":80},\"DandbCompanyId\":{\"type\":\"string\",\"maxLength\":18},\"CustomerPriority__c\":{\"type\":\"string\",\"maxLength\":255},\"SLA__c\":{\"type\":\"string\",\"maxLength\":255},\"Active__c\":{\"type\":\"string\",\"maxLength\":255},\"NumberofLocations__c\":{\"type\":\"number\"},\"UpsellOpportunity__c\":{\"type\":\"string\",\"maxLength\":255},\"SLASerialNumber__c\":{\"type\":\"string\",\"maxLength\":10},\"SLAExpirationDate__c\":{\"type\":\"string\",\"format\":\"date\"},\"BVG_Agency_Name__c\":{\"type\":\"string\",\"maxLength\":32768},\"Customer_ID__c\":{\"type\":\"string\",\"maxLength\":255},\"TCV__c\":{\"type\":\"number\"},\"Customer_Since__c\":{\"type\":\"string\",\"format\":\"date\"},\"Total_Contract_Value__c\":{\"type\":\"number\"},\"Region__c\":{\"type\":\"string\",\"maxLength\":255},\"Next_Renewal_Date__c\":{\"type\":\"string\",\"format\":\"date\"},\"Licensed_Applications__c\":{\"type\":\"string\",\"maxLength\":255},\"Active_Users__c\":{\"type\":\"number\"},\"Usage_Score__c\":{\"type\":\"number\"},\"Support_Case_Count__c\":{\"type\":\"number\"},\"CSAT_Score__c\":{\"type\":\"number\"},\"Health_Score__c\":{\"type\":\"number\"},\"Churn_Risk__c\":{\"type\":\"string\",\"maxLength\":20}}}},\"done\":{\"type\":\"boolean\"},\"totalSize\":{\"type\":\"number\"}}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Account\":{\"type\":\"object\",\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"Id\":{\"type\":\"string\",\"maxLength\":18},\"IsDeleted\":{\"type\":\"boolean\"},\"MasterRecordId\":{\"type\":\"string\",\"maxLength\":18},\"Name\":{\"type\":\"string\",\"maxLength\":255},\"Type\":{\"type\":\"string\",\"maxLength\":255},\"ParentId\":{\"type\":\"string\",\"maxLength\":18},\"BillingStreet\":{\"type\":\"string\",\"maxLength\":255},\"BillingCity\":{\"type\":\"string\",\"maxLength\":40},\"BillingState\":{\"type\":\"string\",\"maxLength\":80},\"BillingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"BillingCountry\":{\"type\":\"string\",\"maxLength\":80},\"BillingLatitude\":{\"type\":\"number\"},\"BillingLongitude\":{\"type\":\"number\"},\"BillingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"BillingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"ShippingStreet\":{\"type\":\"string\",\"maxLength\":255},\"ShippingCity\":{\"type\":\"string\",\"maxLength\":40},\"ShippingState\":{\"type\":\"string\",\"maxLength\":80},\"ShippingPostalCode\":{\"type\":\"string\",\"maxLength\":20},\"ShippingCountry\":{\"type\":\"string\",\"maxLength\":80},\"ShippingLatitude\":{\"type\":\"number\"},\"ShippingLongitude\":{\"type\":\"number\"},\"ShippingGeocodeAccuracy\":{\"type\":\"string\",\"maxLength\":40},\"ShippingAddress\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"country\":{\"type\":\"string\"},\"countryCode\":{\"type\":\"string\"},\"geocodeAccuracy\":{\"type\":\"string\"},\"postalCode\":{\"type\":\"string\"},\"state\":{\"type\":\"string\"},\"stateCode\":{\"type\":\"string\"},\"street\":{\"type\":\"string\"},\"latitude\":{\"type\":\"string\"},\"longitude\":{\"type\":\"string\"}}},\"Phone\":{\"type\":\"string\",\"maxLength\":40},\"Fax\":{\"type\":\"string\",\"maxLength\":40},\"AccountNumber\":{\"type\":\"string\",\"maxLength\":40},\"Website\":{\"type\":\"string\",\"maxLength\":255},\"PhotoUrl\":{\"type\":\"string\",\"maxLength\":255},\"Sic\":{\"type\":\"string\",\"maxLength\":20},\"Industry\":{\"type\":\"string\",\"maxLength\":255},\"AnnualRevenue\":{\"type\":\"number\"},\"NumberOfEmployees\":{\"type\":\"integer\"},\"Ownership\":{\"type\":\"string\",\"maxLength\":255},\"TickerSymbol\":{\"type\":\"string\",\"maxLength\":20},\"Description\":{\"type\":\"string\",\"maxLength\":32000},\"Rating\":{\"type\":\"string\",\"maxLength\":255},\"Site\":{\"type\":\"string\",\"maxLength\":80},\"OwnerId\":{\"type\":\"string\",\"maxLength\":18},\"CreatedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"CreatedById\":{\"type\":\"string\",\"maxLength\":18},\"LastModifiedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastModifiedById\":{\"type\":\"string\",\"maxLength\":18},\"SystemModstamp\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastActivityDate\":{\"type\":\"string\",\"format\":\"date\"},\"LastViewedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"LastReferencedDate\":{\"type\":\"string\",\"format\":\"date-time\"},\"Jigsaw\":{\"type\":\"string\",\"maxLength\":20},\"JigsawCompanyId\":{\"type\":\"string\",\"maxLength\":20},\"CleanStatus\":{\"type\":\"string\",\"maxLength\":40},\"AccountSource\":{\"type\":\"string\",\"maxLength\":255},\"DunsNumber\":{\"type\":\"string\",\"maxLength\":9},\"Tradestyle\":{\"type\":\"string\",\"maxLength\":255},\"NaicsCode\":{\"type\":\"string\",\"maxLength\":8},\"NaicsDesc\":{\"type\":\"string\",\"maxLength\":120},\"YearStarted\":{\"type\":\"string\",\"maxLength\":4},\"SicDesc\":{\"type\":\"string\",\"maxLength\":80},\"DandbCompanyId\":{\"type\":\"string\",\"maxLength\":18},\"CustomerPriority__c\":{\"type\":\"string\",\"maxLength\":255},\"SLA__c\":{\"type\":\"string\",\"maxLength\":255},\"Active__c\":{\"type\":\"string\",\"maxLength\":255},\"NumberofLocations__c\":{\"type\":\"number\"},\"UpsellOpportunity__c\":{\"type\":\"string\",\"maxLength\":255},\"SLASerialNumber__c\":{\"type\":\"string\",\"maxLength\":10},\"SLAExpirationDate__c\":{\"type\":\"string\",\"format\":\"date\"},\"BVG_Agency_Name__c\":{\"type\":\"string\",\"maxLength\":32768},\"Customer_ID__c\":{\"type\":\"string\",\"maxLength\":255},\"TCV__c\":{\"type\":\"number\"},\"Customer_Since__c\":{\"type\":\"string\",\"format\":\"date\"},\"Total_Contract_Value__c\":{\"type\":\"number\"},\"Region__c\":{\"type\":\"string\",\"maxLength\":255},\"Next_Renewal_Date__c\":{\"type\":\"string\",\"format\":\"date\"},\"Licensed_Applications__c\":{\"type\":\"string\",\"maxLength\":255},\"Active_Users__c\":{\"type\":\"number\"},\"Usage_Score__c\":{\"type\":\"number\"},\"Support_Case_Count__c\":{\"type\":\"number\"},\"CSAT_Score__c\":{\"type\":\"number\"},\"Health_Score__c\":{\"type\":\"number\"},\"Churn_Risk__c\":{\"type\":\"string\",\"maxLength\":20}}}},\"done\":{\"type\":\"boolean\"},\"totalSize\":{\"type\":\"number\"}}}}}"
+              }
+            }
+          }
+        },
+        "description": "Salesforce Query Activity",
+        "id": "SalesforceAccountsQuery",
+        "name": "SalesforceAccountsQuery"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=utility.renderJSON( $activity[SalesforceAccountsQuery].output,boolean.false())"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogAccountsResultFromSF",
+        "name": "LogAccountsResultFromSF"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": "=coerce.toString($activity[SalesforceAccountsQuery].output.Account)"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "ReturnSuccess",
+        "name": "ReturnSuccess"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=coerce.toString($error[coerce.toString($error[SalesforceAccountsQuery])])"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogErrorFromSalesforceAccounts",
+        "name": "LogErrorFromSalesforceAccounts"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "error": "=coerce.toString($error[SalesforceAccountsQuery])"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "ReturnError",
+        "name": "ReturnError"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Tool to query the salesforce accounts object to get customers data",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "handlerDescription": "get all  customers information from the salesforce account object",
+          "handlerName": "GetCustomerInformation",
+          "handlerType": "Tool",
+          "resourceUri": ""
+        },
+        "trigger": "trigger://MCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-salesforce/src/app/Salesforce/activity/query",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/utility",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

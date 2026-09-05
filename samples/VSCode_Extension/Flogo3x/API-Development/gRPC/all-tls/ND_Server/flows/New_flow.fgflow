@@ -1,0 +1,134 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nTWVzc2FnZSI6eyJ4IjoyNjgsInkiOjczfSwiUmV0dXJuIjp7IngiOjQ1OCwieSI6Njl9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to LogMessage",
+        "to": "LogMessage",
+        "type": "label"
+      },
+      {
+        "from": "LogMessage",
+        "id": 2,
+        "label": "LogMessage to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"gRPCTrigger\",\"properties\":{\"params\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[]}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"data\":{\"type\":\"object\",\"properties\":{\"greet\":{\"type\":\"string\"}},\"required\":[]}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "params",
+          "schema": {
+            "type": "json",
+            "value": "{\"name\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "data",
+          "schema": {
+            "type": "json",
+            "value": "{\"greet\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "New_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=$flow.params.name"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "LogMessage",
+        "name": "LogMessage"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "data": {
+                "mapping": {
+                  "greet": "=$flow.params.name"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "params": "=$.params"
+          },
+          "output": {
+            "data": "=$.data"
+          }
+        },
+        "description": "",
+        "reply": {
+          "code": 200
+        },
+        "schemas": {
+          "output": {
+            "params": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[]}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[]}"
+            }
+          },
+          "reply": {
+            "data": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"greet\":{\"type\":\"string\"}},\"required\":[]}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"greet\":{\"type\":\"string\"}},\"required\":[]}"
+            }
+          }
+        },
+        "settings": {
+          "methodName": "SayHello",
+          "serviceName": "Greeting"
+        },
+        "trigger": "trigger://gRPCTrigger.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn"
+  ],
+  "type": "flogo:flow"
+}

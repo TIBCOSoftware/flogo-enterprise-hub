@@ -1,0 +1,217 @@
+{
+  "contrib": "W3siaWQiOiJGaWxlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkZpbGUiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWZpbGVzL3NyYy9hcHAvRmlsZSIsInMzbG9jYXRpb24iOiJUaWJjby9GaWxlIiwidGFnIjoiMy4wLjAtYjAxLXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy4wLjAifV0=",
+  "data": {
+    "description": "Step 2: Reads session state, merges financial profile, writes back. Idempotent.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRBcHBsaWNhdGlvblN0YXRlIjp7IngiOjIwNywieSI6NTd9LCJXcml0ZUZpbmFuY2lhbFByb2ZpbGUiOnsieCI6NDAzLCJ5Ijo1NX0sIlJldHVybiI6eyJ4Ijo2MDEsInkiOjUxfX0=",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to ReadApplicationState",
+        "to": "ReadApplicationState",
+        "type": "label"
+      },
+      {
+        "from": "ReadApplicationState",
+        "id": 2,
+        "label": "ReadApplicationState to WriteFinancialProfile",
+        "to": "WriteFinancialProfile",
+        "type": "label"
+      },
+      {
+        "from": "WriteFinancialProfile",
+        "id": 3,
+        "label": "WriteFinancialProfile to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"application_ref\":{\"type\":\"string\"},\"annual_income_usd\":{\"type\":\"number\"},\"employment_status\":{\"type\":\"string\"},\"employer_name\":{\"type\":\"string\"},\"monthly_expenses_usd\":{\"type\":\"number\"},\"existing_debt_usd\":{\"type\":\"number\"},\"credit_score\":{\"type\":\"number\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+        "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"application_ref\":{\"type\":\"string\"},\"annual_income_usd\":{\"type\":\"number\"},\"employment_status\":{\"type\":\"string\"},\"employer_name\":{\"type\":\"string\"},\"monthly_expenses_usd\":{\"type\":\"number\"},\"existing_debt_usd\":{\"type\":\"number\"},\"credit_score\":{\"type\":\"number\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "object"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "submit_financial_profile_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_\",coerce.toString($flow.arguments.application_ref),\".json\")"
+              }
+            },
+            "readAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/read",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"}},\"required\":[\"fileName\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"},\"fileContent\":{\"properties\":{\"textContent\":{\"type\":\"string\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "Reads existing session state. Replace with DB/cache in production.",
+        "id": "ReadApplicationState",
+        "name": "ReadApplicationState"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "createNonExistingDir": true,
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"session_state_dir\"],\"/session_\",coerce.toString($flow.arguments.application_ref),\".json\")",
+                "overwrite": true,
+                "textContent": "=string.replaceAll(string.replaceAll($activity[ReadApplicationState].output.fileContent.textContent,\"\\\"status\\\":\\\"DRAFT\\\"\",\"\\\"status\\\":\\\"AWAITING_REVIEW\\\"\"),\"\\\"financial_profile_complete\\\":false}\",string.concat(\"\\\"financial_profile_complete\\\":true,\\\"annual_income_usd\\\":\",coerce.toString($flow.arguments.annual_income_usd),\",\\\"employment_status\\\":\\\"\",coerce.toString($flow.arguments.employment_status),\"\\\",\\\"employer_name\\\":\\\"\",coerce.toString($flow.arguments.employer_name),\"\\\",\\\"monthly_expenses_usd\\\":\",coerce.toString($flow.arguments.monthly_expenses_usd),\",\\\"existing_debt_usd\\\":\",coerce.toString($flow.arguments.existing_debt_usd),\",\\\"credit_score\\\":\",coerce.toString($flow.arguments.credit_score),\"}\"))"
+              }
+            },
+            "writeAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/write",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "Writes merged session state (applicant + financial). Replace with DB/cache in production.",
+        "id": "WriteFinancialProfile",
+        "name": "WriteFinancialProfile"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "@conditional": [
+                  {
+                    "$flow.arguments.application_ref != '' \u0026\u0026 coerce.toString($flow.arguments.annual_income_usd) != '' \u0026\u0026 coerce.toString($flow.arguments.credit_score) != ''": {
+                      "data": "=string.concat(\"Financial profile saved | Application Ref: \",$flow.arguments.application_ref,\" | Income: $\",coerce.toString($flow.arguments.annual_income_usd),\" USD/year | Employment: \",$flow.arguments.employment_status,\" | Expenses: $\",coerce.toString($flow.arguments.monthly_expenses_usd),\"/month | Existing Debt: $\",coerce.toString($flow.arguments.existing_debt_usd),\" | Credit Score: \",coerce.toString($flow.arguments.credit_score),\" | Status: AWAITING_REVIEW | Next step: Call review_application with this Application Ref to verify all details before final submission.\")"
+                    }
+                  },
+                  {
+                    "@otherwise": {
+                      "error": "application_ref, annual_income_usd, employment_status, monthly_expenses_usd, existing_debt_usd, and credit_score are required"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "description": "Returns financial profile save confirmation.",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Step 2: Reads session state, merges financial profile, writes back. Idempotent.",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID returned by start_loan_application\"\n    },\n    \"annual_income_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Applicant's gross annual income in USD\"\n    },\n    \"employment_status\": {\n      \"type\": \"string\",\n      \"description\": \"Employment status: EMPLOYED, SELF_EMPLOYED, RETIRED, UNEMPLOYED\"\n    },\n    \"employer_name\": {\n      \"type\": \"string\",\n      \"description\": \"Name of current employer (for EMPLOYED status)\"\n    },\n    \"monthly_expenses_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Applicant's total monthly expenses in USD\"\n    },\n    \"existing_debt_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Total outstanding debt across all existing loans and credit cards in USD\"\n    },\n    \"credit_score\": {\n      \"type\": \"integer\",\n      \"description\": \"Applicant's credit score (300–850)\"\n    }\n  },\n  \"required\": [\"application_ref\", \"annual_income_usd\", \"employment_status\", \"monthly_expenses_usd\", \"existing_debt_usd\", \"credit_score\"],\n  \"additionalProperties\": false\n}",
+              "type": "json",
+              "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"application_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Application reference ID returned by start_loan_application\"\n    },\n    \"annual_income_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Applicant's gross annual income in USD\"\n    },\n    \"employment_status\": {\n      \"type\": \"string\",\n      \"description\": \"Employment status: EMPLOYED, SELF_EMPLOYED, RETIRED, UNEMPLOYED\"\n    },\n    \"employer_name\": {\n      \"type\": \"string\",\n      \"description\": \"Name of current employer (for EMPLOYED status)\"\n    },\n    \"monthly_expenses_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Applicant's total monthly expenses in USD\"\n    },\n    \"existing_debt_usd\": {\n      \"type\": \"number\",\n      \"description\": \"Total outstanding debt across all existing loans and credit cards in USD\"\n    },\n    \"credit_score\": {\n      \"type\": \"integer\",\n      \"description\": \"Applicant's credit score (300–850)\"\n    }\n  },\n  \"required\": [\"application_ref\", \"annual_income_usd\", \"employment_status\", \"monthly_expenses_usd\", \"existing_debt_usd\", \"credit_score\"],\n  \"additionalProperties\": false\n}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Adds the applicant's financial details to the existing loan application session. Requires the application_ref returned by start_loan_application. The server appends this financial data to the session state — the session ID (Mcp-Session-Id) ensures this update is associated with the correct applicant's in-progress application.",
+          "handlerName": "submit_financial_profile",
+          "handlerType": "Tool",
+          "idempotentToolHint": true,
+          "openWorldToolHint": false,
+          "readOnlyToolHint": false,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://LoanApplicationMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-files/src/app/File/activity/read",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

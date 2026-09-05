@@ -1,0 +1,310 @@
+{
+  "contrib": "W3siaWQiOiJBZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwidGFnIjoiMC45LjQtaGYxLWIwMS12My1tYWluIiwidmVyc2lvbiI6IjAuOS40LUhGMSJ9LHsiaWQiOiJGaWxlIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkZpbGUiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWZpbGVzL3NyYy9hcHAvRmlsZSIsInMzbG9jYXRpb24iOiJUaWJjby9GaWxlIiwidGFnIjoiMy4wLjAtYjAxLXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy4wLjAifSx7ImlkIjoiR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2UsIm5hbWUiOiJHZW5lcmFsIiwicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwidGFnIjoiMy42LjE1LWIxNy12My1tYWluIiwidmVyc2lvbiI6IjMuNi4xNSJ9XQ==",
+  "data": {
+    "description": "Timer-triggered flow that fetches sales data via MCP and generates analysis report.",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMwLCJ5IjoxMDh9LCJGZXRjaFNhbGVzRGF0YSI6eyJ4IjoxODAsInkiOjEwMH0sIkFuYWx5emVBbmRSZXBvcnQiOnsieCI6MzgwLCJ5IjoxMDB9LCJGb3JtYXRIVE1MUmVwb3J0Ijp7IngiOjU4MCwieSI6MTAwfSwiU2F2ZVJlcG9ydCI6eyJ4Ijo3ODAsInkiOjEwMH0sIkVtYWlsUmVwb3J0Ijp7IngiOjk4MCwieSI6MTAwfSwiTG9nUmVwb3J0Ijp7IngiOjExODAsInkiOjEwMH19",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to FetchSalesData",
+        "to": "FetchSalesData",
+        "type": "label"
+      },
+      {
+        "from": "FetchSalesData",
+        "id": 2,
+        "label": "FetchSalesData to AnalyzeAndReport",
+        "to": "AnalyzeAndReport",
+        "type": "label"
+      },
+      {
+        "from": "AnalyzeAndReport",
+        "id": 3,
+        "label": "AnalyzeAndReport to FormatHTMLReport",
+        "to": "FormatHTMLReport",
+        "type": "label"
+      },
+      {
+        "from": "FormatHTMLReport",
+        "id": 4,
+        "label": "FormatHTMLReport to SaveReport",
+        "to": "SaveReport",
+        "type": "label"
+      },
+      {
+        "from": "SaveReport",
+        "id": 5,
+        "label": "SaveReport to EmailReport",
+        "to": "EmailReport",
+        "type": "label"
+      },
+      {
+        "from": "EmailReport",
+        "id": 6,
+        "label": "EmailReport to LogReport",
+        "to": "LogReport",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {},
+      "input": [],
+      "output": []
+    },
+    "name": "scheduled_analysis_flow",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "llmConfiguration": {
+              "mapping": {
+                "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                "providerBaseUrl": "",
+                "temparature": 0.2
+              }
+            },
+            "systemPrompt": "=$property[\"LLMClient.dataFetchPrompt\"]",
+            "userPrompt": "Retrieve all available sales data for this week's performance analysis. Call all four data tools: get_weekly_sales_summary, get_team_performance, get_product_revenue, and get_regional_breakdown. Return the combined data."
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+          "schemas": {
+            "input": {
+              "llmConfiguration": {
+                "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                "type": "json",
+                "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+              }
+            }
+          },
+          "settings": {
+            "mcpServers": [
+              "conn://SalesDataMCPServer.fgconn"
+            ],
+            "remoteAgents": [],
+            "responseType": "Text"
+          }
+        },
+        "description": "LLMClient with MCP to fetch all sales data.",
+        "id": "FetchSalesData",
+        "name": "FetchSalesData"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "llmConfiguration": {
+              "mapping": {
+                "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                "providerBaseUrl": "",
+                "temparature": 0.5
+              }
+            },
+            "systemPrompt": "=$property[\"LLMClient.analysisPrompt\"]",
+            "userPrompt": "=string.concat(\"Here is the latest weekly sales data. Generate the Weekly Sales Performance Report.\\n\\nData:\\n\", coerce.toString($activity[FetchSalesData].response))"
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+          "schemas": {
+            "input": {
+              "llmConfiguration": {
+                "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                "type": "json",
+                "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+              }
+            }
+          },
+          "settings": {
+            "mcpServers": [],
+            "remoteAgents": [],
+            "responseType": "Text"
+          }
+        },
+        "description": "LLMClient to analyze sales data and generate report.",
+        "id": "AnalyzeAndReport",
+        "name": "AnalyzeAndReport"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "llmConfiguration": {
+              "mapping": {
+                "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                "providerBaseUrl": "",
+                "temparature": 0.3
+              }
+            },
+            "systemPrompt": "=$property[\"LLMClient.htmlFormatPrompt\"]",
+            "userPrompt": "=string.concat(\"Convert the following sales analysis report into a professional HTML document:\\n\\n\", coerce.toString($activity[AnalyzeAndReport].response))"
+          },
+          "ref": "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+          "schemas": {
+            "input": {
+              "llmConfiguration": {
+                "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                "type": "json",
+                "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temparature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+              }
+            }
+          },
+          "settings": {
+            "mcpServers": [],
+            "remoteAgents": [],
+            "responseType": "Text"
+          }
+        },
+        "description": "LLMClient to convert markdown report into styled HTML document.",
+        "id": "FormatHTMLReport",
+        "name": "FormatHTMLReport"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "compress": "None",
+            "createNonExistingDir": true,
+            "input": {
+              "mapping": {
+                "fileName": "=string.concat($property[\"Report.outputDir\"], \"/weekly-sales-report.html\")",
+                "overwrite": true,
+                "textContent": "=$activity[FormatHTMLReport].response"
+              }
+            },
+            "writeAs": "Text"
+          },
+          "ref": "github.com/tibco/flogo-files/src/app/File/activity/write",
+          "schemas": {
+            "input": {
+              "input": {
+                "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+              }
+            },
+            "output": {
+              "output": {
+                "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                "type": "json",
+                "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+              }
+            }
+          }
+        },
+        "description": "Write HTML report to file system.",
+        "id": "SaveReport",
+        "name": "SaveReport"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Connection Security": "TLS",
+            "Password": "=$property[\"Email.SMTP.Password\"]",
+            "Port": "=$property[\"Email.SMTP.Port\"]",
+            "Server": "=$property[\"Email.SMTP.Server\"]",
+            "Username": "=$property[\"Email.SMTP.Username\"]",
+            "attachments": {
+              "mapping": [
+                {
+                  "base64EncodedContents": false,
+                  "file": "=$activity[FormatHTMLReport].response",
+                  "filename": "weekly-sales-report.html"
+                }
+              ]
+            },
+            "authorizationConn": "",
+            "authorizationType": "Basic",
+            "bcc_recipients": "",
+            "cc_recipients": "",
+            "message": "=$activity[FormatHTMLReport].response",
+            "message_content_type": "text/html",
+            "recipients": "=$property[\"Email.recipients\"]",
+            "reply_to": "",
+            "sender": "=$property[\"Email.sender\"]",
+            "serverCertificate": "",
+            "subject": "Weekly Sales Performance Report"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/sendmail",
+          "schemas": {
+            "input": {
+              "attachments": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}"
+              },
+              "headers": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}"
+              }
+            }
+          }
+        },
+        "description": "Send HTML report via email to stakeholders.",
+        "id": "EmailReport",
+        "name": "EmailReport",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "logLevel": "",
+            "message": "=string.concat(\"[WeeklySalesAnalyzer] Report generated, saved, and emailed. File: \", coerce.toString($activity[SaveReport].output.fileMetadata.fullPath))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Log the generated report.",
+        "id": "LogReport",
+        "name": "LogReport"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {},
+        "description": "Timer-triggered flow that fetches sales data via MCP and generates analysis report.",
+        "settings": {
+          "Cron Expression": "0 0 8 ? * MON",
+          "Delayed Start": false,
+          "Interval Unit": "Week",
+          "Repeating": true,
+          "Scheduler Options": "Cron",
+          "Start Time": "",
+          "Time Interval": 1
+        },
+        "trigger": "trigger://WeeklySchedule.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/tibco/flogo-general/src/app/General/activity/sendmail",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

@@ -1,0 +1,236 @@
+{
+  "contrib": "W3siaWQiOiJWZWN0b3JEQiIsImlzVXNlckV4dGVuc2lvbiI6dHJ1ZSwibmFtZSI6IlZlY3RvckRCIFJBRyBDb25uZWN0b3IiLCJyZWYiOiJnaXRodWIuYyIsInMzbG9jYXRpb24iOiJ7VVNFUklEfS9WZWN0b3JEQiIsInRhZyI6IjEuMC4wIiwidmVyc2lvbiI6IjEuMC4wIn0seyJpZCI6IkdlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlLCJuYW1lIjoiR2VuZXJhbCIsInJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsInRhZyI6IjMuNi4xNS1iMTctdjMtbWFpbiIsInZlcnNpb24iOiIzLjYuMTUifV0=",
+  "data": {
+    "description": "Search open incidents by errorCode and appName within a window",
+    "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkNhbGxTTiI6eyJ4IjoyMjMsInkiOjMyfSwiUmV0dXJuIjp7IngiOjQzOSwieSI6Mzh9fQ==",
+    "links": [
+      {
+        "from": "StartActivity",
+        "id": 1,
+        "label": "StartActivity to CallSN",
+        "to": "CallSN",
+        "type": "label"
+      },
+      {
+        "from": "CallSN",
+        "id": 2,
+        "label": "CallSN to Return",
+        "to": "Return",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"SNMCPServer\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"errorCode\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"window_min\":{\"type\":\"integer\"}},\"required\":[\"errorCode\",\"appName\"]},\"httpHeaders\":{\"type\":\"params\"}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+      },
+      "input": [
+        {
+          "name": "arguments",
+          "schema": {
+            "type": "json",
+            "value": "{\"errorCode\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"window_min\":{\"type\":\"integer\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "httpHeaders",
+          "type": "params"
+        }
+      ],
+      "output": [
+        {
+          "name": "response",
+          "schema": {
+            "type": "json",
+            "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "tool-search-incidents",
+    "tasks": [
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/noop"
+        },
+        "description": "NoOp Activity",
+        "id": "StartActivity",
+        "name": "StartActivity"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Client Certificate": "",
+            "Client Key": "",
+            "Method": "GET",
+            "Server Certificate": "",
+            "Timeout": 0,
+            "Uri": "http://localhost:8081/api/now/table/incident",
+            "Use certificate for verification": false,
+            "asrDialog": "",
+            "authorization": false,
+            "authorizationConn": "",
+            "configureAPISpec": false,
+            "disableKeepAlives": false,
+            "disableSSLVerification": false,
+            "dynamicRequestHeaders": {
+              "mapping": {}
+            },
+            "enableASR": false,
+            "followRedirects": true,
+            "headers": {
+              "mapping": {
+                "Accept": "application/json"
+              }
+            },
+            "host": "",
+            "multipartForm": {},
+            "mutualAuth": false,
+            "proxy": "",
+            "queryParams": {
+              "mapping": {
+                "active": "true",
+                "u_app_name": "=coerce.toString($flow.arguments.appName)",
+                "u_error_code": "=coerce.toString($flow.arguments.errorCode)",
+                "window_min": "=coerce.toString($flow.arguments.window_min)"
+              }
+            },
+            "requestType": "application/json",
+            "resourcePath": "",
+            "serviceName": "",
+            "serviceUrl": "",
+            "swagger": ""
+          },
+          "output": {
+            "configureResponseCodes": false,
+            "responseOutput": "JSON Object",
+            "responseType": "application/json",
+            "throwError": false
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/rest",
+          "schemas": {
+            "input": {
+              "dynamicRequestHeaders": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+              },
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}, {\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "queryParams": {
+                "fe_metadata": "[{\"parameterName\":\"active\",\"type\":\"string\"},{\"parameterName\":\"u_error_code\",\"type\":\"string\"},{\"parameterName\":\"u_app_name\",\"type\":\"string\"},{\"parameterName\":\"window_min\",\"type\":\"string\"}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"active\":{\"type\":\"string\"},\"u_error_code\":{\"type\":\"string\"},\"u_app_name\":{\"type\":\"string\"},\"window_min\":{\"type\":\"string\"}},\"required\":[]}"
+              }
+            },
+            "output": {
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Set-Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Set-Cookie\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "responseBody": {
+                "fe_metadata": "{}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}"
+              }
+            }
+          }
+        },
+        "description": "Call mock ServiceNow to search incidents",
+        "id": "CallSN",
+        "name": "CallSN",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "response": {
+                "mapping": {
+                  "data": {
+                    "@conditional": [
+                      {
+                        "$activity[CallSN].statusCode == 200": "=coerce.toString($activity[CallSN].responseBody)"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "@conditional": [
+                      {
+                        "$activity[CallSN].statusCode != 200": "=coerce.toString($activity[CallSN].responseBody)"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Return tool response",
+        "id": "Return",
+        "name": "Return"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "arguments": "=$.arguments",
+            "httpHeaders": "=$.httpHeaders"
+          },
+          "output": {
+            "response": "=$.response"
+          }
+        },
+        "description": "Search open incidents by errorCode and appName within a window",
+        "schemas": {
+          "output": {
+            "arguments": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"errorCode\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"window_min\":{\"type\":\"integer\"}},\"required\":[\"errorCode\",\"appName\"]}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"errorCode\":{\"type\":\"string\"},\"appName\":{\"type\":\"string\"},\"window_min\":{\"type\":\"integer\"}},\"required\":[\"errorCode\",\"appName\"]}"
+            }
+          },
+          "reply": {
+            "response": {
+              "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+              "type": "json",
+              "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+            }
+          }
+        },
+        "settings": {
+          "destructiveToolHint": false,
+          "handlerDescription": "Search open ServiceNow incidents matching an errorCode and appName within a time window (minutes). Returns a list of candidate incidents with sys_id, short_description, u_error_code, u_app_name, u_app_node, u_process_name, opened_at, u_occurrence_count. Use this to decide NEW vs DUPLICATE_OF.",
+          "handlerName": "search_incidents",
+          "handlerType": "Tool",
+          "idempotentToolHint": false,
+          "openWorldToolHint": true,
+          "readOnlyToolHint": false,
+          "resourceUri": ""
+        },
+        "trigger": "trigger://SNMCPServer.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "type": "flogo:flow"
+}

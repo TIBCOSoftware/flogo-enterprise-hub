@@ -1,0 +1,702 @@
+{
+  "contrib": "W3siaWQiOiJHZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZSwibmFtZSI6IkdlbmVyYWwiLCJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJ0YWciOiIzLjYuMTUtYjE3LXYzLW1haW4iLCJ2ZXJzaW9uIjoiMy42LjE1In1d",
+  "data": {
+    "description": "This flow creates new google tasklist and inserts a task into it. Then it updates the status of the task. Finally deletes the tasklist",
+    "errorHandler": {
+      "fe_metadata": "eyJFcnJvcl9sb2dzIjp7IngiOjI1MCwieSI6MTUwfX0=",
+      "links": [],
+      "tasks": [
+        {
+          "activity": {
+            "input": {
+              "Log Level": "INFO",
+              "flowInfo": false,
+              "message": "=$error.message"
+            },
+            "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+          },
+          "description": "Simple Log Message Activity",
+          "id": "Error_logs",
+          "name": "Error_logs"
+        }
+      ]
+    },
+    "explicitReply": true,
+    "fe_metadata": "eyJQT1NUX3Rhc2tsaXN0Ijp7IngiOjUwLCJ5Ijo1MH0sIlRhc2tMaXN0X2xvZ3MiOnsieCI6MjUwLCJ5Ijo1MH0sIlJldHVybl90YXNrbGlzdCI6eyJ4Ijo0NTAsInkiOjUwfSwiUE9TVF90YXNrIjp7IngiOjQ1MCwieSI6MTUwfSwiUG9zdFRhc2tfbG9ncyI6eyJ4Ijo2NTAsInkiOjE1MH0sIlJldHVybl90YXNrIjp7IngiOjg1MCwieSI6MTUwfSwiUEFUQ0hfdGFzayI6eyJ4Ijo4NTAsInkiOjI1MH0sIkFmdGVyUGF0Y2hfdGFza0xvZ3MiOnsieCI6MTA1MCwieSI6MjUwfSwiUmV0dXJuIjp7IngiOjEyNTAsInkiOjI1MH0sIlRocm93RXJyb3IiOnsieCI6MTA1MCwieSI6MzUwfSwiREVMRVRFX3Rhc2tsaXN0Ijp7IngiOjEwNTAsInkiOjQ1MH0sIkRlbGV0ZV9TdGF0dXMiOnsieCI6MTI1MCwieSI6NDUwfX0=",
+    "links": [
+      {
+        "from": "POST_tasklist",
+        "id": 1,
+        "label": "POST_tasklist to TaskList_logs",
+        "to": "TaskList_logs",
+        "type": "label"
+      },
+      {
+        "from": "TaskList_logs",
+        "id": 2,
+        "label": "TaskList_logs to Return_tasklist",
+        "to": "Return_tasklist",
+        "type": "label"
+      },
+      {
+        "from": "TaskList_logs",
+        "id": 3,
+        "label": "TaskList_logsto",
+        "to": "POST_task",
+        "type": "expression",
+        "value": "$activity[POST_tasklist].statusCode==200"
+      },
+      {
+        "from": "POST_task",
+        "id": 4,
+        "label": "POST_task to PostTask_logs",
+        "to": "PostTask_logs",
+        "type": "label"
+      },
+      {
+        "from": "PostTask_logs",
+        "id": 5,
+        "label": "PostTask_logs to Return_task",
+        "to": "Return_task",
+        "type": "label"
+      },
+      {
+        "from": "PostTask_logs",
+        "id": 6,
+        "label": "PostTask_logstoPATCH_task",
+        "to": "PATCH_task",
+        "type": "expression",
+        "value": "$activity[POST_task].statusCode==200"
+      },
+      {
+        "from": "PATCH_task",
+        "id": 7,
+        "label": "PATCH_task to AfterPatch_taskLogs",
+        "to": "AfterPatch_taskLogs",
+        "type": "label"
+      },
+      {
+        "from": "AfterPatch_taskLogs",
+        "id": 8,
+        "label": "AfterPatch_taskLogs to Return",
+        "to": "Return",
+        "type": "label"
+      },
+      {
+        "from": "PATCH_task",
+        "id": 9,
+        "label": "PATCH_tasktoDELETE_tasklist",
+        "to": "ThrowError",
+        "type": "error"
+      },
+      {
+        "from": "PATCH_task",
+        "id": 10,
+        "label": "PATCH_task to DELETE_tasklist",
+        "to": "DELETE_tasklist",
+        "type": "label"
+      },
+      {
+        "from": "DELETE_tasklist",
+        "id": 11,
+        "label": "DELETE_tasklist to Delete_Status",
+        "to": "Delete_Status",
+        "type": "label"
+      }
+    ],
+    "metadata": {
+      "fe_metadata": {
+        "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"queryParams\":{\"type\":\"object\",\"properties\":{\"tasklist_path\":{\"type\":\"string\"}},\"required\":[]},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+        "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\",\"required\":false},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}},\"required\":[]}"
+      },
+      "input": [
+        {
+          "name": "queryParams",
+          "schema": {
+            "type": "json",
+            "value": "{\"tasklist_path\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "headers",
+          "schema": {
+            "type": "json",
+            "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+          },
+          "type": "object"
+        },
+        {
+          "name": "requestURI",
+          "type": "string"
+        },
+        {
+          "name": "method",
+          "type": "string"
+        }
+      ],
+      "output": [
+        {
+          "name": "code",
+          "type": "integer"
+        },
+        {
+          "name": "data",
+          "schema": {
+            "type": "json",
+            "value": "{\"output\":{\"type\":\"string\"}}"
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "name": "google_tasks",
+    "tasks": [
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Client Certificate": "",
+            "Client Key": "",
+            "Method": "POST",
+            "Server Certificate": "",
+            "Timeout": 0,
+            "Uri": "https://www.googleapis.com/tasks/v1/{path}",
+            "Use certificate for verification": false,
+            "authorization": true,
+            "authorizationConn": "conn://google-tasks.fgconn",
+            "body": {
+              "mapping": {
+                "title": "Sample tasklist"
+              }
+            },
+            "configureAPISpec": false,
+            "disableKeepAlives": false,
+            "disableSSLVerification": false,
+            "enableASR": false,
+            "followRedirects": true,
+            "headers": {
+              "mapping": {
+                "Content-Type": "application/json; charset=UTF-8"
+              }
+            },
+            "host": "",
+            "mutualAuth": false,
+            "pathParams": {
+              "mapping": {
+                "path": "=$flow.queryParams.tasklist_path"
+              }
+            },
+            "proxy": "",
+            "requestType": "application/json",
+            "resourcePath": "",
+            "serviceName": "",
+            "swagger": ""
+          },
+          "output": {
+            "configureResponseCodes": false,
+            "responseOutput": "JSON Object",
+            "responseType": "application/json",
+            "throwError": false
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/rest",
+          "schemas": {
+            "input": {
+              "body": {
+                "fe_metadata": "{\n  \"kind\": \"string\",\n  \"id\": \"string\",\n  \"etag\": \"string\",\n  \"title\": \"string\",\n  \"updated\": \"string\",\n  \"selfLink\": \"string\"\n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}}}"
+              },
+              "dynamicRequestHeaders": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+              },
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "pathParams": {
+                "fe_metadata": "[{\"parameterName\":\"path\",\"type\":\"string\"}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}},\"required\":[]}"
+              }
+            },
+            "output": {
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "responseBody": {
+                "fe_metadata": "{\n   \"kind\":\"tasks#taskList\",\n   \"id\":\"bzJnSjBTNDNGV0pqNHNzZQ\",\n   \"etag\":\"\\\"LTI5OTAzNzI0Nw\\\"\",\n   \"title\":\"custom\",\n   \"updated\":\"datetime\",\n   \"selfLink\":\"url\"\n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"}}}"
+              }
+            }
+          }
+        },
+        "description": "Simple REST Activity",
+        "id": "POST_tasklist",
+        "name": "POST_tasklist",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "message": "=string.concat(\"Tasklist created '\", $activity[POST_tasklist].responseBody.title, \"' with id '\",$activity[POST_tasklist].responseBody.id,\"'\")"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "TaskList_logs",
+        "name": "TaskList_logs"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "data": {
+                "mapping": {
+                  "output": "=$activity[POST_tasklist].responseBody.id"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return_tasklist",
+        "name": "Return_tasklist"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Method": "POST",
+            "Server Certificate": "",
+            "Timeout": 0,
+            "Uri": "https://www.googleapis.com/tasks/v1/lists/{tasklist}/tasks",
+            "Use certificate for verification": false,
+            "authorization": true,
+            "authorizationConn": "conn://google-tasks.fgconn",
+            "body": {
+              "mapping": {
+                "status": "needsAction",
+                "title": "Sample task"
+              }
+            },
+            "configureAPISpec": false,
+            "disableKeepAlives": false,
+            "disableSSLVerification": false,
+            "enableASR": false,
+            "followRedirects": true,
+            "host": "",
+            "mutualAuth": false,
+            "pathParams": {
+              "mapping": {
+                "tasklist": "=$activity[POST_tasklist].responseBody.id"
+              }
+            },
+            "proxy": "",
+            "requestType": "application/json",
+            "resourcePath": "",
+            "serviceName": "",
+            "swagger": ""
+          },
+          "output": {
+            "configureResponseCodes": false,
+            "responseOutput": "JSON Object",
+            "responseType": "application/json",
+            "throwError": false
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/rest",
+          "schemas": {
+            "input": {
+              "body": {
+                "fe_metadata": "{\n  \"kind\": \"tasks#task\",\n  \"id\": \"bno3cWZPeXBYaDBFcGN1WQ\",\n  \"etag\": \"\\\"MTI4NzQ1MTc0Mg\\\"\",\n  \"title\": \"mytask21\",\n  \"updated\": \"2021-01-29T06:03:07.000Z\",\n  \"selfLink\": \"https://www.googleapis.com/tasks/v1/lists/cmx4akNxS3M4Z0tFR1lLNA/tasks/bno3cWZPeXBYaDBFcGN1WQ\",\n  \"position\": \"00000000000000000000\",\n  \"status\": \"needsAction\"\n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"},\"position\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}"
+              },
+              "dynamicRequestHeaders": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+              },
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "pathParams": {
+                "fe_metadata": "[{\"parameterName\":\"tasklist\",\"type\":\"string\"}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"tasklist\":{\"type\":\"string\"}},\"required\":[]}"
+              }
+            },
+            "output": {
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "responseBody": {
+                "fe_metadata": "{\n \"kind\": \"tasks#task\",\n \"id\": \"d3VOb19wTXFpN0lNbHA2Qw\",\n \"etag\": \"\\\"LTI1MDkzOTc3Mw\\\"\",\n \"title\": \"\",\n \"updated\": \"2020-03-19T04:26:32.000Z\",\n \"selfLink\": \"https://www.googleapis.com/tasks/v1/lists/eXUxWHNFdDhrQ1AycXl3NA/tasks/d3VOb19wTXFpN0lNbHA2Qw\",\n \"position\": \"00000000000000000000\",\n \"status\": \"needsAction\"\n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"},\"position\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}"
+              }
+            }
+          }
+        },
+        "description": "Simple REST Activity",
+        "id": "POST_task",
+        "name": "POST_task",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "message": "=string.concat(\"Task created '\", $activity[POST_task].responseBody.title, \"' and Status is \", $activity[POST_task].responseBody.status)"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "PostTask_logs",
+        "name": "PostTask_logs"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "code": "=$activity[POST_task].statusCode",
+              "data": {
+                "mapping": {
+                  "output": "=string.tostring($activity[POST_task].responseBody)"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return_task",
+        "name": "Return_task"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Method": "PATCH",
+            "Server Certificate": "",
+            "Timeout": 0,
+            "Uri": "https://www.googleapis.com/tasks/v1/lists/{tasklist}/tasks/{task}",
+            "Use certificate for verification": false,
+            "authorization": true,
+            "authorizationConn": "conn://google-tasks.fgconn",
+            "body": {
+              "mapping": {
+                "status": "completed"
+              }
+            },
+            "configureAPISpec": false,
+            "disableKeepAlives": false,
+            "disableSSLVerification": false,
+            "enableASR": false,
+            "followRedirects": true,
+            "host": "",
+            "mutualAuth": false,
+            "pathParams": {
+              "mapping": {
+                "task": "=$activity[POST_task].responseBody.id",
+                "tasklist": "=$activity[POST_tasklist].responseBody.id"
+              }
+            },
+            "proxy": "",
+            "requestType": "application/json",
+            "resourcePath": "",
+            "serviceName": "",
+            "swagger": ""
+          },
+          "output": {
+            "configureResponseCodes": false,
+            "responseOutput": "JSON Object",
+            "responseType": "application/json",
+            "throwError": false
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/rest",
+          "schemas": {
+            "input": {
+              "body": {
+                "fe_metadata": "{\n  \"title\": \"\",\n \"status\": \"\"\n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}"
+              },
+              "dynamicRequestHeaders": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+              },
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "pathParams": {
+                "fe_metadata": "[{\"parameterName\":\"tasklist\",\"type\":\"string\"},{\"parameterName\":\"task\",\"type\":\"string\"}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"tasklist\":{\"type\":\"string\"},\"task\":{\"type\":\"string\"}},\"required\":[]}"
+              }
+            },
+            "output": {
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "responseBody": {
+                "fe_metadata": "{\n \"kind\": \"tasks#task\",\n \"id\": \"d3VOb19wTXFpN0lNbHA2Qw\",\n \"etag\": \"\\\"LTI1MDkzOTc3Mw\\\"\",\n \"title\": \"\",\n \"updated\": \"2020-03-19T04:26:32.000Z\",\n \"selfLink\": \"https://www.googleapis.com/tasks/v1/lists/eXUxWHNFdDhrQ1AycXl3NA/tasks/d3VOb19wTXFpN0lNbHA2Qw\",\n \"position\": \"00000000000000000000\",\n \"status\": \"needsAction\"\n}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\"},\"id\":{\"type\":\"string\"},\"etag\":{\"type\":\"string\"},\"title\":{\"type\":\"string\"},\"updated\":{\"type\":\"string\"},\"selfLink\":{\"type\":\"string\"},\"position\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}}}"
+              },
+              "responseCodesSchema": {
+                "fe_metadata": "[{\"code\":\"200\",\"responseType\":\"object\",\"responseSchema\":\"{\\n \\\"kind\\\": \\\"tasks#task\\\",\\n \\\"id\\\": \\\"d3VOb19wTXFpN0lNbHA2Qw\\\",\\n \\\"etag\\\": \\\"\\\\\\\"LTI1MDkzOTc3Mw\\\\\\\"\\\",\\n \\\"title\\\": \\\"\\\",\\n \\\"updated\\\": \\\"2020-03-19T04:26:32.000Z\\\",\\n \\\"selfLink\\\": \\\"https://www.googleapis.com/tasks/v1/lists/eXUxWHNFdDhrQ1AycXl3NA/tasks/d3VOb19wTXFpN0lNbHA2Qw\\\",\\n \\\"position\\\": \\\"00000000000000000000\\\",\\n \\\"status\\\": \\\"needsAction\\\"\\n}\"},{\"code\":\"400\",\"responseType\":\"string\",\"responseSchema\":\"\"}]",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"code\":{\"type\":\"string\"},\"responseType\":{\"type\":\"string\"},\"responseSchema\":{\"type\":\"string\"}},\"required\":[\"code\",\"responseType\",\"responseSchema\"]}}"
+              }
+            }
+          }
+        },
+        "description": "Simple REST Activity",
+        "id": "PATCH_task",
+        "name": "PATCH_task",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "message": "=string.concat($activity[PATCH_task].responseBody.title, \" is updated with '\", $activity[PATCH_task].responseBody.status,\"' status\")"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "AfterPatch_taskLogs",
+        "name": "AfterPatch_taskLogs"
+      },
+      {
+        "activity": {
+          "ref": "github.com/project-flogo/contrib/activity/actreturn",
+          "settings": {
+            "mappings": {
+              "data": {
+                "mapping": {
+                  "output": "=string.concat(\"Flow execution completed. Tasklist '\", $activity[POST_tasklist].responseBody.id, \"' has been deleted.\")"
+                }
+              }
+            }
+          }
+        },
+        "description": "Simple Return Activity",
+        "id": "Return",
+        "name": "Return"
+      },
+      {
+        "activity": {
+          "input": {
+            "message": "Something went wrong. Please check your app configuration."
+          },
+          "ref": "github.com/project-flogo/contrib/activity/error"
+        },
+        "description": "Throws an Error",
+        "id": "ThrowError",
+        "name": "ThrowError"
+      },
+      {
+        "activity": {
+          "feSchemaMap": {},
+          "input": {
+            "Method": "DELETE",
+            "Server Certificate": "",
+            "Timeout": 0,
+            "Uri": "https://www.googleapis.com/tasks/v1/{path}/{tasklist}",
+            "Use certificate for verification": false,
+            "authorization": true,
+            "authorizationConn": "conn://google-tasks.fgconn",
+            "configureAPISpec": false,
+            "disableKeepAlives": false,
+            "disableSSLVerification": false,
+            "enableASR": false,
+            "followRedirects": true,
+            "host": "",
+            "mutualAuth": false,
+            "pathParams": {
+              "mapping": {
+                "path": "=$flow.queryParams.tasklist_path",
+                "tasklist": "=$activity[POST_tasklist].responseBody.id"
+              }
+            },
+            "proxy": "",
+            "requestType": "application/json",
+            "resourcePath": "",
+            "serviceName": "",
+            "swagger": ""
+          },
+          "output": {
+            "configureResponseCodes": false,
+            "responseOutput": "JSON Object",
+            "responseType": "other",
+            "throwError": false
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/rest",
+          "schemas": {
+            "input": {
+              "dynamicRequestHeaders": {
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"Header\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+              },
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "pathParams": {
+                "fe_metadata": "[{\"parameterName\":\"path\",\"type\":\"string\"},{\"parameterName\":\"tasklist\",\"type\":\"string\"}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"tasklist\":{\"type\":\"string\"}},\"required\":[]}"
+              }
+            },
+            "output": {
+              "headers": {
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              },
+              "responseBody": {
+                "fe_metadata": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  },\n  \"type\": \"object\"\n}",
+                "type": "json",
+                "value": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  },\n  \"type\": \"object\"\n}"
+              }
+            }
+          }
+        },
+        "description": "Simple REST Activity",
+        "id": "DELETE_tasklist",
+        "name": "DELETE_tasklist",
+        "settings": {
+          "retryOnError": {
+            "count": 0,
+            "interval": 0
+          }
+        }
+      },
+      {
+        "activity": {
+          "input": {
+            "Log Level": "INFO",
+            "flowInfo": false,
+            "message": "=string.concat(\"Delete Status Code: \", string.tostring($activity[DELETE_tasklist].statusCode))"
+          },
+          "ref": "github.com/tibco/flogo-general/src/app/General/activity/log"
+        },
+        "description": "Simple Log Message Activity",
+        "id": "Delete_Status",
+        "name": "Delete_Status"
+      }
+    ],
+    "triggerHandlers": [
+      {
+        "action": {
+          "input": {
+            "headers": "=$.headers",
+            "queryParams": {
+              "mapping": {
+                "tasklist_path": "=$.queryParams.tasklist_path"
+              }
+            }
+          },
+          "output": {
+            "data": {
+              "mapping": {
+                "output": "=$.data.output"
+              }
+            }
+          }
+        },
+        "description": "This flow creates new google tasklist and inserts a task into it. Then it updates the status of the task. Finally deletes the tasklist",
+        "reply": {
+          "code": 200,
+          "configureResponseCodes": false,
+          "message": {}
+        },
+        "schemas": {
+          "output": {
+            "body": {
+              "fe_metadata": "{\n    \"title\":\"\"\n}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"}}}"
+            },
+            "headers": {
+              "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+            },
+            "queryParams": {
+              "fe_metadata": "[{\"parameterName\":\"tasklist_path\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"tasklist_path\":{\"type\":\"string\"}},\"required\":[]}"
+            }
+          },
+          "reply": {
+            "data": {
+              "fe_metadata": "{\"output\":\"\"}",
+              "type": "json",
+              "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"output\":{\"type\":\"string\"}}}"
+            },
+            "responseBody": {
+              "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+              "type": "json",
+              "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+            }
+          }
+        },
+        "settings": {
+          "Method": "GET",
+          "OutputValidation": false,
+          "Path": "/tasks",
+          "reqType": "application/json"
+        },
+        "trigger": "trigger://ReceiveHTTPMessage.fgtrigger"
+      }
+    ]
+  },
+  "imports": [
+    "github.com/tibco/flogo-general/src/app/General/activity/rest",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/activity/error",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "type": "flogo:flow"
+}
