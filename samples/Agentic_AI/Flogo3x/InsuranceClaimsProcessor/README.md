@@ -146,7 +146,7 @@ Unlike the AI Agent Activity (which requires a pre-configured LLM Provider Conne
         "apiKey": "=$property[\"LLMClient.openai.API_Key\"]",
         "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
         "providerBaseUrl": "",
-        "temparature": 0.3
+        "temperature": 0.3
       }
     }
   }
