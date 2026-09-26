@@ -26,6 +26,7 @@ Build, orchestrate, and govern AI agents inside Flogo integration flows using th
 | [Dynamic Semantic Tool Selection at Scale](./Agentic_AI/DynamicSemanticToolSelectionAtScale/) | IT Operations & Service Management | Two-step tool selection across a large tool set (`filteredToolNames`) |
 | [Scheduled Reasoning Agent](./Agentic_AI/ScheduledReasoningAgent/) | Cross-Industry / Workplace Productivity | Timer-driven pipeline: fetch → analyze → HTML report → email, unattended |
 | [Morning Briefing](./Agentic_AI/morning-briefing/) | Cross-Industry / Workplace Productivity | Aggregate Slack / email / calendar / reminders into a prioritized AI briefing |
+| [Drug Safety Intake Advisor](./Agentic_AI/LLMClient-Dynamic-Auth/) | Pharmaceutical & Life Sciences | LLM Client with **authenticated** MCP + A2A backends — provider, URLs and bearer tokens all injected at runtime |
 
 ---
 

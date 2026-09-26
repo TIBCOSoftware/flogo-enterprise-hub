@@ -96,6 +96,12 @@ Samples grouped by **industry vertical**, plus a browser chat client for testing
 |---|---|---|---|---|
 | 13 | [Apartment Finder Agent](./Apartment-Finder-Agent/) | Conversational apartment search that ends in a booked, emailed tour | **AI Agent Activity** · Memory Conversation Store · **Flogo MCP Server** (8 tools) · Send Mail write tool · `#mapper` `@conditional` lookup · prompt-level scope guardrails · WebSocket trigger | WebSocket |
 
+### Pharmaceutical & Life Sciences
+
+| # | Sample | Use Case | Flogo Features Used | Interface |
+|---|---|---|---|---|
+| 14 | [Drug Safety Intake Advisor](./LLMClient-Dynamic-Auth/) | Pharmacovigilance SUSAR triage that ends in a filed E2B(R3) expedited report | **LLM Client Activity** · dynamic `llmConfiguration` (no LLM connection resource) · **authenticated** `mcpServerConfigs` (`authType: Token`) · **authenticated** `a2aServerConfigs` (`authType: Static Token`) · MCP Server (`API Key` + per-tool `scope`) · A2A Server (`agentAuthMode: Static Token`) · Memory Conversation Store · WebSocket trigger | WebSocket |
+
 ### Utility
 
 | Tool | Purpose |
@@ -121,6 +127,7 @@ New to the Agentic AI Connector? This path moves from the simplest building bloc
 11. **[BeautyCo Retail Intelligence](./demo_retail/)** — turn Flogo into an **MCP tool server** that external AI clients (e.g. Claude Desktop) can call.
 12. **[Mortgage AI Processor](./mortgagedemo/)** — apply the MCP-server pattern to autonomous, auditable decisioning.
 13. **[Apartment Finder Agent](./Apartment-Finder-Agent/)** — put both halves together: an AI Agent Activity chats over your own MCP tool server, and one of those tools sends real email.
+14. **[Drug Safety Intake Advisor](./LLMClient-Dynamic-Auth/)** — revisit the LLM Client with **bearer-token authentication** on both hops, and matching auth on the MCP and A2A servers it calls.
 
 ---
 
@@ -165,11 +172,14 @@ A workflow that aggregates data from four sources (Slack, email, calendar, remin
 ### 13. [Apartment Finder Agent](./Apartment-Finder-Agent/) — *Real Estate & Property Management*
 A renter describes what they want in plain English and an **AI Agent Activity** chains eight tools on a **Flogo MCP Server** to answer it — resolving a place name to zip codes, shortlisting communities, then fanning out to rent, amenities, proximity and trailing-12-month crime data before ranking the options. The eighth tool, `schedule_visit`, **sends real email**: a `#mapper` `@conditional` step resolves the chosen `community_id` to its leasing office server-side, so the LLM can never redirect the confirmation, and `#sendmail` delivers it to the renter and the office at once. Prompt-level guardrails pin the agent to Texas apartment search and roll "Houston" up to its serviced suburbs.
 
+### 14. [Drug Safety Intake Advisor](./LLMClient-Dynamic-Auth/) — *Pharmaceutical & Life Sciences*
+The authenticated counterpart to the IT Help Desk Advisor: nothing is configured through a connection resource, and **both backends require a bearer token**. A drug safety associate reports an adverse event over WebSocket and one **LLM Client Activity** triages it against ICH E2A — reading product labeling and prior case history from a token-protected **MCP Server** (`authType: Token` on the client, `API Key` on the server, per-tool `scope` values ready for a JWT upgrade), then opening the ICSR and filing the E2B(R3) expedited report through a token-protected **A2A Server** (`Static Token` on both sides). Provider, model, API key, both URLs and both tokens all resolve from App Properties, so rotating a credential or moving to an on-premises model never touches a flow. A Memory Conversation Store keyed on `caseId` carries one case across turns.
+
 ---
 
 ## Prerequisites
 
-- **TIBCO Flogo® 2.26.4 or later** (2.26.5+ for the [IT Help Desk Advisor](./LLMClient-Dynamic-Config-And-Memory/) memory / dynamic-config sample). See the [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm).
+- **TIBCO Flogo® 2.26.4 or later** (2.26.5+ for the [IT Help Desk Advisor](./LLMClient-Dynamic-Config-And-Memory/) and [Drug Safety Intake Advisor](./LLMClient-Dynamic-Auth/) memory / dynamic-config samples). See the [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm).
 - An API key for your chosen LLM provider (OpenAI, Gemini, or Anthropic).
 - A WebSocket client for testing: [Flogo Chatbot](./Chatbot/) (included — see below) or [websocat](https://github.com/vi/websocat).
 - Some samples have extra prerequisites (PostgreSQL, Docker, Claude Desktop) — see each sample's README.

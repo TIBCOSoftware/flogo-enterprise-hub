@@ -1,0 +1,529 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider"
+  ],
+  "name": "RegulatoryReportingA2A",
+  "description": "Token authenticated A2A server that creates safety cases and files expedited reports",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Regulatory reporting A2A server on port 9222 with static token authentication",
+      "settings": {
+        "llmProviderConnection": "conn://pv2a1111-2222-3333-4444-555566667777",
+        "agentName": "=$property[\"Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"Trigger_Settings.AgentDescription\"]",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"A2A.port\"]",
+        "agentUrl": "=$property[\"A2A.AgentUrl\"]",
+        "agentAuthMode": "=$property[\"A2A.AuthMode\"]",
+        "agentToken": "=$property[\"A2A.AuthToken\"]",
+        "model": "=$property[\"Trigger_Settings.LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "=$property[\"Trigger_Settings.LLM_temperature\"]",
+        "enableGuardrails": false,
+        "rateLimit": "=$property[\"Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": true,
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 20,
+        "systemPrompt": "You are a regulatory reporting agent for a pharmaceutical sponsor's Global Drug Safety function, exposed over the A2A protocol.\n\nYou are called by safety intake agents once a case has been triaged and needs to be recorded in the safety database or filed with a health authority. Every caller is authenticated with a static bearer token before reaching you — treat an authenticated call as authorisation to write.\n\n## Your Tools\n\n- **create_safety_case**: Open a new Individual Case Safety Report (ICSR) in the safety database. Returns the case number, the SUSAR determination, and the regulatory reporting clock.\n- **submit_expedited_report**: File an E2B(R3) expedited report for an existing case to a named health authority (FDA or EMA). Returns the submission identifier and the acknowledgement code.\n- **get_case_status**: Look up the current workflow status, reporting clock, and submission history of an existing case.\n\n## Behavior Guidelines\n\n- Never invent a case number. Only reference case numbers returned by create_safety_case or supplied by the caller.\n- Do not call submit_expedited_report unless the case has already been created and the caller has confirmed that an expedited submission is required.\n- Always state the regulatory clock (7-day or 15-day) and the due date in your reply so the caller can relay it.\n- Report the SUSAR determination explicitly: a case is a SUSAR only when it is serious, unexpected against the Reference Safety Information, and has at least a reasonable possibility of causal relationship.\n- Keep replies concise and factual — the caller is another agent, not a person."
+      },
+      "id": "RegulatoryReportingA2AServer",
+      "handlers": [
+        {
+          "description": "Creates a new safety case with mock data",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "create_safety_case",
+            "agentToolDescription": "Create a new safety case from a triaged adverse event. Accepts the product code, reaction term, seriousness, expectedness, causality, a de identified subject reference and the case narrative. Returns the case number, the SUSAR decision and the reporting due date.",
+            "agentSkillTags": "create_safety_case,icsr,adverse event,pharmacovigilance,case intake,susar",
+            "agentSkillExamples": "Open an ICSR for IMP-4471, hepatic failure, serious due to hospitalisation, unexpected, probable causality.|Create a safety case for subject VEL-301-0442 reporting acute hepatitis on Velcaridine.|Record a non-serious injection site reaction for IMP-4471.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:create_safety_case_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\"},\"reaction_term\":{\"type\":\"string\"},\"seriousness\":{\"type\":\"string\"},\"expectedness\":{\"type\":\"string\"},\"causality\":{\"type\":\"string\"},\"patient_reference\":{\"type\":\"string\"},\"narrative\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"product_code\":\"IMP-4471\",\"reaction_term\":\"Hepatic failure\",\"seriousness\":\"Serious - Hospitalisation\",\"expectedness\":\"UNEXPECTED\",\"causality\":\"Probable\",\"patient_reference\":\"VEL-301-0442\",\"narrative\":\"Subject presented with jaundice and ALT 14x ULN on day 63 of treatment; admitted for observation.\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "create_safety_case_flow"
+        },
+        {
+          "description": "Files an expedited report with mock data",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "submit_expedited_report",
+            "agentToolDescription": "File an expedited report for an existing safety case to a health authority such as FDA or EMA. Returns the submission id, the acknowledgement code, the timestamp and the time left on the reporting clock. Only call this for a case that already exists and needs expedited reporting.",
+            "agentSkillTags": "submit_expedited_report,e2b,susar,expedited reporting,fda,ema,regulatory submission",
+            "agentSkillExamples": "Submit the expedited report for ICSR-2026-01588 to the FDA.|File case ICSR-2026-01588 with EMA EudraVigilance.|Transmit the 15-day report for this SUSAR to both agencies.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:submit_expedited_report_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"case_number\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"case_number\":\"ICSR-2026-01588\",\"destination\":\"FDA\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "submit_expedited_report_flow"
+        },
+        {
+          "description": "Returns mock safety case status",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "get_case_status",
+            "agentToolDescription": "Look up the current status of a safety case by case number. Returns the case state, the medical reviewer, the reporting due date, the submission history and any open follow up requests.",
+            "agentSkillTags": "get_case_status,icsr,case tracking,regulatory clock,follow-up",
+            "agentSkillExamples": "What is the status of ICSR-2026-01588?|Has case ICSR-2026-01588 been submitted to EMA yet?|How many days are left on the reporting clock for ICSR-2026-01588?",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_case_status_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"case_number\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"case_number\":\"ICSR-2026-01588\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "get_case_status_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:create_safety_case_flow",
+      "data": {
+        "name": "create_safety_case_flow",
+        "description": "Creates a new safety case with mock data",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"case_number\":\"ICSR-2026-01588\",\"case_version\":1,\"status\":\"Open - Awaiting medical review\",\"product_code\":\"IMP-4471\",\"inn\":\"Velcaridine\",\"protocol_id\":\"VEL-301\",\"patient_reference\":\"VEL-301-0442\",\"reaction_term\":\"Hepatic failure\",\"meddra_soc\":\"Hepatobiliary disorders\",\"seriousness\":\"Serious - Hospitalisation\",\"expectedness\":\"UNEXPECTED\",\"causality_sponsor\":\"Probable\",\"susar\":true,\"susar_rationale\":\"Serious plus unexpected against Investigator's Brochure v6.0 plus a reasonable possibility of causal relationship.\",\"receipt_date\":\"2026-09-25\",\"clock_start_date\":\"2026-09-25\",\"reporting_clock\":\"15 calendar days\",\"submission_due_date\":\"2026-10-10\",\"assigned_to\":\"Dr. Priya Raman - Medical Safety Physician\",\"signal_team_notified\":true,\"signal_reference\":\"SIG-2026-0033 (Hepatic events, IMP-4471)\",\"blinding_status\":\"Unblinding requested for regulatory submission\",\"next_action\":\"Medical review then expedited submission to FDA and EMA before 2026-10-10.\",\"message\":\"Case ICSR-2026-01588 created and classified as a SUSAR. The 15-day regulatory clock started on 2026-09-25 and expires on 2026-10-10. The hepatology signal team has been notified under SIG-2026-0033.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_code\":{\"type\":\"string\"},\"reaction_term\":{\"type\":\"string\"},\"seriousness\":{\"type\":\"string\"},\"expectedness\":{\"type\":\"string\"},\"causality\":{\"type\":\"string\"},\"patient_reference\":{\"type\":\"string\"},\"narrative\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"RegulatoryReportingA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\"},\"reaction_term\":{\"type\":\"string\"},\"seriousness\":{\"type\":\"string\"},\"expectedness\":{\"type\":\"string\"},\"causality\":{\"type\":\"string\"},\"patient_reference\":{\"type\":\"string\"},\"narrative\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:submit_expedited_report_flow",
+      "data": {
+        "name": "submit_expedited_report_flow",
+        "description": "Files an expedited report with mock data",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"case_number\":\"ICSR-2026-01588\",\"case_version\":1,\"submission_id\":\"SUB-2026-FDA-004417\",\"destination\":\"FDA FAERS Electronic Submissions Gateway\",\"standard\":\"ICH E2B(R3)\",\"message_type\":\"ichicsr - initial expedited report\",\"transmitted_at\":\"2026-09-25T16:42:11Z\",\"acknowledgement\":{\"ack_code\":\"AA\",\"ack_meaning\":\"Application acknowledgement accepted - message loaded successfully\",\"received_at\":\"2026-09-25T16:43:05Z\",\"authority_case_id\":\"FAERS-29104778\"},\"reporting_clock\":\"15 calendar days\",\"submission_due_date\":\"2026-10-10\",\"days_remaining_at_submission\":15,\"compliance_status\":\"On time\",\"distribution\":[{\"recipient\":\"FDA FAERS\",\"status\":\"Accepted\",\"authority_case_id\":\"FAERS-29104778\"},{\"recipient\":\"EMA EudraVigilance\",\"status\":\"Queued - next gateway window 2026-09-25T18:00:00Z\"},{\"recipient\":\"Investigator sites and IRB/IEC\",\"status\":\"Safety letter scheduled\"}],\"audit\":\"Submission recorded in the 21 CFR Part 11 audit trail under user svc-pv-gateway.\",\"message\":\"Expedited E2B(R3) report for ICSR-2026-01588 accepted by FDA (ack AA, authority case FAERS-29104778). EudraVigilance transmission is queued for the next gateway window. Submitted 15 days ahead of the 2026-10-10 deadline.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"case_number\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"RegulatoryReportingA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"case_number\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_case_status_flow",
+      "data": {
+        "name": "get_case_status_flow",
+        "description": "Returns mock safety case status",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"case_number\":\"ICSR-2026-01588\",\"case_version\":1,\"status\":\"Submitted - Awaiting follow-up information\",\"product_code\":\"IMP-4471\",\"protocol_id\":\"VEL-301\",\"reaction_term\":\"Hepatic failure\",\"seriousness\":\"Serious - Hospitalisation\",\"expectedness\":\"UNEXPECTED\",\"causality_sponsor\":\"Probable\",\"susar\":true,\"owner\":\"Dr. Priya Raman - Medical Safety Physician\",\"receipt_date\":\"2026-09-25\",\"reporting_clock\":\"15 calendar days\",\"submission_due_date\":\"2026-10-10\",\"days_remaining\":15,\"submissions\":[{\"destination\":\"FDA FAERS\",\"submission_id\":\"SUB-2026-FDA-004417\",\"transmitted_at\":\"2026-09-25T16:42:11Z\",\"ack_code\":\"AA\",\"status\":\"Accepted\"},{\"destination\":\"EMA EudraVigilance\",\"submission_id\":\"SUB-2026-EMA-004418\",\"transmitted_at\":\"2026-09-25T18:00:04Z\",\"ack_code\":\"AA\",\"status\":\"Accepted\"}],\"outstanding_follow_up\":[{\"item\":\"Liver function test panel days 60-70\",\"requested_from\":\"Site 0044 - Universitatsklinikum Munchen\",\"due\":\"2026-10-02\"},{\"item\":\"Concomitant medication list including paracetamol exposure\",\"requested_from\":\"Site 0044 - Universitatsklinikum Munchen\",\"due\":\"2026-10-02\"},{\"item\":\"Hepatitis serology and imaging to exclude alternative aetiology\",\"requested_from\":\"Site 0044 - Universitatsklinikum Munchen\",\"due\":\"2026-10-05\"}],\"signal_reference\":\"SIG-2026-0033 (Hepatic events, IMP-4471)\",\"dsur_impact\":\"Case will be included in the VEL-301 Development Safety Update Report due 2026-12-31.\",\"last_updated\":\"2026-09-25T18:05:00Z\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"case_number\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"RegulatoryReportingA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"case_number\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.openai.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.openai.API_Key",
+      "type": "string",
+      "value": "sk-REPLACE-WITH-YOUR-OPENAI-KEY"
+    },
+    {
+      "name": "AgenticAI.openai.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "RegulatoryReportingAgent"
+    },
+    {
+      "name": "Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "Regulatory reporting agent. Creates safety cases and files expedited reports to health authorities over A2A. Requires a static bearer token."
+    },
+    {
+      "name": "Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-5-nano"
+    },
+    {
+      "name": "Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 4096
+    },
+    {
+      "name": "Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 25
+    },
+    {
+      "name": "Trigger_Settings.LLM_temperature",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "A2A.AgentUrl",
+      "type": "string",
+      "value": "http://localhost:9222"
+    },
+    {
+      "name": "A2A.port",
+      "type": "string",
+      "value": "9222"
+    },
+    {
+      "name": "A2A.AuthMode",
+      "type": "string",
+      "value": "Static Token"
+    },
+    {
+      "name": "A2A.AuthToken",
+      "type": "string",
+      "value": "pv-a2a-5d90b7c14e2f48a3b6e17c09d24f8a51"
+    }
+  ],
+  "connections": {
+    "pv2a1111-2222-3333-4444-555566667777": {
+      "id": "pv2a1111-2222-3333-4444-555566667777",
+      "name": "openai",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "openai",
+        "description": "OpenAI connection for the regulatory reporting agent",
+        "llmProvider": "=$property[\"AgenticAI.openai.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.openai.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.openai.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40LUhGMSIsInRhZyI6IjAuOS40LWhmMS1iMDIiLCJuYW1lIjoiQWdlbnRpYyBBSSAoVGVjaCBQcmV2aWV3KSIsInMzbG9jYXRpb24iOiJUaWJjby9BZ2VudGljQUkiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9222",
+        "title": "RegulatoryReportingA2AServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.8"
+  }
+}
