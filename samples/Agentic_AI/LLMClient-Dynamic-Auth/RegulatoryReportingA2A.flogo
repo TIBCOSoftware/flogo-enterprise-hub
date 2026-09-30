@@ -46,9 +46,9 @@
           "settings": {
             "handlerType": "Tool",
             "agentToolName": "create_safety_case",
-            "agentToolDescription": "Create a new safety case from a triaged adverse event. All fields are required: the product code, reaction term, seriousness, expectedness, causality, a de-identified subject reference and the case narrative. Returns the case number, the SUSAR decision and the reporting due date.",
+            "agentToolDescription": "Create a new safety case from a triaged adverse event. All fields are required: the product code, reaction term, seriousness, expectedness, causality, a de-identified subject reference and the case narrative. The SUSAR decision follows expectedness - UNEXPECTED opens a SUSAR on a 15-day expedited clock, LISTED opens a case with no expedited clock that is aggregated into the next DSUR. Returns the case number, the SUSAR decision and the reporting due date.",
             "agentSkillTags": "create_safety_case,icsr,adverse event,pharmacovigilance,case intake,susar",
-            "agentSkillExamples": "Open an ICSR for IMP-4471, hepatic failure, serious due to hospitalisation, unexpected, probable causality.|Create a safety case for subject VEL-301-0442 reporting acute hepatitis on Velcaridine.|Record a non-serious injection site reaction for IMP-4471.",
+            "agentSkillExamples": "Open an ICSR for IMP-4471, hepatic failure, serious due to hospitalisation, unexpected, probable causality.|Create a safety case for subject VEL-301-0442 with hepatic failure on Velcaridine, unexpected and probably related.|Record the same reaction as listed in the Investigator's Brochure so it is captured without starting an expedited clock.",
             "customGuardrailType": "BOTH",
             "customConversationStoreOperation": "STORE"
           },
@@ -239,16 +239,32 @@
           {
             "id": "Return",
             "name": "Return",
-            "description": "Simple Return Activity",
+            "description": "Returns the mock case record, classified from the reported expectedness.",
             "activity": {
               "ref": "#actreturn",
               "settings": {
                 "mappings": {
                   "response": {
-                    "mapping": {
-                      "data": "{\"case_number\":\"ICSR-2026-01588\",\"case_version\":1,\"status\":\"Open - Awaiting medical review\",\"product_code\":\"IMP-4471\",\"inn\":\"Velcaridine\",\"protocol_id\":\"VEL-301\",\"patient_reference\":\"VEL-301-0442\",\"reaction_term\":\"Hepatic failure\",\"meddra_soc\":\"Hepatobiliary disorders\",\"seriousness\":\"Serious - Hospitalisation\",\"expectedness\":\"UNEXPECTED\",\"causality_sponsor\":\"Probable\",\"susar\":true,\"susar_rationale\":\"Serious plus unexpected against Investigator's Brochure v6.0 plus a reasonable possibility of causal relationship.\",\"receipt_date\":\"2026-09-25\",\"clock_start_date\":\"2026-09-25\",\"reporting_clock\":\"15 calendar days\",\"submission_due_date\":\"2026-10-10\",\"assigned_to\":\"Dr. Priya Raman - Medical Safety Physician\",\"signal_team_notified\":true,\"signal_reference\":\"SIG-2026-0033 (Hepatic events, IMP-4471)\",\"blinding_status\":\"Unblinding requested for regulatory submission\",\"next_action\":\"Medical review then expedited submission to FDA and EMA before 2026-10-10.\",\"message\":\"Case ICSR-2026-01588 created and classified as a SUSAR. The 15-day regulatory clock started on 2026-09-25 and expires on 2026-10-10. The hepatology signal team has been notified under SIG-2026-0033.\"}",
-                      "error": ""
-                    }
+                    "@conditional": [
+                      {
+                        "$flow.toolParams.expectedness == 'UNEXPECTED'": {
+                          "data": "{\"case_number\":\"ICSR-2026-01588\",\"case_version\":1,\"status\":\"Open - Awaiting medical review\",\"product_code\":\"IMP-4471\",\"inn\":\"Velcaridine\",\"protocol_id\":\"VEL-301\",\"patient_reference\":\"VEL-301-0442\",\"reaction_term\":\"Hepatic failure\",\"meddra_soc\":\"Hepatobiliary disorders\",\"seriousness\":\"Serious - Hospitalisation\",\"expectedness\":\"UNEXPECTED\",\"causality_sponsor\":\"Probable\",\"susar\":true,\"susar_rationale\":\"Serious plus unexpected against Investigator's Brochure v6.0 plus a reasonable possibility of causal relationship.\",\"receipt_date\":\"2026-09-25\",\"clock_start_date\":\"2026-09-25\",\"reporting_clock\":\"15 calendar days\",\"submission_due_date\":\"2026-10-10\",\"assigned_to\":\"Dr. Priya Raman - Medical Safety Physician\",\"signal_team_notified\":true,\"signal_reference\":\"SIG-2026-0033 (Hepatic events, IMP-4471)\",\"blinding_status\":\"Unblinding requested for regulatory submission\",\"next_action\":\"Medical review then expedited submission to FDA and EMA before 2026-10-10.\",\"message\":\"Case ICSR-2026-01588 created and classified as a SUSAR. The 15-day regulatory clock started on 2026-09-25 and expires on 2026-10-10. The hepatology signal team has been notified under SIG-2026-0033.\"}",
+                          "error": ""
+                        }
+                      },
+                      {
+                        "$flow.toolParams.expectedness == 'LISTED'": {
+                          "data": "{\"case_number\":\"ICSR-2026-01589\",\"case_version\":1,\"status\":\"Open - Awaiting medical review\",\"product_code\":\"IMP-4471\",\"inn\":\"Velcaridine\",\"protocol_id\":\"VEL-301\",\"patient_reference\":\"VEL-301-0442\",\"reaction_term\":\"Hepatic failure\",\"meddra_soc\":\"Hepatobiliary disorders\",\"seriousness\":\"Serious - Hospitalisation\",\"expectedness\":\"LISTED\",\"causality_sponsor\":\"Probable\",\"susar\":false,\"susar_rationale\":\"Serious and causally related, but the reaction is listed in Investigator's Brochure v6.0. A listed reaction is not a SUSAR, so no expedited reporting clock starts.\",\"receipt_date\":\"2026-09-25\",\"clock_start_date\":\"Not applicable - no expedited clock for a listed reaction\",\"reporting_clock\":\"None - not expedited\",\"submission_due_date\":\"Not applicable\",\"assigned_to\":\"Dr. Priya Raman - Medical Safety Physician\",\"signal_team_notified\":false,\"signal_reference\":\"Not raised - listed reaction within the expected safety profile\",\"blinding_status\":\"Unblinding requested for regulatory submission\",\"next_action\":\"Medical review, then aggregate into the next DSUR. Re-assess expectedness if the Investigator's Brochure is revised.\",\"message\":\"Case ICSR-2026-01589 created. The reaction is serious and causally related but is listed in the reference safety information, so it is not a SUSAR and no 15-day clock starts. It will be reported in aggregate in the next DSUR.\"}",
+                          "error": ""
+                        }
+                      },
+                      {
+                        "@otherwise": {
+                          "data": "",
+                          "error": "expectedness is required and must be exactly LISTED or UNEXPECTED. No safety case was created."
+                        }
+                      }
+                    ]
                   }
                 }
               }
