@@ -4,13 +4,15 @@
 
 ## Overview
 
-**Nothing in this sample is configured through a connection resource.** The LLM provider, both backend URLs, both auth types and both bearer tokens are activity **inputs** resolved from App Properties — so the same flow runs against dev, staging and production, and rotating a credential never touches a flow.
+**Nothing in the `DrugSafetyAdvisor.flogo` orchestrator is configured through a connection resource.** Its LLM provider, both backend URLs, both auth types and both bearer tokens are activity **inputs** resolved from App Properties — so the same flow runs against dev, staging and production, and rotating a credential never touches a flow.
+
+> `RegulatoryReportingA2A.flogo` deliberately makes the opposite choice: its Agent Trigger *does* use an `#llmprovider` connection resource. That contrast is intentional — see [Dynamic LLM Provider Configuration](#dynamic-llm-provider-configuration) for both styles side by side.
 
 It is the companion to the [IT Help Desk Advisor](../LLMClient-Dynamic-Config-And-Memory/), which shows dynamic MCP/A2A config with `authType: "None"`. This sample answers the question that one leaves open: *what does the same pattern look like when the backends actually require credentials?*
 
 Three things are injected into a single **LLM Client Activity** at runtime:
 
-1. **The LLM provider** — `llmConfiguration` supplies provider, model and API key as a mapping. Swap OpenAI for Anthropic, Gemini, Ollama or vLLM by editing properties; no LLM connection resource exists in the app.
+1. **The LLM provider** — `llmConfiguration` supplies provider, model, API key and base URL as a mapping. Swap OpenAI for Anthropic, Gemini, Ollama or vLLM by editing properties; no LLM connection resource exists in the orchestrator.
 2. **A token-protected MCP Server** — `authType: "Token"` on the client, `API Key` bearer validation on the server. Read-only safety reference data.
 3. **A token-protected A2A Server** — `authType: "Static Token"` on both the client and the agent trigger. Guarded writes to the safety database and health-authority gateways.
 
@@ -24,7 +26,7 @@ Three independent Flogo applications work together:
 
 | Pattern | Component | What It Shows |
 |---|---|---|
-| **Dynamic LLM configuration** | `DrugSafetyAdvisor.flogo` | `llmConfiguration` mapping supplies `provider`, `model`, `apiKey` and `temperature` from App Properties — the app has **no LLM provider connection resource** |
+| **Dynamic LLM configuration** | `DrugSafetyAdvisor.flogo` | `llmConfiguration` mapping supplies `provider`, `model`, `apiKey` and `providerBaseUrl` from App Properties — this app has **no LLM provider connection resource** |
 | **Authenticated MCP (client)** | `DrugSafetyAdvisor.flogo` | `mcpServerConfigs` with `authType: "Token"` + property-resolved `authToken` |
 | **Authenticated MCP (server)** | `SafetySignalMCPServer.flogo` | MCP Server trigger with `authType: "API Key"` + `authToken`, per-tool `scope` values |
 | **Authenticated A2A (client)** | `DrugSafetyAdvisor.flogo` | `a2aServerConfigs` with `authType: "Static Token"` + property-resolved `authToken` |
@@ -68,8 +70,9 @@ Turn 1 — Dana reports the call:
      The Reference Safety Information in force is Investigator's Brochure v6.0
      (effective 2026-02-01).
 
-     Hepatic failure is UNLISTED. Section 6.3 lists only asymptomatic
-     transaminase elevation, which is not of the same nature or severity.
+     Hepatic failure is UNEXPECTED (not listed). Section 6.3 lists only
+     asymptomatic transaminase elevation, which is not of the same nature
+     or severity.
 
      Triage so far:
        Serious       — yes, hospitalisation
@@ -106,6 +109,7 @@ Turn 3 — Dana approves the write:
   System (remembers all triage facts from Turns 1 and 2):
     [Calls create_safety_case        → RegulatoryReportingA2A, Static Token]
     [Calls submit_expedited_report   → RegulatoryReportingA2A, Static Token]
+                                       destination: "FDA"
 
     "Case ICSR-2026-01588 created and classified as a SUSAR.
      Clock started 2026-09-25, due 2026-10-10 (15 calendar days).
@@ -113,10 +117,21 @@ Turn 3 — Dana approves the write:
      Signal team notified under SIG-2026-0033.
 
      Expedited E2B(R3) report filed with FDA — submission SUB-2026-FDA-004417,
-     acknowledgement AA, authority case FAERS-29104778. EudraVigilance
-     transmission is queued for the next gateway window.
+     acknowledgement AA, authority case FAERS-29104778.
 
-     Submitted 15 days ahead of the deadline."
+     Submitted 15 days ahead of the deadline. EudraVigilance has not been
+     filed yet — say the word and I'll submit to EMA as well."
+
+Turn 4 — Dana asks for the second agency:
+  > Yes, file with EMA too.
+
+  System:
+    [Calls submit_expedited_report   → RegulatoryReportingA2A, Static Token]
+                                       destination: "EMA"
+
+    "Filed with EMA EudraVigilance — submission SUB-2026-EMA-004418,
+     acknowledgement AA, authority case EV-2026-DE-0088431. BfArM was
+     notified through the EudraVigilance re-routing rules."
 ```
 
 **Same `caseId` across all turns.** The advisor never re-asks the product, the reaction term, or the causality assessment — and it never writes to the safety database without Dana's explicit confirmation.
@@ -140,7 +155,7 @@ Turn 3 — Dana approves the write:
  |  |                                                          |      |
  |  |  conversationStoreType = "Memory"                        |      |
  |  |  memoryMaxSize         = 24                              |      |
- |  |  conversationId        = caseId from query param         |      |
+ |  |  conversationId        = caseId (required query param)    |      |
  |  |                                                          |      |
  |  |  mcpServerConfigs (input-level)                          |      |
  |  |    serverUrl : App Property                              |      |
@@ -181,7 +196,7 @@ Turn 3 — Dana approves the write:
 
 ## Dynamic LLM Provider Configuration
 
-The LLM Client Activity can take its provider either from a **connection resource** (designed once, fixed at build time) or from the **`llmConfiguration` input** (resolved per execution). This sample uses the input form exclusively — open the app and you will find no LLM provider connection at all.
+The LLM Client Activity can take its provider either from a **connection resource** (designed once, fixed at build time) or from the **`llmConfiguration` input** (resolved per execution). `DrugSafetyAdvisor.flogo` uses the input form exclusively — open that app and you will find no LLM provider connection at all.
 
 ```json
 {
@@ -191,7 +206,7 @@ The LLM Client Activity can take its provider either from a **connection resourc
         "provider": "=$property[\"LLMClient.LLM_Provider\"]",
         "apiKey": "=$property[\"LLMClient.API_Key\"]",
         "model": "=$property[\"LLMClient.LLM_Model\"]",
-        "providerBaseUrl": "",
+        "providerBaseUrl": "=$property[\"LLMClient.LLM_Base_URL\"]",
         "temperature": 0
       }
     }
@@ -202,12 +217,18 @@ The LLM Client Activity can take its provider either from a **connection resourc
 | Field | Source | Notes |
 |---|---|---|
 | `provider` | `LLMClient.LLM_Provider` | `OpenAI`, `Anthropic`, `Gemini`, `Ollama`, `vLLM`, … |
-| `apiKey` | `LLMClient.API_Key` | Store as an encrypted `SECRET:...` property outside of local development |
+| `apiKey` | `LLMClient.API_Key` | Shipped as an encrypted `SECRET:...` property; retype it in the editor to set your own key |
 | `model` | `LLMClient.LLM_Model` | Defaults to `gpt-5-nano` |
-| `providerBaseUrl` | literal `""` | Set this for self-hosted or gateway endpoints; leave empty for the provider default |
+| `providerBaseUrl` | `LLMClient.LLM_Base_URL` | Empty by default, which means "use the provider's own endpoint". Set it for self-hosted (Ollama, vLLM) or gateway endpoints |
 | `temperature` | literal `0` | Zero on purpose — regulatory triage rewards consistency over creativity |
 
-**Why it matters here.** Case narratives can contain patient data, and which model is allowed to see them is a deployment decision, not a design decision. Switching this app from OpenAI to an on-premises Ollama endpoint is two property edits (`LLM_Provider`, `providerBaseUrl`) against an unchanged flow — the same lever that lets one artifact promote from dev to validated production.
+**Why it matters here.** Case narratives can contain patient data, and which model is allowed to see them is a deployment decision, not a design decision. Because the provider, model and endpoint are three App Properties (`LLMClient.LLM_Provider`, `LLMClient.LLM_Model`, `LLMClient.LLM_Base_URL`) rather than a designed-in connection, retargeting the LLM is a property change against an unchanged flow — the same lever that lets one artifact promote from dev to validated production. As shipped:
+
+```
+LLMClient.LLM_Provider = OpenAI
+LLMClient.LLM_Model    = gpt-5-nano
+LLMClient.LLM_Base_URL =              # empty - use OpenAI's own endpoint
+```
 
 `RegulatoryReportingA2A.flogo` deliberately makes the **opposite** choice: its Agent Trigger uses an `#llmprovider` connection resource. Between the two apps you can see both styles side by side.
 
@@ -308,7 +329,7 @@ Each MCP tool already carries a `scope` value, so scope enforcement is one prope
 
 In `API Key` mode these `scope` values are **ignored** — any caller with the right token reaches every tool. Set `FlogoMcpServer.AUTH_TYPE` to `JWT Token`, put the HMAC signing secret in `FlogoMcpServer.AUTH_TOKEN`, and put a signed JWT carrying the required scopes in `LLMClient.MCP.Safety.Auth_Token`; the server then rejects per tool and populates `tokenInfo` for the flows. See [Patient Records with Scoped Access (JWT)](../../Model_Context_Protocol\(MCP\)/MCP_JWT_Scope_Access_Control/) for a worked example, and the [MCP Server Security Guide](../../Model_Context_Protocol\(MCP\)/MCP_Server_Authentication/) for all four auth types.
 
-> **Tokens in this sample are plaintext so it runs as shipped.** In any real deployment store them as encrypted app properties (`SECRET:...`) or inject them from your platform's secret store, and put TLS on both servers — a bearer token on plain HTTP is only as private as the network.
+> **Every token and API key in this sample is stored as an encrypted `SECRET:...` app property.** Flogo encrypts them with its built-in default key, so the apps still run as shipped — the plaintext values are printed below only so you can reproduce the `curl` calls. What the `SECRET:` prefix buys you is that the value is masked in the editor and never readable in the `.flogo` file; it is obfuscation against a casual reader, not protection against anyone holding the Flogo tooling. For a real deployment, inject the values from your platform's secret store instead, and put TLS in front of both servers — a bearer token on plain HTTP is only as private as the network. The MCP Server terminates TLS itself; the A2A Agent Trigger has no TLS settings, so it needs ingress or a reverse proxy in front of it. See [What to Customize](#what-to-customize) for both.
 
 ---
 
@@ -330,6 +351,22 @@ ws://localhost:9220/drugsafety?caseId=VEL-301-0442   # hepatic failure
 ws://localhost:9220/drugsafety?caseId=VEL-301-0518   # independent case
 ```
 
+**`caseId` is required, and that is a safety property, not a convenience.** Because the parameter *is* the memory key, an omitted `caseId` would leave every unkeyed session sharing one empty conversation ID — one associate's case narrative would surface in another's history. The trigger schema marks it required, and the flow adds a runtime guard: `StartActivity` has two conditional links, and a blank `caseId` routes to `RejectMissingCaseId` instead of the LLM Client.
+
+```
+StartActivity ──[ caseId != "" ]──> SafetyIntakeLLMClient ──> Log ──> WebSocket Write
+              └─[ caseId == "" ]──> RejectMissingCaseId (WebSocket Write, no LLM call)
+```
+
+Connecting without one gets a message explaining how to reconnect, and no tokens are spent:
+
+```bash
+$ websocat "ws://localhost:9220/drugsafety"
+> anything
+< Missing required query parameter 'caseId'. Reconnect as
+  ws://<host>:<port>/drugsafety?caseId=<case or subject reference>. ...
+```
+
 24 messages is roughly a dozen turns — enough for a full triage plus follow-up questions. Raise it for longer case discussions, at the cost of prompt length on every call.
 
 > Memory is **in-process and not durable**: restarting the app clears every conversation. That is fine for a triage aid where the ICSR itself is the system of record, but if you need an auditable transcript under 21 CFR Part 11, move to the AI Agent Trigger with a **Custom Conversation Store** — see [Healthcare Patient Support Agent](../Healthcare-Compliance-Agent/).
@@ -348,11 +385,15 @@ ws://localhost:9220/drugsafety?caseId=VEL-301-0518   # independent case
 
 ### A2A Server Tools (RegulatoryReportingA2A.flogo — port 9222, static token required)
 
+All three tool schemas set `required` and `additionalProperties: false`, so a malformed call is rejected at the tool boundary rather than producing a half-populated safety record.
+
 | Tool | Parameters | Returns |
 |---|---|---|
-| `create_safety_case` | `product_code`, `reaction_term`, `seriousness`, `expectedness`, `causality`, `patient_reference`, `narrative` | Case number, SUSAR determination and rationale, clock start, reporting clock, submission due date, assigned physician, signal-team notification |
-| `submit_expedited_report` | `case_number`, `destination` (FDA or EMA) | Submission ID, E2B(R3) message type, transmission timestamp, acknowledgement code and authority case ID, days remaining, per-recipient distribution status |
-| `get_case_status` | `case_number` | Case state, owner, clock and days remaining, submission history per authority, outstanding follow-up requests with due dates, DSUR impact |
+| `create_safety_case` | `product_code`, `reaction_term`, `seriousness`, `expectedness` (`LISTED`\|`UNEXPECTED`), `causality`, `patient_reference`, `narrative` — **all required** | Case number, SUSAR determination and rationale, clock start, reporting clock, submission due date, assigned physician, signal-team notification |
+| `submit_expedited_report` | `case_number`, `destination` — both required; `destination` is an enum of exactly `FDA` or `EMA` | Submission ID, E2B(R3) message type, transmission timestamp, acknowledgement code and authority case ID, days remaining, per-recipient distribution status |
+| `get_case_status` | `case_number` (required) | Case state, owner, clock and days remaining, submission history per authority, outstanding follow-up requests with due dates, DSUR impact |
+
+> **One authority per call.** `submit_expedited_report_flow` branches on `destination` with a `#actreturn` `@conditional`: `FDA` returns the FAERS receipt, `EMA` returns the EudraVigilance receipt, and anything else returns an `error` without pretending a submission happened. Filing with both agencies means two calls — which is what a real E2B(R3) gateway integration looks like too.
 
 ---
 
@@ -390,7 +431,8 @@ All backend data is mocked with `#actreturn` — no database required. The mock 
 | SUSAR | Yes — serious + unexpected + probable causality |
 | Clock | 15 calendar days, started 2026-09-25, due 2026-10-10 |
 | Owner | Dr. Priya Raman, Medical Safety Physician |
-| FDA submission | SUB-2026-FDA-004417, ack `AA`, FAERS-29104778 |
+| FDA submission (`destination: FDA`) | SUB-2026-FDA-004417, ack `AA`, FAERS-29104778 |
+| EMA submission (`destination: EMA`) | SUB-2026-EMA-004418, ack `AA`, EV-2026-DE-0088431 |
 
 ---
 
@@ -414,7 +456,7 @@ Open `SafetySignalMCPServer.flogo` in the Flogo VS Code extension and run it. It
 |---|---|
 | `FlogoMcpServer.PORT` | `9221` |
 | `FlogoMcpServer.AUTH_TYPE` | `API Key` |
-| `FlogoMcpServer.AUTH_TOKEN` | `pv-mcp-a7f3c9e24b814d6e9c052f8a1b3d7e64` |
+| `FlogoMcpServer.AUTH_TOKEN` | `pv-mcp-a7f3c9e24b814d6e9c052f8a1b3d7e64` (stored encrypted, shown masked in the editor) |
 
 Confirm auth is actually being enforced — the first call must fail and the second must succeed:
 
@@ -434,13 +476,13 @@ curl -s -X POST http://localhost:9221/mcp \
 
 ### Step 2 — Configure and Start the Regulatory Reporting A2A Server
 
-Open `RegulatoryReportingA2A.flogo` and set your API key in **App Properties**:
+Open `RegulatoryReportingA2A.flogo` and set your API key in **App Properties**. The field is masked because the shipped value is an encrypted `SECRET:...` placeholder — clear it and type your own key, and the editor re-encrypts on save:
 
 ```
 AgenticAI.openai.API_Key = sk-your-key-here
 ```
 
-Run it. The agent listens on **9222** with `A2A.AuthMode = Static Token` and `A2A.AuthToken = pv-a2a-5d90b7c14e2f48a3b6e17c09d24f8a51`.
+Run it. The agent listens on **9222** with `A2A.AuthMode = Static Token` and `A2A.AuthToken = pv-a2a-5d90b7c14e2f48a3b6e17c09d24f8a51` (stored encrypted, shown masked in the editor).
 
 Verify the agent card is served and the token is enforced:
 
@@ -465,9 +507,12 @@ Open `DrugSafetyAdvisor.flogo` and set:
 LLMClient.LLM_Provider = OpenAI
 LLMClient.API_Key      = sk-your-key-here
 LLMClient.LLM_Model    = gpt-5-nano
+LLMClient.LLM_Base_URL =                 # leave empty for OpenAI's own endpoint
 ```
 
-The backend URLs and tokens default to the values above. **If you change a token on a backend, change it here too** — the pairs must match:
+`LLMClient.API_Key` is masked for the same reason — replace the encrypted placeholder with your own key.
+
+The backend URLs and tokens default to the values above. **If you change a token on a backend, change it here too** — the pairs must match. Because both sides are masked, you cannot eyeball them for equality; a mismatch shows up only as a **401** at runtime:
 
 ```
 LLMClient.MCP.Safety.Auth_Token      <-->  FlogoMcpServer.AUTH_TOKEN
@@ -487,7 +532,7 @@ websocat "ws://localhost:9220/drugsafety?caseId=VEL-301-0442"
 
 **Postman**: new WebSocket request to the same URL, then Connect.
 
-The `caseId` query parameter becomes the `conversationId`. Every message on the same `caseId` shares history.
+The `caseId` query parameter becomes the `conversationId`, so every message on the same `caseId` shares history. It is **required** — connect without it and the flow replies with a short error instead of calling the LLM, because an unkeyed session would share its history with every other unkeyed session.
 
 ### Example Multi-Turn Conversation
 
@@ -495,8 +540,8 @@ The `caseId` query parameter becomes the `conversationId`. Every message on the 
 > Site 0044 called. Subject VEL-301-0442 on IMP-4471 was hospitalised yesterday
   with acute hepatic failure. Investigator assessed causality as probable.
 < Confirmed IMP-4471 (Velcaridine), protocol VEL-301, Phase III. The RSI in force
-  is Investigator's Brochure v6.0. Hepatic failure is UNLISTED — Section 6.3 lists
-  only asymptomatic transaminase elevation.
+  is Investigator's Brochure v6.0. Hepatic failure is UNEXPECTED (not listed) —
+  Section 6.3 lists only asymptomatic transaminase elevation.
   Serious (hospitalisation) + unexpected + probable causality = SUSAR, 15-day clock.
   Do you have all four minimum criteria?
 
@@ -509,8 +554,14 @@ The `caseId` query parameter becomes the `conversationId`. Every message on the 
 > Yes, open it and file with FDA.
 < Case ICSR-2026-01588 created — SUSAR, clock started 2026-09-25, due 2026-10-10.
   Filed with FDA: SUB-2026-FDA-004417, ack AA, FAERS-29104778.
-  EudraVigilance queued for the next gateway window.
+  EMA has not been filed — shall I submit to EudraVigilance as well?
+
+> Yes, file with EMA too.
+< Filed with EMA: SUB-2026-EMA-004418, ack AA, EV-2026-DE-0088431.
+  BfArM notified through the EudraVigilance re-routing rules.
 ```
+
+Each `submit_expedited_report` call files with exactly one authority — `destination` is an enum of `FDA` or `EMA`, and the mock branches on it, so asking for EMA never returns an FDA receipt.
 
 Notice that the advisor calls `check_label_expectedness` rather than judging expectedness itself, and asks before writing.
 
@@ -531,6 +582,8 @@ To prove the tokens are load-bearing, break one and watch the tool call fail whi
 
 ## App Properties Reference
 
+> The six API key and token properties are stored as encrypted `SECRET:...` values, so the editor renders them as masked password fields and the `.flogo` file never contains the token text. Their `type` stays `"string"` — Flogo derives the password rendering from the `SECRET:` value prefix, not from the declared type. The tables below list the **decrypted** values, which is what actually travels in the `Authorization` header. To change one, retype it in the editor and let it re-encrypt; hand-editing the JSON to a plaintext value also works but undoes the masking.
+
 ### DrugSafetyAdvisor.flogo
 
 | Property | Default | Description |
@@ -539,6 +592,7 @@ To prove the tokens are load-bearing, break one and watch the tool call fail whi
 | `LLMClient.LLM_Provider` | `OpenAI` | LLM provider name |
 | `LLMClient.API_Key` | `sk-REPLACE-WITH-YOUR-OPENAI-KEY` | LLM provider API key |
 | `LLMClient.LLM_Model` | `gpt-5-nano` | LLM model name |
+| `LLMClient.LLM_Base_URL` | *(empty)* | Override base URL for self-hosted or gateway providers (Ollama, vLLM, an LLM gateway). Empty means the provider default |
 | `LLMClient.SystemPrompt` | *(ICH E2A triage instructions)* | System prompt for the LLM |
 | `LLMClient.MCP.Safety.Server_Name` | `SafetySignalMCP` | Display name for the Safety Signal MCP Server |
 | `LLMClient.MCP.Safety.Server_URL` | `http://localhost:9221/mcp` | Safety Signal MCP Server endpoint |
@@ -581,17 +635,19 @@ To prove the tokens are load-bearing, break one and watch the tool call fail whi
 
 | Customization | Where | How |
 |---|---|---|
-| Rotate the MCP token | Both apps | Change `FlogoMcpServer.AUTH_TOKEN` and `LLMClient.MCP.Safety.Auth_Token` to the same new value |
-| Rotate the A2A token | Both apps | Change `A2A.AuthToken` and `LLMClient.A2A.Regulatory.Auth_Token` to the same new value |
-| Encrypt the tokens | App Properties | Replace the plaintext values with encrypted `SECRET:...` properties |
+| Rotate the MCP token | Both apps | Retype `FlogoMcpServer.AUTH_TOKEN` and `LLMClient.MCP.Safety.Auth_Token` to the same new value. Both are masked, so type carefully — the two ciphertexts will differ even when the plaintext matches, and a mismatch surfaces only as a runtime **401** |
+| Rotate the A2A token | Both apps | Same drill for `A2A.AuthToken` and `LLMClient.A2A.Regulatory.Auth_Token` |
+| Move secrets out of the app | Platform secret store | `SECRET:` uses Flogo's built-in default key, so anyone with the tooling can decrypt it. For production, inject the values from your platform's secret store rather than shipping them in the `.flogo` file |
 | Enforce per-tool scopes | MCP Server | Set `FlogoMcpServer.AUTH_TYPE` to `JWT Token` and supply a signed JWT as the client token — the `scope` values are already on every tool |
 | External IdP (Keycloak, Auth0, Entra ID) | MCP Server | Set `authType` to `OAuth 2.0` and fill in `oauthIssuer`, `oauthJWKSURL`, `oauthAudience`, `oauthRequiredScopes` |
-| Add TLS | Both servers | Set `enableTLS: true` with `serverCertificate` / `serverPrivateKey`, then switch the client URLs to `https://` |
+| Add TLS to the MCP Server | `SafetySignalMCPServer.flogo` | The MCP Server trigger terminates TLS itself: set `enableTLS: true` with `serverCertificate` / `serverPrivateKey`, then switch `LLMClient.MCP.Safety.Server_URL` to `https://` |
+| Add TLS to the A2A Server | Platform ingress / reverse proxy | The Agent Trigger has **no** `enableTLS` setting — terminate TLS in front of it (TIBCO Platform ingress, an nginx/Envoy reverse proxy, or a service mesh), then point both `A2A.AgentUrl` and `LLMClient.A2A.Regulatory.Server_URL` at the `https://` address so the published agent card matches |
+| Add TLS to the WebSocket endpoint | `DrugSafetyAdvisor.flogo` | The WebSocket trigger terminates TLS itself: set `enableTLS: true` with `serverCert` / `serverKey`, then connect over `wss://` |
 | Connect a real safety database | Flows in `SafetySignalMCPServer.flogo` | Replace `#actreturn` with queries against Argus Safety, ArisGlobal LifeSphere, or Veeva Vault Safety |
-| Real E2B(R3) submission | `submit_expedited_report_flow` | Replace `#actreturn` with a call to your gateway (FDA ESG / EMA EudraVigilance) |
+| Real E2B(R3) submission | `submit_expedited_report_flow` | The flow already branches on `destination`; replace each `#actreturn` branch with a call to the matching gateway (FDA ESG / EMA EudraVigilance) and add a branch per authority you support |
 | Add a second MCP server | `mcpServerConfigs` mapping | Add another entry — e.g. a MedDRA coding server — each with its own `authType` and `authToken` |
-| Use Anthropic Claude | App properties | Set `LLM_Provider` to `Anthropic` and `LLM_Model` to a Claude model |
-| Keep data on-premises | App properties | Set `LLM_Provider` to `Ollama` or `vLLM` and point `providerBaseUrl` at your endpoint — relevant when case narratives contain patient data |
+| Use Anthropic Claude | App properties | Set `LLMClient.LLM_Provider` to `Anthropic` and `LLMClient.LLM_Model` to a Claude model |
+| Keep data on-premises | App properties | Set `LLMClient.LLM_Provider` to `Ollama` or `vLLM` and point `LLMClient.LLM_Base_URL` at your endpoint — relevant when case narratives contain patient data |
 | Durable, auditable memory | LLM Client Activity | Move to the AI Agent Trigger with a Custom Conversation Store for a 21 CFR Part 11 transcript |
 
 ---
