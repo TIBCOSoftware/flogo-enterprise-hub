@@ -393,15 +393,25 @@ All three tool schemas set `required` and `additionalProperties: false`, so a ma
 
 | Tool | Parameters | Returns |
 |---|---|---|
-| `create_safety_case` | `product_code`, `reaction_term`, `seriousness`, `expectedness` (`LISTED`\|`UNEXPECTED`), `causality`, `patient_reference`, `narrative` — **all required** | Case number, SUSAR determination and rationale, clock start, reporting clock, submission due date, assigned physician, signal-team notification. Branches on `expectedness` — see below |
+| `create_safety_case` | `product_code`, `reaction_term`, `seriousness` (enum, `Non-serious` or one of six `Serious - …` criteria), `expectedness` (`LISTED`\|`UNEXPECTED`), `causality` (`Related`\|`Probable`\|`Possible`\|`Unlikely`\|`Unrelated`), `patient_reference`, `narrative` — **all required** | Case number, SUSAR determination and rationale, clock start, reporting clock, submission due date, assigned physician, signal-team notification. Branches on all three of seriousness, expectedness and causality — see below |
 | `submit_expedited_report` | `case_number`, `destination` — both required; `destination` is an enum of exactly `FDA` or `EMA` | Submission ID, E2B(R3) message type, transmission timestamp, acknowledgement code and authority case ID, days remaining, per-recipient distribution status |
 | `get_case_status` | `case_number` (required) | Case state, owner, clock and days remaining, submission history per authority, outstanding follow-up requests with due dates, DSUR impact |
 
-> **Expectedness drives the SUSAR decision.** `create_safety_case_flow` branches on `expectedness` with a `#actreturn` `@conditional`. `UNEXPECTED` opens **ICSR-2026-01588** as a SUSAR on a 15-day expedited clock; `LISTED` opens **ICSR-2026-01589**, which is serious and causally related but *not* a SUSAR, so no expedited clock starts and the case is aggregated into the next DSUR instead. Anything else returns an `error` rather than inventing a classification. This matters because it is the one judgement in the whole flow that a regulator would audit: calling a listed reaction a SUSAR triggers a filing that was never required, and calling an unexpected one listed misses a 15-day deadline.
+> **All three ICH E2A criteria drive the SUSAR decision.** A case is a SUSAR only when it is **serious** *and* **unexpected** *and* carries a **reasonable possibility of causal relationship** — miss any one and it is not a SUSAR. `create_safety_case_flow` encodes that with a `#actreturn` `@conditional` whose five branches are mutually exclusive, so the ordering of the list cannot change the answer:
+>
+> | Seriousness | Expectedness | Causality | Case | SUSAR | Clock |
+> |---|---|---|---|---|---|
+> | Death or life-threatening | `UNEXPECTED` | Related / Probable / Possible | ICSR-2026-01587 | yes | **7 calendar days** |
+> | Any other serious criterion | `UNEXPECTED` | Related / Probable / Possible | ICSR-2026-01588 | yes | **15 calendar days** |
+> | Any serious criterion | `UNEXPECTED` | Unlikely / Unrelated | ICSR-2026-01590 | no | none — DSUR |
+> | Any serious criterion | `LISTED` | any | ICSR-2026-01589 | no | none — DSUR |
+> | `Non-serious` | any | any | ICSR-2026-01591 | no | none — DSUR |
+>
+> Anything else returns an `error` rather than inventing a classification. This matters because it is the one judgement in the whole flow that a regulator would audit: calling a listed or unrelated reaction a SUSAR triggers a filing that was never required, calling an unexpected one listed misses the deadline entirely, and putting a fatal case on the 15-day clock misses it by eight days. `seriousness` and `causality` are `enum`s in the tool schema for the same reason `destination` is — the branch conditions are plain string equality, so a value outside the enum has to be rejected at the tool boundary rather than silently falling through to `@otherwise`.
 
 > **One authority per call.** `submit_expedited_report_flow` branches on `destination` the same way: `FDA` returns the FAERS receipt, `EMA` returns the EudraVigilance receipt, and anything else returns an `error` without pretending a submission happened. Filing with both agencies means two calls — which is what a real E2B(R3) gateway integration looks like too.
 
-> **These are still mocks.** Both flows return prepared fixtures rather than echoing every argument back, so the product code and subject reference in a response are the fixture's, not yours. The branches cover the fields that change the regulatory outcome — `expectedness` and `destination` — which is where a wrong answer would actually mislead. Swap the `@conditional` for a real gateway call and the tool contracts stay as they are.
+> **These are still mocks.** Both flows return prepared fixtures rather than echoing every argument back, so the product code and subject reference in a response are the fixture's, not yours. The branches cover the fields that change the regulatory outcome — `seriousness`, `expectedness`, `causality` and `destination` — which is where a wrong answer would actually mislead. Swap the `@conditional` for a real gateway call and the tool contracts stay as they are.
 
 ---
 
