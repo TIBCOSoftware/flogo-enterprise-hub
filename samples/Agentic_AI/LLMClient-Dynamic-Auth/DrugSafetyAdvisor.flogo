@@ -1,0 +1,393 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/websocket/activity/wswritedata",
+    "github.com/project-flogo/websocket/trigger/wsserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "DrugSafetyAdvisor",
+  "description": "Drug safety intake advisor using an LLM Client activity with memory and token authenticated MCP and A2A servers",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#wsserver",
+      "name": "wsserver",
+      "description": "WebSocket server for drug safety chat sessions",
+      "settings": {
+        "port": "=$property[\"WebSocket_Port\"]",
+        "enableTLS": false,
+        "serverCert": "",
+        "serverKey": "",
+        "enableClientAuth": false,
+        "trustStore": ""
+      },
+      "id": "DrugSafetyWebSocketServer",
+      "handlers": [
+        {
+          "description": "Triages an adverse event using authenticated MCP and A2A tools",
+          "settings": {
+            "method": "GET",
+            "path": "/drugsafety",
+            "mode": "Data",
+            "format": "String",
+            "jsonSchema": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:SafetyIntakeFlow"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "queryParams": "=$.queryParams",
+              "headers": "=$.headers",
+              "content": "=$.content",
+              "wsconnection": "=$.wsconnection"
+            }
+          },
+          "schemas": {
+            "output": {
+              "queryParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"caseId\":{\"type\":\"string\"}},\"required\":[\"caseId\"]}",
+                "fe_metadata": "[{\"parameterName\":\"caseId\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"true\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}"
+              }
+            }
+          },
+          "name": "SafetyIntakeFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:SafetyIntakeFlow",
+      "data": {
+        "name": "SafetyIntakeFlow",
+        "description": "Triages an adverse event using authenticated MCP and A2A tools",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "SafetyIntakeLLMClient",
+            "type": "expression",
+            "label": "caseId supplied",
+            "value": "coerce.toString($flow.queryParams.caseId) != \"\""
+          },
+          {
+            "id": 2,
+            "from": "SafetyIntakeLLMClient",
+            "to": "LogResponse",
+            "type": "label",
+            "label": "SafetyIntakeLLMClient to LogResponse"
+          },
+          {
+            "id": 3,
+            "from": "LogResponse",
+            "to": "WebsocketWriteData",
+            "type": "label",
+            "label": "LogResponse to WebsocketWriteData"
+          },
+          {
+            "id": 4,
+            "from": "StartActivity",
+            "to": "RejectMissingCaseId",
+            "type": "expression",
+            "label": "caseId missing",
+            "value": "coerce.toString($flow.queryParams.caseId) == \"\""
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "SafetyIntakeLLMClient",
+            "name": "SafetyIntakeLLMClient",
+            "description": "LLM Client activity with memory and token authenticated MCP and A2A configs",
+            "activity": {
+              "ref": "#llmclientactivity",
+              "settings": {
+                "responseType": "Text",
+                "remoteAgents": [],
+                "mcpServers": [],
+                "conversationStoreType": "Memory",
+                "memoryMaxSize": 24
+              },
+              "input": {
+                "systemPrompt": "=$property[\"LLMClient.SystemPrompt\"]",
+                "userPrompt": "=coerce.toString($flow.content)",
+                "conversationId": "=coerce.toString($flow.queryParams.caseId)",
+                "llmConfiguration": {
+                  "mapping": {
+                    "provider": "=$property[\"LLMClient.LLM_Provider\"]",
+                    "apiKey": "=$property[\"LLMClient.API_Key\"]",
+                    "model": "=$property[\"LLMClient.LLM_Model\"]",
+                    "providerBaseUrl": "=$property[\"LLMClient.LLM_Base_URL\"]",
+                    "temperature": 0
+                  }
+                },
+                "mcpServerConfigs": {
+                  "mapping": [
+                    {
+                      "name": "=$property[\"LLMClient.MCP.Safety.Server_Name\"]",
+                      "serverType": "http",
+                      "serverUrl": "=$property[\"LLMClient.MCP.Safety.Server_URL\"]",
+                      "httpTransportType": "streamable",
+                      "authType": "=$property[\"LLMClient.MCP.Safety.Auth_Type\"]",
+                      "authToken": "=$property[\"LLMClient.MCP.Safety.Auth_Token\"]"
+                    }
+                  ]
+                },
+                "a2aServerConfigs": {
+                  "mapping": [
+                    {
+                      "name": "=$property[\"LLMClient.A2A.Regulatory.Server_Name\"]",
+                      "serverUrl": "=$property[\"LLMClient.A2A.Regulatory.Server_URL\"]",
+                      "authType": "=$property[\"LLMClient.A2A.Regulatory.Auth_Type\"]",
+                      "authToken": "=$property[\"LLMClient.A2A.Regulatory.Auth_Token\"]"
+                    }
+                  ]
+                }
+              },
+              "schemas": {
+                "input": {
+                  "llmConfiguration": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"provider\":{\"type\":\"string\"},\"apiKey\":{\"type\":\"string\"},\"model\":{\"type\":\"string\"},\"providerBaseUrl\":{\"type\":\"string\"},\"temperature\":{\"type\":\"number\"},\"azureDeployment\":{\"type\":\"string\"},\"azureApiVersion\":{\"type\":\"string\"},\"azureRegion\":{\"type\":\"string\"},\"azureResourceName\":{\"type\":\"string\"}}}",
+                    "fe_metadata": "{\"provider\":\"OpenAI\",\"apiKey\":\"\",\"model\":\"gpt-5-nano\",\"providerBaseUrl\":\"\",\"temperature\":0,\"azureDeployment\":\"\",\"azureApiVersion\":\"\",\"azureRegion\":\"\",\"azureResourceName\":\"\"}"
+                  },
+                  "mcpServerConfigs": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"serverType\":{\"type\":\"string\"},\"serverUrl\":{\"type\":\"string\"},\"httpTransportType\":{\"type\":\"string\"},\"authType\":{\"type\":\"string\"},\"authToken\":{\"type\":\"string\"}}}}",
+                    "fe_metadata": "[{\"name\":\"SafetySignalMCP\",\"serverType\":\"http\",\"serverUrl\":\"http://localhost:9221/mcp\",\"httpTransportType\":\"streamable\",\"authType\":\"Token\",\"authToken\":\"<resolved at runtime from LLMClient.MCP.Safety.Auth_Token>\"}]"
+                  },
+                  "a2aServerConfigs": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"serverUrl\":{\"type\":\"string\"},\"authType\":{\"type\":\"string\"},\"authToken\":{\"type\":\"string\"}}}}",
+                    "fe_metadata": "[{\"name\":\"RegulatoryReporting\",\"serverUrl\":\"http://localhost:9222\",\"authType\":\"Static Token\",\"authToken\":\"<resolved at runtime from LLMClient.A2A.Regulatory.Auth_Token>\"}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogResponse",
+            "name": "LogResponse",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[DrugSafety] Intake turn completed. Response length: \", coerce.toString(string.length(coerce.toString($activity[SafetyIntakeLLMClient].response))), \" chars. Case narratives and model output are deliberately not logged.\")",
+                "logLevel": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "WebsocketWriteData",
+            "name": "WebsocketWriteData",
+            "description": "Write the LLM response back to the WebSocket client",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "=$activity[SafetyIntakeLLMClient].response",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          },
+          {
+            "id": "RejectMissingCaseId",
+            "name": "RejectMissingCaseId",
+            "description": "Refuses the turn when no caseId was supplied, so unkeyed sessions cannot share one conversation history",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "Missing required query parameter 'caseId'. Reconnect as ws://<host>:<port>/drugsafety?caseId=<case or subject reference>. The caseId keys this conversation's memory - without it every session would share one history and one intake could see another's case details.",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlNhZmV0eUludGFrZUxMTUNsaWVudCI6eyJ4IjoyNTAsInkiOjUwfSwiTG9nUmVzcG9uc2UiOnsieCI6NDUwLCJ5Ijo1MH0sIldlYnNvY2tldFdyaXRlRGF0YSI6eyJ4Ijo2NTAsInkiOjUwfSwiUmVqZWN0TWlzc2luZ0Nhc2VJZCI6eyJ4IjoyNTAsInkiOjIwMH19",
+        "errorHandler": {
+          "tasks": [
+            {
+              "id": "WebsocketWriteData1",
+              "name": "WebsocketWriteData1",
+              "description": "Websocket Write Data Activity will write data to existing Websocket connection",
+              "activity": {
+                "ref": "#wswritedata",
+                "settings": {
+                  "format": "String",
+                  "jsonSchema": ""
+                },
+                "input": {
+                  "message": "=$error.message",
+                  "wsconnection": "=$flow.wsconnection"
+                }
+              }
+            }
+          ],
+          "links": [],
+          "fe_metadata": "eyJXZWJzb2NrZXRXcml0ZURhdGExIjp7IngiOjM0MywieSI6MTA0fX0="
+        },
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "params"
+            },
+            {
+              "name": "queryParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"caseId\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "headers",
+              "type": "object"
+            },
+            {
+              "name": "content",
+              "type": "any"
+            },
+            {
+              "name": "wsconnection",
+              "type": "any"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"DrugSafetyWebSocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"object\",\"properties\":{\"caseId\":{\"type\":\"string\"}},\"required\":[\"caseId\"]},\"headers\":{\"type\":\"object\",\"properties\":{}},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "LLMClient.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "LLMClient.API_Key",
+      "type": "string",
+      "value": "SECRET:TwghYk4/b0ZSzjtH60TkSdUiyH11M0fSSnHg0mbpmpOBrjbx3nQrRopIMcGJnUI="
+    },
+    {
+      "name": "LLMClient.LLM_Model",
+      "type": "string",
+      "value": "gpt-5-nano"
+    },
+    {
+      "name": "LLMClient.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "LLMClient.SystemPrompt",
+      "type": "string",
+      "value": "You are a pharmacovigilance intake advisor supporting drug safety associates at a clinical trial sponsor.\n\nA safety associate brings you an adverse event report from an investigator site. You help them triage it against ICH E2A rules and, when the case qualifies, get it recorded and reported on time. You have access to two authenticated backend services.\n\n1. **Safety Signal Database (MCP Server, bearer token)** — read-only reference data.\n   - `lookup_investigational_product` — product profile, study protocol, and the Reference Safety Information in force\n   - `search_case_history` — prior ICSRs for the same product and reaction term, with exposure denominators and open signals\n   - `check_label_expectedness` — whether a reaction is LISTED or UNLISTED against the Reference Safety Information\n\n2. **Regulatory Reporting Agent (A2A Server, static token)** — the system of record for writes.\n   - `create_safety_case` — open an Individual Case Safety Report\n   - `submit_expedited_report` — file an E2B(R3) expedited report with one health authority; `destination` must be exactly `FDA` or `EMA`, so filing with both means two calls\n   - `get_case_status` — check an existing case\n\n## Triage Method\n\nWork through the four ICH E2A questions in order, using tools rather than memory:\n\n1. **Is the product in scope?** Call `lookup_investigational_product` first to confirm the product, protocol, and which Reference Safety Information applies.\n2. **Is it serious?** A case is serious if it results in death, is life-threatening, requires or prolongs hospitalisation, causes persistent disability or incapacity, causes a congenital anomaly, or is another medically important event. Ask the associate directly if this is not stated.\n3. **Is it unexpected?** Call `check_label_expectedness` — never judge this yourself.\n4. **Is there a reasonable possibility of causal relationship?** Ask for the investigator's assessment, and call `search_case_history` to see whether similar cases are already accumulating.\n\nSerious + unexpected + reasonable causality = **SUSAR** → expedited reporting: 7 calendar days if fatal or life-threatening, otherwise 15 calendar days.\n\n## Behavior Guidelines\n\n- Ask for the minimum four reporting criteria early if they are missing: an identifiable patient, an identifiable reporter, a suspect product, and a suspect reaction. Without all four the reporting clock has not started.\n- Never write to the safety database without telling the associate what you are about to record and getting their confirmation.\n- Never call `submit_expedited_report` before the case exists and the associate has confirmed the submission. Confirm each health authority separately, and report the acknowledgement you actually received rather than assuming the other authority was filed too.\n- Use the de-identified subject reference (for example VEL-301-0442). Never ask for or repeat a patient name, address, or date of birth.\n- Remember what the associate has already told you in this conversation — never re-ask for information you have.\n- State the regulatory clock and due date plainly whenever a case is created or submitted.\n- You are a triage aid, not the medical reviewer. Flag anything ambiguous for the medical safety physician rather than deciding it yourself."
+    },
+    {
+      "name": "LLMClient.MCP.Safety.Server_Name",
+      "type": "string",
+      "value": "SafetySignalMCP"
+    },
+    {
+      "name": "LLMClient.MCP.Safety.Server_URL",
+      "type": "string",
+      "value": "http://localhost:9221/mcp"
+    },
+    {
+      "name": "LLMClient.MCP.Safety.Auth_Type",
+      "type": "string",
+      "value": "Token"
+    },
+    {
+      "name": "LLMClient.MCP.Safety.Auth_Token",
+      "type": "string",
+      "value": "SECRET:RFd3XRLURSDGVO5BT55mY3+hU9x42VCcfWg+Wf2DZp0BHKY3H3faMXDzM82xsfD3DixHKcbh4w=="
+    },
+    {
+      "name": "LLMClient.A2A.Regulatory.Server_Name",
+      "type": "string",
+      "value": "RegulatoryReporting"
+    },
+    {
+      "name": "LLMClient.A2A.Regulatory.Server_URL",
+      "type": "string",
+      "value": "http://localhost:9222"
+    },
+    {
+      "name": "LLMClient.A2A.Regulatory.Auth_Type",
+      "type": "string",
+      "value": "Static Token"
+    },
+    {
+      "name": "LLMClient.A2A.Regulatory.Auth_Token",
+      "type": "string",
+      "value": "SECRET:QIvpahMf/zXq0swpB5KWLMZ7O9KT9UAulV/dVXi3jUvcvgV7sRahvU3zaIXc2JviuN0HCyz7Aw=="
+    },
+    {
+      "name": "WebSocket_Port",
+      "type": "float64",
+      "value": 9220
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS9wcm9qZWN0LWZsb2dvL3dlYnNvY2tldCIsImlkIjoid2Vic29ja2V0IiwidmVyc2lvbiI6IjEuMC4yIiwidGFnIjoiMS4wLjItYjAzIiwibmFtZSI6IldlYnNvY2tldCIsInMzbG9jYXRpb24iOiJUaWJjby93ZWJzb2NrZXQiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJpZCI6IkFnZW50aWNBSSIsInZlcnNpb24iOiIwLjkuNC1IRjEiLCJ0YWciOiIwLjkuNC1oZjEtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiaWQiOiJHZW5lcmFsIiwidmVyc2lvbiI6IjEuNi4xNyIsInRhZyI6IjEuNi4xNy1iMDIiLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9220",
+        "title": "DrugSafetyWebSocketServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.8"
+  }
+}

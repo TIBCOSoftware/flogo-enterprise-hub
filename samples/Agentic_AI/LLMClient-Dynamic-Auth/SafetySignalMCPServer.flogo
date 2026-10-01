@@ -1,0 +1,441 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver"
+  ],
+  "name": "SafetySignalMCPServer",
+  "description": "Authenticated MCP server with read only drug safety lookup tools",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Drug safety MCP server protected with bearer token authentication",
+      "settings": {
+        "serverName": "SafetySignalMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": true,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "=$property[\"FlogoMcpServer.AUTH_TYPE\"]",
+        "authToken": "=$property[\"FlogoMcpServer.AUTH_TOKEN\"]",
+        "oauthIssuer": "",
+        "oauthJWKSURL": "",
+        "oauthAudience": "",
+        "oauthAuthorizationServers": "",
+        "oauthRequiredScopes": "",
+        "oauthResourceURL": ""
+      },
+      "id": "SafetySignalServer",
+      "handlers": [
+        {
+          "description": "Returns mock investigational product details",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "lookup_investigational_product",
+            "handlerDescription": "Look up an investigational product by product code. Returns the product name, study protocol, phase, indication, route, sponsor and the reference safety information version in force. Requires the product:read scope in JWT Token mode.",
+            "toolTitle": "Lookup Investigational Product",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": "product:read"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:LookupInvestigationalProductFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\",\"description\":\"Investigational product code, for example IMP-4471\"}},\"required\":[\"product_code\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\",\"description\":\"Investigational product code, for example IMP-4471\"}},\"required\":[\"product_code\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "LookupInvestigationalProductFlow"
+        },
+        {
+          "description": "Returns mock prior case history",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "search_case_history",
+            "handlerDescription": "Search the safety database for earlier cases with the same product and reaction term. Returns the matching case count, the number of subjects exposed, the outcomes and whether a safety signal is already under review. Requires the cases:read scope in JWT Token mode.",
+            "toolTitle": "Search Case History",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": "cases:read"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:SearchCaseHistoryFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\",\"description\":\"Investigational product code, for example IMP-4471\"},\"reaction_term\":{\"type\":\"string\",\"description\":\"Reaction term, for example Hepatic failure\"}},\"required\":[\"product_code\",\"reaction_term\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\",\"description\":\"Investigational product code, for example IMP-4471\"},\"reaction_term\":{\"type\":\"string\",\"description\":\"Reaction term, for example Hepatic failure\"}},\"required\":[\"product_code\",\"reaction_term\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "SearchCaseHistoryFlow"
+        },
+        {
+          "description": "Returns mock expectedness assessment",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "check_label_expectedness",
+            "handlerDescription": "Check whether a reaction is listed or unlisted in the reference safety information for a product. A serious unlisted reaction with a reasonable causal relationship is a SUSAR and needs expedited reporting. Requires the labeling:read scope in JWT Token mode.",
+            "toolTitle": "Check Label Expectedness",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": "labeling:read"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:CheckLabelExpectednessFlow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"audience\": {\r\n      \"type\": \"array\",\r\n      \"items\": {\r\n        \"type\": \"string\"\r\n      }\r\n    },\r\n    \"priority\": {\r\n      \"type\": \"number\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\",\"description\":\"Investigational product code, for example IMP-4471\"},\"reaction_term\":{\"type\":\"string\",\"description\":\"Reaction term to check against the reference safety information\"}},\"required\":[\"product_code\",\"reaction_term\"],\"additionalProperties\":false}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\",\"description\":\"Investigational product code, for example IMP-4471\"},\"reaction_term\":{\"type\":\"string\",\"description\":\"Reaction term to check against the reference safety information\"}},\"required\":[\"product_code\",\"reaction_term\"],\"additionalProperties\":false}"
+              }
+            }
+          },
+          "name": "CheckLabelExpectednessFlow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:LookupInvestigationalProductFlow",
+      "data": {
+        "name": "LookupInvestigationalProductFlow",
+        "description": "Returns mock investigational product details",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"product_code\":\"IMP-4471\",\"inn\":\"Velcaridine\",\"product_class\":\"Anti-IL-6R monoclonal antibody\",\"sponsor\":\"Northwind Therapeutics\",\"protocol_id\":\"VEL-301\",\"phase\":\"Phase III\",\"indication\":\"Moderate-to-severe rheumatoid arthritis in adults with inadequate response to methotrexate\",\"route_of_administration\":\"Subcutaneous injection, 162 mg every 2 weeks\",\"blinding\":\"Double-blind, placebo-controlled\",\"subjects_exposed\":1240,\"reference_safety_information\":{\"document\":\"Investigator's Brochure v6.0, Section 6.3\",\"effective_date\":\"2026-02-01\",\"listed_adverse_reactions\":[\"Injection site reaction\",\"Headache\",\"Upper respiratory tract infection\",\"Nausea\",\"Neutropenia\",\"Hypercholesterolaemia\"]},\"active_safety_concerns\":[\"Hepatic events under signal evaluation since 2026-04-11\"],\"pv_contact\":\"drugsafety@northwind-tx.example\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNzQsInkiOjQyfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_code\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:SearchCaseHistoryFlow",
+      "data": {
+        "name": "SearchCaseHistoryFlow",
+        "description": "Returns mock prior case history",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"product_code\":\"IMP-4471\",\"reaction_term\":\"Hepatic failure\",\"meddra_soc\":\"Hepatobiliary disorders\",\"meddra_version\":\"29.0\",\"subjects_exposed\":1240,\"matching_cases\":3,\"cases\":[{\"case_number\":\"ICSR-2026-00874\",\"onset_date\":\"2026-03-18\",\"country\":\"DE\",\"seriousness\":\"Serious - Hospitalisation\",\"outcome\":\"Recovered with sequelae\",\"causality_investigator\":\"Possible\",\"dechallenge\":\"Positive - ALT normalised 21 days after discontinuation\"},{\"case_number\":\"ICSR-2026-01133\",\"onset_date\":\"2026-04-02\",\"country\":\"US\",\"seriousness\":\"Serious - Hospitalisation\",\"outcome\":\"Recovering\",\"causality_investigator\":\"Probable\",\"dechallenge\":\"Positive\"},{\"case_number\":\"ICSR-2026-01402\",\"onset_date\":\"2026-05-27\",\"country\":\"JP\",\"seriousness\":\"Serious - Life-threatening\",\"outcome\":\"Recovered\",\"causality_investigator\":\"Probable\",\"dechallenge\":\"Positive\"}],\"observed_rate_per_1000\":2.42,\"background_rate_per_1000\":0.14,\"signal_status\":\"Under evaluation\",\"signal_opened\":\"2026-04-11\",\"signal_owner\":\"Global Drug Safety - Hepatology Signal Team\",\"note\":\"Observed rate exceeds the population background rate by roughly 17-fold. Any new hepatic case must be routed to the signal team in parallel with expedited reporting.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNzQsInkiOjQyfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_code\":{\"type\":\"string\"},\"reaction_term\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\"},\"reaction_term\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:CheckLabelExpectednessFlow",
+      "data": {
+        "name": "CheckLabelExpectednessFlow",
+        "description": "Returns mock expectedness assessment",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"product_code\":\"IMP-4471\",\"reaction_term\":\"Hepatic failure\",\"reference_safety_information\":\"Investigator's Brochure v6.0, Section 6.3 (effective 2026-02-01)\",\"listed\":false,\"expectedness\":\"UNEXPECTED\",\"rationale\":\"Hepatic failure is not described in the Reference Safety Information in force. Section 6.3 lists asymptomatic transaminase elevation only, which is not of the same nature, severity or specificity as hepatic failure and therefore does not make this event listed.\",\"nearest_listed_term\":\"Transaminases increased (Grade 1-2, asymptomatic)\",\"regulatory_consequence\":\"If the case is also serious and the investigator or sponsor assesses at least a reasonable possibility of causal relationship, it meets the definition of a SUSAR under ICH E2A and EU CT Regulation 536/2014 Article 42.\",\"reporting_clock\":{\"fatal_or_life_threatening\":\"7 calendar days for the initial report, 8 further days for the follow-up report\",\"other_serious\":\"15 calendar days\"},\"clock_start_definition\":\"Day zero is the date the sponsor first receives the minimum criteria: identifiable patient, identifiable reporter, suspect product, and suspect reaction.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJldHVybiI6eyJ4IjoyNzQsInkiOjQyfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"product_code\":{\"type\":\"string\"},\"reaction_term\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "httpHeaders",
+              "type": "object"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"arguments\":{\"type\":\"object\",\"properties\":{\"product_code\":{\"type\":\"string\"},\"reaction_term\":{\"type\":\"string\"}}},\"httpHeaders\":{\"type\":\"object\",\"properties\":{}}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9221"
+    },
+    {
+      "name": "FlogoMcpServer.AUTH_TYPE",
+      "type": "string",
+      "value": "API Key"
+    },
+    {
+      "name": "FlogoMcpServer.AUTH_TOKEN",
+      "type": "string",
+      "value": "SECRET:O2rxYWBn4fpHqN9rdgwDb9PCPbrPTZGAvkRqswAypPazTOffVaWQ6WfBx8f3fH6zwQ+W2sXL1w=="
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuNCIsInRhZyI6IjEuMC40LWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9221",
+        "title": "SafetySignalServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.8"
+  }
+}
