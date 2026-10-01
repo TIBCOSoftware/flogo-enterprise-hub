@@ -145,7 +145,7 @@ Sending 150 tool definitions to an LLM in every request is expensive, degrades r
   },
   "input": {
     "systemPrompt": "You are a tool selection assistant. Below is the catalog of 150 tools...\n## Identity & Access Management\n- reset_password: Reset a user's password...\n- unlock_account: Unlock a locked user account...\n...",
-    "llmConfiguration": { "mapping": { "provider": "OpenAI", "model": "gpt-4o", "temparature": 0.3 } }
+    "llmConfiguration": { "mapping": { "provider": "OpenAI", "model": "gpt-4o", "temperature": 0.3 } }
   },
   "schemas": {
     "output": {
