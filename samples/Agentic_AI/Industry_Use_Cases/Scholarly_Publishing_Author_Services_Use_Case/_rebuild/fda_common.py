@@ -1,4 +1,4 @@
-"""Shared helpers for the fda drivers (agentic-ai-governed-use-case skill).
+"""Shared helpers for the fda drivers (agentic-ai-use-case-builder skill).
 
 Config is read at RUN time - nothing secret or machine-specific is stored in these scripts:
   env vars win (FDA, PSQL, PG_HOST, PG_PORT, PG_USER, PG_PWD, LLM_API_KEY, LLM_MODEL, LLM_BASE_URL),

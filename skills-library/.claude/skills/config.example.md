@@ -53,7 +53,7 @@ LLM_Temperature: 0
 > and fails to delegate). Use a capable tool-calling model such as **`gpt-5.5`** (or a Claude
 > Sonnet-/Opus-class or Gemini 2.5 Pro-class model) for the orchestrator; the A2A agent can be one tier
 > down. Because all rules live in SQL, a cheaper runtime model only lowers conversation quality, never
-> safety — so pick the cheapest model that still delegates reliably (confirm at test rung 4). Set this
+> safety — so pick the cheapest model that still delegates reliably (confirm at test step 4). Set this
 > in `LLM_Model` **before** building so the apps are baked with the right model and you don't rebuild.
 ---
 
@@ -66,7 +66,7 @@ Password: <your-app-password>
 
 ---
 
-## Agentic AI Use Cases (skill: `agentic-ai-use-case`)
+## Agentic AI Use Cases (skill: `agentic-ai-use-case-builder`)
 
 | Key | Value |
 |---|---|

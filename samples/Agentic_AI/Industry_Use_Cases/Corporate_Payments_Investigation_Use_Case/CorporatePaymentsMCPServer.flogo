@@ -1,0 +1,3862 @@
+{
+  "imports": [
+    "con_postgresql github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection",
+    "tr_mcpserver github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/flow",
+    "act_default_noop github.com/project-flogo/contrib/activity/noop",
+    "act_postgresql_insert github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/insert",
+    "act_postgresql_query github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "act_default_actreturn github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce",
+    "act_general_sendmail github.com/tibco/flogo-general/src/app/General/activity/sendmail"
+  ],
+  "name": "CorporatePaymentsMCPServer",
+  "description": "Aurelia Global Bank Corporate Payments Investigation MCP Server - scoped reads and guarded writes for verified corporate clients",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "settings": {
+        "serverName": "CorporatePayments",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"MCP_SERVER_PORT\"]",
+        "statelessServer": false,
+        "serverEndpointPath": "/corporate-payments-mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": "",
+        "oauthIssuer": "",
+        "oauthJWKSURL": "",
+        "oauthAudience": "",
+        "oauthAuthorizationServers": "",
+        "oauthRequiredScopes": "",
+        "oauthResourceURL": ""
+      },
+      "id": "CorporatePaymentsMCPServer",
+      "name": "CorporatePaymentsMCPServer",
+      "description": "Aurelia Global Bank Corporate Payments governed MCP server",
+      "ref": "#tr_mcpserver",
+      "handlers": [
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "verify_client",
+            "handlerDescription": "Verify the client's identity with their Aurelia Global Bank client id (e.g. CLI-2026-00101) and the 6-digit passcode from their corporate portal. Returns VERIFIED with a session_token (valid 30 minutes) and their legal name, NOT_VERIFIED when the id and passcode do not match, or LOCKED after 5 failed attempts in 15 minutes (no token is issued while locked, even with the right passcode; offer recovery only). Call this before any other client tool. Never reveal, hint at or guess passcodes.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:verify_client_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "verify_client_flow",
+          "description": "Verify the client's identity with their Aurelia Global Bank client id (e.g. CLI-2026-00101) and the 6-digit passcode from their corporate portal. Returns VERIFIED with a session_token (valid 30 minutes) and their legal name, NOT_VERIFIED when the id and passcode do not match, or LOCKED after 5 failed attempts in 15 minutes (no token is issued while locked, even with the right passcode; offer recovery only). Call this before any other client tool. Never reveal, hint at or guess passcodes.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://verify_client_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_my_payments",
+            "handlerDescription": "List the verified client's own payments, newest first, at most 25. Pass an empty search for everything in the last 90 days, or a search term to filter back 18 months: part of the payment reference, the beneficiary name or bank BIC, or an amount (e.g. 48500). Each row has payment_ref, direction (OUTGOING/INCOMING), rail, amount, currency, fx_rate, fees, beneficiary, status and any return reason code, value date, created-at and any open investigation id. Returns NO_MATCH when nothing matches. Use the payment_ref from here for the other tools; never invent one.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_my_payments_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_my_payments_flow",
+          "description": "List the verified client's own payments, newest first, at most 25. Pass an empty search for everything in the last 90 days, or a search term to filter back 18 months: part of the payment reference, the beneficiary name or bank BIC, or an amount (e.g. 48500). Each row has payment_ref, direction (OUTGOING/INCOMING), rail, amount, currency, fx_rate, fees, beneficiary, status and any return reason code, value date, created-at and any open investigation id. Returns NO_MATCH when nothing matches. Use the payment_ref from here for the other tools; never invent one.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_my_payments_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_payment_status",
+            "handlerDescription": "Get the full status of one payment on the verified client's own accounts: direction, rail, amount, currency, fx rate, fees, beneficiary and bank, status (INITIATED, IN_TRANSIT, COMPLETED, RETURNED, HELD, RECALL_REQUESTED, RECALLED) and - when RETURNED - the return reason code decoded into plain language. Returns NOT_YOUR_PAYMENT for a payment that is absent or belongs to another client. Quote amounts, fees and the decoded reason exactly as returned.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_payment_status_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_payment_status_flow",
+          "description": "Get the full status of one payment on the verified client's own accounts: direction, rail, amount, currency, fx rate, fees, beneficiary and bank, status (INITIATED, IN_TRANSIT, COMPLETED, RETURNED, HELD, RECALL_REQUESTED, RECALLED) and - when RETURNED - the return reason code decoded into plain language. Returns NOT_YOUR_PAYMENT for a payment that is absent or belongs to another client. Quote amounts, fees and the decoded reason exactly as returned.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_payment_status_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_payment_timeline",
+            "handlerDescription": "Show the GPI-style event timeline of one payment on the verified client's own accounts: each step with its time, the acting bank and what happened (initiated, debited, forwarded to the agent bank, in transit, returned, completed...). Returns NOT_YOUR_PAYMENT for a payment that is not this client's.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_payment_timeline_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_payment_timeline_flow",
+          "description": "Show the GPI-style event timeline of one payment on the verified client's own accounts: each step with its time, the acting bank and what happened (initiated, debited, forwarded to the agent bank, in transit, returned, completed...). Returns NOT_YOUR_PAYMENT for a payment that is not this client's.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_payment_timeline_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "check_delivery_estimate",
+            "handlerDescription": "Assess whether one payment on the verified client's own accounts will settle on time. The system computes it deterministically from the rail/currency cutoff rules and business days - it is never estimated by you. Returns the outcome ON_TRACK, PAST_CUTOFF (submitted after today's cutoff, so it processes the next business day), DELAYED (past the expected settlement date and still not completed) or SETTLED, with the expected settlement date, or NOT_YOUR_PAYMENT. Quote the outcome and date verbatim; never compute a delivery estimate yourself.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:check_delivery_estimate_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "check_delivery_estimate_flow",
+          "description": "Assess whether one payment on the verified client's own accounts will settle on time. The system computes it deterministically from the rail/currency cutoff rules and business days - it is never estimated by you. Returns the outcome ON_TRACK, PAST_CUTOFF (submitted after today's cutoff, so it processes the next business day), DELAYED (past the expected settlement date and still not completed) or SETTLED, with the expected settlement date, or NOT_YOUR_PAYMENT. Quote the outcome and date verbatim; never compute a delivery estimate yourself.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://check_delivery_estimate_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "propose_trace",
+            "handlerDescription": "Step 1 of 2 for raising a trace / investigation on a delayed or missing payment. Give the payment_ref (from get_my_payments), a return/reason code (use lookup_reason_code, or MS03 if none was given) and the client's own words. The system checks every rule and returns PROPOSED with an action_id, the amount, beneficiary, decoded reason and estimated response date, or NOT_PROPOSED with reason_code NOT_YOUR_PAYMENT, NOT_TRACEABLE (submitted less than 2 hours ago, or still INITIATED), ALREADY_UNDER_INVESTIGATION, BAD_REASON or SESSION_INVALID. Read the amount, beneficiary, decoded reason and response date back exactly as returned. Nothing is opened until confirm_trace is called after the client's explicit yes.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:propose_trace_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "propose_trace_flow",
+          "description": "Step 1 of 2 for raising a trace / investigation on a delayed or missing payment. Give the payment_ref (from get_my_payments), a return/reason code (use lookup_reason_code, or MS03 if none was given) and the client's own words. The system checks every rule and returns PROPOSED with an action_id, the amount, beneficiary, decoded reason and estimated response date, or NOT_PROPOSED with reason_code NOT_YOUR_PAYMENT, NOT_TRACEABLE (submitted less than 2 hours ago, or still INITIATED), ALREADY_UNDER_INVESTIGATION, BAD_REASON or SESSION_INVALID. Read the amount, beneficiary, decoded reason and response date back exactly as returned. Nothing is opened until confirm_trace is called after the client's explicit yes.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://propose_trace_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "confirm_trace",
+            "handlerDescription": "Step 2 of 2: open the trace the client has explicitly confirmed. Pass the action_id from propose_trace. The system re-checks every rule; proposals expire after 15 minutes. Returns OPENED with the investigation_id (INV-2026-NNNN) and the estimated response date, or NOT_EXECUTED with reason_code NO_SUCH_PROPOSAL, EXPIRED, ALREADY_EXECUTED, SESSION_INVALID or a rule's code. Only call after the client says yes to the exact proposal; never call it without a fresh action_id.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:confirm_trace_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "confirm_trace_flow",
+          "description": "Step 2 of 2: open the trace the client has explicitly confirmed. Pass the action_id from propose_trace. The system re-checks every rule; proposals expire after 15 minutes. Returns OPENED with the investigation_id (INV-2026-NNNN) and the estimated response date, or NOT_EXECUTED with reason_code NO_SUCH_PROPOSAL, EXPIRED, ALREADY_EXECUTED, SESSION_INVALID or a rule's code. Only call after the client says yes to the exact proposal; never call it without a fresh action_id.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://confirm_trace_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "propose_recall",
+            "handlerDescription": "Step 1 of 2 for requesting a recall / return of a payment (for example sent to the wrong beneficiary). Give the payment_ref, a return/reason code (e.g. BE01 for a wrong beneficiary) and the client's own words. The system checks every rule and returns PROPOSED with an action_id, the amount, beneficiary and decoded reason, or NOT_PROPOSED with reason_code NOT_YOUR_PAYMENT, NOT_RECALLABLE (incoming payment, already returned/recalled, or completed more than 5 business days ago), ALREADY_RECALL_REQUESTED, BAD_REASON or SESSION_INVALID. Make clear to the client that a recall is a REQUEST a person at Payment Operations decides: it is not guaranteed and does NOT reverse the funds automatically. Nothing is submitted until confirm_recall is called after the client's explicit yes.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:propose_recall_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "propose_recall_flow",
+          "description": "Step 1 of 2 for requesting a recall / return of a payment (for example sent to the wrong beneficiary). Give the payment_ref, a return/reason code (e.g. BE01 for a wrong beneficiary) and the client's own words. The system checks every rule and returns PROPOSED with an action_id, the amount, beneficiary and decoded reason, or NOT_PROPOSED with reason_code NOT_YOUR_PAYMENT, NOT_RECALLABLE (incoming payment, already returned/recalled, or completed more than 5 business days ago), ALREADY_RECALL_REQUESTED, BAD_REASON or SESSION_INVALID. Make clear to the client that a recall is a REQUEST a person at Payment Operations decides: it is not guaranteed and does NOT reverse the funds automatically. Nothing is submitted until confirm_recall is called after the client's explicit yes.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://propose_recall_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "confirm_recall",
+            "handlerDescription": "Step 2 of 2: submit the recall the client has explicitly confirmed. Pass the action_id from propose_recall. The system re-checks every rule; proposals expire after 15 minutes. Returns SUBMITTED with the review case_id (CASE-NNNNN) and the assigned team (Payment Operations) - the payment is set to RECALL_REQUESTED and a person decides the recall; funds are not auto-reversed. Otherwise returns NOT_EXECUTED with reason_code NO_SUCH_PROPOSAL, EXPIRED, ALREADY_EXECUTED, SESSION_INVALID or a rule's code. Only call after the client says yes to the exact proposal; state that a person will decide and the funds are not reversed automatically.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:confirm_recall_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "confirm_recall_flow",
+          "description": "Step 2 of 2: submit the recall the client has explicitly confirmed. Pass the action_id from propose_recall. The system re-checks every rule; proposals expire after 15 minutes. Returns SUBMITTED with the review case_id (CASE-NNNNN) and the assigned team (Payment Operations) - the payment is set to RECALL_REQUESTED and a person decides the recall; funds are not auto-reversed. Otherwise returns NOT_EXECUTED with reason_code NO_SUCH_PROPOSAL, EXPIRED, ALREADY_EXECUTED, SESSION_INVALID or a rule's code. Only call after the client says yes to the exact proposal; state that a person will decide and the funds are not reversed automatically.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://confirm_recall_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "open_review_case",
+            "handlerDescription": "Hand a request that a person must own to the right team: RECALL, PAYMENT_REPAIR (fix beneficiary details and re-send), FEE_WAIVER (waive or refund a charge), COMPENSATION, FRAUD (suspected fraud), SANCTIONS_QUERY (a payment held for sanctions screening) or OTHER. The system routes it and returns CASE_OPENED with case_id (CASE-NNNNN), the assigned team and reply time in business days, or NOT_OPENED with BAD_TYPE or SESSION_INVALID. Supply a neutral brief: facts only, no recommendation. The assistant never decides, approves, promises or predicts the outcome of these requests.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:open_review_case_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "open_review_case_flow",
+          "description": "Hand a request that a person must own to the right team: RECALL, PAYMENT_REPAIR (fix beneficiary details and re-send), FEE_WAIVER (waive or refund a charge), COMPENSATION, FRAUD (suspected fraud), SANCTIONS_QUERY (a payment held for sanctions screening) or OTHER. The system routes it and returns CASE_OPENED with case_id (CASE-NNNNN), the assigned team and reply time in business days, or NOT_OPENED with BAD_TYPE or SESSION_INVALID. Supply a neutral brief: facts only, no recommendation. The assistant never decides, approves, promises or predicts the outcome of these requests.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://open_review_case_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_my_cases",
+            "handlerDescription": "List the verified client's investigations (INV-) and review cases (CASE-) with type, status, the related payment, the assigned team and the expected response or reply date.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_my_cases_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_my_cases_flow",
+          "description": "List the verified client's investigations (INV-) and review cases (CASE-) with type, status, the related payment, the assigned team and the expected response or reply date.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_my_cases_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "email_my_confirmation",
+            "handlerDescription": "Email the confirmation for an investigation (INV-...) or review case (CASE-...) of this client. Pass the reference_id from confirm_trace, confirm_recall or open_review_case. The system sends the email only when that reference belongs to this session's client; otherwise it returns NOT_SENT with reason_code NO_SUCH_REFERENCE or SESSION_INVALID. Call only after an investigation or case has been opened, and only when the client asks.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:email_my_confirmation_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "email_my_confirmation_flow",
+          "description": "Email the confirmation for an investigation (INV-...) or review case (CASE-...) of this client. Pass the reference_id from confirm_trace, confirm_recall or open_review_case. The system sends the email only when that reference belongs to this session's client; otherwise it returns NOT_SENT with reason_code NO_SUCH_REFERENCE or SESSION_INVALID. Call only after an investigation or case has been opened, and only when the client asks.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://email_my_confirmation_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:verify_client_flow",
+      "data": {
+        "name": "verify_client_flow",
+        "description": "Verify the client&#39;s identity with their Aurelia Global Bank client id (e.g. CLI-2026-00101) and the 6-digit passcode from their corporate portal. Returns VERIFIED with a session_token (valid 30 minutes) and their legal name, NOT_VERIFIED when the id and passcode do not match, or LOCKED after 5 failed attempts in 15 minutes (no token is issued while locked, even with the right passcode; offer recovery only). Call this before any other client tool. Never reveal, hint at or guess passcodes.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO client_sessions (client_id) SELECT client_id FROM verify_and_record(CAST(?w_cid AS text), CAST(?w_code AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_cid",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "7f7e9ca9-45cf-45e5-9da9-8bc0ecc9eefcINSERT INTO client_sessions (client_id) SELECT client_id FROM verify_and_record(CAST(?w_cid AS text), CAST(?w_code AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_cid": "=$flow.arguments.client_id",
+                      "w_code": "=$flow.arguments.passcode"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_cid\": {\"type\": \"string\"}, \"w_code\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_cid\": {\"type\": \"string\"}, \"w_code\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM verify_result(CAST(?r_cid AS text), CAST(?r_code AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_cid",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "session_token",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "legal_name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "client_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "8cc4408d-9b2c-4044-af0a-8ab49686d5d4SELECT * FROM verify_result(CAST(?r_cid AS text), CAST(?r_code AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_cid": "=$flow.arguments.client_id",
+                      "r_code": "=$flow.arguments.passcode"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_cid\": {\"type\": \"string\"}, \"r_code\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_cid\": {\"type\": \"string\"}, \"r_code\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"session_token\": {\"type\": \"string\"}, \"legal_name\": {\"type\": \"string\"}, \"client_id\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"session_token\": {\"type\": \"string\"}, \"legal_name\": {\"type\": \"string\"}, \"client_id\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"client_id\": {\"type\": \"string\"}, \"passcode\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"client_id\": {\"type\": \"string\", \"description\": \"Aurelia Global Bank client id, e.g. CLI-2026-00101\"}, \"passcode\": {\"type\": \"string\", \"description\": \"6-digit passcode the client typed\"}}, \"required\": [\"client_id\", \"passcode\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_my_payments_flow",
+      "data": {
+        "name": "get_my_payments_flow",
+        "description": "List the verified client&#39;s own payments, newest first, at most 25. Pass an empty search for everything in the last 90 days, or a search term to filter back 18 months: part of the payment reference, the beneficiary name or bank BIC, or an amount (e.g. 48500). Each row has payment_ref, direction (OUTGOING/INCOMING), rail, amount, currency, fx_rate, fees, beneficiary, status and any return reason code, value date, created-at and any open investigation id. Returns NO_MATCH when nothing matches. Use the payment_ref from here for the other tools; never invent one.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM my_payments(CAST(?tok AS text), CAST(?q AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "q",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "session_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "direction",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "rail",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "currency",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "fx_rate",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "fees",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "beneficiary_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "beneficiary_bank_bic",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "return_reason_code",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "value_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "open_investigation_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "26b6927d-1a42-4a38-bf28-5eb92d8579ffSELECT * FROM my_payments(CAST(?tok AS text), CAST(?q AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token",
+                      "q": "=$flow.arguments.search"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"q\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"q\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"direction\": {\"type\": \"string\"}, \"rail\": {\"type\": \"string\"}, \"amount\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}, \"fx_rate\": {\"type\": \"number\"}, \"fees\": {\"type\": \"number\"}, \"beneficiary_name\": {\"type\": \"string\"}, \"beneficiary_bank_bic\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"return_reason_code\": {\"type\": \"string\"}, \"value_date\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}, \"open_investigation_id\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"direction\": {\"type\": \"string\"}, \"rail\": {\"type\": \"string\"}, \"amount\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}, \"fx_rate\": {\"type\": \"number\"}, \"fees\": {\"type\": \"number\"}, \"beneficiary_name\": {\"type\": \"string\"}, \"beneficiary_bank_bic\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"return_reason_code\": {\"type\": \"string\"}, \"value_date\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}, \"open_investigation_id\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"search\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"search\": {\"type\": \"string\", \"description\": \"Optional filter: payment ref, beneficiary text, bank BIC or an amount. Empty string = all recent\"}}, \"required\": [\"session_token\", \"search\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_payment_status_flow",
+      "data": {
+        "name": "get_payment_status_flow",
+        "description": "Get the full status of one payment on the verified client&#39;s own accounts: direction, rail, amount, currency, fx rate, fees, beneficiary and bank, status (INITIATED, IN_TRANSIT, COMPLETED, RETURNED, HELD, RECALL_REQUESTED, RECALLED) and - when RETURNED - the return reason code decoded into plain language. Returns NOT_YOUR_PAYMENT for a payment that is absent or belongs to another client. Quote amounts, fees and the decoded reason exactly as returned.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM payment_status_for_session(CAST(?tok AS text), CAST(?ref AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "lookup_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "direction",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "rail",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "currency",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "fx_rate",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "fees",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "beneficiary_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "beneficiary_bank",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "return_reason_code",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "return_reason_plain",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "value_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "dc8ac8ea-39a4-4f88-b246-6f4bf8f5a9efSELECT * FROM payment_status_for_session(CAST(?tok AS text), CAST(?ref AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token",
+                      "ref": "=$flow.arguments.payment_ref"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"ref\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"ref\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"direction\": {\"type\": \"string\"}, \"rail\": {\"type\": \"string\"}, \"amount\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}, \"fx_rate\": {\"type\": \"number\"}, \"fees\": {\"type\": \"number\"}, \"beneficiary_name\": {\"type\": \"string\"}, \"beneficiary_bank\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"return_reason_code\": {\"type\": \"string\"}, \"return_reason_plain\": {\"type\": \"string\"}, \"value_date\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"direction\": {\"type\": \"string\"}, \"rail\": {\"type\": \"string\"}, \"amount\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}, \"fx_rate\": {\"type\": \"number\"}, \"fees\": {\"type\": \"number\"}, \"beneficiary_name\": {\"type\": \"string\"}, \"beneficiary_bank\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"return_reason_code\": {\"type\": \"string\"}, \"return_reason_plain\": {\"type\": \"string\"}, \"value_date\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"payment_ref\": {\"type\": \"string\", \"description\": \"Payment reference, e.g. PMT-2026-000001\"}}, \"required\": [\"session_token\", \"payment_ref\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_payment_timeline_flow",
+      "data": {
+        "name": "get_payment_timeline_flow",
+        "description": "Show the GPI-style event timeline of one payment on the verified client&#39;s own accounts: each step with its time, the acting bank and what happened (initiated, debited, forwarded to the agent bank, in transit, returned, completed...). Returns NOT_YOUR_PAYMENT for a payment that is not this client&#39;s.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM payment_timeline(CAST(?tok AS text), CAST(?ref AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "lookup_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "event_time",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "actor",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "detail",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "59a6853a-2314-4382-853c-7c1b925d4577SELECT * FROM payment_timeline(CAST(?tok AS text), CAST(?ref AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token",
+                      "ref": "=$flow.arguments.payment_ref"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"ref\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"ref\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"event_time\": {\"type\": \"string\"}, \"actor\": {\"type\": \"string\"}, \"action\": {\"type\": \"string\"}, \"detail\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"event_time\": {\"type\": \"string\"}, \"actor\": {\"type\": \"string\"}, \"action\": {\"type\": \"string\"}, \"detail\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"payment_ref\": {\"type\": \"string\", \"description\": \"Payment reference, e.g. PMT-2026-000001\"}}, \"required\": [\"session_token\", \"payment_ref\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:check_delivery_estimate_flow",
+      "data": {
+        "name": "check_delivery_estimate_flow",
+        "description": "Assess whether one payment on the verified client&#39;s own accounts will settle on time. The system computes it deterministically from the rail/currency cutoff rules and business days - it is never estimated by you. Returns the outcome ON_TRACK, PAST_CUTOFF (submitted after today&#39;s cutoff, so it processes the next business day), DELAYED (past the expected settlement date and still not completed) or SETTLED, with the expected settlement date, or NOT_YOUR_PAYMENT. Quote the outcome and date verbatim; never compute a delivery estimate yourself.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM delivery_estimate(CAST(?tok AS text), CAST(?ref AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "lookup_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "rail",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "currency",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "cutoff_hour",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "settlement_days",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expected_settlement_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "detail",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "f2fea6bf-82cd-4b00-b1fa-34d4fa02fa46SELECT * FROM delivery_estimate(CAST(?tok AS text), CAST(?ref AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token",
+                      "ref": "=$flow.arguments.payment_ref"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"ref\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"ref\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"rail\": {\"type\": \"string\"}, \"currency\": {\"type\": \"string\"}, \"outcome\": {\"type\": \"string\"}, \"cutoff_hour\": {\"type\": \"number\"}, \"settlement_days\": {\"type\": \"number\"}, \"expected_settlement_date\": {\"type\": \"string\"}, \"detail\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"rail\": {\"type\": \"string\"}, \"currency\": {\"type\": \"string\"}, \"outcome\": {\"type\": \"string\"}, \"cutoff_hour\": {\"type\": \"number\"}, \"settlement_days\": {\"type\": \"number\"}, \"expected_settlement_date\": {\"type\": \"string\"}, \"detail\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"payment_ref\": {\"type\": \"string\", \"description\": \"Payment reference, e.g. PMT-2026-000001\"}}, \"required\": [\"session_token\", \"payment_ref\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:propose_trace_flow",
+      "data": {
+        "name": "propose_trace_flow",
+        "description": "Step 1 of 2 for raising a trace / investigation on a delayed or missing payment. Give the payment_ref (from get_my_payments), a return/reason code (use lookup_reason_code, or MS03 if none was given) and the client&#39;s own words. The system checks every rule and returns PROPOSED with an action_id, the amount, beneficiary, decoded reason and estimated response date, or NOT_PROPOSED with reason_code NOT_YOUR_PAYMENT, NOT_TRACEABLE (submitted less than 2 hours ago, or still INITIATED), ALREADY_UNDER_INVESTIGATION, BAD_REASON or SESSION_INVALID. Read the amount, beneficiary, decoded reason and response date back exactly as returned. Nothing is opened until confirm_trace is called after the client&#39;s explicit yes.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO pending_actions (action_type, client_id, payment_ref, reason_code, client_statement, est_response_date) SELECT * FROM trace_proposal_row(CAST(?w_tok AS text), CAST(?w_ref AS text), CAST(?w_rsn AS text), CAST(?w_stmt AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_rsn",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_stmt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "7b834268-026a-4bf4-8153-43ddf6621898INSERT INTO pending_actions (action_type, client_id, payment_ref, reason_code, client_statement, est_response_date) SELECT * FROM trace_proposal_row(CAST(?w_tok AS text), CAST(?w_ref AS text), CAST(?w_rsn AS text), CAST(?w_stmt AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_ref": "=$flow.arguments.payment_ref",
+                      "w_rsn": "=$flow.arguments.reason_code",
+                      "w_stmt": "=$flow.arguments.client_statement"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_ref\": {\"type\": \"string\"}, \"w_rsn\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_ref\": {\"type\": \"string\"}, \"w_rsn\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM propose_trace_result(CAST(?r_tok AS text), CAST(?r_ref AS text), CAST(?r_rsn AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_rsn",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "currency",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "beneficiary_name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "decoded_reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "est_response_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "bba77072-37ca-49b3-849d-10156ec4ba67SELECT * FROM propose_trace_result(CAST(?r_tok AS text), CAST(?r_ref AS text), CAST(?r_rsn AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_ref": "=$flow.arguments.payment_ref",
+                      "r_rsn": "=$flow.arguments.reason_code"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_ref\": {\"type\": \"string\"}, \"r_rsn\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_ref\": {\"type\": \"string\"}, \"r_rsn\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"amount\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}, \"beneficiary_name\": {\"type\": \"string\"}, \"decoded_reason\": {\"type\": \"string\"}, \"est_response_date\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"amount\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}, \"beneficiary_name\": {\"type\": \"string\"}, \"decoded_reason\": {\"type\": \"string\"}, \"est_response_date\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"client_statement\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"payment_ref\": {\"type\": \"string\", \"description\": \"Payment reference from get_my_payments, e.g. PMT-2026-000001\"}, \"reason_code\": {\"type\": \"string\", \"description\": \"A return/reason code, e.g. MS03, AC04, BE01 (decode with lookup_reason_code)\"}, \"client_statement\": {\"type\": \"string\", \"description\": \"The client's description of the problem, in their own words\"}}, \"required\": [\"session_token\", \"payment_ref\", \"reason_code\", \"client_statement\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:confirm_trace_flow",
+      "data": {
+        "name": "confirm_trace_flow",
+        "description": "Step 2 of 2: open the trace the client has explicitly confirmed. Pass the action_id from propose_trace. The system re-checks every rule; proposals expire after 15 minutes. Returns OPENED with the investigation_id (INV-2026-NNNN) and the estimated response date, or NOT_EXECUTED with reason_code NO_SUCH_PROPOSAL, EXPIRED, ALREADY_EXECUTED, SESSION_INVALID or a rule&#39;s code. Only call after the client says yes to the exact proposal; never call it without a fresh action_id.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO investigations (action_id, client_id, payment_ref, reason_code, client_statement, est_response_date) SELECT * FROM trace_confirmation_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "8ebc0692-b942-4639-b09a-87194c95a2ccINSERT INTO investigations (action_id, client_id, payment_ref, reason_code, client_statement, est_response_date) SELECT * FROM trace_confirmation_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM confirm_trace_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "investigation_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "est_response_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "7d500a56-754c-4022-8be4-6d86f7fc8e05SELECT * FROM confirm_trace_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"investigation_id\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"est_response_date\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"investigation_id\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"est_response_date\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id returned by propose_trace, e.g. ACT-1A2B3C4D\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:propose_recall_flow",
+      "data": {
+        "name": "propose_recall_flow",
+        "description": "Step 1 of 2 for requesting a recall / return of a payment (for example sent to the wrong beneficiary). Give the payment_ref, a return/reason code (e.g. BE01 for a wrong beneficiary) and the client&#39;s own words. The system checks every rule and returns PROPOSED with an action_id, the amount, beneficiary and decoded reason, or NOT_PROPOSED with reason_code NOT_YOUR_PAYMENT, NOT_RECALLABLE (incoming payment, already returned/recalled, or completed more than 5 business days ago), ALREADY_RECALL_REQUESTED, BAD_REASON or SESSION_INVALID. Make clear to the client that a recall is a REQUEST a person at Payment Operations decides: it is not guaranteed and does NOT reverse the funds automatically. Nothing is submitted until confirm_recall is called after the client&#39;s explicit yes.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO pending_actions (action_type, client_id, payment_ref, reason_code, client_statement) SELECT * FROM recall_proposal_row(CAST(?w_tok AS text), CAST(?w_ref AS text), CAST(?w_rsn AS text), CAST(?w_stmt AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_rsn",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_stmt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "0874b7e0-4eee-45f0-bf68-c072b9815e08INSERT INTO pending_actions (action_type, client_id, payment_ref, reason_code, client_statement) SELECT * FROM recall_proposal_row(CAST(?w_tok AS text), CAST(?w_ref AS text), CAST(?w_rsn AS text), CAST(?w_stmt AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_ref": "=$flow.arguments.payment_ref",
+                      "w_rsn": "=$flow.arguments.reason_code",
+                      "w_stmt": "=$flow.arguments.client_statement"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_ref\": {\"type\": \"string\"}, \"w_rsn\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_ref\": {\"type\": \"string\"}, \"w_rsn\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM propose_recall_result(CAST(?r_tok AS text), CAST(?r_ref AS text), CAST(?r_rsn AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_rsn",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "currency",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "beneficiary_name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "decoded_reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "82ecef06-e1ca-4f40-8d68-095d0feb8e62SELECT * FROM propose_recall_result(CAST(?r_tok AS text), CAST(?r_ref AS text), CAST(?r_rsn AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_ref": "=$flow.arguments.payment_ref",
+                      "r_rsn": "=$flow.arguments.reason_code"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_ref\": {\"type\": \"string\"}, \"r_rsn\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_ref\": {\"type\": \"string\"}, \"r_rsn\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"amount\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}, \"beneficiary_name\": {\"type\": \"string\"}, \"decoded_reason\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"amount\": {\"type\": \"number\"}, \"currency\": {\"type\": \"string\"}, \"beneficiary_name\": {\"type\": \"string\"}, \"decoded_reason\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"client_statement\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"payment_ref\": {\"type\": \"string\", \"description\": \"Payment reference from get_my_payments, e.g. PMT-2026-000006\"}, \"reason_code\": {\"type\": \"string\", \"description\": \"A return/reason code, e.g. BE01 (wrong beneficiary); decode with lookup_reason_code\"}, \"client_statement\": {\"type\": \"string\", \"description\": \"The client's description of the problem, in their own words\"}}, \"required\": [\"session_token\", \"payment_ref\", \"reason_code\", \"client_statement\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:confirm_recall_flow",
+      "data": {
+        "name": "confirm_recall_flow",
+        "description": "Step 2 of 2: submit the recall the client has explicitly confirmed. Pass the action_id from propose_recall. The system re-checks every rule; proposals expire after 15 minutes. Returns SUBMITTED with the review case_id (CASE-NNNNN) and the assigned team (Payment Operations) - the payment is set to RECALL_REQUESTED and a person decides the recall; funds are not auto-reversed. Otherwise returns NOT_EXECUTED with reason_code NO_SUCH_PROPOSAL, EXPIRED, ALREADY_EXECUTED, SESSION_INVALID or a rule&#39;s code. Only call after the client says yes to the exact proposal; state that a person will decide and the funds are not reversed automatically.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO review_cases (action_id, client_id, request_type, payment_ref, client_statement, agent_brief, assigned_team) SELECT * FROM recall_confirmation_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "d2f28da2-f9dc-43de-8161-fdd809da1dacINSERT INTO review_cases (action_id, client_id, request_type, payment_ref, client_statement, agent_brief, assigned_team) SELECT * FROM recall_confirmation_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM confirm_recall_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "assigned_team",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "45dbcdb3-bcfa-4109-8079-83aff7f91198SELECT * FROM confirm_recall_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"payment_status\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"payment_status\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id returned by propose_recall, e.g. ACT-1A2B3C4D\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:open_review_case_flow",
+      "data": {
+        "name": "open_review_case_flow",
+        "description": "Hand a request that a person must own to the right team: RECALL, PAYMENT_REPAIR (fix beneficiary details and re-send), FEE_WAIVER (waive or refund a charge), COMPENSATION, FRAUD (suspected fraud), SANCTIONS_QUERY (a payment held for sanctions screening) or OTHER. The system routes it and returns CASE_OPENED with case_id (CASE-NNNNN), the assigned team and reply time in business days, or NOT_OPENED with BAD_TYPE or SESSION_INVALID. Supply a neutral brief: facts only, no recommendation. The assistant never decides, approves, promises or predicts the outcome of these requests.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO review_cases (client_id, request_type, client_statement, agent_brief, assigned_team) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_stmt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_brief",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "9a4217b7-c057-418f-84eb-7036579c25ebINSERT INTO review_cases (client_id, request_type, client_statement, agent_brief, assigned_team) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_type": "=$flow.arguments.request_type",
+                      "w_stmt": "=$flow.arguments.client_statement",
+                      "w_brief": "=$flow.arguments.brief"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_type\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}, \"w_brief\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_type\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}, \"w_brief\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "request_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "assigned_team",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_within_business_days",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_by",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "56bcce2b-ce9b-47db-8901-8ee260a4d473SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_type": "=$flow.arguments.request_type"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_type\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_type\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_within_business_days\": {\"type\": \"number\"}, \"reply_by\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_within_business_days\": {\"type\": \"number\"}, \"reply_by\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"client_statement\": {\"type\": \"string\"}, \"brief\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"request_type\": {\"type\": \"string\", \"description\": \"RECALL | PAYMENT_REPAIR | FEE_WAIVER | COMPENSATION | FRAUD | SANCTIONS_QUERY | OTHER\"}, \"client_statement\": {\"type\": \"string\", \"description\": \"The client's request in their own words\"}, \"brief\": {\"type\": \"string\", \"description\": \"A neutral 2-4 sentence summary for the team: facts only, no recommendation\"}}, \"required\": [\"session_token\", \"request_type\", \"client_statement\", \"brief\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_my_cases_flow",
+      "data": {
+        "name": "get_my_cases_flow",
+        "description": "List the verified client&#39;s investigations (INV-) and review cases (CASE-) with type, status, the related payment, the assigned team and the expected response or reply date.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM my_cases(CAST(?tok AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "session_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reference_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "topic",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "payment_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "assigned_team",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expected_by",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "ecf0947e-ad32-40aa-927a-2bb78e8b576cSELECT * FROM my_cases(CAST(?tok AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"case_type\": {\"type\": \"string\"}, \"reference_id\": {\"type\": \"string\"}, \"topic\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"expected_by\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"case_type\": {\"type\": \"string\"}, \"reference_id\": {\"type\": \"string\"}, \"topic\": {\"type\": \"string\"}, \"payment_ref\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"expected_by\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}}, \"required\": [\"session_token\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:email_my_confirmation_flow",
+      "data": {
+        "name": "email_my_confirmation_flow",
+        "description": "Email the confirmation for an investigation (INV-...) or review case (CASE-...) of this client. Pass the reference_id from confirm_trace, confirm_recall or open_review_case. The system sends the email only when that reference belongs to this session&#39;s client; otherwise it returns NOT_SENT with reason_code NO_SUCH_REFERENCE or SESSION_INVALID. Call only after an investigation or case has been opened, and only when the client asks.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "SendMail",
+            "type": "expression",
+            "label": "send_status is SEND",
+            "value": "$activity[ReadOutcome].Output.records[0].send_status == \"SEND\""
+          },
+          {
+            "id": 3,
+            "from": "SendMail",
+            "to": "Return",
+            "type": "label",
+            "label": "SendMail to Return"
+          },
+          {
+            "id": 4,
+            "from": "ReadOutcome",
+            "to": "ReturnNotSent",
+            "type": "exprOtherwise",
+            "label": "otherwise (NOT_SENT)"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_ref AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "send_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reference_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "subject",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "body",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "05eefc13-302b-4741-b51a-5cfd9643743fSELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_ref AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_ref": "=$flow.arguments.reference_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_ref\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_ref\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"send_status\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"reference_id\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"send_status\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"reference_id\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "Server": "smtp.gmail.com",
+                "Port": 465,
+                "authorizationType": "Basic",
+                "Username": "=$property[\"Email_Username\"]",
+                "Password": "=$property[\"Email_App_Password\"]",
+                "authorizationConn": "",
+                "Connection Security": "SSL",
+                "serverCertificate": "",
+                "message_content_type": "text/plain",
+                "sender": "=$property[\"To_Email\"]",
+                "recipients": "=$property[\"To_Email\"]",
+                "cc_recipients": "",
+                "bcc_recipients": "",
+                "reply_to": "=$property[\"Email_Username\"]",
+                "subject": "=$activity[ReadOutcome].Output.records[0].subject",
+                "message": "=$activity[ReadOutcome].Output.records[0].body"
+              },
+              "ref": "#act_general_sendmail"
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "SendMail",
+            "name": "SendMail",
+            "description": "Send confirmation email"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "ReturnNotSent",
+            "name": "ReturnNotSent",
+            "description": "Return without sending"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"reference_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"CorporatePaymentsMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"}, \"reference_id\": {\"type\": \"string\", \"description\": \"investigation_id (INV-2026-NNNN) or case_id (CASE-NNNNN)\"}}, \"required\": [\"session_token\", \"reference_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "payments_governed"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SECRET:GkufSUs4VDqv/BiVnnM5uX9HEYn8"
+    },
+    {
+      "name": "MCP_SERVER_PORT",
+      "type": "string",
+      "value": "9872"
+    },
+    {
+      "name": "Email_Username",
+      "type": "string",
+      "value": "nikhil.shah.84@gmail.com"
+    },
+    {
+      "name": "Email_App_Password",
+      "type": "string",
+      "value": "SECRET:UMbDM9F0jv0sM0kTF0OOq0TqJF3FJh78dupo/Vv/d3ql0u0="
+    },
+    {
+      "name": "To_Email",
+      "type": "string",
+      "value": "nikhil.shah@tibco.com"
+    }
+  ],
+  "connections": {
+    "a3d5a3d2-710c-440d-8c6d-d4320e39ee08": {
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "Your PostgreSQL Connector",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": 0,
+        "maxidleconnection": 2,
+        "connmaxlifetime": 0,
+        "maxconnectattempts": 3,
+        "connectionretrydelay": 5,
+        "connectiontimeout": 20,
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      },
+      "id": "a3d5a3d2-710c-440d-8c6d-d4320e39ee08",
+      "name": "PostgresConn",
+      "ref": "#con_postgresql",
+      "isGlobal": false
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjEiLCJ0YWciOiIyLjcuMS1iMDEiLCJuYW1lIjoiVElCQ08gRmxvZ28gY29ubmVjdG9yIGZvciBQb3N0Z3JlU1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL1Bvc3RncmVTUUwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tbWNwL3NyYy9hcHAvTUNQIiwiaWQiOiJNQ1AiLCJ2ZXJzaW9uIjoiMS4wLjQiLCJ0YWciOiIxLjAuNC1iMDIiLCJuYW1lIjoiVElCQ08gRmxvZ2/CriBDb25uZWN0b3IgZm9yIE1vZGVsIENvbnRleHQgUHJvdG9jb2wgKE1DUCkiLCJzM2xvY2F0aW9uIjoiVGliY28vTUNQIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWRlZmF1bHQtY29udHJpYnMvc3JjL2FwcC9EZWZhdWx0IiwiaWQiOiJEZWZhdWx0IiwidmVyc2lvbiI6IjEuMC4wIiwidGFnIjoiMS4wLjAtYjEwLXYzLW1haW4iLCJuYW1lIjoiVElCQ08gRmxvZ28gQ29ubmVjdG9yIGZvciBEZWZhdWx0IiwiczNsb2NhdGlvbiI6IlRpYmNvL0RlZmF1bHQiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJpZCI6IkdlbmVyYWwiLCJ2ZXJzaW9uIjoiMS42LjE1IiwidGFnIjoiMS42LjE1LWIwNCIsIm5hbWUiOiJUSUJDTyBGbG9nbyBDb25uZWN0b3IgZm9yIEdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.6"
+  },
+  "schemas": {
+    "ToolResponse": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+    },
+    "verify_client_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"client_id\": {\n      \"type\": \"string\",\n      \"description\": \"Aurelia Global Bank client id, e.g. CLI-2026-00101\"\n    },\n    \"passcode\": {\n      \"type\": \"string\",\n      \"description\": \"6-digit passcode the client typed\"\n    }\n  },\n  \"required\": [\n    \"client_id\",\n    \"passcode\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"client_id\": {\n      \"type\": \"string\",\n      \"description\": \"Aurelia Global Bank client id, e.g. CLI-2026-00101\"\n    },\n    \"passcode\": {\n      \"type\": \"string\",\n      \"description\": \"6-digit passcode the client typed\"\n    }\n  },\n  \"required\": [\n    \"client_id\",\n    \"passcode\"\n  ]\n}"
+    },
+    "get_my_payments_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"search\": {\n      \"type\": \"string\",\n      \"description\": \"Optional filter: payment ref, beneficiary text, bank BIC or an amount. Empty string = all recent\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"search\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"search\": {\n      \"type\": \"string\",\n      \"description\": \"Optional filter: payment ref, beneficiary text, bank BIC or an amount. Empty string = all recent\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"search\"\n  ]\n}"
+    },
+    "get_payment_status_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference, e.g. PMT-2026-000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference, e.g. PMT-2026-000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\"\n  ]\n}"
+    },
+    "get_payment_timeline_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference, e.g. PMT-2026-000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference, e.g. PMT-2026-000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\"\n  ]\n}"
+    },
+    "check_delivery_estimate_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference, e.g. PMT-2026-000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference, e.g. PMT-2026-000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\"\n  ]\n}"
+    },
+    "propose_trace_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference from get_my_payments, e.g. PMT-2026-000001\"\n    },\n    \"reason_code\": {\n      \"type\": \"string\",\n      \"description\": \"A return/reason code, e.g. MS03, AC04, BE01 (decode with lookup_reason_code)\"\n    },\n    \"client_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The client's description of the problem, in their own words\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\",\n    \"reason_code\",\n    \"client_statement\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference from get_my_payments, e.g. PMT-2026-000001\"\n    },\n    \"reason_code\": {\n      \"type\": \"string\",\n      \"description\": \"A return/reason code, e.g. MS03, AC04, BE01 (decode with lookup_reason_code)\"\n    },\n    \"client_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The client's description of the problem, in their own words\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\",\n    \"reason_code\",\n    \"client_statement\"\n  ]\n}"
+    },
+    "confirm_trace_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_trace, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_trace, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+    },
+    "propose_recall_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference from get_my_payments, e.g. PMT-2026-000006\"\n    },\n    \"reason_code\": {\n      \"type\": \"string\",\n      \"description\": \"A return/reason code, e.g. BE01 (wrong beneficiary); decode with lookup_reason_code\"\n    },\n    \"client_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The client's description of the problem, in their own words\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\",\n    \"reason_code\",\n    \"client_statement\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"payment_ref\": {\n      \"type\": \"string\",\n      \"description\": \"Payment reference from get_my_payments, e.g. PMT-2026-000006\"\n    },\n    \"reason_code\": {\n      \"type\": \"string\",\n      \"description\": \"A return/reason code, e.g. BE01 (wrong beneficiary); decode with lookup_reason_code\"\n    },\n    \"client_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The client's description of the problem, in their own words\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"payment_ref\",\n    \"reason_code\",\n    \"client_statement\"\n  ]\n}"
+    },
+    "confirm_recall_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_recall, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_recall, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+    },
+    "open_review_case_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"request_type\": {\n      \"type\": \"string\",\n      \"description\": \"RECALL | PAYMENT_REPAIR | FEE_WAIVER | COMPENSATION | FRAUD | SANCTIONS_QUERY | OTHER\"\n    },\n    \"client_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The client's request in their own words\"\n    },\n    \"brief\": {\n      \"type\": \"string\",\n      \"description\": \"A neutral 2-4 sentence summary for the team: facts only, no recommendation\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"request_type\",\n    \"client_statement\",\n    \"brief\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"request_type\": {\n      \"type\": \"string\",\n      \"description\": \"RECALL | PAYMENT_REPAIR | FEE_WAIVER | COMPENSATION | FRAUD | SANCTIONS_QUERY | OTHER\"\n    },\n    \"client_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The client's request in their own words\"\n    },\n    \"brief\": {\n      \"type\": \"string\",\n      \"description\": \"A neutral 2-4 sentence summary for the team: facts only, no recommendation\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"request_type\",\n    \"client_statement\",\n    \"brief\"\n  ]\n}"
+    },
+    "get_my_cases_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    },
+    "email_my_confirmation_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"reference_id\": {\n      \"type\": \"string\",\n      \"description\": \"investigation_id (INV-2026-NNNN) or case_id (CASE-NNNNN)\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"reference_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_client. Required; never invent a session token. If a tool answers SESSION_INVALID, ask the client to verify again.\"\n    },\n    \"reference_id\": {\n      \"type\": \"string\",\n      \"description\": \"investigation_id (INV-2026-NNNN) or case_id (CASE-NNNNN)\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"reference_id\"\n  ]\n}"
+    }
+  }
+}

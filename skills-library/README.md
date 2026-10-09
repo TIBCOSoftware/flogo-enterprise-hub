@@ -38,8 +38,7 @@ The library contains **9 skills** that cover the full Flogo development lifecycl
 | **flogo-unit-testing** | Recipe | Recipe to **create and run unit tests for Flogo apps** — test files, test cases with flow inputs, assertions on flow outputs, and test execution with result verification. |
 | **mapping-from-excel** | Recipe | Recipe to **build a Flogo flow from an Excel mapping spec** — input fields, output fields, and per-field mapping rules. |
 | **rest-to-database-app** | Recipe | Recipe to **scaffold a REST API Flogo app that queries a database** (REST trigger → log → DB query → reply). |
-| **agentic-ai-use-case** | Use-case builder | Scaffold a complete, runnable **Agentic AI demo for any vertical** — an MCP Server (read-only DB tools) + A2A Agents app (write-workflow agents) + WebSocket AI Orchestrator, backed by PostgreSQL, modeled on the reference use cases under `samples/Agentic_AI/`. Asks which build method to use: **from scratch via the `fda` CLI** (recommended default) or **cloning an existing reference app**. |
-| **agentic-ai-governed-use-case** | Use-case builder | Build a **governed** Agentic AI use case — same three apps, but it passes the **decision framework** first (agent vs. deterministic vs. human-owned), enforces identity, scoping, prices and state changes **in PostgreSQL** (scoped reads, guarded writes, two-step confirm, routed review cases), and proves it with a **4-rung test ladder** ending in a real chat that includes a **prompt-injection attempt** (a user message that tries to talk the agent past its rules — e.g. "ignore your rules and do X" — which fails because the rules live in SQL, not the prompt). Worked examples: `samples/Agentic_AI/Industry_Use_Cases/Airline_Passenger_Services_Use_Case/` and `.../Scholarly_Publishing_Author_Services_Use_Case/`. |
+| **agentic-ai-use-case-builder** | Use-case builder | Build a **governed-by-default Agentic AI use case for any vertical** — an MCP Server (read-only DB tools) + A2A Agents app (write-workflow agents) + WebSocket AI Orchestrator, backed by PostgreSQL, modeled on the reference use cases under `samples/Agentic_AI/`. It passes the **decision framework** first (agent vs. deterministic vs. human-owned), enforces identity, scoping, prices and state changes **in SQL** (scoped reads, guarded writes, two-step confirm, routed review cases), supports **two build methods** (**from scratch via the `fda` CLI** — recommended default — or **cloning an existing reference app**), and proves it with a **4-step test ladder** ending in a real chat that includes a **prompt-injection attempt** (a user message that tries to talk the agent past its rules — e.g. "ignore your rules and do X" — which fails because the rules live in SQL, not the prompt). Worked examples: `samples/Agentic_AI/Industry_Use_Cases/Airline_Passenger_Services_Use_Case/` and `.../Scholarly_Publishing_Author_Services_Use_Case/`. |
 
 ---
 
@@ -145,23 +144,12 @@ Step-by-step workflows that chain several CLI steps into one outcome.
 
 ### Use-case builder
 
-#### `agentic-ai-use-case` — a full Agentic AI demo for any vertical
+#### `agentic-ai-use-case-builder` — a governed-by-default Agentic AI use case for any vertical (decision framework + rules in SQL)
 
-- **What it does:** Scaffolds a complete, runnable Agentic AI demo — an **MCP Server** (read-only DB tools) + an **A2A Agents** app (write-workflow agents) + a **WebSocket AI Orchestrator**, backed by PostgreSQL — modeled on the reference use cases under `samples/Agentic_AI/`. It also produces `database.sql`, `reset_data.sql`, `prompts.md`, and a README. Up front it asks which build method to use: **from scratch via the `fda` CLI** (recommended default) or **cloning an existing reference app**.
-- **How to invoke it:** Describe the vertical, the persona, and the read + action capabilities you want. Explicit: `/agentic-ai-use-case`.
+- **What it does:** Builds a complete, runnable, **governed-by-default** Agentic AI use case — an **MCP Server** (read-only DB tools) + an **A2A Agents** app (write-workflow agents) + a **WebSocket AI Orchestrator**, backed by PostgreSQL — modeled on the reference use cases under `samples/Agentic_AI/`. It also produces `database.sql`, `reset_data.sql`, `prompts.md`, and a README. It first classifies every operation with the Agentic AI decision framework: **human-owned** (routed review case), **agent** (semantic reasoning, minimised read-only input) or **deterministic** (a SQL rule function). Reads are scoped by a session token, writes are `INSERT … SELECT rule_fn()` (0 rows when blocked), state changes are two-step propose → confirm, and each WebSocket connection gets its own conversation. It supports **two build methods** and asks which to use up front: **from scratch via the `fda` CLI** (recommended default) or **cloning an existing reference app**. It ships `validate_governed_apps.py` (G1–G9 governance checks) and a **4-step test ladder**: SQL rules → static → MCP edge → chat end to end (including a prompt-injection attempt), asserting on DB state.
+- **How to invoke it:** Describe the vertical, the persona, and the read + action capabilities you want. Explicit: `/agentic-ai-use-case-builder`. It shows the classification table and plan and builds nothing until you approve.
 - **Template prompt:**
-  > *"Build a `<vertical>` Agentic AI demo (MCP Server + A2A Agents + WebSocket orchestrator) backed by PostgreSQL. Persona: `<who the assistant helps>`. Read tools: `<lookups>`. Action agents: `<write workflows>`. Ask me whether to use the FDA CLI or the clone method first."*
-- **Example prompts:**
-  > *"Build a telecom invoice-support Agentic AI demo — read tools for invoices and usage, action agents to open a dispute and apply a credit."*
-  >
-  > *"Scaffold a retail order-assistant use case by cloning the Airline Passenger Services reference app."*
-
-#### `agentic-ai-governed-use-case` — a governed Agentic AI use case (decision framework + rules in SQL)
-
-- **What it does:** Builds the same three apps as `agentic-ai-use-case`, but first classifies every operation with the Agentic AI decision framework: **human-owned** (routed review case), **agent** (semantic reasoning, minimised read-only input) or **deterministic** (a SQL rule function). Reads are scoped by a session token, writes are `INSERT … SELECT rule_fn()` (0 rows when blocked), state changes are two-step propose → confirm, and each WebSocket connection gets its own conversation. It ships `validate_governed_apps.py` (G1–G9 governance checks) and a test ladder: SQL rules → static → MCP edge → chat end to end, asserting on DB state.
-- **How to invoke it:** Describe the vertical and the persona. Explicit: `/agentic-ai-governed-use-case`. It shows the classification table and plan and builds nothing until you approve.
-- **Template prompt:**
-  > *"Build a governed `<vertical>` Agentic AI use case for `<persona>`. The agent should `<the semantic step>`; the system must enforce `<rules>`; people decide `<exceptions>`. Test it end to end."*
+  > *"Build a governed `<vertical>` Agentic AI use case for `<persona>` (MCP Server + A2A Agents + WebSocket orchestrator) backed by PostgreSQL. The agent should `<the semantic step>`; the system must enforce `<rules>`; people decide `<exceptions>`. Ask me whether to use the FDA CLI or the clone method first, then test it end to end."*
 - **Example prompts:**
   > *"Build a governed airline passenger-services assistant: travellers verify with a PNR + PIN, check flight status and connection risk (computed in SQL), get agent-ranked rebooking options for a missed connection, rebook in two confirmed steps, and email the confirmation; compensation, baggage and name-change requests go to people. Test it end to end."*
   >
@@ -340,7 +328,7 @@ Key values the skills rely on:
 | `DATAPLANE_NAME` | Default dataplane to deploy to | `tibcop tplatform:list-data-planes` |
 | `CP_URL` / `TIBCOP_TOKEN` | TIBCO Platform control-plane URL and API token | TIBCO Platform console |
 | PostgreSQL / LLM / email | Connection settings for the database, LLM provider, and SMTP | your environment |
-| `AGENTIC_USE_CASES_DIR` | *(optional)* folder of reference Agentic AI use-case apps the `agentic-ai-use-case` skill clones/studies | leave unset to default to `samples/Agentic_AI/`; set only if the skill is installed standalone away from that folder |
+| `AGENTIC_USE_CASES_DIR` | *(optional)* folder of reference Agentic AI use-case apps the `agentic-ai-use-case-builder` skill clones/studies | leave unset to default to `samples/Agentic_AI/`; set only if the skill is installed standalone away from that folder |
 
 ---
 
@@ -358,8 +346,7 @@ Key values the skills rely on:
 │       ├── flogo-unit-testing/       # Create and run Flogo unit tests
 │       ├── mapping-from-excel/       # Build a Flogo flow from an Excel mapping spec
 │       ├── rest-to-database-app/     # Scaffold a REST -> DB Flogo app
-│       ├── agentic-ai-use-case/      # Scaffold an Agentic AI use case (MCP + A2A + orchestrator); fda-CLI or clone method
-│       ├── agentic-ai-governed-use-case/  # Governed variant: decision-framework gate, rules in SQL, 4-rung test ladder
+│       ├── agentic-ai-use-case-builder/  # Governed-by-default Agentic AI use case (MCP + A2A + orchestrator); decision-framework gate, rules in SQL, fda-CLI or clone method, 4-step test ladder
 │       ├── config.example.md         # Template for environment-specific values (copy to config.md)
 │       └── config.md                 # Your environment values (git-ignored; not committed)
 ├── AGENT.md                          # Project-level instructions for the agent
@@ -375,8 +362,7 @@ Key values the skills rely on:
 - *"Create and run unit tests for `Flogo_Apps/customer-api.flogo` with assertions on the response."* (`flogo-unit-testing`)
 - *"List my TIBCO Platform dataplanes and show the status of the apps running on `MyDataPlane`."* (`tibcop`)
 - *"Deploy the `Flogo_Apps/customer-api.flogo` app to dataplane `MyDataPlane`."* (`flogo-deploy`)
-- *"Build a telecom invoice-support Agentic AI demo (MCP Server + A2A Agents + WebSocket orchestrator) backed by PostgreSQL — ask me whether to use the FDA CLI or the clone method first."* (`agentic-ai-use-case`)
-- *"Build a governed Agentic AI use case for a transit agency's rider-refund desk — rules in SQL, refunds over the limit go to a person — and test it end to end."* (`agentic-ai-governed-use-case`)
+- *"Build a governed Agentic AI use case for a transit agency's rider-refund desk (MCP Server + A2A Agents + WebSocket orchestrator) backed by PostgreSQL — rules in SQL, refunds over the limit go to a person. Ask me whether to use the FDA CLI or the clone method first, then test it end to end."* (`/agentic-ai-use-case-builder`)
 
 > **Note:** For more sample prompts, see [skills-library/SamplePrompts/README.md](SamplePrompts/README.md).
 

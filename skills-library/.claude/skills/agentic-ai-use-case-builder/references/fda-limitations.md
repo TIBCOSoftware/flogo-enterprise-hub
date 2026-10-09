@@ -1,0 +1,34 @@
+# FDA (Flogo Design Assistant — Tech Preview) — documented limitations & the manual steps they imply
+
+These are the **official limitations** of TIBCO Flogo® Design Assistant (Tech Preview), from the
+TIBCO Flogo® User Guide. `fda` (the Design CLI) drives the same engine, so every item here bounds
+what the recipes can do. For each: the limitation as documented, what it means for the 3-app
+agentic build, and the **manual step** the user must perform after the build. Fold the applicable
+ones into the generated README's *"below things are NOT configured…"* section (see
+[manual-config-gap.md](manual-config-gap.md)).
+
+> Rule of thumb: `fda` builds the app **graph** (triggers, activities, connections, mappings, and
+> schemas — all at the file level). Anything a connection/trigger needs to *validate*, *render in
+> the UI*, *encrypt/secret-store*, *branch*, *loop*, or *handle errors* is on this list → hand it to
+> the user. Do **not** try to work around these with `fda`; several of the earlier build failures came
+> from exactly that (e.g. forcing a `password` app-property type, which the designer then drops).
+
+| # | Documented limitation | Impact on the agentic 3-app build | Manual step (put in README) |
+|---|---|---|---|
+| 1 | **Manual Sync for Non-OpenAPI Triggers** — for triggers created without an OpenAPI spec, some fields don't appear in the Flogo UI until the user clicks **Sync**. | All three triggers (`tr_mcpserver`, `tr_agent`, `tr_wsserver`) are non-OpenAPI. Flow-input schemas set via `sa flow` (e.g. `toolParams`) don't render, and their mappings show a red ✗, until synced. **Sync writes the designer's cached `metadata.fe_metadata.input`, which the designer treats as source of truth and REGENERATES `metadata.input` from on every save** — so a CLI-only `metadata.input` (no fe_metadata) is *wiped back to a bare object* the first time the app is saved. FDA never writes `fe_metadata`. | Click **Sync** on every trigger once (writes both `metadata.input` and `fe_metadata`). *Optional no-Sync alternative:* bake `fe_metadata.input`/`.output` at build time to the exact post-Sync shape so `metadata.input` survives regeneration and fields render immediately — see the bake template in [fda-build-recipes.md](fda-build-recipes.md) § gotcha 5. Keep Sync as the documented fallback regardless. |
+| 2 | **Activity Linking** — a prompt must be added to link a newly created activity, or it may not display correctly. | CLI `ca` auto-links in creation order, but a new activity may still render detached. | Verify flow wiring in the designer; relink any activity that appears detached. |
+| 3 | **Connector Configuration** — FDA creates connections **without validating** them; connectors needing a Connect/Login button aren't verified. | The PostgreSQL, LLM-provider, MCP, and A2A connections are created but never tested. | Open each connection and click **Connect / Test** to establish & verify it before running. |
+| 4 | **Application Properties** — support only **string / boolean / number**; the **`password` type is not supported** and is auto-converted to `string`. | The `#sendmail` `Password` field needs a **secret-valued** property. FDA can only make a plaintext `string` (the assistant silently converts `password`→`string`; the CLI `cap … password` errors `Unknown Flogo Property Type`). **Never** set the type to `password` — it's invalid and the designer **drops the property on save** → *"'Password' is bound to app property … which does not exist."* | Keep the property `type: string`; in **App Properties**, re-enter the secret value so it's stored as `SECRET:…` (or inject as a platform secret at deploy). **Do not configure password properties through FDA at all — hand this to the user.** |
+| 5 | **Flow Input/Output Configuration** — configuring flow input/output parameters is not supported (prompts like *'add input parameter "userId" of type string'* do nothing). | The A2A `toolParams` flow-input schema and the orchestrator's `content`/`wsconnection` typing are flow-I/O config. The recipes write these at the **file** level via `sa flow … --jsonFile` (build/run correct), but the designer regenerates `metadata.input` from `fe_metadata` on save (item 1), so it needs a Sync — or a baked `fe_metadata` — to reflect and retain them. | After building, **Sync** each trigger (or bake `fe_metadata`, item 1) and check each flow's Input/Output tab; add any missing input/output manually. |
+| 6 | **Certificates** — providing certificates (in connections, triggers, or activities) is not supported. | Secure DB (TLS), HTTPS servers, or an SMTP **Server Certificate** cannot be set by FDA. | If the use case needs a certificate, add it manually in the designer. |
+| 7 | **Branch Creation/Modifications** — branch type changes (e.g. success↔error) and conditional/error branch creation are not supported; **require direct `.flogo` edits**. | Linear agent/tool flows are fine, but any conditional routing inside a flow can't be built by FDA. | Add/modify branches by editing the `.flogo` directly — the one documented exception to this skill's "never hand-edit the JSON" rule. |
+| 8 | **Activity Loop** — activity loop (iterator) configuration is not supported. | An agent that must iterate (insert N rows, send N emails from an array) can't get its loop set by FDA. | Configure the activity **Loop** manually in the designer. |
+| 9 | **Error Handler Configuration** — adding/configuring activities within an error handler is not supported. | FDA can't build flow error handlers. | Add error-handler activities manually if the flow needs them. |
+| 10 | **Unit Test Assertions** — adding assertions to unit tests is not supported. | Not used by this skill. | — (n/a) |
+| 11 | **Not supported on Mac ARM (Apple Silicon).** | FDA won't run on M-series Macs. | Build on Windows / Linux / Intel-Mac; note this in prerequisites. |
+
+## What this means for the skill
+
+- **Always-applicable manual steps** for every agentic build: **#1 (Sync every trigger)**, **#3 (validate every connection)**, and **#4 (set the email password as a `SECRET:` value — never via a `password`-typed property)**. These three always land in the generated README's manual-config-gap section.
+- **Conditionally applicable:** #5 (verify flow I/O after Sync — always relevant here since we set `toolParams`/`wsconnection` schemas), #6 certificates, #7 branches, #8 activity loops, #9 error handlers — include only if the use case actually uses them.
+- **These are Tech-Preview *limitations*, not recipe gaps.** The `conn://` arrays, tool/handler schemas, wsserver headers schema, and `wsconnection:any` typing are all still configured automatically by the recipes — do not list those as manual. Only the items above are manual, and they're manual because the product documents them as unsupported.

@@ -1,0 +1,403 @@
+{
+  "imports": [
+    "con_llmprovider github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "con_postgresql github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection",
+    "tr_agent github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/flow",
+    "act_default_noop github.com/project-flogo/contrib/activity/noop",
+    "act_postgresql_query github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "act_default_actreturn github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "name": "CorporatePaymentsAgents",
+  "description": "Aurelia Global Bank corporate-payments governed A2A agent - payment triage (read-only)",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "settings": {
+        "llmProviderConnection": "conn://43094aad-e5bb-44f8-892a-e762484a14f6",
+        "agentName": "payment_triage_agent",
+        "agentDescription": "Triages a payment an Aurelia Global Bank corporate client is questioning: decodes cryptic return/reason codes into plain language, picks the candidate payment that best matches the client's words, classifies the issue with an urgency and recommends one next step (raise a trace, request a recall or open a human review case). Read-only: it looks up the reason-code directory; it cannot trace, recall, file or change anything.",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"payment_triage_agent_PORT\"]",
+        "agentUrl": "=$property[\"payment_triage_agent_URL\"]",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "0",
+        "enableGuardrails": "true",
+        "rateLimit": "30",
+        "tokenLimit": "6000",
+        "redactSensitiveData": "true",
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": "20",
+        "systemPrompt": "You help triage a payment that an Aurelia Global Bank corporate client is asking about. You are given the\nclient's own words and a list of candidate payments, each with payment_ref, direction, rail, amount, currency,\nbeneficiary_name, status, return_reason_code, value_date and created_at only. You are never given the client's\nidentity, and you never ask for or use a legal name, client id, account number, passcode or session token.\n\n1. When a candidate payment has a return_reason_code, call the lookup_reason_code tool with that code exactly as it\n   appears. Use only what the tool returns to explain what the code means; if it returns NO_MATCH, say the code could\n   not be decoded from the directory.\n2. Pick the ONE candidate payment that best matches the client's words (payment_ref, amount, currency, beneficiary,\n   rail, date, status, and what they describe). If two candidates fit equally well, say which detail (e.g. the amount\n   or the beneficiary) would tell them apart.\n3. Classify the issue as exactly ONE of: RETURNED_ACCOUNT_ISSUE, WRONG_BENEFICIARY, DELAYED_IN_TRANSIT,\n   COMPLIANCE_HOLD, DUPLICATE or OTHER, and give an urgency of LOW, MEDIUM or HIGH based on the amount, the status and\n   how time-sensitive the problem is.\n4. Recommend exactly ONE next step: raise a trace (for a delayed or missing payment), request a recall (for funds\n   sent to the wrong party or an erroneous payment) or open a human review case (for a compliance hold, suspected\n   fraud, a fee dispute or anything a person must own). If the right step hinges on the client's intent, do not guess:\n   give the single question to ask instead (for example, \"did the funds reach the wrong party, or not arrive at all?\").\n\nYou never raise a trace, request a recall, open a case, file anything, approve anything or promise a refund, recall,\noutcome or timeline. Whether a payment can be traced or recalled is decided later by the bank's system, so never say a\npayment is eligible. Never invent payments, codes, amounts or beneficiaries.\n\nReply in this short format:\npayment_ref: <ref>\nreason_code: <code decoded into plain language> (or none if the payment has no return/reason code)\nissue: <one classification> - urgency <LOW, MEDIUM or HIGH>\nnext_step: <raise a trace | request a recall | open a human review case> (or question: <the one question to ask>)"
+      },
+      "id": "payment_triage_agent",
+      "name": "payment_triage_agent",
+      "description": "Triages a payment an Aurelia Global Bank corporate client is questioning: decodes cryptic return/reason codes into plain language, picks the candidate payment that best matches the client's words, classifies the issue with an urgency and recommends one next step (raise a trace, request a recall or open a human review case). Read-only: it looks up the reason-code directory; it cannot trace, recall, file or change anything.",
+      "ref": "#tr_agent",
+      "handlers": [
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "lookup_reason_code",
+            "agentToolDescription": "Decode a payment return/reason code into plain language. Pass the code exactly as it appears on the payment (e.g. AC04, BE01, RR04). Returns the matching reason_codes row: match_status (OK or NO_MATCH), code, rail, plain_language, category (BENEFICIARY, COMPLIANCE, TECHNICAL, ACCOUNT or OTHER) and the typical_action that resolves it. Read-only. Never pass any client-identifying information.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:payment_triage_agent_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "customConversationStoreOpOutput": {}
+          },
+          "name": "payment_triage_agent_flow",
+          "description": "Decode a payment return/reason code into plain language. Pass the code exactly as it appears on the payment (e.g. AC04, BE01, RR04). Returns the matching reason_codes row: match_status (OK or NO_MATCH), code, rail, plain_language, category (BENEFICIARY, COMPLIANCE, TECHNICAL, ACCOUNT or OTHER) and the typical_action that resolves it. Read-only. Never pass any client-identifying information.",
+          "schemas": {
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"code\": {\n      \"type\": \"string\",\n      \"description\": \"Return/reason code, e.g. AC04\"\n    }\n  },\n  \"required\": [\n    \"code\"\n  ]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"code\": {\n      \"type\": \"string\",\n      \"description\": \"Return/reason code, e.g. AC04\"\n    }\n  },\n  \"required\": [\n    \"code\"\n  ]\n}"
+              }
+            },
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:payment_triage_agent_flow",
+      "data": {
+        "name": "payment_triage_agent_flow",
+        "description": "Decode a payment return/reason code into plain language. Pass the code exactly as it appears on the payment (e.g. AC04, BE01, RR04). Returns the matching reason_codes row: match_status (OK or NO_MATCH), code, rail, plain_language, category (BENEFICIARY, COMPLIANCE, TECHNICAL, ACCOUNT or OTHER) and the typical_action that resolves it. Read-only. Never pass any client-identifying information.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LookupReasonCode",
+            "type": "label",
+            "label": "StartActivity to LookupReasonCode"
+          },
+          {
+            "id": 2,
+            "from": "LookupReasonCode",
+            "to": "Return",
+            "type": "label",
+            "label": "LookupReasonCode to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://37cdadd8-4767-477b-8316-8010559720e9",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM lookup_reason_code(CAST(?code AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "match_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "code",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "rail",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "plain_language",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "category",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "typical_action",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "ad6dc45d-79c2-4f20-9530-39ccf70dc7ecSELECT * FROM lookup_reason_code(CAST(?code AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "code": "=$flow.toolParams.code"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"code\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"code\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"match_status\": {\"type\": \"string\"}, \"code\": {\"type\": \"string\"}, \"rail\": {\"type\": \"string\"}, \"plain_language\": {\"type\": \"string\"}, \"category\": {\"type\": \"string\"}, \"typical_action\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"match_status\": {\"type\": \"string\"}, \"code\": {\"type\": \"string\"}, \"rail\": {\"type\": \"string\"}, \"plain_language\": {\"type\": \"string\"}, \"category\": {\"type\": \"string\"}, \"typical_action\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "LookupReasonCode",
+            "name": "LookupReasonCode",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[LookupReasonCode].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"code\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"payment_triage_agent\", \"properties\": {\"toolParams\": {\"type\": \"object\", \"properties\": {\"code\": {\"type\": \"string\", \"description\": \"Return/reason code, e.g. AC04\"}}, \"required\": [\"code\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}}}}, \"required\": []}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.API_Key",
+      "type": "string",
+      "value": "SECRET:T3Ep39j9+S5Qpvmv3VXh972ipDk/LDSvu54VHtzR/uLzOt0KgeTsYZ+Rh4CS11hzlWgySABiy6Xq0g4ClvQ40TkVhBAfZmXxcWfwjmSibgSPqq7F2gAnPVLCfQM4mSvN5skaLY60QL6+292cAxboI89P8q8EVa2Kgv884yczZBtAdSu1vwOH5eiZrEpbAlvC6dTEOjFwMy8l6cTFMmgNzfwbvQksw4XQGPvQj9uId6NPjhSS"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "payments_governed"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SECRET:GkufSUs4VDqv/BiVnnM5uX9HEYn8"
+    },
+    {
+      "name": "payment_triage_agent_PORT",
+      "type": "string",
+      "value": "9873"
+    },
+    {
+      "name": "payment_triage_agent_URL",
+      "type": "string",
+      "value": "http://localhost:9873"
+    }
+  ],
+  "connections": {
+    "43094aad-e5bb-44f8-892a-e762484a14f6": {
+      "settings": {
+        "name": "OpenAIConn",
+        "description": "Your llmprovider Connector",
+        "llmProvider": "=$property[\"AgenticAI.OpenAIConn.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAIConn.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAIConn.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      },
+      "id": "43094aad-e5bb-44f8-892a-e762484a14f6",
+      "name": "OpenAIConn",
+      "ref": "#con_llmprovider",
+      "isGlobal": false
+    },
+    "37cdadd8-4767-477b-8316-8010559720e9": {
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "Your PostgreSQL Connector",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": 0,
+        "maxidleconnection": 2,
+        "connmaxlifetime": 0,
+        "maxconnectattempts": 3,
+        "connectionretrydelay": 5,
+        "connectiontimeout": 20,
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      },
+      "id": "37cdadd8-4767-477b-8316-8010559720e9",
+      "name": "PostgresConn",
+      "ref": "#con_postgresql",
+      "isGlobal": false
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40IiwidGFnIjoiMC45LjQtYjAyIiwibmFtZSI6IlRJQkNPIEZsb2dvwq4gQ29ubmVjdG9yIGZvciBBZ2VudGljIEFJIChUZWNoIFByZXZpZXcpIiwiczNsb2NhdGlvbiI6IlRpYmNvL0FnZW50aWNBSSIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjEiLCJ0YWciOiIyLjcuMS1iMDEiLCJuYW1lIjoiVElCQ08gRmxvZ28gY29ubmVjdG9yIGZvciBQb3N0Z3JlU1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL1Bvc3RncmVTUUwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZGVmYXVsdC1jb250cmlicy9zcmMvYXBwL0RlZmF1bHQiLCJpZCI6IkRlZmF1bHQiLCJ2ZXJzaW9uIjoiMS4wLjAiLCJ0YWciOiIxLjAuMC1iMTAtdjMtbWFpbiIsIm5hbWUiOiJUSUJDTyBGbG9nbyBDb25uZWN0b3IgZm9yIERlZmF1bHQiLCJzM2xvY2F0aW9uIjoiVGliY28vRGVmYXVsdCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTUiLCJ0YWciOiIxLjYuMTUtYjA0IiwibmFtZSI6IlRJQkNPIEZsb2dvIENvbm5lY3RvciBmb3IgR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.6"
+  },
+  "schemas": {
+    "payment_triage_agent_ToolParams": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"code\": {\n      \"type\": \"string\",\n      \"description\": \"Return/reason code, e.g. AC04\"\n    }\n  },\n  \"required\": [\n    \"code\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"code\": {\n      \"type\": \"string\",\n      \"description\": \"Return/reason code, e.g. AC04\"\n    }\n  },\n  \"required\": [\n    \"code\"\n  ]\n}"
+    },
+    "payment_triage_agent_Resp": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+    }
+  }
+}

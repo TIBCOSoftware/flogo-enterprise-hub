@@ -1,0 +1,432 @@
+{
+  "imports": [
+    "con_llmprovider github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "con_postgresql github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection",
+    "tr_agent github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/flow",
+    "act_default_noop github.com/project-flogo/contrib/activity/noop",
+    "act_postgresql_query github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "act_default_actreturn github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "name": "ParcelDeliveryAgents",
+  "description": "Swiftbound Parcel Delivery governed A2A agent - delivery options (read-only)",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "settings": {
+        "llmProviderConnection": "conn://ea683e57-3332-4739-a38b-7b02b80c2e67",
+        "agentName": "delivery_options_agent",
+        "agentDescription": "Recommends delivery slots and pickup points for a parcel that needs a new delivery arrangement, from its area/size/constraints and the recipient's preferences. Read-only: it searches available options and ranks them; it cannot reschedule or redirect anything.",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"delivery_options_agent_PORT\"]",
+        "agentUrl": "=$property[\"delivery_options_agent_URL\"]",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "0",
+        "enableGuardrails": "true",
+        "rateLimit": "30",
+        "tokenLimit": "6000",
+        "redactSensitiveData": "true",
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": "20",
+        "systemPrompt": "You recommend delivery options for a parcel that needs a new delivery arrangement. You are given the parcel's\nservice area, size, whether it needs a signature, whether it is high value, the earliest date a slot may be on, and the\nrecipient's free-text preferences. You are never given the recipient's identity.\n\n1. Call the search_delivery_options tool exactly once with area, parcel_size, needs_signature, high_value and after_date.\n2. From the returned options ONLY, rank up to 3 that best match the recipient's stated preferences (e.g. a particular day\n   or time of day, an evening slot, a locker versus a staffed shop, somewhere near a given place). If a preference rules\n   an option out, say so. Never include an option the tool did not return.\n3. For each pick give: its type (delivery slot or pickup point), its id, when or where it is, and one short sentence on\n   why it fits. If the tool returns no options, say clearly there is no available option for this parcel right now.\n\nNever invent slots, pickup points, times or locations. Do not reschedule or redirect - that is confirmed elsewhere.\nReply as a short numbered list."
+      },
+      "id": "delivery_options_agent",
+      "name": "delivery_options_agent",
+      "description": "Recommends delivery slots and pickup points for a parcel that needs a new delivery arrangement, from its area/size/constraints and the recipient's preferences. Read-only: it searches available options and ranks them; it cannot reschedule or redirect anything.",
+      "ref": "#tr_agent",
+      "handlers": [
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "search_delivery_options",
+            "agentToolDescription": "Search the feasible delivery options for a parcel in a given service area: available delivery slots and pickup points the parcel can actually use. Pass the service area, the parcel size (SMALL/MEDIUM/LARGE), whether a signature is required (true/false), whether it is high value (true/false) and the earliest date a slot may be on (ISO date or empty). Returns up to 12 options (slots and pickup points). Never pass any recipient-identifying information.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:delivery_options_agent_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "customConversationStoreOpOutput": {}
+          },
+          "name": "delivery_options_agent_flow",
+          "description": "Search the feasible delivery options for a parcel in a given service area: available delivery slots and pickup points the parcel can actually use. Pass the service area, the parcel size (SMALL/MEDIUM/LARGE), whether a signature is required (true/false), whether it is high value (true/false) and the earliest date a slot may be on (ISO date or empty). Returns up to 12 options (slots and pickup points). Never pass any recipient-identifying information.",
+          "schemas": {
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"area\": {\n      \"type\": \"string\",\n      \"description\": \"Service area the parcel is going to, e.g. NORTHSIDE\"\n    },\n    \"parcel_size\": {\n      \"type\": \"string\",\n      \"description\": \"SMALL, MEDIUM or LARGE\"\n    },\n    \"needs_signature\": {\n      \"type\": \"string\",\n      \"description\": \"true if the parcel requires a signature, else false\"\n    },\n    \"high_value\": {\n      \"type\": \"string\",\n      \"description\": \"true if the parcel is high value, else false\"\n    },\n    \"after_date\": {\n      \"type\": \"string\",\n      \"description\": \"Earliest date a slot may be on (ISO date), or empty\"\n    }\n  },\n  \"required\": [\n    \"area\",\n    \"parcel_size\"\n  ]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"area\": {\n      \"type\": \"string\",\n      \"description\": \"Service area the parcel is going to, e.g. NORTHSIDE\"\n    },\n    \"parcel_size\": {\n      \"type\": \"string\",\n      \"description\": \"SMALL, MEDIUM or LARGE\"\n    },\n    \"needs_signature\": {\n      \"type\": \"string\",\n      \"description\": \"true if the parcel requires a signature, else false\"\n    },\n    \"high_value\": {\n      \"type\": \"string\",\n      \"description\": \"true if the parcel is high value, else false\"\n    },\n    \"after_date\": {\n      \"type\": \"string\",\n      \"description\": \"Earliest date a slot may be on (ISO date), or empty\"\n    }\n  },\n  \"required\": [\n    \"area\",\n    \"parcel_size\"\n  ]\n}"
+              }
+            },
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:delivery_options_agent_flow",
+      "data": {
+        "name": "delivery_options_agent_flow",
+        "description": "Search the feasible delivery options for a parcel in a given service area: available delivery slots and pickup points the parcel can actually use. Pass the service area, the parcel size (SMALL/MEDIUM/LARGE), whether a signature is required (true/false), whether it is high value (true/false) and the earliest date a slot may be on (ISO date or empty). Returns up to 12 options (slots and pickup points). Never pass any recipient-identifying information.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "SearchOptions",
+            "type": "label",
+            "label": "StartActivity to SearchOptions"
+          },
+          {
+            "id": 2,
+            "from": "SearchOptions",
+            "to": "Return",
+            "type": "label",
+            "label": "SearchOptions to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ec436a96-123d-41e4-9741-d4b1ca3d0784",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM search_delivery_options(CAST(?area AS text), CAST(?size AS text), CAST(?sig AS text), CAST(?hv AS text), CAST(?aft AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "area",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "size",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "sig",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "hv",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "aft",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "option_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "option_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "title",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "detail",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "when_available",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "cc8df331-88d1-494b-ad67-9afc09c2fa9eSELECT * FROM search_delivery_options(CAST(?area AS text), CAST(?size AS text), CAST(?sig AS text), CAST(?hv AS text), CAST(?aft AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "area": "=$flow.toolParams.area",
+                      "size": "=$flow.toolParams.parcel_size",
+                      "sig": "=$flow.toolParams.needs_signature",
+                      "hv": "=$flow.toolParams.high_value",
+                      "aft": "=$flow.toolParams.after_date"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"area\": {\"type\": \"string\"}, \"size\": {\"type\": \"string\"}, \"sig\": {\"type\": \"string\"}, \"hv\": {\"type\": \"string\"}, \"aft\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"area\": {\"type\": \"string\"}, \"size\": {\"type\": \"string\"}, \"sig\": {\"type\": \"string\"}, \"hv\": {\"type\": \"string\"}, \"aft\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"option_type\": {\"type\": \"string\"}, \"option_id\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"detail\": {\"type\": \"string\"}, \"when_available\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"option_type\": {\"type\": \"string\"}, \"option_id\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"detail\": {\"type\": \"string\"}, \"when_available\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "SearchOptions",
+            "name": "SearchOptions",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[SearchOptions].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"area\": {\"type\": \"string\"}, \"parcel_size\": {\"type\": \"string\"}, \"needs_signature\": {\"type\": \"string\"}, \"high_value\": {\"type\": \"string\"}, \"after_date\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"delivery_options_agent\", \"properties\": {\"toolParams\": {\"type\": \"object\", \"properties\": {\"area\": {\"type\": \"string\", \"description\": \"Service area the parcel is going to, e.g. NORTHSIDE\"}, \"parcel_size\": {\"type\": \"string\", \"description\": \"SMALL, MEDIUM or LARGE\"}, \"needs_signature\": {\"type\": \"string\", \"description\": \"true if the parcel requires a signature, else false\"}, \"high_value\": {\"type\": \"string\", \"description\": \"true if the parcel is high value, else false\"}, \"after_date\": {\"type\": \"string\", \"description\": \"Earliest date a slot may be on (ISO date), or empty\"}}, \"required\": [\"area\", \"parcel_size\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}}}}, \"required\": []}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.API_Key",
+      "type": "string",
+      "value": "sk-REPLACE-WITH-YOUR-OPENAI-KEY"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "parcel_delivery"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SET_YOUR_DB_PASSWORD"
+    },
+    {
+      "name": "delivery_options_agent_PORT",
+      "type": "string",
+      "value": "9893"
+    },
+    {
+      "name": "delivery_options_agent_URL",
+      "type": "string",
+      "value": "http://localhost:9893"
+    }
+  ],
+  "connections": {
+    "ea683e57-3332-4739-a38b-7b02b80c2e67": {
+      "settings": {
+        "name": "OpenAIConn",
+        "description": "Your llmprovider Connector",
+        "llmProvider": "=$property[\"AgenticAI.OpenAIConn.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAIConn.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAIConn.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      },
+      "id": "ea683e57-3332-4739-a38b-7b02b80c2e67",
+      "name": "OpenAIConn",
+      "ref": "#con_llmprovider",
+      "isGlobal": false
+    },
+    "ec436a96-123d-41e4-9741-d4b1ca3d0784": {
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "Your PostgreSQL Connector",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": 0,
+        "maxidleconnection": 2,
+        "connmaxlifetime": 0,
+        "maxconnectattempts": 3,
+        "connectionretrydelay": 5,
+        "connectiontimeout": 20,
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      },
+      "id": "ec436a96-123d-41e4-9741-d4b1ca3d0784",
+      "name": "PostgresConn",
+      "ref": "#con_postgresql",
+      "isGlobal": false
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40IiwidGFnIjoiMC45LjQtYjAyIiwibmFtZSI6IlRJQkNPIEZsb2dvwq4gQ29ubmVjdG9yIGZvciBBZ2VudGljIEFJIChUZWNoIFByZXZpZXcpIiwiczNsb2NhdGlvbiI6IlRpYmNvL0FnZW50aWNBSSIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjEiLCJ0YWciOiIyLjcuMS1iMDEiLCJuYW1lIjoiVElCQ08gRmxvZ28gY29ubmVjdG9yIGZvciBQb3N0Z3JlU1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL1Bvc3RncmVTUUwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZGVmYXVsdC1jb250cmlicy9zcmMvYXBwL0RlZmF1bHQiLCJpZCI6IkRlZmF1bHQiLCJ2ZXJzaW9uIjoiMS4wLjAiLCJ0YWciOiIxLjAuMC1iMTAtdjMtbWFpbiIsIm5hbWUiOiJUSUJDTyBGbG9nbyBDb25uZWN0b3IgZm9yIERlZmF1bHQiLCJzM2xvY2F0aW9uIjoiVGliY28vRGVmYXVsdCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTUiLCJ0YWciOiIxLjYuMTUtYjA0IiwibmFtZSI6IlRJQkNPIEZsb2dvIENvbm5lY3RvciBmb3IgR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.6"
+  },
+  "schemas": {
+    "delivery_options_agent_ToolParams": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"area\": {\n      \"type\": \"string\",\n      \"description\": \"Service area the parcel is going to, e.g. NORTHSIDE\"\n    },\n    \"parcel_size\": {\n      \"type\": \"string\",\n      \"description\": \"SMALL, MEDIUM or LARGE\"\n    },\n    \"needs_signature\": {\n      \"type\": \"string\",\n      \"description\": \"true if the parcel requires a signature, else false\"\n    },\n    \"high_value\": {\n      \"type\": \"string\",\n      \"description\": \"true if the parcel is high value, else false\"\n    },\n    \"after_date\": {\n      \"type\": \"string\",\n      \"description\": \"Earliest date a slot may be on (ISO date), or empty\"\n    }\n  },\n  \"required\": [\n    \"area\",\n    \"parcel_size\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"area\": {\n      \"type\": \"string\",\n      \"description\": \"Service area the parcel is going to, e.g. NORTHSIDE\"\n    },\n    \"parcel_size\": {\n      \"type\": \"string\",\n      \"description\": \"SMALL, MEDIUM or LARGE\"\n    },\n    \"needs_signature\": {\n      \"type\": \"string\",\n      \"description\": \"true if the parcel requires a signature, else false\"\n    },\n    \"high_value\": {\n      \"type\": \"string\",\n      \"description\": \"true if the parcel is high value, else false\"\n    },\n    \"after_date\": {\n      \"type\": \"string\",\n      \"description\": \"Earliest date a slot may be on (ISO date), or empty\"\n    }\n  },\n  \"required\": [\n    \"area\",\n    \"parcel_size\"\n  ]\n}"
+    },
+    "delivery_options_agent_Resp": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+    }
+  }
+}

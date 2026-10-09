@@ -18,6 +18,7 @@ Build, orchestrate, and govern AI agents inside Flogo integration flows using th
 |---|---|---|
 | [Insurance Claims Processor](./Agentic_AI/Feature_Samples/InsuranceClaimsProcessor/) | Banking, Financial Services & Insurance | LLM Client chaining: MCP coverage check → A2A fraud scoring → decision |
 | [Mortgage AI Processor](./Agentic_AI/Feature_Samples/mortgagedemo/) | Banking, Financial Services & Insurance | Flogo as an MCP server for autonomous loan decisioning (approve/escalate/decline) |
+| [Agent Privilege IDs](./Agentic_AI/Feature_Samples/Agent-Privilege-IDs/) | Banking, Financial Services & Insurance | Each AI agent has its own privilege ID: JWT scopes hide tools, a registry suspends agents, humans approve privileged changes |
 | [Healthcare Patient Support Agent](./Agentic_AI/Feature_Samples/Healthcare-Compliance-Agent/) | Healthcare | AI Agent Trigger with a custom PHI guardrail + custom conversation store (HIPAA-aware) |
 | [BeautyCo Retail Intelligence](./Agentic_AI/Feature_Samples/demo_retail/) | Retail & Consumer | Flogo as an MCP server exposing enterprise data for personalized consultations |
 | [Mobile Customer Care Multi-Agent Hub](./Agentic_AI/Feature_Samples/Mobile-Customer-Care-Multi-Agent/) | Telecommunications & Customer Service | AI Agent dispatcher with multi-agent handoff + deterministic `callagent` routing |
@@ -54,6 +55,9 @@ End-to-end, PostgreSQL-backed demos that apply the same **three-app pattern** �
 | [Real Estate Lead Engagement Assistant](./Agentic_AI/Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) | Real Estate |
 | [Scholarly Publishing — Author Services](./Agentic_AI/Industry_Use_Cases/Scholarly_Publishing_Author_Services_Use_Case/) *(governed)* | Publishing & Education |
 | [Airline Passenger Services — Meridian](./Agentic_AI/Industry_Use_Cases/Airline_Passenger_Services_Use_Case/) *(governed)* | Transportation & Travel |
+| [Parcel Delivery — Swiftbound Last-Mile](./Agentic_AI/Industry_Use_Cases/Parcel_Delivery_Last_Mile_Use_Case/) *(governed)* | Transportation, Travel & Logistics |
+| [Retail Banking Assistant — Kestrel Bank](./Agentic_AI/Industry_Use_Cases/Retail_Banking_Assistant_Use_Case/) *(governed)* | Banking & Financial Services |
+| [Corporate Payment Investigation & Status — Aurelia Global Bank](./Agentic_AI/Industry_Use_Cases/Corporate_Payments_Investigation_Use_Case/) *(governed)* | Banking & Financial Services |
 
 ---
 

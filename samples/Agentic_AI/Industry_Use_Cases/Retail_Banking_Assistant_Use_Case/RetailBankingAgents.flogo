@@ -1,0 +1,436 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "RetailBankingAgents",
+  "description": "Kestrel Bank Retail Banking governed A2A agent - dispute triage (read-only)",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Triages a card or account charge the customer questions: decodes cryptic statement descriptors into the real merchant, picks the candidate transaction that best matches the customer's words, explains how the merchant bills (one-off or recurring) and recommends one dispute reason code and whether a card block is advisable. Read-only: it looks up the merchant directory; it cannot file, approve or change anything.",
+      "settings": {
+        "llmProviderConnection": "conn://83a2a2f2-45e1-4ecd-a87c-a1c22e8efdcd",
+        "agentName": "dispute_triage_agent",
+        "agentDescription": "Triages a card or account charge the customer questions: decodes cryptic statement descriptors into the real merchant, picks the candidate transaction that best matches the customer's words, explains how the merchant bills (one-off or recurring) and recommends one dispute reason code and whether a card block is advisable. Read-only: it looks up the merchant directory; it cannot file, approve or change anything.",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"dispute_triage_agent_PORT\"]",
+        "agentUrl": "=$property[\"dispute_triage_agent_URL\"]",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "0",
+        "enableGuardrails": "true",
+        "rateLimit": "30",
+        "tokenLimit": "6000",
+        "redactSensitiveData": "true",
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": "20",
+        "systemPrompt": "You help triage a card or account charge that a Kestrel Bank customer does not recognise or wants to question.\nYou are given the customer's own words and a list of candidate transactions, each with transaction_id, descriptor,\namount and date only. You are never given the customer's identity, and you never ask for or use a name, customer id,\naccount or card number, passcode or session token.\n\n1. For each distinct descriptor among the candidates, call the lookup_merchant tool with the descriptor text exactly as\n   it appears. Use only what the tool returns to say who the merchant is; if it returns NO_MATCH, say the merchant could\n   not be identified from the descriptor.\n2. Pick the ONE candidate transaction that best matches the customer's words (amount, date, merchant, what they\n   describe). If two candidates fit equally well, say which detail (e.g. the amount) would tell them apart.\n3. Explain in plain words who the merchant really is, what it sells, and how it bills: ONE_OFF or RECURRING, plus any\n   billing notes and the support contact the tool returned.\n4. Recommend exactly ONE reason_code from this list: UNRECOGNISED, FRAUD, DUPLICATE, NOT_RECEIVED, NOT_AS_DESCRIBED,\n   CANCELLED_RECURRING, WRONG_AMOUNT. If the right code hinges on whether the customer cancelled a recurring service or\n   never signed up for it, do not guess: give the single question to ask the customer instead.\n5. Say whether blocking the card is advisable: yes when there are fraud signals (the customer never authorised the\n   charge, does not recognise the merchant, or reports a lost or stolen card); otherwise no.\n\nYou never file a dispute, approve anything, or promise a refund, credit, outcome or timeline. Whether the charge can\nbe disputed and any provisional credit are decided later by the bank's system, so never say the charge is eligible.\nNever invent merchants, transactions or amounts.\n\nReply in this short format:\ntransaction_id: <id>\nmerchant: <who it is and what it sells>\nbilling: <ONE_OFF or RECURRING, with a short note>\nreason_code: <one code> (or question: <the one question to ask>)\ncard_block_advisable: <yes or no> - <one short reason>"
+      },
+      "id": "dispute_triage_agent",
+      "handlers": [
+        {
+          "description": "Decode a card-statement descriptor into the real merchant. Pass the descriptor text exactly as it appears on the transaction (e.g. QUICKPAY*XYZ 872-555), or a fragment of it. Returns matching merchant directory rows (most specific first): match_type (PREFIX_MATCH, PARTIAL_MATCH, KEYWORD_MATCH or NO_MATCH), merchant_name, category, billing_model (ONE_OFF or RECURRING), support_contact and notes on how the merchant bills. Read-only. Never pass any customer-identifying information.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "lookup_merchant",
+            "agentToolDescription": "Decode a card-statement descriptor into the real merchant. Pass the descriptor text exactly as it appears on the transaction (e.g. QUICKPAY*XYZ 872-555), or a fragment of it. Returns matching merchant directory rows (most specific first): match_type (PREFIX_MATCH, PARTIAL_MATCH, KEYWORD_MATCH or NO_MATCH), merchant_name, category, billing_model (ONE_OFF or RECURRING), support_contact and notes on how the merchant bills. Read-only. Never pass any customer-identifying information.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:dispute_triage_agent_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"descriptor\": {\n      \"type\": \"string\",\n      \"description\": \"Statement descriptor text, e.g. STRMPLS*MEMBERSHIP 888-555\"\n    }\n  },\n  \"required\": [\n    \"descriptor\"\n  ]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"descriptor\": {\n      \"type\": \"string\",\n      \"description\": \"Statement descriptor text, e.g. STRMPLS*MEMBERSHIP 888-555\"\n    }\n  },\n  \"required\": [\n    \"descriptor\"\n  ]\n}"
+              }
+            }
+          },
+          "name": "dispute_triage_agent_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:dispute_triage_agent_flow",
+      "data": {
+        "name": "dispute_triage_agent_flow",
+        "description": "Decode a card-statement descriptor into the real merchant. Pass the descriptor text exactly as it appears on the transaction (e.g. QUICKPAY*XYZ 872-555), or a fragment of it. Returns matching merchant directory rows (most specific first): match_type (PREFIX_MATCH, PARTIAL_MATCH, KEYWORD_MATCH or NO_MATCH), merchant_name, category, billing_model (ONE_OFF or RECURRING), support_contact and notes on how the merchant bills. Read-only. Never pass any customer-identifying information.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LookupMerchant",
+            "type": "label",
+            "label": "StartActivity to LookupMerchant"
+          },
+          {
+            "id": 2,
+            "from": "LookupMerchant",
+            "to": "Return",
+            "type": "label",
+            "label": "LookupMerchant to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LookupMerchant",
+            "name": "LookupMerchant",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://b3c644a6-dd28-4a80-8a8d-7aa39fc6426a",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM lookup_merchant(CAST(?dsc AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "dsc",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "match_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "descriptor_prefix",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "merchant_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "category",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "billing_model",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "support_contact",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "notes",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "92e3f418-db31-49ec-a875-c6308df2b150SELECT * FROM lookup_merchant(CAST(?dsc AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "dsc": "=$flow.toolParams.descriptor"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"dsc\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"dsc\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"match_type\": {\"type\": \"string\"}, \"descriptor_prefix\": {\"type\": \"string\"}, \"merchant_name\": {\"type\": \"string\"}, \"category\": {\"type\": \"string\"}, \"billing_model\": {\"type\": \"string\"}, \"support_contact\": {\"type\": \"string\"}, \"notes\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"match_type\": {\"type\": \"string\"}, \"descriptor_prefix\": {\"type\": \"string\"}, \"merchant_name\": {\"type\": \"string\"}, \"category\": {\"type\": \"string\"}, \"billing_model\": {\"type\": \"string\"}, \"support_contact\": {\"type\": \"string\"}, \"notes\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[LookupMerchant].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkxvb2t1cE1lcmNoYW50Ijp7IngiOjI1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6MjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"descriptor\":{\"type\":\"string\",\"description\":\"Statement descriptor text, e.g. STRMPLS*MEMBERSHIP 888-555\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"dispute_triage_agent\", \"properties\": {\"toolParams\": {\"type\": \"object\", \"properties\": {\"descriptor\": {\"type\": \"string\", \"description\": \"Statement descriptor text, e.g. STRMPLS*MEMBERSHIP 888-555\"}}, \"required\": [\"descriptor\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}}}}, \"required\": []}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.API_Key",
+      "type": "string",
+      "value": "SECRET:mwVDQL86VMOmjak+DWwwbk50Q9X7kyRkaJWcQWg/FQdYMUjTHxjxoV9kU1wanRFBfVJgs7AVG03TPbsyEBsBA5ItKP9crsG7qJ31nFKHa9rMFvGaFyEMal+iXQ26gWKq+TOL8ifLNVGrwG880dCXgBF3w2PMrXvXchXzmxUfKeOKxKJ7/QgDrOqmcuP0OJhKHpUwFMBV2XAxWw2fsOBaqxyhvKx4vvlkvbyFPNMTjYFjNMB9"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "banking_governed"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SECRET:2SjbQZTNLmi4V7fSZtOJw7ScLZ7s"
+    },
+    {
+      "name": "LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "dispute_triage_agent_PORT",
+      "type": "string",
+      "value": "9863"
+    },
+    {
+      "name": "dispute_triage_agent_URL",
+      "type": "string",
+      "value": "http://localhost:9863"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    }
+  ],
+  "schemas": {
+    "dispute_triage_agent_ToolParams": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"descriptor\": {\n      \"type\": \"string\",\n      \"description\": \"Statement descriptor text, e.g. STRMPLS*MEMBERSHIP 888-555\"\n    }\n  },\n  \"required\": [\n    \"descriptor\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"descriptor\": {\n      \"type\": \"string\",\n      \"description\": \"Statement descriptor text, e.g. STRMPLS*MEMBERSHIP 888-555\"\n    }\n  },\n  \"required\": [\n    \"descriptor\"\n  ]\n}"
+    },
+    "dispute_triage_agent_Resp": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+    }
+  },
+  "connections": {
+    "83a2a2f2-45e1-4ecd-a87c-a1c22e8efdcd": {
+      "id": "83a2a2f2-45e1-4ecd-a87c-a1c22e8efdcd",
+      "name": "OpenAIConn",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "OpenAIConn",
+        "description": "Your llmprovider Connector",
+        "llmProvider": "=$property[\"AgenticAI.OpenAIConn.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAIConn.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAIConn.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    },
+    "b3c644a6-dd28-4a80-8a8d-7aa39fc6426a": {
+      "id": "b3c644a6-dd28-4a80-8a8d-7aa39fc6426a",
+      "name": "PostgresConn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "Your PostgreSQL Connector",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.PostgresConn.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.PostgresConn.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40IiwidGFnIjoiMC45LjQtYjAyIiwibmFtZSI6IlRJQkNPIEZsb2dvwq4gQ29ubmVjdG9yIGZvciBBZ2VudGljIEFJIChUZWNoIFByZXZpZXcpIiwiczNsb2NhdGlvbiI6IlRpYmNvL0FnZW50aWNBSSIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjEiLCJ0YWciOiIyLjcuMS1iMDEiLCJuYW1lIjoiVElCQ08gRmxvZ28gY29ubmVjdG9yIGZvciBQb3N0Z3JlU1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL1Bvc3RncmVTUUwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZGVmYXVsdC1jb250cmlicy9zcmMvYXBwL0RlZmF1bHQiLCJpZCI6IkRlZmF1bHQiLCJ2ZXJzaW9uIjoiMS4wLjAiLCJ0YWciOiIxLjAuMC1iMTAtdjMtbWFpbiIsIm5hbWUiOiJUSUJDTyBGbG9nbyBDb25uZWN0b3IgZm9yIERlZmF1bHQiLCJzM2xvY2F0aW9uIjoiVGliY28vRGVmYXVsdCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTUiLCJ0YWciOiIxLjYuMTUtYjA0IiwibmFtZSI6IlRJQkNPIEZsb2dvIENvbm5lY3RvciBmb3IgR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9863",
+        "title": "dispute_triage_agent",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

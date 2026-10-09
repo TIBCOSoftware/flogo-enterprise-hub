@@ -12,7 +12,7 @@ New here? Skim **[What Is the Agentic AI Connector?](#what-is-the-agentic-ai-con
 | Folder | What's inside |
 |---|---|
 | [`Feature_Samples/`](./Feature_Samples/) | Part 1 — connector feature samples, one building block at a time (Flogo 2.x). |
-| [`Industry_Use_Cases/`](./Industry_Use_Cases/) | Part 2 — governed, vertical-specific demos: business rules, identity, prices and state changes enforced in PostgreSQL, built with the `agentic-ai-governed-use-case` skill. The canonical industry use cases going forward. |
+| [`Industry_Use_Cases/`](./Industry_Use_Cases/) | Part 2 — governed, vertical-specific demos: business rules, identity, prices and state changes enforced in PostgreSQL, built with the `agentic-ai-use-case-builder` skill. The canonical industry use cases going forward. |
 | [`Industry_Use_Cases_old/`](./Industry_Use_Cases_old/) | Earlier vertical demos on the three-app pattern, being migrated to the governed style above. |
 | [`Chatbot/`](./Chatbot/) | Shared browser WebSocket test client for every use case that exposes a WebSocket endpoint. |
 | [`Flogo3x/`](./Flogo3x/) | Flogo 3.x folder-based project versions of nine feature samples. |
@@ -120,6 +120,12 @@ Samples grouped by **industry vertical**. The **Flogo Features Used** column lis
 | # | Sample | Use Case | Flogo Features Used | Interface |
 |---|---|---|---|---|
 | 14 | [Drug Safety Intake Advisor](./Feature_Samples/LLMClient-Dynamic-Auth/) | Pharmacovigilance SUSAR triage that ends in a filed E2B(R3) expedited report | **LLM Client Activity** · dynamic `llmConfiguration` (no LLM connection resource in the orchestrator) · **authenticated** `mcpServerConfigs` (`authType: Token`) · **authenticated** `a2aServerConfigs` (`authType: Static Token`) · MCP Server (`API Key` + per-tool `scope`) · A2A Server (`agentAuthMode: Static Token`) · Memory Conversation Store · WebSocket trigger | WebSocket |
+
+### Agent Governance (cross-industry)
+
+| # | Sample | Use Case | Flogo Features Used | Interface |
+|---|---|---|---|---|
+| 15 | [Agent Privilege IDs](./Feature_Samples/Agent-Privilege-IDs/) | Bank back-office agents, each with its own privilege ID: least privilege, kill switch, human approval, full audit | **MCP Server trigger** (`JWT Token` auth + per-tool `scope` + `tokenInfo.sub`) · 2 **AI Agent Activities**, each with its own JWT (`authType: Token`) · PostgreSQL agent registry · guarded writes · human-only approval · WebSocket trigger | WebSocket |
 
 > **Testing any WebSocket sample?** Use the shared browser **[Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client)** in [`Chatbot/`](./Chatbot/) — it also drives every Part 2 use case.
 
@@ -282,11 +288,19 @@ Grouped by **industry vertical**. Click a use case to open its folder and full R
 |---|---|---|---|---|
 | [Scholarly Publishing — Author Services](./Industry_Use_Cases/Scholarly_Publishing_Author_Services_Use_Case/) | Verified authors check manuscript status, get journal suggestions from an agent, see APC coverage, transfer in two confirmed steps; waivers & appeals routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. | WS `:9840` `/authorservices` · MCP `:9842` · A2A `:9843` | `author_services` | ✅ Complete · 🛡️ Governed |
 
-### Transportation & Travel
+### Transportation, Travel & Logistics
 
 | Use Case | What it does | Endpoints | Database | Status |
 |---|---|---|---|---|
 | [Airline Passenger Services — Meridian](./Industry_Use_Cases/Airline_Passenger_Services_Use_Case/) | Verified travellers check flight status & connection risk (computed in SQL), get agent-ranked rebooking options, rebook in two confirmed steps and email the confirmation; compensation, baggage & name-change requests routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. An earlier, simpler version is kept under `Industry_Use_Cases_old/`. | WS `:9850` `/passengerservices` · MCP `:9852` · A2A `:9853` | `airline_governed` | ✅ Complete · 🛡️ Governed |
+| [Parcel Delivery — Swiftbound Last-Mile](./Industry_Use_Cases/Parcel_Delivery_Last_Mile_Use_Case/) | Verified recipients track parcels, hear what a cryptic delivery exception means (decoded in SQL), get agent-ranked delivery options, reschedule onto a slot or redirect to a pickup point in two confirmed steps and email the confirmation; signature-required / high-value parcels can't go to an unattended locker; lost & damaged claims routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. | WS `:9890` `/parceldelivery` · MCP `:9892` · A2A `:9893` | `parcel_delivery` | ✅ Complete · 🛡️ Governed |
+
+### Banking & Financial Services
+
+| Use Case | What it does | Endpoints | Database | Status |
+|---|---|---|---|---|
+| [Retail Banking Assistant — Kestrel Bank](./Industry_Use_Cases/Retail_Banking_Assistant_Use_Case/) | Verified customers check balances, transactions, cards & loans, get an agent to decode an unrecognised charge into the real merchant, dispute it (provisional credit computed in SQL) or block a card in two confirmed steps and email the confirmation; fee refunds, hardship & credit-limit requests routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. An earlier, simpler version is kept under `Industry_Use_Cases_old/`. | WS `:9860` `/retailbanking` · MCP `:9862` · A2A `:9863` | `banking_governed` | ✅ Complete · 🛡️ Governed |
+| [Corporate Payment Investigation & Status — Aurelia Global Bank](./Industry_Use_Cases/Corporate_Payments_Investigation_Use_Case/) | Verified corporate treasury users check payment status, rail, FX & fees, get an agent to decode cryptic return/reason codes, raise a trace in two confirmed steps or request a recall (money reversal) that a person decides, and email the confirmation; recalls, fee waivers, compensation, fraud & sanctions queries routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. | WS `:9870` `/corporatepayments` · MCP `:9872` · A2A `:9873` | `payments_governed` | ✅ Complete · 🛡️ Governed |
 
 ### Status Legend
 
@@ -300,11 +314,11 @@ Grouped by **industry vertical**. Click a use case to open its folder and full R
 | 🚧 **WIP** | Work in progress — some apps are unconverted copies; read the in-folder "Build status" note first. |
 | 📄 **Stub** | README documents the intended design, but the runnable apps are not present yet. |
 | 🖼️ **deck** | Includes an architecture slide deck. |
-| 🛡️ **Governed** | Built with the `agentic-ai-governed-use-case` skill: passes the decision framework (agent vs. deterministic vs. human-owned); identity, scoping, prices and state changes enforced in PostgreSQL; ships a 4-rung test ladder. |
+| 🛡️ **Governed** | Built with the `agentic-ai-use-case-builder` skill: passes the decision framework (agent vs. deterministic vs. human-owned); identity, scoping, prices and state changes enforced in PostgreSQL; ships a 4-step test ladder. |
 
 > **Port collisions — don't run these pairs at once (defaults overlap):**
-> The thirteen MCP + A2A + Orchestrator use cases listed above are now mutually conflict-free and can all
-> run at the same time. A former clash was resolved by remapping: Semiconductor's orchestrator moved
+> The fourteen MCP + A2A + Orchestrator use cases listed above are now mutually conflict-free and can all
+> run at the same time (Parcel Delivery uses WS `:9890` / MCP `:9892` / A2A `:9893`). A former clash was resolved by remapping: Semiconductor's orchestrator moved
 > `:8088` → **`:9310`** (Retail Banking keeps `:8088`).
 >
 > Overlaps that remain involve the standalone/secondary samples — bring these up one at a time, or change

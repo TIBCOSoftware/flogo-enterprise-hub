@@ -1,0 +1,3458 @@
+{
+  "imports": [
+    "con_postgresql github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection",
+    "tr_mcpserver github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/flow",
+    "act_default_noop github.com/project-flogo/contrib/activity/noop",
+    "act_postgresql_insert github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/insert",
+    "act_postgresql_query github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "act_default_actreturn github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/function/coerce",
+    "act_general_sendmail github.com/tibco/flogo-general/src/app/General/activity/sendmail"
+  ],
+  "name": "ParcelDeliveryMCPServer",
+  "description": "Swiftbound Parcel Delivery (governed) MCP Server - scoped reads and guarded writes for verified recipients",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "settings": {
+        "serverName": "ParcelDeliveryMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"MCP_SERVER_PORT\"]",
+        "statelessServer": false,
+        "serverEndpointPath": "/parcel-delivery-mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": "",
+        "oauthIssuer": "",
+        "oauthJWKSURL": "",
+        "oauthAudience": "",
+        "oauthAuthorizationServers": "",
+        "oauthRequiredScopes": "",
+        "oauthResourceURL": ""
+      },
+      "id": "ParcelDeliveryMCPServer",
+      "name": "ParcelDeliveryMCPServer",
+      "description": "Swiftbound Parcel Delivery governed MCP server",
+      "ref": "#tr_mcpserver",
+      "handlers": [
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "verify_recipient",
+            "handlerDescription": "Verify the recipient's identity with their 6-character Swiftbound account reference and the 4-digit PIN from their Swiftbound app or delivery notification. Returns VERIFIED with a session_token (valid 60 minutes), their name and service area, or NOT_VERIFIED. Call this before any other tool. Never reveal or guess PINs.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:verify_recipient_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "verify_recipient_flow",
+          "description": "Verify the recipient's identity with their 6-character Swiftbound account reference and the 4-digit PIN from their Swiftbound app or delivery notification. Returns VERIFIED with a session_token (valid 60 minutes), their name and service area, or NOT_VERIFIED. Call this before any other tool. Never reveal or guess PINs.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://verify_recipient_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_my_parcels",
+            "handlerDescription": "List the verified recipient's own parcels: tracking number, description, current status, any exception, promised date and expected delivery. Only this recipient's parcels are returned.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_my_parcels_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_my_parcels_flow",
+          "description": "List the verified recipient's own parcels: tracking number, description, current status, any exception, promised date and expected delivery. Only this recipient's parcels are returned.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_my_parcels_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_parcel_detail",
+            "handlerDescription": "Get the full detail of one parcel on the verified recipient's account: status, the plain-English meaning of any exception code and the recommended next step, a computed delivery_health (ON_TRACK / NEEDS_ATTENTION / LATE / DELIVERED), size, whether a signature is required, declared value, destination area, the earliest date it can be rescheduled, and the current slot/pickup. Returns NOT_FOUND for a tracking number that is not on this account.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_parcel_detail_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_parcel_detail_flow",
+          "description": "Get the full detail of one parcel on the verified recipient's account: status, the plain-English meaning of any exception code and the recommended next step, a computed delivery_health (ON_TRACK / NEEDS_ATTENTION / LATE / DELIVERED), size, whether a signature is required, declared value, destination area, the earliest date it can be rescheduled, and the current slot/pickup. Returns NOT_FOUND for a tracking number that is not on this account.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_parcel_detail_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_tracking_history",
+            "handlerDescription": "Show the scan timeline for one parcel on the verified recipient's account: each scan with its time, location, code and description. Returns NOT_FOUND for a parcel that is not on this account.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_tracking_history_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_tracking_history_flow",
+          "description": "Show the scan timeline for one parcel on the verified recipient's account: each scan with its time, location, code and description. Returns NOT_FOUND for a parcel that is not on this account.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_tracking_history_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "propose_reschedule",
+            "handlerDescription": "Step 1 of 2 to reschedule a parcel onto a new delivery slot. Give the parcel's tracking number and the chosen slot_id (from the delivery-options agent or get_parcel_detail). The system checks every rule (ownership, the parcel is still reschedulable, the slot is in the parcel's area, not in the past, and has capacity) and returns PROPOSED with an action_id and the slot date/window, or NOT_PROPOSED with the reason. Nothing changes until confirm_reschedule is called.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:propose_reschedule_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "propose_reschedule_flow",
+          "description": "Step 1 of 2 to reschedule a parcel onto a new delivery slot. Give the parcel's tracking number and the chosen slot_id (from the delivery-options agent or get_parcel_detail). The system checks every rule (ownership, the parcel is still reschedulable, the slot is in the parcel's area, not in the past, and has capacity) and returns PROPOSED with an action_id and the slot date/window, or NOT_PROPOSED with the reason. Nothing changes until confirm_reschedule is called.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://propose_reschedule_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "confirm_reschedule",
+            "handlerDescription": "Step 2 of 2: execute a reschedule the recipient has explicitly confirmed. Pass the action_id from propose_reschedule. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the new slot) or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:confirm_reschedule_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "confirm_reschedule_flow",
+          "description": "Step 2 of 2: execute a reschedule the recipient has explicitly confirmed. Pass the action_id from propose_reschedule. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the new slot) or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://confirm_reschedule_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "propose_redirect",
+            "handlerDescription": "Step 1 of 2 to redirect a parcel to a pickup point (locker or staffed shop). Give the tracking number and the chosen pickup_id. The system checks every rule (ownership, the parcel is still redirectable, the pickup point serves the parcel's area and fits its size, and - for unattended lockers - that the parcel is not signature-required and not over the value limit) and returns PROPOSED with an action_id, or NOT_PROPOSED with the reason. Nothing changes until confirm_redirect is called.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:propose_redirect_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "propose_redirect_flow",
+          "description": "Step 1 of 2 to redirect a parcel to a pickup point (locker or staffed shop). Give the tracking number and the chosen pickup_id. The system checks every rule (ownership, the parcel is still redirectable, the pickup point serves the parcel's area and fits its size, and - for unattended lockers - that the parcel is not signature-required and not over the value limit) and returns PROPOSED with an action_id, or NOT_PROPOSED with the reason. Nothing changes until confirm_redirect is called.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://propose_redirect_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "confirm_redirect",
+            "handlerDescription": "Step 2 of 2: execute a redirect the recipient has explicitly confirmed. Pass the action_id from propose_redirect. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the pickup point) or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:confirm_redirect_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "confirm_redirect_flow",
+          "description": "Step 2 of 2: execute a redirect the recipient has explicitly confirmed. Pass the action_id from propose_redirect. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the pickup point) or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://confirm_redirect_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "email_confirmation",
+            "handlerDescription": "Email the recipient the confirmation for a reschedule or redirect they have already executed. Pass the action_id from confirm_reschedule or confirm_redirect. The system sends the email only when that change belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful change.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:email_confirmation_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "email_confirmation_flow",
+          "description": "Email the recipient the confirmation for a reschedule or redirect they have already executed. Pass the action_id from confirm_reschedule or confirm_redirect. The system sends the email only when that change belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful change.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://email_confirmation_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "open_service_case",
+            "handlerDescription": "Hand a request that needs a human to the right team: LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:open_service_case_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "open_service_case_flow",
+          "description": "Hand a request that needs a human to the right team: LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://open_service_case_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_my_cases",
+            "handlerDescription": "List the verified recipient's open and past service cases with the assigned team and status.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_my_cases_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_my_cases_flow",
+          "description": "List the verified recipient's open and past service cases with the assigned team and status.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_my_cases_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:verify_recipient_flow",
+      "data": {
+        "name": "verify_recipient_flow",
+        "description": "Verify the recipient&#39;s identity with their 6-character Swiftbound account reference and the 4-digit PIN from their Swiftbound app or delivery notification. Returns VERIFIED with a session_token (valid 60 minutes), their name and service area, or NOT_VERIFIED. Call this before any other tool. Never reveal or guess PINs.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO recipient_sessions (recipient_id) SELECT recipient_id FROM verify_and_record(CAST(?w_ref AS text), CAST(?w_pin AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_pin",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "e2b1de89-5316-42a3-9bfd-5afd92b03a06INSERT INTO recipient_sessions (recipient_id) SELECT recipient_id FROM verify_and_record(CAST(?w_ref AS text), CAST(?w_pin AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_ref": "=$flow.arguments.account_ref",
+                      "w_pin": "=$flow.arguments.pin"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_ref\": {\"type\": \"string\"}, \"w_pin\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_ref\": {\"type\": \"string\"}, \"w_pin\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM verify_result(CAST(?r_ref AS text), CAST(?r_pin AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_ref",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_pin",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "session_token",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "recipient_name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "account_ref",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "service_area",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "e142f1b5-f668-4eeb-974d-2b88b468426fSELECT * FROM verify_result(CAST(?r_ref AS text), CAST(?r_pin AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_ref": "=$flow.arguments.account_ref",
+                      "r_pin": "=$flow.arguments.pin"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_ref\": {\"type\": \"string\"}, \"r_pin\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_ref\": {\"type\": \"string\"}, \"r_pin\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"session_token\": {\"type\": \"string\"}, \"recipient_name\": {\"type\": \"string\"}, \"account_ref\": {\"type\": \"string\"}, \"service_area\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"session_token\": {\"type\": \"string\"}, \"recipient_name\": {\"type\": \"string\"}, \"account_ref\": {\"type\": \"string\"}, \"service_area\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"account_ref\": {\"type\": \"string\"}, \"pin\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"account_ref\": {\"type\": \"string\", \"description\": \"6-character Swiftbound account reference, e.g. K4R2QX\"}, \"pin\": {\"type\": \"string\", \"description\": \"4-digit verification PIN the recipient received\"}}, \"required\": [\"account_ref\", \"pin\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_my_parcels_flow",
+      "data": {
+        "name": "get_my_parcels_flow",
+        "description": "List the verified recipient&#39;s own parcels: tracking number, description, current status, any exception, promised date and expected delivery. Only this recipient&#39;s parcels are returned.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM my_parcels(CAST(?tok AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "session_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "description",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "current_status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "exception_code",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "exception_label",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "promised_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expected_delivery",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "destination_area",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "71b8d584-0134-45fa-ad20-dc1802735c87SELECT * FROM my_parcels(CAST(?tok AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"current_status\": {\"type\": \"string\"}, \"exception_code\": {\"type\": \"string\"}, \"exception_label\": {\"type\": \"string\"}, \"promised_date\": {\"type\": \"string\"}, \"expected_delivery\": {\"type\": \"string\"}, \"destination_area\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"current_status\": {\"type\": \"string\"}, \"exception_code\": {\"type\": \"string\"}, \"exception_label\": {\"type\": \"string\"}, \"promised_date\": {\"type\": \"string\"}, \"expected_delivery\": {\"type\": \"string\"}, \"destination_area\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}}, \"required\": [\"session_token\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_parcel_detail_flow",
+      "data": {
+        "name": "get_parcel_detail_flow",
+        "description": "Get the full detail of one parcel on the verified recipient&#39;s account: status, the plain-English meaning of any exception code and the recommended next step, a computed delivery_health (ON_TRACK / NEEDS_ATTENTION / LATE / DELIVERED), size, whether a signature is required, declared value, destination area, the earliest date it can be rescheduled, and the current slot/pickup. Returns NOT_FOUND for a tracking number that is not on this account.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM parcel_detail(CAST(?tok AS text), CAST(?trk AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "lookup_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "description",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "sender",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "current_status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "exception_code",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "exception_label",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "exception_advice",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "delivery_health",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "declared_value",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "parcel_size",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "signature_required",
+                    "Type": "BOOLEAN",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "service_level",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "destination_area",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "destination_postcode",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "promised_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expected_delivery",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "attempts_made",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "earliest_reschedule_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "current_slot",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "current_pickup",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "fdd5a3a6-e10f-4265-af40-92d3e9e0571aSELECT * FROM parcel_detail(CAST(?tok AS text), CAST(?trk AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token",
+                      "trk": "=$flow.arguments.tracking_number"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"trk\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"trk\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"sender\": {\"type\": \"string\"}, \"current_status\": {\"type\": \"string\"}, \"exception_code\": {\"type\": \"string\"}, \"exception_label\": {\"type\": \"string\"}, \"exception_advice\": {\"type\": \"string\"}, \"delivery_health\": {\"type\": \"string\"}, \"declared_value\": {\"type\": \"number\"}, \"parcel_size\": {\"type\": \"string\"}, \"signature_required\": {\"type\": \"string\"}, \"service_level\": {\"type\": \"string\"}, \"destination_area\": {\"type\": \"string\"}, \"destination_postcode\": {\"type\": \"string\"}, \"promised_date\": {\"type\": \"string\"}, \"expected_delivery\": {\"type\": \"string\"}, \"attempts_made\": {\"type\": \"number\"}, \"earliest_reschedule_date\": {\"type\": \"string\"}, \"current_slot\": {\"type\": \"string\"}, \"current_pickup\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"sender\": {\"type\": \"string\"}, \"current_status\": {\"type\": \"string\"}, \"exception_code\": {\"type\": \"string\"}, \"exception_label\": {\"type\": \"string\"}, \"exception_advice\": {\"type\": \"string\"}, \"delivery_health\": {\"type\": \"string\"}, \"declared_value\": {\"type\": \"number\"}, \"parcel_size\": {\"type\": \"string\"}, \"signature_required\": {\"type\": \"string\"}, \"service_level\": {\"type\": \"string\"}, \"destination_area\": {\"type\": \"string\"}, \"destination_postcode\": {\"type\": \"string\"}, \"promised_date\": {\"type\": \"string\"}, \"expected_delivery\": {\"type\": \"string\"}, \"attempts_made\": {\"type\": \"number\"}, \"earliest_reschedule_date\": {\"type\": \"string\"}, \"current_slot\": {\"type\": \"string\"}, \"current_pickup\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"tracking_number\": {\"type\": \"string\", \"description\": \"Parcel tracking number, e.g. SB100000000001\"}}, \"required\": [\"session_token\", \"tracking_number\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_tracking_history_flow",
+      "data": {
+        "name": "get_tracking_history_flow",
+        "description": "Show the scan timeline for one parcel on the verified recipient&#39;s account: each scan with its time, location, code and description. Returns NOT_FOUND for a parcel that is not on this account.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM tracking_history(CAST(?tok AS text), CAST(?trk AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "lookup_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "event_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "location",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "scan_code",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "description",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "3cc334ef-9d45-4d79-9f1c-1803594dce46SELECT * FROM tracking_history(CAST(?tok AS text), CAST(?trk AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token",
+                      "trk": "=$flow.arguments.tracking_number"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"trk\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"trk\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"event_at\": {\"type\": \"string\"}, \"location\": {\"type\": \"string\"}, \"scan_code\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"event_at\": {\"type\": \"string\"}, \"location\": {\"type\": \"string\"}, \"scan_code\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"tracking_number\": {\"type\": \"string\", \"description\": \"Parcel tracking number, e.g. SB100000000001\"}}, \"required\": [\"session_token\", \"tracking_number\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:propose_reschedule_flow",
+      "data": {
+        "name": "propose_reschedule_flow",
+        "description": "Step 1 of 2 to reschedule a parcel onto a new delivery slot. Give the parcel&#39;s tracking number and the chosen slot_id (from the delivery-options agent or get_parcel_detail). The system checks every rule (ownership, the parcel is still reschedulable, the slot is in the parcel&#39;s area, not in the past, and has capacity) and returns PROPOSED with an action_id and the slot date/window, or NOT_PROPOSED with the reason. Nothing changes until confirm_reschedule is called.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO pending_actions (action_type, parcel_id, slot_id) SELECT * FROM reschedule_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_slot AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_slot",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "29fc0ab5-58a2-40b9-854c-7a12b9434f49INSERT INTO pending_actions (action_type, parcel_id, slot_id) SELECT * FROM reschedule_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_slot AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_trk": "=$flow.arguments.tracking_number",
+                      "w_slot": "=$flow.arguments.slot_id"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_slot\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_slot\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM propose_reschedule_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_slot AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_slot",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "slot_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "slot_date",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "slot_window",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "feb89b59-2e3e-4f3b-88ad-dc22bf530282SELECT * FROM propose_reschedule_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_slot AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_trk": "=$flow.arguments.tracking_number",
+                      "r_slot": "=$flow.arguments.slot_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_trk\": {\"type\": \"string\"}, \"r_slot\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_trk\": {\"type\": \"string\"}, \"r_slot\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"slot_id\": {\"type\": \"string\"}, \"slot_date\": {\"type\": \"string\"}, \"slot_window\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"slot_id\": {\"type\": \"string\"}, \"slot_date\": {\"type\": \"string\"}, \"slot_window\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"slot_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"tracking_number\": {\"type\": \"string\", \"description\": \"The parcel's tracking number, e.g. SB100000000001\"}, \"slot_id\": {\"type\": \"string\", \"description\": \"The chosen delivery slot id, e.g. SLOT-N1\"}}, \"required\": [\"session_token\", \"tracking_number\", \"slot_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:confirm_reschedule_flow",
+      "data": {
+        "name": "confirm_reschedule_flow",
+        "description": "Step 2 of 2: execute a reschedule the recipient has explicitly confirmed. Pass the action_id from propose_reschedule. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the new slot) or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO delivery_changes (action_id, parcel_id, action_type, slot_id) SELECT * FROM reschedule_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "6073ea24-d32d-42e9-ac83-d094f4ef6152INSERT INTO delivery_changes (action_id, parcel_id, action_type, slot_id) SELECT * FROM reschedule_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "target",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "changed_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "eec37ea0-5ef7-4dcc-8275-3c2f0c1f2df7SELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"action_type\": {\"type\": \"string\"}, \"target\": {\"type\": \"string\"}, \"changed_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"action_type\": {\"type\": \"string\"}, \"target\": {\"type\": \"string\"}, \"changed_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id returned by propose_reschedule, e.g. ACT-1A2B3C4D\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:propose_redirect_flow",
+      "data": {
+        "name": "propose_redirect_flow",
+        "description": "Step 1 of 2 to redirect a parcel to a pickup point (locker or staffed shop). Give the tracking number and the chosen pickup_id. The system checks every rule (ownership, the parcel is still redirectable, the pickup point serves the parcel&#39;s area and fits its size, and - for unattended lockers - that the parcel is not signature-required and not over the value limit) and returns PROPOSED with an action_id, or NOT_PROPOSED with the reason. Nothing changes until confirm_redirect is called.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO pending_actions (action_type, parcel_id, pickup_id) SELECT * FROM redirect_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_pick AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_pick",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "065da212-289e-423d-b487-175eec6b334bINSERT INTO pending_actions (action_type, parcel_id, pickup_id) SELECT * FROM redirect_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_pick AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_trk": "=$flow.arguments.tracking_number",
+                      "w_pick": "=$flow.arguments.pickup_id"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_pick\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_pick\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM propose_redirect_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_pick AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_pick",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "pickup_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "pickup_name",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "point_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "a4612892-4903-4339-9fff-894f0ae9c5faSELECT * FROM propose_redirect_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_pick AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_trk": "=$flow.arguments.tracking_number",
+                      "r_pick": "=$flow.arguments.pickup_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_trk\": {\"type\": \"string\"}, \"r_pick\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_trk\": {\"type\": \"string\"}, \"r_pick\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"pickup_id\": {\"type\": \"string\"}, \"pickup_name\": {\"type\": \"string\"}, \"point_type\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"pickup_id\": {\"type\": \"string\"}, \"pickup_name\": {\"type\": \"string\"}, \"point_type\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"pickup_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"tracking_number\": {\"type\": \"string\", \"description\": \"The parcel's tracking number, e.g. SB100000000002\"}, \"pickup_id\": {\"type\": \"string\", \"description\": \"The chosen pickup point id, e.g. PU-N-SHOP1\"}}, \"required\": [\"session_token\", \"tracking_number\", \"pickup_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:confirm_redirect_flow",
+      "data": {
+        "name": "confirm_redirect_flow",
+        "description": "Step 2 of 2: execute a redirect the recipient has explicitly confirmed. Pass the action_id from propose_redirect. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the pickup point) or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO delivery_changes (action_id, parcel_id, action_type, pickup_id) SELECT * FROM redirect_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "1abfd382-856b-49f2-97c0-2f7d19937230INSERT INTO delivery_changes (action_id, parcel_id, action_type, pickup_id) SELECT * FROM redirect_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "target",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "changed_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "ba66ee91-77f9-4447-9282-9ca921988eb1SELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"action_type\": {\"type\": \"string\"}, \"target\": {\"type\": \"string\"}, \"changed_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"action_type\": {\"type\": \"string\"}, \"target\": {\"type\": \"string\"}, \"changed_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id returned by propose_redirect, e.g. ACT-1A2B3C4D\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:email_confirmation_flow",
+      "data": {
+        "name": "email_confirmation_flow",
+        "description": "Email the recipient the confirmation for a reschedule or redirect they have already executed. Pass the action_id from confirm_reschedule or confirm_redirect. The system sends the email only when that change belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful change.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "SendMail",
+            "type": "label",
+            "label": "ReadOutcome to SendMail"
+          },
+          {
+            "id": 3,
+            "from": "SendMail",
+            "to": "Return",
+            "type": "label",
+            "label": "SendMail to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "send_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "to_email",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "subject",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "body",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "7e146d6e-75f0-43b6-a46c-03e78cccec86SELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"send_status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"to_email\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"send_status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"to_email\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "Server": "smtp.gmail.com",
+                "Port": 465,
+                "authorizationType": "Basic",
+                "Username": "=$property[\"Email_Username\"]",
+                "Password": "=$property[\"Email_App_Password\"]",
+                "authorizationConn": "",
+                "Connection Security": "SSL",
+                "serverCertificate": "",
+                "message_content_type": "text/plain",
+                "sender": "=$property[\"To_Email\"]",
+                "recipients": "=$property[\"To_Email\"]",
+                "cc_recipients": "",
+                "bcc_recipients": "",
+                "reply_to": "=$property[\"Email_Username\"]",
+                "subject": "=$activity[ReadOutcome].Output.records[0].subject",
+                "message": "=$activity[ReadOutcome].Output.records[0].body"
+              },
+              "ref": "#act_general_sendmail"
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "SendMail",
+            "name": "SendMail",
+            "description": "Send confirmation email"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id of the executed change\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:open_service_case_flow",
+      "data": {
+        "name": "open_service_case_flow",
+        "description": "Hand a request that needs a human to the right team: LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO service_cases (recipient_id, account_ref, tracking_number, request_type, recipient_statement, agent_brief) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_trk AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_stmt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_brief",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "4bb3721b-9969-4ae7-95dc-08305802045bINSERT INTO service_cases (recipient_id, account_ref, tracking_number, request_type, recipient_statement, agent_brief) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_trk AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_type": "=$flow.arguments.request_type",
+                      "w_trk": "=$flow.arguments.tracking_number",
+                      "w_stmt": "=$flow.arguments.recipient_statement",
+                      "w_brief": "=$flow.arguments.brief"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_type\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}, \"w_brief\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_type\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}, \"w_brief\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "request_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "assigned_team",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_within_business_days",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "86fdaa83-e7fc-415b-90fa-a86ffcda8944SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_type": "=$flow.arguments.request_type"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_type\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_type\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_within_business_days\": {\"type\": \"number\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_within_business_days\": {\"type\": \"number\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"recipient_statement\": {\"type\": \"string\"}, \"brief\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"request_type\": {\"type\": \"string\", \"description\": \"LOST_PARCEL | DAMAGED_PARCEL | MISSING_ITEMS | WRONG_DELIVERY | DELIVERY_COMPLAINT | OTHER\"}, \"tracking_number\": {\"type\": \"string\", \"description\": \"The tracking number this is about, if any (else empty)\"}, \"recipient_statement\": {\"type\": \"string\", \"description\": \"The recipient's request in their own words\"}, \"brief\": {\"type\": \"string\", \"description\": \"A neutral 2-4 sentence summary for the agent: facts only, no recommendation\"}}, \"required\": [\"session_token\", \"request_type\", \"tracking_number\", \"recipient_statement\", \"brief\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_my_cases_flow",
+      "data": {
+        "name": "get_my_cases_flow",
+        "description": "List the verified recipient&#39;s open and past service cases with the assigned team and status.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM my_cases(CAST(?tok AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "session_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "request_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "assigned_team",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "8ec9f77d-5df5-4c02-aec2-b539637dc5fdSELECT * FROM my_cases(CAST(?tok AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}}, \"required\": [\"session_token\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "parcel_delivery"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SET_YOUR_DB_PASSWORD"
+    },
+    {
+      "name": "MCP_SERVER_PORT",
+      "type": "string",
+      "value": "9892"
+    },
+    {
+      "name": "Email_Username",
+      "type": "string",
+      "value": "your-email@example.com"
+    },
+    {
+      "name": "Email_App_Password",
+      "type": "string",
+      "value": "SECRET:SET_YOUR_EMAIL_APP_PASSWORD"
+    },
+    {
+      "name": "To_Email",
+      "type": "string",
+      "value": "your-email@example.com"
+    }
+  ],
+  "connections": {
+    "602dcf37-f018-46d0-baf9-a4722137bc2c": {
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "Your PostgreSQL Connector",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": 0,
+        "maxidleconnection": 2,
+        "connmaxlifetime": 0,
+        "maxconnectattempts": 3,
+        "connectionretrydelay": 5,
+        "connectiontimeout": 20,
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      },
+      "id": "602dcf37-f018-46d0-baf9-a4722137bc2c",
+      "name": "PostgresConn",
+      "ref": "#con_postgresql",
+      "isGlobal": false
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjEiLCJ0YWciOiIyLjcuMS1iMDEiLCJuYW1lIjoiVElCQ08gRmxvZ28gY29ubmVjdG9yIGZvciBQb3N0Z3JlU1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL1Bvc3RncmVTUUwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tbWNwL3NyYy9hcHAvTUNQIiwiaWQiOiJNQ1AiLCJ2ZXJzaW9uIjoiMS4wLjQiLCJ0YWciOiIxLjAuNC1iMDIiLCJuYW1lIjoiVElCQ08gRmxvZ2/CriBDb25uZWN0b3IgZm9yIE1vZGVsIENvbnRleHQgUHJvdG9jb2wgKE1DUCkiLCJzM2xvY2F0aW9uIjoiVGliY28vTUNQIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWRlZmF1bHQtY29udHJpYnMvc3JjL2FwcC9EZWZhdWx0IiwiaWQiOiJEZWZhdWx0IiwidmVyc2lvbiI6IjEuMC4wIiwidGFnIjoiMS4wLjAtYjEwLXYzLW1haW4iLCJuYW1lIjoiVElCQ08gRmxvZ28gQ29ubmVjdG9yIGZvciBEZWZhdWx0IiwiczNsb2NhdGlvbiI6IlRpYmNvL0RlZmF1bHQiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZ2VuZXJhbC9zcmMvYXBwL0dlbmVyYWwiLCJpZCI6IkdlbmVyYWwiLCJ2ZXJzaW9uIjoiMS42LjE1IiwidGFnIjoiMS42LjE1LWIwNCIsIm5hbWUiOiJUSUJDTyBGbG9nbyBDb25uZWN0b3IgZm9yIEdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.6"
+  },
+  "schemas": {
+    "ToolResponse": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+    },
+    "verify_recipient_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_ref\": {\n      \"type\": \"string\",\n      \"description\": \"6-character Swiftbound account reference, e.g. K4R2QX\"\n    },\n    \"pin\": {\n      \"type\": \"string\",\n      \"description\": \"4-digit verification PIN the recipient received\"\n    }\n  },\n  \"required\": [\n    \"account_ref\",\n    \"pin\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"account_ref\": {\n      \"type\": \"string\",\n      \"description\": \"6-character Swiftbound account reference, e.g. K4R2QX\"\n    },\n    \"pin\": {\n      \"type\": \"string\",\n      \"description\": \"4-digit verification PIN the recipient received\"\n    }\n  },\n  \"required\": [\n    \"account_ref\",\n    \"pin\"\n  ]\n}"
+    },
+    "get_my_parcels_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    },
+    "get_parcel_detail_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"Parcel tracking number, e.g. SB100000000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"Parcel tracking number, e.g. SB100000000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\"\n  ]\n}"
+    },
+    "get_tracking_history_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"Parcel tracking number, e.g. SB100000000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"Parcel tracking number, e.g. SB100000000001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\"\n  ]\n}"
+    },
+    "propose_reschedule_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The parcel's tracking number, e.g. SB100000000001\"\n    },\n    \"slot_id\": {\n      \"type\": \"string\",\n      \"description\": \"The chosen delivery slot id, e.g. SLOT-N1\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\",\n    \"slot_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The parcel's tracking number, e.g. SB100000000001\"\n    },\n    \"slot_id\": {\n      \"type\": \"string\",\n      \"description\": \"The chosen delivery slot id, e.g. SLOT-N1\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\",\n    \"slot_id\"\n  ]\n}"
+    },
+    "confirm_reschedule_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_reschedule, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_reschedule, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+    },
+    "propose_redirect_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The parcel's tracking number, e.g. SB100000000002\"\n    },\n    \"pickup_id\": {\n      \"type\": \"string\",\n      \"description\": \"The chosen pickup point id, e.g. PU-N-SHOP1\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\",\n    \"pickup_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The parcel's tracking number, e.g. SB100000000002\"\n    },\n    \"pickup_id\": {\n      \"type\": \"string\",\n      \"description\": \"The chosen pickup point id, e.g. PU-N-SHOP1\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\",\n    \"pickup_id\"\n  ]\n}"
+    },
+    "confirm_redirect_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_redirect, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_redirect, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+    },
+    "email_confirmation_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id of the executed change\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id of the executed change\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+    },
+    "open_service_case_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"request_type\": {\n      \"type\": \"string\",\n      \"description\": \"LOST_PARCEL | DAMAGED_PARCEL | MISSING_ITEMS | WRONG_DELIVERY | DELIVERY_COMPLAINT | OTHER\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The tracking number this is about, if any (else empty)\"\n    },\n    \"recipient_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The recipient's request in their own words\"\n    },\n    \"brief\": {\n      \"type\": \"string\",\n      \"description\": \"A neutral 2-4 sentence summary for the agent: facts only, no recommendation\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"request_type\",\n    \"tracking_number\",\n    \"recipient_statement\",\n    \"brief\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"request_type\": {\n      \"type\": \"string\",\n      \"description\": \"LOST_PARCEL | DAMAGED_PARCEL | MISSING_ITEMS | WRONG_DELIVERY | DELIVERY_COMPLAINT | OTHER\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The tracking number this is about, if any (else empty)\"\n    },\n    \"recipient_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The recipient's request in their own words\"\n    },\n    \"brief\": {\n      \"type\": \"string\",\n      \"description\": \"A neutral 2-4 sentence summary for the agent: facts only, no recommendation\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"request_type\",\n    \"tracking_number\",\n    \"recipient_statement\",\n    \"brief\"\n  ]\n}"
+    },
+    "get_my_cases_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    }
+  }
+}
