@@ -256,18 +256,21 @@ $FDA cth <Agent>_flow <Agent> "<agentToolDesc>"
 $FDA sa handler <Agent>.<Agent>_flow.settings.agentToolName        <Agent>
 $FDA sa handler <Agent>.<Agent>_flow.settings.agentToolDescription "<agentToolDesc>"
 $FDA wth <Agent>_flow <Agent>.<Agent>_flow --force --input toolParams:object --output response:object   # tr_agent has no default wiring
-# toolParams (input) + response (reply) schemas — describe the fields the orchestrator must pass:
-$FDA cs <Agent>_ToolParams '{"type":"object","properties":{ "<field>":{"type":"string"} },"required":[]}'
-$FDA sa handler <Agent>.<Agent>_flow.schemas.output.toolParams <Agent>_ToolParams -C schema --force
-$FDA cs <Agent>_Resp '{"type":"object","properties":{"response":{"type":"string"}}}'
-$FDA sa handler <Agent>.<Agent>_flow.schemas.reply.response   <Agent>_Resp -C schema --force
+# toolParams (input) + response (reply) schemas — describe the fields the orchestrator must pass.
+# ⚠️ Set them INLINE (--jsonValue), NOT as a schema:// reference (-C schema). The AI Agent Trigger reads
+#    toolParams only inline: a reference silently gives the LLM a tool with NO parameters, so it calls the tool
+#    with {} or guessed names (FGAI-155). The MCP Server trigger resolves references; tr_agent does not.
+TP='{"type":"object","properties":{ "<field>":{"type":"string","description":"<what to pass>"} },"required":["<field>"]}'
+$FDA sa handler <Agent>.<Agent>_flow.schemas.output.toolParams --jsonValue "$(python -c 'import json,sys; v=sys.argv[1]; print(json.dumps({"type":"json","value":v,"fe_metadata":v}))' "$TP")" --force
+RS='{"type":"object","properties":{"response":{"type":"string"}}}'
+$FDA sa handler <Agent>.<Agent>_flow.schemas.reply.response   --jsonValue "$(python -c 'import json,sys; v=sys.argv[1]; print(json.dumps({"type":"json","value":v,"fe_metadata":v}))' "$RS")" --force
 
 # gotcha 5 — the FLOW input needs the SAME toolParams schema as the handler, or the
 #   designer's mapper can't resolve $flow.toolParams.<field>: the flow's Input tab shows
 #   a red ✗ on every toolParams mapping (subject/body/email/…) and the app fails
 #   validation. `wth --input toolParams:object` writes only a BARE object to
 #   flow.metadata.input (no sub-schema). Reuse the tool schema on the flow input — write
-#   [{"name":"toolParams","type":"object","schema":{"type":"json","value":"<same JSON string as <Agent>_ToolParams>"}}]
+#   [{"name":"toolParams","type":"object","schema":{"type":"json","value":"<same JSON string as $TP>"}}]
 #   to a file, then:
 $FDA sa flow <Agent>_flow.metadata.input --jsonFile <toolparams_flowinput.json>
 #   ⚠️ CAVEAT — `metadata.input` alone is NOT durable in the designer. The designer treats
@@ -285,7 +288,7 @@ $FDA sa flow <Agent>_flow.metadata.input --jsonFile <toolparams_flowinput.json>
 #   (b) NO-SYNC bake (optional, for a clean first-open): also write fe_metadata to EXACTLY the
 #       shape the designer produces after a Sync, so metadata.input survives regeneration and
 #       the fields render with no Sync. Mirror this format per flow (fields = your
-#       <Agent>_ToolParams properties):
+#       $TP properties):
 #         metadata.input[toolParams].schema = {"type":"json",
 #           "value":"{\"<f1>\":{\"type\":\"string\"},\"<f2>\":{\"type\":\"string\"}}"}
 #         metadata.fe_metadata.input (stringified) =

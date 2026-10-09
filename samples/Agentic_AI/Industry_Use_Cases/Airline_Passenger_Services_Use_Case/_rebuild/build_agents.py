@@ -68,10 +68,14 @@ f("sa", "handler", f"{NAME}.{FLOW}.settings.agentToolDescription", T["desc"])
 f("wth", FLOW, f"{NAME}.{FLOW}", "--force", "--input", "toolParams:object", "--output", "response:object")
 props = {a: {"type": "string", "description": d} for a, d in T["args"]}
 req = ["origin", "destination", "earliest_departure"]
-f("cs", f"{NAME}_ToolParams", json.dumps({"type": "object", "properties": props, "required": req}))
-f("sa", "handler", f"{NAME}.{FLOW}.schemas.output.toolParams", f"{NAME}_ToolParams", "-C", "schema", "--force")
-f("cs", f"{NAME}_Resp", '{"type":"object","properties":{"data":{"type":"string"}}}')
-f("sa", "handler", f"{NAME}.{FLOW}.schemas.reply.response", f"{NAME}_Resp", "-C", "schema", "--force")
+# INLINE schemas: the AI Agent Trigger reads toolParams only inline - a schema:// reference gives the LLM a
+# tool with NO parameters (FGAI-155). The MCP Server trigger resolves references; this trigger does not.
+_tp = json.dumps({"type": "object", "properties": props, "required": req})
+f("sa", "handler", f"{NAME}.{FLOW}.schemas.output.toolParams", "--jsonValue",
+  json.dumps({"type": "json", "value": _tp, "fe_metadata": _tp}), "--force")
+_rs = '{"type":"object","properties":{"data":{"type":"string"}}}'
+f("sa", "handler", f"{NAME}.{FLOW}.schemas.reply.response", "--jsonValue",
+  json.dumps({"type": "json", "value": _rs, "fe_metadata": _rs}), "--force")
 
 compact = json.dumps({a: {"type": "string"} for a, _ in T["args"]})
 f("sa", "flow", f"{FLOW}.metadata.input", "--jsonFile",
