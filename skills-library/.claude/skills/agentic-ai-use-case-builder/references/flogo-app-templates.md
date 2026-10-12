@@ -1,13 +1,16 @@
 # Flogo App Templates (3-app Agentic AI pattern)
 
 Domain-agnostic JSON skeletons for the three apps. Placeholders are written as `<LIKE_THIS>`.
-The **most reliable way to build** is to copy a same-type app from an existing use case under
-`samples/Agentic_AI/Industry_Use_Cases_old/*_Use_Case/` and swap in the domain specifics; these skeletons show what to change
-and what must stay. Always carry `contrib` and `SECRET:` values verbatim from the cloned app.
+The **most reliable way to clone** is to copy a same-type app from a **governed** use case under
+`samples/Agentic_AI/Industry_Use_Cases/<Industry>/<Sub_Category>/*_Use_Case/` and swap in the domain specifics; these
+skeletons show what to change and what must stay. Never clone from `Industry_Use_Cases_old/` (ungoverned: rules in prompts,
+write agents, shared conversation memory) except to transplant a custom-extension activity (RAG — SKILL.md Phase 4B).
+Always carry `contrib` and `SECRET:` values verbatim from the cloned app. Names follow the no-`Gov` rule (SKILL.md
+Phase 0): no `Gov`/`Governed`/`-gov-` in app, trigger, connection, endpoint or path names.
 
 Common to every app: `"appModel": "1.1.1"`, and `"metadata": { "flogoVersion": "2.26.5", "endpoints": [...] }`.
 
-LLM settings (A2A + orchestrator): `config.md` wins; otherwise `LLM_Model` = `gpt-5-nano`, `AgenticAI.OpenAIConn.LLM_Base_URL` = `""`, and `"temperature": 0` (a JSON number) on every `#agent` trigger and the `#agentactivity` — gpt-5 reasoning models ignore temperature (the connector sends 1.0); 0 makes non-reasoning models deterministic. Cloned reference apps often carry `0.7` — reset it.
+LLM settings (A2A + orchestrator): `config.md` wins; otherwise `LLM_Model` = `gpt-5.5` (nano-class models drop tool calls and won't delegate), `AgenticAI.OpenAIConn.LLM_Base_URL` = `""`, and `"temperature": 0` (a JSON number) on every `#agent` trigger and the `#agentactivity` — gpt-5 reasoning models ignore temperature (the connector sends 1.0); 0 makes non-reasoning models deterministic. Cloned reference apps often carry `0.7` — reset it.
 
 ---
 
@@ -22,7 +25,7 @@ LLM settings (A2A + orchestrator): `config.md` wins; otherwise `LLM_Model` = `gp
   "settings": {
     "serverName": "<UseCaseName>", "serverVersion": "1.0.0", "serverType": "HTTP",
     "serverPort": "=$property[\"MCP_SERVER_PORT\"]",
-    "serverEndpointPath": "/<usecase-bss>", "authType": "None"
+    "serverEndpointPath": "/<usecase>mcpserver", "authType": "None"
   },
   "id": "<UseCase>MCPServer",
   "handlers": [
@@ -199,9 +202,9 @@ Design rule: **one agent per write workflow** (create/update/side-effecting). Ke
 - Keep intent routing explicit (which questions → which MCP tool; which actions → which A2A agent), decline
   out-of-scope requests, and stay warm and professional.
 
-**Connections:** OpenAI `#llmprovider`; one `#mcpserverconfig` (`serverType:"http"`, `serverUrl:"http://<host>:<mcpPort>/<usecase-bss>"`, `httpTransportType:"streamable"`); one `#a2aserverconnection` per A2A agent (`serverUrl:"http://<host>:<a2aPort>"`).
+**Connections:** OpenAI `#llmprovider`; one `#mcpserverconfig` (`serverType:"http"`, `serverUrl:"http://<host>:<mcpPort>/<usecase>mcpserver"`, `httpTransportType:"streamable"`); one `#a2aserverconnection` per A2A agent (`serverUrl:"http://<host>:<a2aPort>"`).
 **Properties:** `AgenticAI.OpenAIConn.*` (API_Key SECRET; `LLM_Base_URL` empty for OpenAI — same rule as §2) + `LLM_Model`.
-**Conversation memory:** `input.conversationId` is `""`, which the connector turns into a constant — every WebSocket client shares one history (up to `memoryMaxSize` messages) until the app restarts. Fine for a single-presenter demo; say so in the README.
+**Conversation memory (governed):** map `input.conversationId` = `$flow.headers["Sec-Websocket-Key"]` and declare that header in the INLINE handler headers schema (runtime-gotchas.md §1, validator G7). An empty `conversationId` becomes a constant — every WebSocket client would share one history and one verified session token — which is what the ungoverned legacy apps do; don't clone that.
 **RAG apps:** the OpenAI vector extension's `OPENAI_API_ENDPOINT_URL` must stay `https://api.openai.com/v1` — its code rejects empty (unlike `LLM_Base_URL`).
 **endpoints:** one entry `{ "protocol":"http","port":"<wsPort>","title":"WebsocketServer","type":"public" }`.
 

@@ -144,8 +144,9 @@ beauty-intelligence-agent/
 | Tool | Version | Purpose |
 |---|---|---|
 | Docker Desktop | ≥ 24.x | Run PostgreSQL 16-alpine |
-| TIBCO Flogo CLI | 2.26.2 | Build and run Flogo apps |
+| TIBCO Flogo VS Code extension / CLI | 2.26.7+ | Build and run Flogo apps |
 | PostgreSQL client | ≥ 14 | Seed the database schema |
+| PostgreSQL ODBC driver | — | Flogo connector prerequisite — install before opening the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)) |
 | Claude Desktop | Latest | MCP client — connects to port 8036 |
 | Python | ≥ 3.9 | Dashboard server and test runner |
 

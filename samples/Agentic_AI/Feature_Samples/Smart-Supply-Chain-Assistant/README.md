@@ -214,7 +214,7 @@ The LLM understands these relationships from the system prompt and uses them to 
 
 ## Prerequisites
 
-- **TIBCO Flogo® 2.26.2 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
+- **TIBCO Flogo® 2.26.7 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
 - An **OpenAI API key** (or swap for Anthropic or Gemini in the LLM Provider connection)
 - A WebSocket client for testing: [Postman](https://www.postman.com/) or [websocat](https://github.com/vi/websocat)
 

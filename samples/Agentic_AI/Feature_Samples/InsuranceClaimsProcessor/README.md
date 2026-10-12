@@ -225,7 +225,7 @@ The system includes **5 hardcoded policies** that produce different outcomes, pl
 
 ## Prerequisites
 
-- **TIBCO Flogo 2.26.4 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
+- **TIBCO Flogo 2.26.7 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
 - An **OpenAI API key** (or swap for Anthropic, Gemini, Ollama, or vLLM in the LLM configuration properties)
 - A REST client for testing: [Postman](https://www.postman.com/) or curl
 

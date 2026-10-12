@@ -113,7 +113,8 @@ See `prompts.md` for the full, copy-pasteable prompt list.
 ## Prerequisites
 
 - **PostgreSQL** running; a database created for this demo.
-- **TIBCO Flogo Design CLI** (`flogodesign-cli` / `fda`) and **`flogobuild`** installed (paths/versions in `skills-library/.claude/skills/config.md`).
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
+- **TIBCO Flogo Enterprise** — VS Code extension 2.26.7 or later (import the `.flogo` apps into the designer) — or the **`flogobuild`** CLI if you prefer to build `.exe`s.
 - An **LLM provider** key (OpenAI-compatible). Base URL must be a **real endpoint**, e.g. `https://api.openai.com/v1`.
 - **SMTP** access for the email agent (Gmail: `smtp.gmail.com:465`, SSL, an app-specific password).
 
@@ -125,10 +126,7 @@ See `prompts.md` for the full, copy-pasteable prompt list.
    # between demos:
    psql -h <host> -p <port> -U <user> -d <db> -f reset_data.sql
    ```
-2. **Run the apps** — this folder **ships prebuilt Windows `.exe` binaries**
-   (`LogisticsMCPServer.exe`, `LogisticsA2AServers.exe`, `LogisticsAIOrchestrator.exe`), so on
-   Windows you can run them directly (after setting the app properties below). To rebuild from the
-   `.flogo` sources instead (paths/versions in `skills-library/.claude/skills/config.md`):
+2. **Import the apps** into Flogo Enterprise, or build each from its `.flogo` source with `flogobuild`:
    ```bash
    flogobuild build-exe -f LogisticsMCPServer.flogo   -c <context>
    flogobuild build-exe -f LogisticsA2AServers.flogo  -c <context>
@@ -188,7 +186,7 @@ PII / model value — replace them with your own before an end-to-end run:
    - `LLM_Base_URL` — already set to a **real endpoint** (`https://api.openai.com/v1`). It is
      deliberately not blank: an empty value becomes the literal `New_value` and the LLM call fails
      with `unsupported protocol scheme`. Change it only if you use a different OpenAI-compatible host.
-   - `LLM_Model` — confirm the model name (`gpt-5.6` placeholder) is one your key can access.
+   - `LLM_Model` — confirm the model name (`gpt-5.5` placeholder) is one your key can access.
 
 2. **PostgreSQL database & credentials.**
    - Create a database (the build assumes **`logistics`**) and load `database.sql`; run

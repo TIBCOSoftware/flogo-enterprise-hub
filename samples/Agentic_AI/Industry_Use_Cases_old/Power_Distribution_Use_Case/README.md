@@ -243,15 +243,16 @@ See `prompts.md` for copy-paste-ready prompts grouped by scenario.
 
 ## Prerequisites
 
-- TIBCO Flogo Enterprise v2.26.5+
+- TIBCO Flogo Enterprise v2.26.7+
 - PostgreSQL 14+ (local or remote)
+- PostgreSQL ODBC driver (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md))
 - OpenAI API key (or an on-premises OpenAI-compatible LLM endpoint)
 - Gmail account with an App Password (for the email agent)
 - Chatbot UI (from `samples/Agentic_AI/Chatbot/`)
 
 > Environment values (PostgreSQL host/port/user/password, OpenAI API key & model, SMTP host/port/user/
-> app-password) are kept in `skills-library/.claude/skills/config.md`. Do **not** paste secrets into
-> the apps or this repo — read them from `config.md` and set them as app properties at import time.
+> app-password) are app properties. Do **not** commit secrets to this repo — set the app properties
+> listed below with your own values at import time.
 
 ---
 
@@ -286,7 +287,7 @@ Import all 3 `.flogo` files into TIBCO Flogo Enterprise:
 
 ### Step 3 — Configure app properties
 
-Set values from `config.md` (do not hard-code secrets).
+Set your own values (do not hard-code secrets).
 
 **PowerDistributionMCPServer**
 
@@ -296,15 +297,15 @@ Set values from `config.md` (do not hard-code secrets).
 | `PostgreSQL.PostgresConn.Port` | `5432` |
 | `PostgreSQL.PostgresConn.Database_Name` | `power_distribution` |
 | `PostgreSQL.PostgresConn.User` | `postgres` |
-| `PostgreSQL.PostgresConn.Password` | Your PostgreSQL password (from `config.md`) |
+| `PostgreSQL.PostgresConn.Password` | Your PostgreSQL password |
 | `MCP_SERVER_PORT` | `9682` |
 
 **PowerDistributionA2AServers**
 
 | Property | Value |
 |----------|-------|
-| `AgenticAI.OpenAIConn.API_Key` | Your OpenAI API key (from `config.md`) |
-| `LLM_Model` | Your model, e.g. the value in `config.md` |
+| `AgenticAI.OpenAIConn.API_Key` | Your OpenAI API key |
+| `LLM_Model` | `gpt-5.5` (or any model your key can access) |
 | `PostgreSQL.PostgresConn.Host` | `localhost` |
 | `PostgreSQL.PostgresConn.Database_Name` | `power_distribution` |
 | `PostgreSQL.PostgresConn.User` | `postgres` |
@@ -323,8 +324,8 @@ Set values from `config.md` (do not hard-code secrets).
 
 | Property | Value |
 |----------|-------|
-| `AgenticAI.OpenAIConn.API_Key` | Your OpenAI API key (from `config.md`) |
-| `LLM_Model` | Your model, e.g. the value in `config.md` |
+| `AgenticAI.OpenAIConn.API_Key` | Your OpenAI API key |
+| `LLM_Model` | `gpt-5.5` (or any model your key can access) |
 
 If apps run on different hosts, update the orchestrator's connection URLs
 (`http://<mcp-host>:9682/grid-bss` and the A2A server URLs on 9683–9686).
@@ -385,7 +386,7 @@ psql -U postgres -d power_distribution -f reset_data.sql
 |-------|-----|
 | MCP Server not connecting | Verify port 9682 is open and the MCP app is running before the orchestrator |
 | A2A agents not responding | Check ports 9683–9686 are open and the A2A app is running |
-| PostgreSQL connection failed | Verify database `power_distribution` exists and credentials match `config.md` |
+| PostgreSQL connection failed | Verify database `power_distribution` exists and credentials match the app properties |
 | Agent can't find an account | Match the account number (`ACCT-500100XX`), phone (`+1-XXX-555-01XX`), or address to `customers` |
 | Outages / tickets look stale or wrong dates | Re-run `reset_data.sql` — operational rows use today-relative timestamps |
 | Reconnect refused | Expected guardrail: the account still shows a past-due balance. Henry (ACCT-50010007) is reconnect-eligible only because his recent payment cleared the balance |
@@ -420,8 +421,8 @@ CRM, Outage Management System, Meter Data Management, Work/Field Service Managem
 ## ⚠️ Below things are NOT configured — please configure them manually before running end to end
 
 The committed `.flogo` files carry placeholders / reference-app values for every secret; replace them
-with your own before an end-to-end run. Never commit real secrets — pull values from
-`skills-library/.claude/skills/config.md` and set them as app properties at import time.
+with your own before an end-to-end run. Never commit real secrets — set the app properties listed
+above with your own values at import time.
 
 1. **LLM credentials & endpoint** (A2A Servers / Agents + Orchestrator).
    - `AgenticAI.OpenAIConn.API_Key` — your real provider key (kept as a `SECRET:` app property).

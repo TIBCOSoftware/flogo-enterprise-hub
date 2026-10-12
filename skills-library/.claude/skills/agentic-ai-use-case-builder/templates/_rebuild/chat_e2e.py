@@ -19,7 +19,7 @@
 # No secrets here: credentials are read at RUN time from config.md / env (see fda_common.py).
 # =============================================================================
 """End-to-end test through the chat: WebSocket -> orchestrator -> MCP tools / rebooking_options_agent -> PostgreSQL.
-Start all three apps (MCP, agents, orchestrator), then:   PG_PWD=<pwd> python _rebuild/chat_e2e.py
+Start all three apps (MCP, agents, orchestrator), then:   PG_DB=<database> PG_PWD=<pwd> python _rebuild/chat_e2e.py
 Optional: A2A_LOG=<file the agents app logs to> also proves the rebooking_options_agent really ran.
 The DB is reset before and after. The LLM's wording varies run to run, so the hard assertions are on DB state;
 text checks are loose. Writes the transcript to chat_e2e_transcript.md in the current folder."""
@@ -28,15 +28,39 @@ import websocket   # pip install websocket-client
 
 WS = os.environ.get("WS_URL", "ws://localhost:9850/passengerservices")
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PSQL = os.environ.get("PSQL", r"C:\Program Files\PostgreSQL\18\bin\psql.exe")
-ENV = dict(os.environ, PGPASSWORD=os.environ["PG_PWD"])
+# psql + password lookup (cross-platform): env PSQL > config.md PSQL_PATH > psql on PATH;
+# password: env PG_PWD / PG_PASSWORD > config.md PG_PASSWORD (never printed). Install hints: skills-library/AGENT.md
+# -> "Prerequisites and preflight".
+import re, shutil
+def _config_md_value(key):
+    """First backticked value of the `| KEY | `value` |` row in the nearest skills-library/.claude/skills/config.md."""
+    path, d = os.environ.get("CONFIG_MD", ""), os.path.dirname(os.path.abspath(__file__))
+    while not path:
+        hits = [p for p in (os.path.join(d, "skills-library", ".claude", "skills", "config.md"),
+                            os.path.join(d, ".claude", "skills", "config.md")) if os.path.exists(p)]
+        if hits: path = hits[0]
+        elif os.path.dirname(d) == d: return ""
+        else: d = os.path.dirname(d)
+    if not os.path.exists(path): return ""
+    for line in open(path, encoding="utf-8"):
+        m = re.match(r"\|\s*([A-Za-z][A-Za-z0-9_ ]*?)\s*\|\s*`([^`]*)`", line)
+        if m and re.sub(r"\s+", "_", m.group(1)).upper() == key.upper():
+            v = m.group(2).strip()
+            return "" if re.fullmatch(r"<[^>]*>", v) else v
+    return ""
+PSQL = (os.environ.get("PSQL") or _config_md_value("PSQL_PATH") or shutil.which("psql")
+        or sys.exit("psql not found: install the PostgreSQL client and put psql on PATH, or set env PSQL / config.md "
+                    "PSQL_PATH (see skills-library/AGENT.md -> Prerequisites and preflight)"))
+PG_DB = os.environ.get("PG_DB") or sys.exit("set PG_DB to the use case's database name (worked example: PG_DB=airline_governed)")
+ENV = dict(os.environ, PGPASSWORD=os.environ.get("PG_PWD") or os.environ.get("PG_PASSWORD") or _config_md_value("PG_PASSWORD")
+           or sys.exit("PostgreSQL password not set: export PG_PWD (or PG_PASSWORD), or fill PG_PASSWORD in config.md"))
 A2A_LOG = os.environ.get("A2A_LOG")
 
 def a2a_runs():
     if not A2A_LOG or not os.path.exists(A2A_LOG): return 0
     return open(A2A_LOG, encoding="utf-8", errors="ignore").read().count("rebooking_options_agent_flow")
 BASE = [PSQL, "-h", os.environ.get("PG_HOST", "localhost"), "-U", os.environ.get("PG_USER", "postgres"),
-        "-d", os.environ.get("PG_DB", "airline_governed"), "-q"]
+        "-d", PG_DB, "-q"]
 fails, retries, log = 0, 0, ["# Meridian Passenger Services (governed) - chat e2e transcript\n"]
 TIMEOUT = int(os.environ.get("REPLY_TIMEOUT", "150"))
 

@@ -25,52 +25,68 @@ different number of turns, so they are approximations.
 ## Runtime (the finished apps calling the LLM)
 
 The build model and the runtime model are different things: Claude Code builds the apps; the
-apps call the model set in `LLM_Model` (default `gpt-5-nano`). Modelled cost of one full
+apps call the model set in `LLM_Model`. Governed builds need a capable tool-calling model (`gpt-5.5` or
+equivalent); nano-class models drop tool calls. Modelled cost of one full
 30-turn `prompts.md` walkthrough:
 
 | Runtime model | 1 walkthrough | 100 walkthroughs |
 |---|---|---|
-| **gpt-5-nano** (default) | **~$0.04** ($0.03–0.13) | **~$4–10** |
+| gpt-5-nano (too weak for governed builds) | ~$0.04 ($0.03–0.13) | ~$4–10 |
 | gpt-5-mini | ~$0.20 | ~$20–50 |
 | gpt-5 | ~$1.00 | ~$100–250 |
-| gpt-5.5 | ~$3.60 | ~$360–970 |
+| **gpt-5.5** (recommended) | **~$3.60** | **~$360–970** |
 
 RAG ingestion (embedding the policy PDFs) is ≈ $0. The orchestrator log prints
 `Input Tokens` / `Output Tokens` / `Reasoning Tokens` per turn — use one real run to calibrate.
 
-**Shared conversation memory is the biggest runtime cost driver.** The orchestrator's
-`conversationId` is empty, which the connector turns into a constant, so every WebSocket client
-shares one history (up to `memoryMaxSize` messages) until the app restarts. Input grows from
-~6k to ~160k tokens per turn over a long demo, and two simultaneous users see each other's
-context. Restart the orchestrator between demos.
+**Conversation memory is the biggest runtime cost driver.** Governed builds map `conversationId`
+from `Sec-Websocket-Key`, so each connection has its own history (up to `memoryMaxSize` messages).
+A long single conversation still grows input from ~6k to ~160k tokens per turn, so reconnect between
+demos.
 
 ## How to use fewer tokens
 
 **Building (Claude):**
 1. Pick a cheaper build model with `/model` (Sonnet 5 ≈ 0.4× Opus 4.8 per token).
-2. Put everything in the first prompt (template below) so the build never pauses for questions.
+2. Answer the discovery questions in the first prompt (template below) so the build needs fewer
+   round-trips.
 3. Reply within 5 minutes when the build asks something — the prompt cache expires and is
    re-paid on the next turn.
 4. One fresh session per build; no side questions in that session.
 5. Keep scope small: 3–5 tools, 2–4 agents; skip RAG unless needed; don't change scope mid-build.
 
 **Running (OpenAI):**
-1. Keep `gpt-5-nano` (≈90× cheaper than gpt-5.5).
-2. Restart the orchestrator between demos (≈74% less input on a 30-turn run).
+1. Use a cheaper model for rehearsals only after checking it still delegates to the A2A agent
+   (gpt-5-nano is ≈90× cheaper than gpt-5.5 but drops tool calls).
+2. Reconnect between demos (≈74% less input on a 30-turn run).
 3. Lower `memoryMaxSize` (100 → 10–20) for up to ~77% less input.
+
+## Which dev model for which phase
+
+Switch with `/model`, or run a step as a subagent with a model override.
+
+| Phase | Model | Why |
+|---|---|---|
+| Discover + decision-framework gate + spec + plan (1–3) | **Opus** | judgment/architecture: the classification is the whole game |
+| Write drivers + SQL, write tests (4) | **Sonnet** | structured codegen following the templates |
+| Debug a hard failure (e.g. a SQL planner surprise) | **Opus** | deep reasoning |
+| Run the ladder, read logs, triage | **Sonnet** | mechanical; escalate to Opus only when stuck |
+| README, prompts.md, catalogue rows, secret scrub | **Haiku** (or Sonnet) | pure mechanical text |
+
+A clean, fresh session is the single biggest saving (often 6–10×): every turn re-reads the whole
+accumulated context, so a build chained onto a long prior task costs far more.
 
 ## Lean prompt template
 
 ```text
-Build an agentic AI use case with FDA (agentic-ai-use-case-builder, FDA-CLI method).
-Domain: <industry>. Persona: <who chats>. Identifier: <name + format, e.g. POL-2026-NNNNN>. Locale/currency: <…>.
-MCP tools (read-only):
-  1. <Name> — <what it returns>
-  2. …
-A2A agents (write to Postgres):
-  1. <Name> — <what it changes>
-  2. …
-Email agent: yes|no.
-Use config.md for LLM / PostgreSQL / SMTP. Target folder: samples/Agentic_AI/<UseCase>_Use_Case/.
-No exe build, no local run, no deploy. I'll approve the README in one pass.
+Use the agentic-ai-use-case-builder skill (FDA-CLI method) to build a use case.
+Business problem / audience / region: <…>
+Persona and identity: <who chats; identifier + one-time code>
+Reads: <what they look up>
+Actions and their rules: <what they can change; limits, prices, what blocks it>
+The one fuzzy step (A2A reasoning agent): <…>
+Human-owned requests: <what a person must decide, and which team>
+Demo storyline: <happy path + "wow" moment>
+Email: yes|no.   Runtime model: gpt-5.5.
+Verification: stop at step 2 | full ladder.   I'll approve the plan in one pass.
 ```

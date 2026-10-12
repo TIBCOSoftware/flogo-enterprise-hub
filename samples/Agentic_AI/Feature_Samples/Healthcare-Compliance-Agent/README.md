@@ -256,7 +256,7 @@ Each new `conversationId` is **fully automatic** — no seed file required. When
 
 ## Prerequisites
 
-- **TIBCO Flogo® 2.26.2 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
+- **TIBCO Flogo® 2.26.7 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
 - OpenAI API key
 - A `conversations/` directory writable by the Flogo app process
 

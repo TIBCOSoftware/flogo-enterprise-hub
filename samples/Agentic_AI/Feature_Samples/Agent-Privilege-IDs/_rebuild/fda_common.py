@@ -1,11 +1,11 @@
 """Shared helpers for the fda drivers (agentic-ai-use-case-builder skill).
 
 Config is read at RUN time - nothing secret or machine-specific is stored in these scripts:
-  env vars win (FDA, PSQL, PG_HOST, PG_PORT, PG_USER, PG_PWD, LLM_API_KEY, LLM_MODEL, LLM_BASE_URL),
+  env vars win (FDA, PSQL, PG_HOST, PG_PORT, PG_USER, PG_PWD/PG_PASSWORD, LLM_API_KEY, LLM_MODEL, LLM_BASE_URL),
   otherwise CONFIG_MD (default: the nearest skills-library/.claude/skills/config.md above this script).
 The fda binary is discovered like AGENT.md does it: newest tibco.flogo-* VS Code extension.
 """
-import glob, json, os, re, subprocess, sys, tempfile, uuid
+import glob, json, os, re, shutil, subprocess, sys, tempfile, uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 USE_CASE_DIR = os.path.dirname(HERE)
@@ -23,14 +23,25 @@ def _find_config_md():
 
 CONFIG_MD = os.environ.get("CONFIG_MD") or _find_config_md()
 
+def _norm_key(k):
+    """config.md keys match case-insensitively and a space equals an underscore: `API Key:` == `API_Key:`."""
+    return re.sub(r"\s+", "_", k.strip()).upper()
+
+class _Config(dict):
+    def get(self, key, default=None): return dict.get(self, _norm_key(key), default)
+
 def _config():
-    cfg = {}
+    cfg = _Config()
     if os.path.exists(CONFIG_MD):
         for line in open(CONFIG_MD, encoding="utf-8"):
-            m = re.match(r"\|\s*([A-Za-z][A-Za-z0-9_]*)\s*\|\s*`([^`]*)`", line)          # | KEY | `value` |
-            if m: cfg[m.group(1)] = m.group(2).strip(); continue
-            m = re.match(r"^\s*([A-Za-z_]+)\s*:\s*(.*?)\s*$", line)          # Key: value
-            if m and m.group(1) not in cfg: cfg[m.group(1)] = m.group(2)
+            m = re.match(r"\|\s*([A-Za-z][A-Za-z0-9_ ]*?)\s*\|\s*`([^`]*)`", line)          # | KEY | `value` |
+            if m: k, v = _norm_key(m.group(1)), m.group(2).strip()
+            else:
+                m = re.match(r"^\s*([A-Za-z][A-Za-z0-9_]*(?: [A-Za-z0-9_]+){0,2})\s*:\s*(.*?)\s*$", line)   # Key: value / Key Name: value
+                if not m or _norm_key(m.group(1)) in cfg: continue
+                k, v = _norm_key(m.group(1)), m.group(2)
+            if re.fullmatch(r"<[^>]*>", v): continue                       # `<placeholder>` = unset
+            cfg[k] = v
     return cfg
 
 CFG = _config()
@@ -53,14 +64,14 @@ def _find_fda():
     sys.exit("flogodesign-cli not found: install the TIBCO Flogo VS Code extension or set FDA=<path>")
 
 FDA = _find_fda()
-PSQL = setting("PSQL", "PSQL_PATH", "psql")
+PSQL = os.environ.get("PSQL") or CFG.get("PSQL_PATH") or shutil.which("psql") or "psql"   # env > config.md > PATH
 PG = dict(host=setting("PG_HOST", "PG_HOST", "localhost"), port=setting("PG_PORT", "PG_PORT", "5432"),
           db=os.environ.get("PG_DB", "bankops_agents"), user=setting("PG_USER", "PG_USER", "postgres"))
 LLM = dict(provider=os.environ.get("LLM_PROVIDER", CFG.get("LLM_Provider") or "OpenAI"),
            model=setting("LLM_MODEL", "LLM_Model"),
            base_url=os.environ.get("LLM_BASE_URL", CFG.get("LLM_Base_URL", "")).strip())
 
-def pg_password(): return setting("PG_PWD", "PG_PASSWORD")
+def pg_password(): return os.environ.get("PG_PWD") or os.environ.get("PG_PASSWORD") or setting("PG_PWD", "PG_PASSWORD")
 def llm_key():     return setting("LLM_API_KEY", "API_Key")
 
 class App:

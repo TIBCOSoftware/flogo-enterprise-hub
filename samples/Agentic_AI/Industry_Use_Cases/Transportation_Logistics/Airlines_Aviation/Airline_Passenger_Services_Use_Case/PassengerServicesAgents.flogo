@@ -1,0 +1,502 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "PassengerServicesAgents",
+  "description": "Meridian Passenger Services governed A2A agent - rebooking options (read-only)",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Recommends replacement flights for a disrupted leg from the route, an earliest-departure cutoff and the traveller's preferences. Read-only: it searches available flights and ranks them; it cannot rebook anything.",
+      "settings": {
+        "llmProviderConnection": "conn://4c043606-7840-4593-9a84-a219f2002111",
+        "agentName": "rebooking_options_agent",
+        "agentDescription": "Recommends replacement flights for a disrupted leg from the route, an earliest-departure cutoff and the traveller's preferences. Read-only: it searches available flights and ranks them; it cannot rebook anything.",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"rebooking_options_agent_PORT\"]",
+        "agentUrl": "=$property[\"rebooking_options_agent_URL\"]",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "0",
+        "enableGuardrails": "true",
+        "rateLimit": "30",
+        "tokenLimit": "6000",
+        "redactSensitiveData": "true",
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": "20",
+        "systemPrompt": "You recommend replacement flights for a traveller whose connection is at risk or missed. You are given the\nroute (origin and destination airport codes), the earliest_departure a replacement must leave after, the preferred\ncabin, and the traveller's free-text preferences. You are never given the traveller's identity.\n\n1. Call the search_alternatives tool exactly once with origin, destination, earliest_departure and cabin.\n2. From the returned flights ONLY, rank up to 3 that best match the traveller's stated preferences (e.g. arrive\n   before a certain time, prefer a cabin, avoid a late-night/red-eye arrival, shortest trip). If a preference rules a\n   flight out, say so. Never include a flight the tool did not return.\n3. For each pick give: flight_number, departure time, arrival time, seats_available, cabin and one short sentence on\n   why it fits. If the tool returns no flights, say clearly there is no same-day alternative on this route.\n\nNever invent flights, times or seats. Do not rebook - that is confirmed elsewhere. Reply as a short numbered list."
+      },
+      "id": "rebooking_options_agent",
+      "handlers": [
+        {
+          "description": "Search available replacement flights for a route after a given earliest departure time. Pass the origin and destination airport codes, the earliest_rebook_departure (ISO timestamp the flight must leave after) and the preferred cabin. Returns up to 8 flights with times, seats and aircraft. Never pass any passenger-identifying information.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "search_alternatives",
+            "agentToolDescription": "Search available replacement flights for a route after a given earliest departure time. Pass the origin and destination airport codes, the earliest_rebook_departure (ISO timestamp the flight must leave after) and the preferred cabin. Returns up to 8 flights with times, seats and aircraft. Never pass any passenger-identifying information.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:rebooking_options_agent_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"origin\": {\n      \"type\": \"string\",\n      \"description\": \"Origin airport IATA code, e.g. ATL\"\n    },\n    \"destination\": {\n      \"type\": \"string\",\n      \"description\": \"Destination airport IATA code, e.g. MIA\"\n    },\n    \"earliest_departure\": {\n      \"type\": \"string\",\n      \"description\": \"ISO timestamp the replacement flight must depart after\"\n    },\n    \"cabin\": {\n      \"type\": \"string\",\n      \"description\": \"Preferred cabin: Economy or Business (or empty)\"\n    }\n  },\n  \"required\": [\n    \"origin\",\n    \"destination\",\n    \"earliest_departure\"\n  ]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"origin\": {\n      \"type\": \"string\",\n      \"description\": \"Origin airport IATA code, e.g. ATL\"\n    },\n    \"destination\": {\n      \"type\": \"string\",\n      \"description\": \"Destination airport IATA code, e.g. MIA\"\n    },\n    \"earliest_departure\": {\n      \"type\": \"string\",\n      \"description\": \"ISO timestamp the replacement flight must depart after\"\n    },\n    \"cabin\": {\n      \"type\": \"string\",\n      \"description\": \"Preferred cabin: Economy or Business (or empty)\"\n    }\n  },\n  \"required\": [\n    \"origin\",\n    \"destination\",\n    \"earliest_departure\"\n  ]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "rebooking_options_agent_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:rebooking_options_agent_flow",
+      "data": {
+        "name": "rebooking_options_agent_flow",
+        "description": "Search available replacement flights for a route after a given earliest departure time. Pass the origin and destination airport codes, the earliest_rebook_departure (ISO timestamp the flight must leave after) and the preferred cabin. Returns up to 8 flights with times, seats and aircraft. Never pass any passenger-identifying information.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "SearchAlternatives",
+            "type": "label",
+            "label": "StartActivity to SearchAlternatives"
+          },
+          {
+            "id": 2,
+            "from": "SearchAlternatives",
+            "to": "Return",
+            "type": "label",
+            "label": "SearchAlternatives to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "SearchAlternatives",
+            "name": "SearchAlternatives",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://90bb68ec-68cb-4d74-9fa0-6ec0dc02cf0a",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM search_alternatives(CAST(?org AS text), CAST(?dst AS text), CAST(?aft AS text), CAST(?cab AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "org",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "dst",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "aft",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "cab",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "flight_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "origin",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "destination",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "scheduled_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "estimated_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "scheduled_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "estimated_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "seats_available",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "cabin_available",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "aircraft",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "48e02f49-7e5f-4005-b475-fdf7182f5287SELECT * FROM search_alternatives(CAST(?org AS text), CAST(?dst AS text), CAST(?aft AS text), CAST(?cab AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "org": "=$flow.toolParams.origin",
+                      "dst": "=$flow.toolParams.destination",
+                      "aft": "=$flow.toolParams.earliest_departure",
+                      "cab": "=$flow.toolParams.cabin"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"org\":{\"type\":\"string\"},\"dst\":{\"type\":\"string\"},\"aft\":{\"type\":\"string\"},\"cab\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"org\":{\"type\":\"string\"},\"dst\":{\"type\":\"string\"},\"aft\":{\"type\":\"string\"},\"cab\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flight_number\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"scheduled_departure\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_departure\":{\"type\":\"string\",\"format\":\"time\"},\"scheduled_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"status\":{\"type\":\"string\"},\"seats_available\":{\"type\":\"integer\"},\"cabin_available\":{\"type\":\"string\"},\"aircraft\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"flight_number\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"scheduled_departure\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_departure\":{\"type\":\"string\",\"format\":\"time\"},\"scheduled_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"status\":{\"type\":\"string\"},\"seats_available\":{\"type\":\"integer\"},\"cabin_available\":{\"type\":\"string\"},\"aircraft\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[SearchAlternatives].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlNlYXJjaEFsdGVybmF0aXZlcyI6eyJ4IjoyNTAsInkiOjE1MH0sIlJldHVybiI6eyJ4Ijo0NTAsInkiOjI1MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"origin\":{\"type\":\"string\",\"description\":\"Origin airport IATA code, e.g. ATL\"},\"destination\":{\"type\":\"string\",\"description\":\"Destination airport IATA code, e.g. MIA\"},\"earliest_departure\":{\"type\":\"string\",\"description\":\"ISO timestamp the replacement flight must depart after\"},\"cabin\":{\"type\":\"string\",\"description\":\"Preferred cabin: Economy or Business (or empty)\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"rebooking_options_agent\", \"properties\": {\"toolParams\": {\"type\": \"object\", \"properties\": {\"origin\": {\"type\": \"string\", \"description\": \"Origin airport IATA code, e.g. ATL\"}, \"destination\": {\"type\": \"string\", \"description\": \"Destination airport IATA code, e.g. MIA\"}, \"earliest_departure\": {\"type\": \"string\", \"description\": \"ISO timestamp the replacement flight must depart after\"}, \"cabin\": {\"type\": \"string\", \"description\": \"Preferred cabin: Economy or Business (or empty)\"}}, \"required\": [\"origin\", \"destination\", \"earliest_departure\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}}}}, \"required\": []}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.API_Key",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "airline_governed"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    },
+    {
+      "name": "LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "rebooking_options_agent_PORT",
+      "type": "string",
+      "value": "9853"
+    },
+    {
+      "name": "rebooking_options_agent_URL",
+      "type": "string",
+      "value": "http://localhost:9853"
+    }
+  ],
+  "schemas": {
+    "rebooking_options_agent_ToolParams": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"origin\": {\n      \"type\": \"string\",\n      \"description\": \"Origin airport IATA code, e.g. ATL\"\n    },\n    \"destination\": {\n      \"type\": \"string\",\n      \"description\": \"Destination airport IATA code, e.g. MIA\"\n    },\n    \"earliest_departure\": {\n      \"type\": \"string\",\n      \"description\": \"ISO timestamp the replacement flight must depart after\"\n    },\n    \"cabin\": {\n      \"type\": \"string\",\n      \"description\": \"Preferred cabin: Economy or Business (or empty)\"\n    }\n  },\n  \"required\": [\n    \"origin\",\n    \"destination\",\n    \"earliest_departure\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"origin\": {\n      \"type\": \"string\",\n      \"description\": \"Origin airport IATA code, e.g. ATL\"\n    },\n    \"destination\": {\n      \"type\": \"string\",\n      \"description\": \"Destination airport IATA code, e.g. MIA\"\n    },\n    \"earliest_departure\": {\n      \"type\": \"string\",\n      \"description\": \"ISO timestamp the replacement flight must depart after\"\n    },\n    \"cabin\": {\n      \"type\": \"string\",\n      \"description\": \"Preferred cabin: Economy or Business (or empty)\"\n    }\n  },\n  \"required\": [\n    \"origin\",\n    \"destination\",\n    \"earliest_departure\"\n  ]\n}"
+    },
+    "rebooking_options_agent_Resp": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+    }
+  },
+  "connections": {
+    "4c043606-7840-4593-9a84-a219f2002111": {
+      "id": "4c043606-7840-4593-9a84-a219f2002111",
+      "name": "OpenAIConn",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "OpenAIConn",
+        "description": "Your llmprovider Connector",
+        "llmProvider": "=$property[\"AgenticAI.OpenAIConn.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAIConn.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAIConn.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    },
+    "90bb68ec-68cb-4d74-9fa0-6ec0dc02cf0a": {
+      "id": "90bb68ec-68cb-4d74-9fa0-6ec0dc02cf0a",
+      "name": "PostgresConn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "Your PostgreSQL Connector",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.PostgresConn.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.PostgresConn.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40IiwidGFnIjoiMC45LjQtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL3dpLXBvc3RncmVzL3NyYy9hcHAvUG9zdGdyZVNRTCIsImlkIjoiUG9zdGdyZVNRTCIsInZlcnNpb24iOiIyLjcuMiIsInRhZyI6IjIuNy4yLWIwMSIsIm5hbWUiOiJQb3N0Z3JlU1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL1Bvc3RncmVTUUwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9853",
+        "title": "rebooking_options_agent",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

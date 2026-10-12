@@ -2,15 +2,15 @@
 
 Step-by-step instructions to deploy and run the Life & Pensions Member Assistant demo end-to-end.
 
-> All environment-specific values (PostgreSQL host/credentials, OpenAI API key, SMTP account) are kept in `skills-library/.claude/skills/config.md`. Substitute your own values where noted below.
+> All environment-specific values (PostgreSQL host/credentials, OpenAI API key, SMTP account) are app properties. Substitute your own values where noted below.
 
 ---
 
 ## Prerequisites
 
-- TIBCO Flogo Enterprise v2.26.5+
+- TIBCO Flogo Enterprise v2.26.7+
 - PostgreSQL 14+ (local or remote)
-- OpenAI API key (or an on-premises OpenAI-compatible LLM endpoint) — model `gpt-5.6`
+- OpenAI API key (or an on-premises OpenAI-compatible LLM endpoint) — model `gpt-5.5`
 - Gmail account with an App Password (for the email agent; SMTP over SSL, port 465)
 - Chatbot UI (from `samples/Agentic_AI/Chatbot/`)
 
@@ -54,7 +54,7 @@ Import all 3 `.flogo` files into TIBCO Flogo Enterprise:
 
 ## Step 3: Configure App Properties
 
-Values in the tables below reference `config.md` generically — substitute your own.
+Values in the tables below are placeholders — substitute your own.
 
 ### LifePensionsMCPServer
 
@@ -72,7 +72,7 @@ Values in the tables below reference `config.md` generically — substitute your
 | Property | Value |
 |----------|-------|
 | `AgenticAI.OpenAIConn.API_Key` | Your OpenAI API key |
-| `LLM_Model` | `gpt-5.6` (or your preferred / on-prem model) |
+| `LLM_Model` | `gpt-5.5` (or your preferred / on-prem model) |
 | `PostgreSQL.PostgresConn.Host` | `localhost` |
 | `PostgreSQL.PostgresConn.Port` | `5432` |
 | `PostgreSQL.PostgresConn.Database_Name` | `life_pensions` |
@@ -95,7 +95,7 @@ Values in the tables below reference `config.md` generically — substitute your
 | Property | Value |
 |----------|-------|
 | `AgenticAI.OpenAIConn.API_Key` | Your OpenAI API key |
-| `LLM_Model` | `gpt-5.6` (or your preferred / on-prem model) |
+| `LLM_Model` | `gpt-5.5` (or your preferred / on-prem model) |
 | `Orchestrator_WS_PORT` | `9600` |
 | WebSocket Path | `/lifepensions` |
 

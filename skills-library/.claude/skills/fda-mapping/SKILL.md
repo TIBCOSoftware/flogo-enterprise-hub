@@ -4,6 +4,8 @@ description: How to construct, inspect, and validate Flogo mappings with the `fd
 user-invocable: true
 ---
 
+> **Preflight:** run `fda version` first (see AGENT.md → Prerequisites and preflight). If it fails, install/update the TIBCO Flogo VS Code extension (2.26.6+).
+
 # Making Flogo mappings with `fda`
 
 The `mapping` task category in `fda` mirrors the Flogo VSCode mapping UI. Every field you can map in the UI's "Activity inputs" panel is reachable from the CLI; every source you can drag from the "Available data" panel has a dedicated discovery task.

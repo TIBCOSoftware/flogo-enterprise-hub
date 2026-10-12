@@ -64,9 +64,10 @@ That ID never comes from the model.
 
 ## Prerequisites
 
-- **TIBCO Flogo VS Code extension** 2.26.6 or later (MCP Server `JWT Token` auth, per-tool `scope` and `tokenInfo.sub`
+- **TIBCO Flogo VS Code extension** 2.26.7 or later (MCP Server `JWT Token` auth, per-tool `scope` and `tokenInfo.sub`
   need the Flogo MCP connector from 2.26.5 or later).
 - **PostgreSQL** 14 or later.
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
 - An **OpenAI API key**. The agents ship set to model `gpt-5.5`; use a capable tool-calling model.
 - **Python 3.9+**, only to mint the agent tokens (standard library only).
 - **Node.js** 16 or later, for the shared [Chatbot](../../Chatbot/) web client.
@@ -186,3 +187,7 @@ controls move to the platform:
 > identity, privacy and compliance standards.
 
 > Harbor Bank and all customers, accounts and cards in this sample are fictional.
+
+## Rebuild from code
+
+To regenerate these apps from code or run the automated checks, see [`_rebuild/README.md`](_rebuild/README.md).

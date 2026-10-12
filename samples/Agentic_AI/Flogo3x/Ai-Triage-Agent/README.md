@@ -85,9 +85,9 @@ coming soon...
 |---|---|---|
 | **Triage Agent** | `flogo-apps/ticket-triage-agent` | Core AI reasoning flow (Flogo 3 project) |
 | **MCP Wrapper** | `flogo-apps/sn-mcp-wrapper` | Exposes ServiceNow as MCP tools (Flogo 3 project) |
-| **Mock ServiceNow** | [`../../Ai-Triage-Agent/mock-servicenow/`](../../Feature_Samples/Ai-Triage-Agent/mock-servicenow/) | Local REST API (incident store) |
-| **Error Simulator** | [`../../Ai-Triage-Agent/bw6-error-simulator/`](../../Feature_Samples/Ai-Triage-Agent/bw6-error-simulator/) | Generates realistic integration error events |
-| **Live Dashboard** | [`../../Ai-Triage-Agent/dashboard/index.html`](../../Feature_Samples/Ai-Triage-Agent/dashboard/) | Real-time view of decisions |
+| **Mock ServiceNow** | [`../../Feature_Samples/Ai-Triage-Agent/mock-servicenow/`](../../Feature_Samples/Ai-Triage-Agent/mock-servicenow/) | Local REST API (incident store) |
+| **Error Simulator** | [`../../Feature_Samples/Ai-Triage-Agent/bw6-error-simulator/`](../../Feature_Samples/Ai-Triage-Agent/bw6-error-simulator/) | Generates realistic integration error events |
+| **Live Dashboard** | [`../../Feature_Samples/Ai-Triage-Agent/dashboard/index.html`](../../Feature_Samples/Ai-Triage-Agent/dashboard/) | Real-time view of decisions |
 
 > The two Flogo 3 apps live under this sample's `flogo-apps/` folder — each is a project folder containing an `app.fgmd`. The Node.js helper services (**mock-servicenow**, **bw6-error-simulator**, **dashboard**) were not migrated and remain in the original sample; the relative links above point to them.
 
@@ -119,13 +119,13 @@ coming soon...
 
    **a. Install helper dependencies (once)**
    ```bash
-   cd ../../Ai-Triage-Agent/mock-servicenow && npm install && cd -
-   cd ../../Ai-Triage-Agent/bw6-error-simulator && npm install && cd -
+   cd ../../Feature_Samples/Ai-Triage-Agent/mock-servicenow && npm install && cd -
+   cd ../../Feature_Samples/Ai-Triage-Agent/bw6-error-simulator && npm install && cd -
    ```
 
    **b. Start the Mock ServiceNow helper (Terminal 1)**
    ```bash
-   cd ../../Ai-Triage-Agent/mock-servicenow
+   cd ../../Feature_Samples/Ai-Triage-Agent/mock-servicenow
    npm start
    # Listening on http://localhost:8081
    ```
@@ -142,7 +142,7 @@ coming soon...
 
    **e. Open the dashboard**
    ```bash
-   open ../../Ai-Triage-Agent/dashboard/index.html
+   open ../../Feature_Samples/Ai-Triage-Agent/dashboard/index.html
    ```
    The dashboard polls `http://localhost:8081` every 2 seconds and shows live stats and every incident decision.
 
@@ -174,7 +174,7 @@ Set these in each app's `.fgprops` file (App Properties) before running.
 ---
 
 ## 📊 Live Dashboard & Simulator
-[`../../Ai-Triage-Agent/dashboard/index.html`](../../Feature_Samples/Ai-Triage-Agent/dashboard/) is a single self-contained file — open it in any browser. It does everything: runs the simulator, streams results live, and displays the full incident table. No extra tooling required once the services are running.
+[`../../Feature_Samples/Ai-Triage-Agent/dashboard/index.html`](../../Feature_Samples/Ai-Triage-Agent/dashboard/) is a single self-contained file — open it in any browser. It does everything: runs the simulator, streams results live, and displays the full incident table. No extra tooling required once the services are running.
 
 ![AI Triage Agent Live Dashboard & Error Simulator](images/image-3.png)
 
@@ -275,7 +275,7 @@ No extra browser tabs. No portal searches. The engineer can start acting in seco
 
 ### From the dashboard (recommended for demos)
 
-1. Open [`../../Ai-Triage-Agent/dashboard/index.html`](../../Feature_Samples/Ai-Triage-Agent/dashboard/)
+1. Open [`../../Feature_Samples/Ai-Triage-Agent/dashboard/index.html`](../../Feature_Samples/Ai-Triage-Agent/dashboard/)
 2. Use the **Error Simulator** panel — no terminal needed
 3. Click **Reset demo** in the page header between runs
 
@@ -295,7 +295,7 @@ Watch the dashboard: **50 tickets in ~30 seconds**. This is the customer's daily
 
 Or from the terminal:
 ```bash
-node ../../Ai-Triage-Agent/bw6-error-simulator/simulator.js --mode=storm --count=50 --delayMs=50 --bypass
+node ../../Feature_Samples/Ai-Triage-Agent/bw6-error-simulator/simulator.js --mode=storm --count=50 --delayMs=50 --bypass
 ```
 
 Reset:
@@ -363,7 +363,7 @@ What to watch:
 ## 🗒️ Notes
 
 - **VectorDB extension requirement.** `flogo-apps/sn-mcp-wrapper` depends on a custom **VectorDB** extension that is not shipped with the standard Flogo contribution set. Because of this, the wrapper app will **not** build as a native executable unless you pass the VectorDB extension path to the build command, e.g. `flogo-vscode-cli app build ... -e <path-to-vectordb-extension>`. This is an extra build requirement, not a defect. `flogo-apps/ticket-triage-agent` builds with the standard toolchain.
-- **Helper services.** The **mock-servicenow**, **bw6-error-simulator**, and **dashboard** helpers are Node.js/HTML assets that were not migrated to Flogo 3. They remain in the original sample and are referenced above via `../../Ai-Triage-Agent/...` links.
+- **Helper services.** The **mock-servicenow**, **bw6-error-simulator**, and **dashboard** helpers are Node.js/HTML assets that were not migrated to Flogo 3. They remain in the original sample and are referenced above via `../../Feature_Samples/Ai-Triage-Agent/...` links.
 
 ---
 

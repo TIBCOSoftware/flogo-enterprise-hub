@@ -25,7 +25,7 @@ ones into the generated README's *"below things are NOT configured…"* section 
 | 8 | **Activity Loop** — activity loop (iterator) configuration is not supported. | An agent that must iterate (insert N rows, send N emails from an array) can't get its loop set by FDA. | Configure the activity **Loop** manually in the designer. |
 | 9 | **Error Handler Configuration** — adding/configuring activities within an error handler is not supported. | FDA can't build flow error handlers. | Add error-handler activities manually if the flow needs them. |
 | 10 | **Unit Test Assertions** — adding assertions to unit tests is not supported. | Not used by this skill. | — (n/a) |
-| 11 | **Not supported on Mac ARM (Apple Silicon).** | FDA won't run on M-series Macs. | Build on Windows / Linux / Intel-Mac; note this in prerequisites. |
+| 11 | **Apple Silicon (M-series) Macs: expected to work; not yet verified by the maintainers.** | No verified run on M-series Macs yet. | If you hit a problem there, report it and fall back to Windows / Linux / Intel-Mac. |
 
 ## What this means for the skill
 

@@ -2,20 +2,116 @@
 
 This directory brings together two complementary collections for the **TIBCO Flogo® Agentic AI Connector** — the enterprise-grade way to build, orchestrate, and govern AI agents inside Flogo integration flows:
 
-- **[Part 1 — Connector Feature Samples](#part-1--connector-feature-samples)** — focused apps that each teach a building block: **LLM Client Activity**, **AI Agent Activity**, **AI Agent Trigger**, custom guardrails, custom conversation stores, the "Flogo as an MCP tool server" pattern, and the **A2A** (Agent-to-Agent) protocol. Start here to learn *how* the connector works.
-- **[Part 2 — Industry Use-Case Demos](#part-2--industry-use-case-demos)** — complete, PostgreSQL-backed, vertical-specific demos (banking, insurance, healthcare, telecom, utilities, aerospace, manufacturing, retail, real estate, and more). Each applies the same repeatable **three-app pattern** — an **MCP Server** (read-only tools), an **A2A Agents** app (guarded write workflows), and a **WebSocket AI Orchestrator** (the conversational brain). Start here to see *what* you can build.
+- **[Part 1 — Connector Feature Samples](#part-1--connector-feature-samples)** — focused apps that each teach a building block: **LLM Client Activity**, **AI Agent Activity**, **AI Agent Trigger**, custom guardrails, custom conversation stores, the "Flogo as an MCP tool server" pattern, the **A2A** (Agent-to-Agent) protocol, and agent privilege IDs. Start here to learn *how* the connector works.
+- **[Part 2 — Industry Use-Case Demos](#part-2--industry-use-case-demos)** — complete, PostgreSQL-backed, industry-specific chat assistants. Each applies the same repeatable **three-app pattern**, governed by design: an **MCP Server** (verified identity, scoped reads and guarded two-step writes, with the rules in SQL), an **A2A Agents** app (read-only reasoning agents that never see the customer's identity), and a **WebSocket AI Orchestrator** (the conversation). Start here to see *what* you can build.
 
-New here? Skim **[What Is the Agentic AI Connector?](#what-is-the-agentic-ai-connector)**, then follow the feature-sample **[Suggested Learning Order](#suggested-learning-order)** or jump straight to an **[industry use case](#use-case-catalog)**. Both collections share the **[Prerequisites](#prerequisites)**, **[Quick Start](#quick-start)**, and the browser **[Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client)** test client.
+> ### Where to start
+>
+> | You want to… | Go to |
+> |---|---|
+> | **Learn a connector feature**, one building block at a time | [`Feature_Samples/`](./Feature_Samples/) — [Part 1](#part-1--connector-feature-samples) |
+> | **Run an end-to-end demo** | [`Industry_Use_Cases/`](./Industry_Use_Cases/) — the governed, canonical industry use cases ([Part 2](#industry-use-cases-governed--start-here)) |
+> | Look at an earlier demo for reference | [`Industry_Use_Cases_old/`](./Industry_Use_Cases_old/) — **legacy, reference only**: being migrated to the governed style; don't base new work on it |
+> | See BusinessWorks 6 and Flogo working together | [`BW6_Flogo_Samples/`](./BW6_Flogo_Samples/) — BW6 + Flogo "Better Together" samples ([details](#bw6--flogo-samples)) |
+> | Chat with any WebSocket sample or use case | [`Chatbot/`](./Chatbot/) — the shared browser chat client |
+
+Both collections share the **[Prerequisites](#prerequisites)**, the **[Quick Start](#quick-start)**, and the browser **[Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client)** chat client.
 
 ### Folder layout
 
 | Folder | What's inside |
 |---|---|
 | [`Feature_Samples/`](./Feature_Samples/) | Part 1 — connector feature samples, one building block at a time (Flogo 2.x). |
-| [`Industry_Use_Cases/`](./Industry_Use_Cases/) | Part 2 — governed, vertical-specific demos: business rules, identity, prices and state changes enforced in PostgreSQL, built with the `agentic-ai-use-case-builder` skill. The canonical industry use cases going forward. |
-| [`Industry_Use_Cases_old/`](./Industry_Use_Cases_old/) | Earlier vertical demos on the three-app pattern, being migrated to the governed style above. |
-| [`Chatbot/`](./Chatbot/) | Shared browser WebSocket test client for every use case that exposes a WebSocket endpoint. |
+| [`Industry_Use_Cases/`](./Industry_Use_Cases/) | Part 2 — governed, industry-specific demos: business rules, identity, prices and state changes enforced in PostgreSQL, built with the `agentic-ai-use-case-builder` skill. The canonical industry use cases, organized as `<Industry>/<Sub_Category>/<UseCase>_Use_Case/` (e.g. `Financial_Services/Banking/`). |
+| [`Industry_Use_Cases_old/`](./Industry_Use_Cases_old/) | Legacy demos on the earlier three-app pattern, kept for reference while they are migrated to the governed style above. |
+| [`BW6_Flogo_Samples/`](./BW6_Flogo_Samples/) | TIBCO BusinessWorks 6 + Flogo "Better Together" samples — BW6 apps provide the domain APIs/MCP tools, Flogo does the AI orchestration. Needs a BW6 runtime / Business Studio. |
+| [`Chatbot/`](./Chatbot/) | Shared browser WebSocket chat client for every sample and use case that exposes a WebSocket endpoint. |
 | [`Flogo3x/`](./Flogo3x/) | Flogo 3.x folder-based project versions of nine feature samples. |
+
+---
+
+## Prerequisites
+
+**Every sample and use case needs:**
+
+- **TIBCO Flogo® 2.26.7 or later** — the **TIBCO Flogo® Extension for Visual Studio Code**, downloadable from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (also on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tibco.flogo)). That is all you need to open, design and run the apps from VS Code. See the [Agentic AI documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm).
+- An **API key** for your chosen LLM provider (OpenAI, Gemini, or Anthropic). Where a base URL is used, point it at a **real endpoint** (e.g. `https://api.openai.com/v1`). The Part 2 industry use cases ship set to model `gpt-5.5`; substitute any capable tool-calling model your account can access.
+- A **WebSocket client** for testing WebSocket samples/use cases: the included [Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client) (Node.js 16+) or [websocat](https://github.com/vi/websocat).
+- **Connector prerequisites (design time):** install the driver / client library for each connector a sample uses **before** opening its apps in the designer or fetching metadata — VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…**, then reload VS Code. Most samples here use **PostgreSQL** (PostgreSQL ODBC driver); a few use Oracle, MySQL, TIBCO EMS, FTL, ActiveSpaces or SAP Solutions. Per-connector install steps: [connector-prereqs.md](../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md).
+
+**The Part 2 industry use cases additionally need:**
+
+- **PostgreSQL 14+** (local or remote) — each use case creates its own database from its `database.sql`, and `reset_data.sql` restores the demo data between runs.
+
+**Some samples/use cases have extra prerequisites** — check the catalogs and each folder's README:
+
+- **SMTP** (the use cases that email a confirmation): an SMTP account — e.g. Gmail with an App Password over SSL (port 465).
+- **PostgreSQL / Docker / Claude Desktop** for several Part 1 samples (Mortgage AI, BeautyCo Retail, Morning Briefing, Agent Privilege IDs) — see each sample's README.
+- **Building executables outside VS Code** (`flogobuild`, e.g. the use cases' `_rebuild` test ladders) needs the **Flogo App Build CLI** from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) and the [Go runtime](https://go.dev/dl/); **deploying** to TIBCO Platform needs `tibcop`. See [skills-library/AGENT.md → Prerequisites and preflight](../../skills-library/AGENT.md#prerequisites-and-preflight).
+- **Legacy only:** 🔍 RAG ([Auto Insurance](./Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/)) needs a document set + vector store.
+- **BW6 + Flogo samples:** 🏛️ [Retail — BW & Flogo](./BW6_Flogo_Samples/Retail_AI_BW_Flogo/) needs **TIBCO BusinessWorks 6.12** and Node.js for the MCP proxy.
+
+> **Credentials are not shipped.** Every app property that held a secret is reset to a placeholder (`SECRET:YOURKEY` for connection API keys). Set your own LLM key, PostgreSQL password, and SMTP credentials before running — see each folder's README.
+
+---
+
+## Quick Start
+
+### Part 1 — a connector feature sample
+
+1. Clone or download this repository.
+2. Open the `flogo-enterprise-hub` folder in VS Code with the Flogo extension installed.
+3. Navigate to `samples/Agentic_AI/Feature_Samples/<sample-name>/` and open the `.flogo` file.
+4. Configure your LLM Provider connection with your API key.
+5. Run the app from VS Code and connect via the [Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client), websocat, or a REST client — see the sample's README for the exact endpoint and port.
+
+### Part 2 — a governed industry use case
+
+The steps are the same for every governed use case; only the database name, ports, WebSocket path and demo logins change (see the [catalog](#use-case-catalog) and the use case's README). This example uses **Telecom — Mobile Billing & Spend Control**:
+
+**1. Create and load the database:**
+
+```bash
+cd samples/Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case
+createdb -U postgres mobile_billing
+psql -U postgres -d mobile_billing -f database.sql     # creates the schema + rule functions, then loads seed_data.sql
+```
+
+**2. Open the three apps** in VS Code: `MobileBillingMCPServer.flogo`, `MobileBillingAgents.flogo`, and `MobileBillingAIOrchestrator.flogo`.
+
+**3. Set the app properties** — PostgreSQL host/port/database/user/password, your **LLM API key** and model, and the SMTP settings for the confirmation email. The exact property names are in the use case's README.
+
+**4. Start the apps in order** (the orchestrator needs the others running first):
+
+```
+1) MobileBillingMCPServer        → MCP  :9902
+2) MobileBillingAgents           → A2A  :9903–9905
+3) MobileBillingAIOrchestrator   → WebSocket :9900 /mobilebilling
+```
+
+**5. Connect the [Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client)** to `ws://localhost:9900/mobilebilling`.
+
+**6. Run the demo.** Sign in as Maria Lopez: *"Hi, my number is (212) 555-0101 and my code is 4821."* Then ask *"Why is my bill so high this month?"* The use case's README has the full walkthrough, and its `prompts.md` has more. After a run that made changes, restore the demo data:
+
+```bash
+psql -U postgres -d mobile_billing -f reset_data.sql
+```
+
+> Legacy use cases under `Industry_Use_Cases_old/` follow their own READMEs; 🏛️ **BW6 + Flogo samples** under `BW6_Flogo_Samples/` start from TIBCO Business Studio.
+
+### Flogo Chatbot — Browser-Based WebSocket Test Client
+
+A ready-to-use, domain-agnostic chat UI in [`Chatbot/`](./Chatbot/) drives any sample or use case that exposes a WebSocket endpoint. It supports multiple concurrent sessions, an editable WebSocket URL, and a live connection indicator.
+
+```bash
+cd samples/Agentic_AI/Chatbot
+npm install               # first time only
+npm start                 # http://localhost:3000
+```
+
+Open http://localhost:3000, enter the WebSocket URL (`ws://localhost:<port><path>`, for example `ws://localhost:9900/mobilebilling`), **click the ↻ (refresh) icon next to the URL box** to apply it, then click **Connect**. Typing the URL alone does nothing.
+
+See each folder's individual `README.md` for detailed configuration and usage instructions.
 
 ---
 
@@ -147,6 +243,7 @@ New to the Agentic AI Connector? This path moves from the simplest building bloc
 12. **[Mortgage AI Processor](./Feature_Samples/mortgagedemo/)** — apply the MCP-server pattern to autonomous, auditable decisioning.
 13. **[Apartment Finder Agent](./Feature_Samples/Apartment-Finder-Agent/)** — put both halves together: an AI Agent Activity chats over your own MCP tool server, and one of those tools sends real email.
 14. **[Drug Safety Intake Advisor](./Feature_Samples/LLMClient-Dynamic-Auth/)** — revisit the LLM Client with **bearer-token authentication** on both hops, and matching auth on the MCP and A2A servers it calls.
+15. **[Agent Privilege IDs](./Feature_Samples/Agent-Privilege-IDs/)** — govern the agents themselves: give each AI Agent Activity its **own JWT privilege ID**, enforced by per-tool scopes on a Flogo MCP Server, a PostgreSQL agent registry (kill switch) and human-only approval.
 
 Ready to see the full pattern applied end-to-end? Continue to **[Part 2 — Industry Use-Case Demos](#part-2--industry-use-case-demos)**.
 
@@ -194,232 +291,133 @@ A renter describes what they want in plain English and an **AI Agent Activity** 
 ### 14. [Drug Safety Intake Advisor](./Feature_Samples/LLMClient-Dynamic-Auth/) — *Pharmaceutical & Life Sciences*
 The authenticated counterpart to the IT Help Desk Advisor: the orchestrator configures nothing through a connection resource, and **both backends require a bearer token**. A drug safety associate reports an adverse event over WebSocket and one **LLM Client Activity** triages it against ICH E2A — reading product labeling and prior case history from a token-protected **MCP Server** (`authType: Token` on the client, `API Key` on the server, per-tool `scope` values ready for a JWT upgrade), then opening the ICSR and filing the E2B(R3) expedited report through a token-protected **A2A Server** (`Static Token` on both sides). Provider, model, API key, base URL, both URLs and both tokens all resolve from App Properties, so rotating a credential or moving to an on-premises model never touches a flow. The A2A server app deliberately goes the other way and *does* use an `#llmprovider` connection, so the two styles sit side by side. A Memory Conversation Store keyed on a required `caseId` carries one case across turns.
 
+### 15. [Agent Privilege IDs](./Feature_Samples/Agent-Privilege-IDs/) — *Agent Governance (cross-industry)*
+Answers the question banks ask about AI agents: *"How do you manage privilege IDs for agents?"* Back-office agents for a fictional bank each carry **their own identity** — a JWT whose `sub` is the agent's privilege ID and whose `scp` lists its granted scopes — in the MCP connection of their **AI Agent Activity**. The **MCP Server trigger** validates the token with `JWT Token` auth and a per-tool `scope`, so a tool the agent isn't entitled to is never even listed. Every tool flow reads the verified `tokenInfo.sub` and lets a **PostgreSQL agent registry** decide on each call (owner, status, expiry, entitlements): suspend an agent and its next call is refused even though its token is still valid. Agents can only *request* a privileged change — a named human approves it — and every call, allowed or refused, is audited under the agent ID from the token, never from the model. An **orchestrated** variant adds agent-to-agent delegation through JWT-protected MCP tools, and a **no-MCP** variant does the same with OAuth 2.0 client identities and an API gateway.
+
 ---
 
 # Part 2 — Industry Use-Case Demos
 
-End-to-end, **industry-specific Agentic AI demos** built on **TIBCO Flogo® Enterprise**. Where Part 1 isolates individual features, these use cases assemble them into complete, PostgreSQL-backed business scenarios — the same reusable pattern applied to a different vertical each time.
+End-to-end, **industry-specific Agentic AI demos** built on **TIBCO Flogo® Enterprise**. Where Part 1 isolates individual features, these use cases assemble them into complete, PostgreSQL-backed chat assistants — the same reusable, governed pattern applied to a different industry each time.
 
 ## The Three-App Pattern
 
-Most use cases here ship the same **standard trio** of Flogo apps plus a PostgreSQL database. Understand it once and every use case reads the same way:
+Every governed use case ships the same **trio** of Flogo apps plus a PostgreSQL database. The design rule is *agentic in the middle, deterministic at the edges*: the AI handles the conversation and the fuzzy reasoning, PostgreSQL decides identity, scope, prices and every state change, and people decide the exceptions. Understand it once and every use case reads the same way:
 
 | App | Role | Trigger | Talks to |
 |---|---|---|---|
-| **`*MCPServer.flogo`** | Exposes **read-only** business data as MCP tools (query customers, policies, invoices, tickets…). Returns all rows; the orchestrator filters. | HTTP (streamable MCP) | PostgreSQL |
-| **`*A2AServers.flogo`** *(a.k.a. `*Agents.flogo`)* | One **A2A agent per guarded write action** (open a ticket, submit a claim, schedule a visit, send email…). Each agent runs on its own port. | A2A server (one port each) | PostgreSQL / SMTP |
-| **`*AIOrchestrator.flogo`** | The **conversational brain**: classifies intent, calls MCP read tools, hands off to A2A write agents, and enforces confirm-before-write guardrails. | WebSocket (`wsserver`) | LLM · MCP · A2A |
+| **`*MCPServer.flogo`** | The **governed gateway** to the data. **Verified identity:** the caller signs in once and gets a short-lived session token. **Scoped reads:** every tool resolves the caller from that token and SQL decides what they can see — another customer's record is simply "not found". **Guarded two-step writes:** a change is first proposed, then confirmed after an explicit yes, and the database re-checks every rule before applying it. **Human-review routing:** refunds, waivers, appeals and other discretionary requests become routed cases for the right team. | HTTP (streamable MCP) | PostgreSQL · SMTP |
+| **`*Agents.flogo`** | One or more **A2A reasoning agents** for the fuzzy step (explain a bill, decode a reason code, rank rebooking or delivery options). They are **read-only** and get only the **minimized input** they need — they never see the customer's identity and cannot change anything. | A2A server (one port per agent) | LLM |
+| **`*AIOrchestrator.flogo`** | The **conversation**: understands the request, calls the MCP tools and the A2A agents, asks for a yes before each change, and keeps **per-connection memory** — each browser connection is its own conversation. | WebSocket (`wsserver`) | LLM · MCP · A2A |
 
 ```
-   Browser Chatbot  ──ws──▶  AI Orchestrator  ──▶  LLM (OpenAI / Gemini / Anthropic)
-                                   │  ├──▶ MCP Server   ──▶ PostgreSQL   (reads)
-                                   │  └──▶ A2A Agents   ──▶ PostgreSQL / SMTP  (guarded writes)
+   Browser Chatbot ──ws──▶ AI Orchestrator ──▶ LLM (OpenAI / Gemini / Anthropic)
+                                 │  ├──▶ MCP Server ──▶ PostgreSQL   (identity · scoped reads · guarded writes · cases)
+                                 │  └──▶ A2A Agents ──▶ LLM          (read-only reasoning on minimized input)
 ```
 
-> **Naming:** the write-tier app is the **A2A Agents** app. The current samples name its file `*A2AServers.flogo`; newer apps and the build skills name it `*Agents.flogo` — **same app, either name**.
-
-A few use cases deliberately vary this shape — see the **Variant** badge in the [status legend](#status-legend). BusinessWorks (BW6) and REST-tier variants ship their own detailed READMEs.
+> **Legacy samples** (`Industry_Use_Cases_old/`) use the earlier shape: the MCP server returns all rows and the prompt does the filtering, and the write tier is a `*A2AServers.flogo` app with one A2A agent per write action, guarded by confirm-before-write instructions in the prompt rather than rules in the database.
 
 ## Use-Case Catalog
 
-Grouped by **industry vertical**. Click a use case to open its folder and full README. Ports are the defaults baked into each app (all configurable). "Endpoints" reads *WebSocket · MCP · A2A range*.
+Click a use case to open its folder and full README. Ports are the defaults baked into each app (all configurable). "Endpoints" reads *WebSocket · MCP · A2A*.
 
-### Aerospace & Defense
+### Industry use cases (governed — start here)
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Aerospace MRO & AOG Operations](./Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case/) | Maintenance/repair/overhaul + aircraft-on-ground assistant — check work orders & parts, then schedule/dispatch. | WS `:8085` `/mro` · MCP `:9095` · A2A `8091–8094` | `aerospace_mro` | ✅ Complete |
+Grouped by **Industry → Sub-category**, mirroring the [`Industry_Use_Cases/`](./Industry_Use_Cases/) folders. Every one passes the decision framework (agent vs. deterministic vs. human-owned), enforces its rules in SQL, and was tested end to end, including prompt injection.
 
-### Banking, Financial Services & Insurance
+#### Financial Services → Banking
 
 | Use Case | What it does | Endpoints | Database | Status |
 |---|---|---|---|---|
-| [Retail Banking Assistant](./Industry_Use_Cases_old/Retail_Banking_Assistant_Use_Case/) | Balances, transactions, cards & payments self-service with guarded write actions. | WS `:8088` `/banking` · MCP `:9096` · A2A `8710–8712` | `banking` | ✅ Complete · 🖼️ deck |
-| [Life & Pensions Member Assistant](./Industry_Use_Cases_old/Life_And_Pensions_Use_Case/) | Pension pots, holdings, contributions, beneficiaries, claims & adviser callbacks; email confirmations. | WS `:9600` `/lifepensions` · MCP `:9982` · A2A `9983–9988` | `life_pensions` | ✅ Complete |
-| [Auto Insurance Policyholder Assistant](./Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) | Policy, coverage & claims assistant, **grounded on policy documents via RAG**. | WS `:9700` `/auto-insurance` · MCP `:9701` · A2A `9711–9714` | `auto_insurance` (+ vector store) | 🔍 RAG |
+| [Banking — Retail Banking Assistant](./Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) | Verified customers of fictional Kestrel Bank check balances, transactions, cards & loans, get an agent to decode an unrecognized charge into the real merchant, dispute it (provisional credit computed in SQL) or block a card in two confirmed steps and email the confirmation; fee refunds, hardship & credit-limit requests routed to people. | WS `:9860` `/retailbanking` · MCP `:9862` · A2A `:9863` | `banking_governed` | ✅ Complete · 🛡️ Governed |
+| [Banking — Corporate Payments Investigation Assistant](./Industry_Use_Cases/Financial_Services/Banking/Corporate_Payments_Investigation_Use_Case/) | Verified corporate treasury users of fictional Aurelia Global Bank check payment status, rail, FX & fees, get an agent to decode cryptic return/reason codes, raise a trace in two confirmed steps or request a recall (money reversal) that a person decides, and email the confirmation; recalls, fee waivers, compensation, fraud & sanctions queries routed to people. | WS `:9870` `/corporatepayments` · MCP `:9872` · A2A `:9873` | `payments_governed` | ✅ Complete · 🛡️ Governed |
 
-### Healthcare
-
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Hospital Post-Discharge Assistant](./Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case/) | Post-discharge coordination — care instructions, appointments, refills, follow-ups. | WS `:8652` `/hospital` · MCP `:9092` · A2A `8070–8073` | `hospital` | 🔌 REST-tier |
-
-### Telecommunications
+#### Telecommunications → Mobile, Fixed & Cable Operators
 
 | Use Case | What it does | Endpoints | Database | Status |
 |---|---|---|---|---|
-| [Telecom Invoice Chatbot](./Industry_Use_Cases_old/Telecom_Invoice_Chatbot_Use_Case/) | Explain invoices, usage & charges; dispute, adjust and email confirmations. | WS `:9500` `/telecom` · MCP `:9882` · A2A `9883–9885` | `telecom` | ✅ Complete |
+| [Telecom — Mobile Billing & Spend Control Assistant](./Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) | Verified customers of fictional US carrier Tidewell Mobile hear why their bill jumped, usually pay-per-use roaming abroad or a premium content subscription (bill-to-bill deltas computed in SQL, narrated by an agent). An agent classifies charges they don't recognize and recommends a plan from their real usage and travel. Customers then cancel a subscription, add TravelPass, set a roaming limit or change plan in two confirmed steps and email the confirmation; past-due balances and device installment lock-in are enforced in SQL; refunds/disputes, port-out and suspected fraud routed to people. | WS `:9900` `/mobilebilling` · MCP `:9902` · A2A `:9903–9905` | `mobile_billing` | ✅ Complete · 🛡️ Governed |
 
-### Utilities & Energy
-
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Electric Power Distribution](./Industry_Use_Cases_old/Power_Distribution_Use_Case/) | Residential self-service — bills, usage, outages; report outage, schedule visit, reconnect (past-due guardrail). | WS `:9680` `/grid` · MCP `:9682` · A2A `9683–9686` | `power_distribution` | ✅ Complete · 🖼️ deck |
-
-### Manufacturing & Industrial
+#### Transportation & Logistics → Airlines & Aviation
 
 | Use Case | What it does | Endpoints | Database | Status |
 |---|---|---|---|---|
-| [Semiconductor Customer & Order Assistant](./Industry_Use_Cases_old/Semiconductor_Customer_Use_Case/) | Parts catalog, orders, RMAs & lead times for a semiconductor supplier. | WS `:9310` `/semiconductor` · MCP `:9098` · A2A `8730–8735` | `semiconductor` | ✅ Complete |
-| [Predictive Maintenance & Asset Monitoring](./Industry_Use_Cases_old/Predictive_Maintenance_Use_Case/) | Asset health, sensor readings & failure prediction with a REST backend and a single chat agent. | WS `:8083` `/ws/chat` · MCP `:9093` · REST api `:9095` | `predictive_maintenance` | 🔌 REST-tier |
+| [Airline — Passenger Services Assistant](./Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) | Verified travelers of fictional carrier Meridian check flight status & connection risk (computed in SQL), get agent-ranked rebooking options, rebook in two confirmed steps and email the confirmation; compensation, baggage & name-change requests routed to people. | WS `:9850` `/passengerservices` · MCP `:9852` · A2A `:9853` | `airline_governed` | ✅ Complete · 🛡️ Governed |
 
-### Transportation, Travel & Logistics
-
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Airline Passenger Services](./Industry_Use_Cases_old/Airline_Passenger_Services_Use_Case/) | Flights, bookings, seats & baggage passenger assistant. | WS `:8083` `/airline` · MCP `:9093` · A2A `8074–8076` | `airline` | 🔌 REST-tier |
-| [Logistics / Transport Shipper Assistant](./Industry_Use_Cases_old/Logistics_Transport_Use_Case/) | Shipment tracking, quotes & bookings; ships runnable binaries + FDA build script. | WS `:9690` `/logistics` · MCP `:9790` · A2A `9791–9794` | `logistics` | 📦 Prebuilt binaries |
-
-### Retail & Consumer
+#### Transportation & Logistics → Parcel & Postal Logistics
 
 | Use Case | What it does | Endpoints | Database | Status |
 |---|---|---|---|---|
-| [Retail — BW & Flogo, Better Together](./Industry_Use_Cases_old/Retail_AI_BW_Flogo/) | Retail assistant where **BW6 apps expose domain REST/MCP** and a Flogo **REST** orchestrator drives the LLM. | Flogo REST `:18085` `/api/query` · BW6 MCP `:18000` | *(inside BW6 apps)* | 🏛️ BW6 |
+| [Logistics — Parcel Delivery Assistant](./Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) | Verified recipients of fictional last-mile carrier Swiftbound track parcels, hear what a cryptic delivery exception means (decoded in SQL), get agent-ranked delivery options, reschedule onto a slot or redirect to a pickup point in two confirmed steps and email the confirmation; signature-required / high-value parcels can't go to an unattended locker; lost & damaged claims routed to people. | WS `:9890` `/parceldelivery` · MCP `:9892` · A2A `:9893` | `parcel_delivery` | ✅ Complete · 🛡️ Governed |
 
-### Real Estate
-
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Real Estate Lead Engagement Assistant](./Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) | MLS search & lead engagement; trio generated via `fda` CLI build scripts. | WS `:9590` `/realestate` · MCP `:9592` · A2A `9593–9597` | `realestate` | ✅ Complete |
-
-### Publishing & Education
+#### Media & Travel → Media & Publishing
 
 | Use Case | What it does | Endpoints | Database | Status |
 |---|---|---|---|---|
-| [Scholarly Publishing — Author Services](./Industry_Use_Cases/Scholarly_Publishing_Author_Services_Use_Case/) | Verified authors check manuscript status, get journal suggestions from an agent, see APC coverage, transfer in two confirmed steps; waivers & appeals routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. | WS `:9840` `/authorservices` · MCP `:9842` · A2A `:9843` | `author_services` | ✅ Complete · 🛡️ Governed |
+| [Publishing — Author Services Assistant](./Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/) | Verified authors of a fictional scholarly publisher check manuscript status, get journal suggestions from an agent, see APC coverage, transfer a manuscript in two confirmed steps; waivers & appeals routed to people. | WS `:9840` `/authorservices` · MCP `:9842` · A2A `:9843` | `author_services` | ✅ Complete · 🛡️ Governed |
 
-### Transportation, Travel & Logistics
+### Legacy (`_old` — reference, being migrated)
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Airline Passenger Services — Meridian](./Industry_Use_Cases/Airline_Passenger_Services_Use_Case/) | Verified travellers check flight status & connection risk (computed in SQL), get agent-ranked rebooking options, rebook in two confirmed steps and email the confirmation; compensation, baggage & name-change requests routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. An earlier, simpler version is kept under `Industry_Use_Cases_old/`. | WS `:9850` `/passengerservices` · MCP `:9852` · A2A `:9853` | `airline_governed` | ✅ Complete · 🛡️ Governed |
-| [Parcel Delivery — Swiftbound Last-Mile](./Industry_Use_Cases/Parcel_Delivery_Last_Mile_Use_Case/) | Verified recipients track parcels, hear what a cryptic delivery exception means (decoded in SQL), get agent-ranked delivery options, reschedule onto a slot or redirect to a pickup point in two confirmed steps and email the confirmation; signature-required / high-value parcels can't go to an unattended locker; lost & damaged claims routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. | WS `:9890` `/parceldelivery` · MCP `:9892` · A2A `:9893` | `parcel_delivery` | ✅ Complete · 🛡️ Governed |
+Earlier demos on the legacy three-app pattern (see the note above), kept under [`Industry_Use_Cases_old/`](./Industry_Use_Cases_old/) for reference only. Where a governed replacement exists, use it instead.
 
-### Banking & Financial Services
+| Use Case | Industry | What it does | Endpoints | Database | Status | Superseded by |
+|---|---|---|---|---|---|---|
+| [Aerospace MRO & AOG Operations](./Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case/) | Aerospace & Defense | Maintenance/repair/overhaul + aircraft-on-ground assistant — check work orders & parts, then schedule/dispatch. | WS `:8085` `/mro` · MCP `:9095` · A2A `8091–8094` | `aerospace_mro` | ✅ Complete | — |
+| [Retail Banking Assistant](./Industry_Use_Cases_old/Retail_Banking_Assistant_Use_Case/) | Financial Services | Balances, transactions, cards & payments self-service with guarded write actions. | WS `:8088` `/banking` · MCP `:9096` · A2A `8710–8712` | `banking` | ✅ Complete | [Banking — Retail Banking Assistant](./Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) |
+| [Life & Pensions Member Assistant](./Industry_Use_Cases_old/Life_And_Pensions_Use_Case/) | Insurance | Pension pots, holdings, contributions, beneficiaries, claims & adviser callbacks; email confirmations. | WS `:9600` `/lifepensions` · MCP `:9982` · A2A `9983–9988` | `life_pensions` | ✅ Complete | — |
+| [Auto Insurance Policyholder Assistant](./Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) | Insurance | Policy, coverage & claims assistant, **grounded on policy documents via RAG**. | WS `:9700` `/auto-insurance` · MCP `:9701` · A2A `9711–9714` | `auto_insurance` (+ vector store) | 🔍 RAG | — |
+| [Hospital Post-Discharge Assistant](./Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case/) | Healthcare & Life Sciences | Post-discharge coordination — care instructions, appointments, refills, follow-ups. | WS `:8652` `/hospital` · MCP `:9092` · A2A `8070–8073` | `hospital` | 🔌 REST-tier | — |
+| [Telecom Invoice Chatbot](./Industry_Use_Cases_old/Telecom_Invoice_Chatbot_Use_Case/) | Telecommunications | Explain invoices, usage & charges; dispute, adjust and email confirmations. | WS `:9500` `/telecom` · MCP `:9882` · A2A `9883–9885` | `telecom` | ✅ Complete | [Telecom — Mobile Billing & Spend Control Assistant](./Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) |
+| [Electric Power Distribution](./Industry_Use_Cases_old/Power_Distribution_Use_Case/) | Energy & Utilities | Residential self-service — bills, usage, outages; report outage, schedule visit, reconnect (past-due guardrail). | WS `:9680` `/grid` · MCP `:9682` · A2A `9683–9686` | `power_distribution` | ✅ Complete | — |
+| [Semiconductor Customer & Order Assistant](./Industry_Use_Cases_old/Semiconductor_Customer_Use_Case/) | High Tech & Software | Parts catalog, orders, RMAs & lead times for a semiconductor supplier. | WS `:9310` `/semiconductor` · MCP `:9098` · A2A `8730–8735` | `semiconductor` | ✅ Complete | — |
+| [Predictive Maintenance & Asset Monitoring](./Industry_Use_Cases_old/Predictive_Maintenance_Use_Case/) | Manufacturing & Industrial | Asset health, sensor readings & failure prediction with a REST backend and a single chat agent. | WS `:8083` `/ws/chat` · MCP `:9093` · REST api `:9095` | `predictive_maintenance` | 🔌 REST-tier | — |
+| [Airline Passenger Services](./Industry_Use_Cases_old/Airline_Passenger_Services_Use_Case/) | Transportation & Logistics | Flights, bookings, seats & baggage passenger assistant. | WS `:8083` `/airline` · MCP `:9093` · A2A `8074–8076` | `airline` | 🔌 REST-tier | [Airline — Passenger Services Assistant](./Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) |
+| [Logistics / Transport Shipper Assistant](./Industry_Use_Cases_old/Logistics_Transport_Use_Case/) | Transportation & Logistics | Shipment tracking, quotes & bookings; trio generated by an `fda` CLI build script. | WS `:9690` `/logistics` · MCP `:9790` · A2A `9791–9794` | `logistics` | ✅ Complete | [Logistics — Parcel Delivery Assistant](./Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) |
+| [Real Estate Lead Engagement Assistant](./Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) | Real Estate | MLS search & lead engagement; trio generated via `fda` CLI build scripts. | WS `:9590` `/realestate` · MCP `:9592` · A2A `9593–9597` | `realestate` | ✅ Complete | — |
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Retail Banking Assistant — Kestrel Bank](./Industry_Use_Cases/Retail_Banking_Assistant_Use_Case/) | Verified customers check balances, transactions, cards & loans, get an agent to decode an unrecognised charge into the real merchant, dispute it (provisional credit computed in SQL) or block a card in two confirmed steps and email the confirmation; fee refunds, hardship & credit-limit requests routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. An earlier, simpler version is kept under `Industry_Use_Cases_old/`. | WS `:9860` `/retailbanking` · MCP `:9862` · A2A `:9863` | `banking_governed` | ✅ Complete · 🛡️ Governed |
-| [Corporate Payment Investigation & Status — Aurelia Global Bank](./Industry_Use_Cases/Corporate_Payments_Investigation_Use_Case/) | Verified corporate treasury users check payment status, rail, FX & fees, get an agent to decode cryptic return/reason codes, raise a trace in two confirmed steps or request a recall (money reversal) that a person decides, and email the confirmation; recalls, fee waivers, compensation, fraud & sanctions queries routed to people. **Governed:** rules in SQL, tested end to end incl. prompt injection. | WS `:9870` `/corporatepayments` · MCP `:9872` · A2A `:9873` | `payments_governed` | ✅ Complete · 🛡️ Governed |
+### BW6 + Flogo samples
+
+TIBCO BusinessWorks 6 + Flogo "Better Together" samples, kept under [`BW6_Flogo_Samples/`](./BW6_Flogo_Samples/). They are not on the three-app pattern and are not migrated to the governed style; they need a BW6 runtime / Business Studio.
+
+| Sample | Industry | Description | Ports | Database | Status |
+|---|---|---|---|---|---|
+| [Retail — BW & Flogo, Better Together](./BW6_Flogo_Samples/Retail_AI_BW_Flogo/) | Retail & Consumer Goods | Retail assistant where **BW6 apps expose domain REST/MCP** and a Flogo **REST** orchestrator drives the LLM. | Flogo REST `:18085` `/api/query` · BW6 MCP `:18000` | *(inside BW6 apps)* | 🏛️ BW6 |
 
 ### Status Legend
 
 | Badge | Meaning |
 |---|---|
 | ✅ **Complete** | Standard MCP + A2A + Orchestrator trio, ready to run out of the box. |
+| 🛡️ **Governed** | Built with the `agentic-ai-use-case-builder` skill: passes the decision framework (agent vs. deterministic vs. human-owned); identity, scoping, prices and state changes enforced in PostgreSQL; tested end to end, including prompt injection. |
 | 🔍 **RAG** | Adds retrieval-augmented generation (a document ingestion app + vector store) on top of the trio. |
 | 🏛️ **BW6** | Built on **TIBCO BusinessWorks 6** rather than (or alongside) the Flogo trio — different runtime; see its own README. |
 | 🔌 **REST-tier** | Includes legacy REST API / single-agent apps alongside (or instead of) the standard trio. |
-| 📦 **Prebuilt binaries** | Ships compiled `.exe` executables so you can run without building. |
-| 🚧 **WIP** | Work in progress — some apps are unconverted copies; read the in-folder "Build status" note first. |
-| 📄 **Stub** | README documents the intended design, but the runnable apps are not present yet. |
-| 🖼️ **deck** | Includes an architecture slide deck. |
-| 🛡️ **Governed** | Built with the `agentic-ai-use-case-builder` skill: passes the decision framework (agent vs. deterministic vs. human-owned); identity, scoping, prices and state changes enforced in PostgreSQL; ships a 4-step test ladder. |
 
-> **Port collisions — don't run these pairs at once (defaults overlap):**
-> The fourteen MCP + A2A + Orchestrator use cases listed above are now mutually conflict-free and can all
-> run at the same time (Parcel Delivery uses WS `:9890` / MCP `:9892` / A2A `:9893`). A former clash was resolved by remapping: Semiconductor's orchestrator moved
-> `:8088` → **`:9310`** (Retail Banking keeps `:8088`).
+> **Port collisions — don't run these at the same time (their default ports overlap):**
+> The governed use cases' own ports don't collide with each other or with the legacy trios, but some
+> defaults are shared across samples. Bring the samples in each group up one at a time, or change the port
+> in the app properties:
 >
-> Overlaps that remain involve the standalone/secondary samples — bring these up one at a time, or change
-> the port in the app properties: `:8083` (Airline orchestrator · Predictive Maintenance · Mobile Customer
-> Care) · `:9095` (Hospital `endevour-api` · Predictive Maintenance REST API · Morning Briefing) · `:8080`
-> (Hospital · Predictive Maintenance · AI Triage · Smart Supply Chain) · `:8091` (Aerospace A2A · Travel
-> Itinerary Planner · Beauty Intelligence) · `:8081`/`:8082` (Mobile Customer Care vs Healthcare Compliance
-> and Hospital) · `:9998` (Healthcare Compliance · Smart Supply Chain).
+> | Port | Used by |
+> |---|---|
+> | `8080` | AI-Powered Incident Triage (triage agent REST) · Smart Supply Chain (agent) · Predictive Maintenance *(legacy, chat agent)* |
+> | `8081` | Mobile Customer Care (agent) · Healthcare Patient Support (agent) |
+> | `8083` | Mobile Customer Care (agent) · Airline Passenger Services *(legacy, WebSocket)* · Predictive Maintenance *(legacy, WebSocket)* |
+> | `8091` | Travel Itinerary Planner (coordinator agent) · BeautyCo Retail (mock APIs) · Aerospace MRO *(legacy, A2A)* |
+> | `9091` | Smart Supply Chain (Inventory MCP) · Mortgage AI (mock APIs) |
+> | `9092` | Smart Supply Chain (Supplier MCP) · Hospital Post-Discharge *(legacy, MCP)* |
+> | `9093` | Airline Passenger Services *(legacy, MCP)* · Predictive Maintenance *(legacy, MCP)* |
+> | `9095` | Morning Briefing · Aerospace MRO *(legacy, MCP)* · Hospital Post-Discharge *(legacy, `endevour-api`)* · Predictive Maintenance *(legacy, REST API)* |
+> | `9870` | Corporate Payments (WebSocket) · Agent Privilege IDs (`BankOpsAgents` WebSocket) |
+> | `9872` | Corporate Payments (MCP) · Agent Privilege IDs *(orchestrated variant, `BankOpsSpecialists` MCP)* |
+> | `9890` | Parcel Delivery (WebSocket) · Agent Privilege IDs *(no-MCP variant, WebSocket)* |
+> | `9898` | Travel Itinerary Planner (A2A) · Agent Privilege IDs *(no-MCP variant, agent)* |
+> | `9998` | Healthcare Patient Support (WebSocket) · Smart Supply Chain (WebSocket) |
 >
-> **If you change a port, change it in three places:** the app property / trigger setting, the matching
-> `serverUrl` in the orchestrator's MCP and A2A connections, and this table plus the use case's README.
-
----
-
-## Prerequisites
-
-**Every sample and use case needs:**
-
-- **TIBCO Flogo® 2.26.4 or later** (2.26.5+ for the [IT Help Desk Advisor](./Feature_Samples/LLMClient-Dynamic-Config-And-Memory/) and [Drug Safety Intake Advisor](./Feature_Samples/LLMClient-Dynamic-Auth/) memory / dynamic-config samples), with the [Flogo VS Code extension](https://marketplace.visualstudio.com/items?itemName=tibco.flogo). See the [Agentic AI documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm).
-- An **API key** for your chosen LLM provider (OpenAI, Gemini, or Anthropic). Where a base URL is used, point it at a **real endpoint** (e.g. `https://api.openai.com/v1`). The default model referenced in the Part 2 demos is `gpt-5.6`; substitute any model your account can access.
-- A **WebSocket client** for testing WebSocket samples/use cases: the included [Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client) (Node.js 16+) or [websocat](https://github.com/vi/websocat).
-
-**The Part 2 industry use cases additionally need:**
-
-- **PostgreSQL 14+** (local or remote) — each use case creates its own database (`database.sql` + `reset_data.sql`).
-
-**Some samples/use cases have extra prerequisites** — check the catalogs and each folder's README:
-
-- **🔍 RAG** ([Auto Insurance](./Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/)): a document set + vector store; it ingests policy PDFs.
-- **🏛️ BW6** ([Retail — BW & Flogo](./Industry_Use_Cases_old/Retail_AI_BW_Flogo/)): **TIBCO BusinessWorks 6.12** and Node.js for the MCP proxy.
-- **SMTP** (Life & Pensions, Telecom, Power Distribution and others with an email agent): an SMTP account — e.g. Gmail with an App Password over SSL (port 465).
-- **PostgreSQL / Docker / Claude Desktop** for several Part 1 samples (Mortgage AI, BeautyCo Retail, Morning Briefing) — see each sample's README.
-
-> **Credentials are not shipped.** Every app property that held a secret is reset to a placeholder (`SECRET:YOURKEY` for connection API keys). Set your own LLM key, PostgreSQL password, and SMTP credentials before running — see each folder's README / manual-steps section.
-
----
-
-## Quick Start
-
-### Part 1 — a connector feature sample
-
-1. Clone or download this repository.
-2. Open the `flogo-enterprise-hub` folder in VS Code with the Flogo extension installed.
-3. Navigate to `samples/Agentic_AI/<sample-name>/` and open the `.flogo` file.
-4. Configure your LLM Provider connection with your API key.
-5. Run the app from VS Code and connect via the [Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client), websocat, or a REST client — see the sample's README for the exact endpoint and port.
-
-### Part 2 — an industry use case (standard trio)
-
-The steps are identical for each ✅ use case; only the database name, ports, and WebSocket path change (see the [catalog](#use-case-catalog)). Example uses Life & Pensions:
-
-**1. Create and load the database:**
-
-```bash
-cd samples/Agentic_AI/Industry_Use_Cases_old/Life_And_Pensions_Use_Case
-createdb life_pensions                          # or: psql -U postgres -c "CREATE DATABASE life_pensions;"
-psql -U postgres -d life_pensions -f database.sql
-psql -U postgres -d life_pensions -f reset_data.sql   # optional: refresh demo dates relative to today
-```
-
-**2. Import the three apps** into Flogo Enterprise (VS Code Flogo extension): the `*MCPServer.flogo`, `*A2AServers.flogo` (a.k.a. `*Agents.flogo`), and `*AIOrchestrator.flogo` for that use case.
-
-**3. Set the app properties** — PostgreSQL host/port/database/user/password, your **LLM API key** and model, ports, and (if the use case has an email agent) SMTP settings. The exact property names are in each folder's README / manual-steps section.
-
-**4. Start the apps in order** (the orchestrator needs the others running first):
-
-```
-1) *MCPServer               → HTTP MCP port ready first
-2) *A2AServers / *Agents    → all A2A agent ports
-3) *AIOrchestrator          → WebSocket port (needs MCP + A2A up)
-```
-
-**5. Connect the Chatbot** and start chatting:
-
-```bash
-cd samples/Agentic_AI/Chatbot
-npm install
-npm start                 # http://localhost:3000
-```
-
-In the UI, enter your use case's WebSocket URL (for example `ws://localhost:9600/lifepensions`), **click the ↻
-(refresh) icon next to the URL box** to apply it, then click **Connect**. Typing the URL alone does nothing.
-
-**6. Run the demo** using the prompts in that use case's `prompts.md`. After a run that performed writes, re-run `reset_data.sql` to restore the seeded data.
-
-> 🏛️ **BW6** and 📦 **prebuilt-binary** use cases start differently (TIBCO Business Studio / running the `.exe` directly) — follow their own READMEs.
-
-### Flogo Chatbot — Browser-Based WebSocket Test Client
-
-A ready-to-use, domain-agnostic chat UI in [`Chatbot/`](./Chatbot/) drives any sample or use case that exposes a WebSocket endpoint. It supports multiple concurrent sessions, an editable WebSocket URL, and a live connection indicator.
-
-```bash
-cd samples/Agentic_AI/Chatbot
-npm install
-npm start
-```
-
-Open http://localhost:3000, enter the sample's WebSocket URL (`ws://localhost:<port><path>`), **click the ↻
-icon next to the URL box** to apply it, then click **Connect**.
-
-See each folder's individual `README.md` for detailed configuration and usage instructions.
+> **If you change a port, change it in every place it appears:** the app property / trigger setting of the
+> app that listens, the matching URL property (or `serverUrl`) in the orchestrator's MCP and A2A
+> connections, and the use case's README.
 
 ---
 
@@ -427,6 +425,6 @@ See each folder's individual `README.md` for detailed configuration and usage in
 
 Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback, or comments.
 
-<!-- SEO Keywords: TIBCO Flogo, Agentic AI, AI Agents, MCP, MCP Server, Model Context Protocol, A2A, Agent-to-Agent, LLM Orchestration, WebSocket, PostgreSQL, RAG, Retrieval Augmented Generation, BusinessWorks, Industry Use Cases, Banking, Insurance, Healthcare, Telecom, Utilities, Aerospace, Manufacturing, Retail, Real Estate, Scholarly Publishing, Low-Code, iPaaS, Enterprise AI -->
+<!-- SEO Keywords: TIBCO Flogo, Agentic AI, AI Agents, MCP, MCP Server, Model Context Protocol, A2A, Agent-to-Agent, LLM Orchestration, WebSocket, PostgreSQL, RAG, Retrieval Augmented Generation, BusinessWorks, Industry Use Cases, Banking, Insurance, Healthcare, Telecom, Utilities, Aerospace, Manufacturing, Retail, Real Estate, Scholarly Publishing, Logistics, Airline, Governed AI, Agent Governance, Low-Code, iPaaS, Enterprise AI -->
 
 **Topics:** `Agentic AI` · `MCP Server` · `A2A` · `LLM Orchestration` · `Industry Demos` · `Low-Code`

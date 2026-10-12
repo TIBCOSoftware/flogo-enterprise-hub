@@ -4,6 +4,8 @@ description: Step-by-step guide to create a Flogo REST API application that quer
 user-invocable: true
 ---
 
+> **Preflight:** run `fda version` first (see AGENT.md → Prerequisites and preflight). If it fails, install/update the TIBCO Flogo VS Code extension (2.26.6+).
+
 ## Key Facts (verified)
 
 - Always run `fda` commands from your Flogo apps directory — the folder named by `FLOGO_APPS_DIR` in `config.md` (resolved relative to `config.md` at `skills-library/.claude/skills/config.md`; the default `../../Flogo_Apps` points at `skills-library/Flogo_Apps/`, the same folder whether you opened the hub root or `skills-library`)

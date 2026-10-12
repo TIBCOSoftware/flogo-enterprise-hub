@@ -207,8 +207,9 @@ Full prompt list ships in [`prompts.md`](prompts.md).
 
 ## Prerequisites
 
-- **TIBCO Flogo Enterprise** (VS Code extension 2.26.x) to import/run the apps.
+- **TIBCO Flogo Enterprise** (VS Code extension 2.26.7 or later) to import/run the apps.
 - **PostgreSQL 14+** reachable from the apps; ability to create the `aerospace_mro` database.
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
 - **An LLM provider** — OpenAI (or OpenAI-compatible) API key, a real base URL
   (`https://api.openai.com/v1`), and a model your key can access.
 - **Gmail App Password** (for the email agent) — SMTP `smtp.gmail.com:465`.

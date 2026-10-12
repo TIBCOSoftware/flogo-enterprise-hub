@@ -5,6 +5,8 @@ user-invocable: true
 
 ---
 
+> **Preflight (only needed when building / running tests):** run `flogobuild version && flogobuild list-context && go version` first (see AGENT.md → Prerequisites and preflight, or `preflight.py --need build`). `flogobuild` (Flogo App Build CLI) is downloaded from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (not bundled in the VS Code extension), and building Flogo apps requires the Go runtime ([go.dev/dl](https://go.dev/dl/)).
+
 ## 0. Configuration
 
 > **All environment-specific values are defined in [config.md](../config.md).**

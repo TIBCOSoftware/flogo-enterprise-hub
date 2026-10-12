@@ -28,49 +28,43 @@ prompt-injection attempt.
 - Natural language: *"build a governed / production-grade / decision-framework agentic AI use case for
   &lt;vertical&gt;"*.
 
-It will ask clarifying questions and show you the classification table and plan. **It builds nothing
-until you approve.**
+It starts by asking you about your domain, but only about what you haven't already told it. That way
+the demo reflects your business, not a generic guess. Expect up to three short rounds:
 
-### Prompt templates (for a cheap, reliable build)
+| Round | What it asks |
+|---|---|
+| 1. Context | the business problem and what success looks like; the audience and region (language, currency, regulations); who chats (customer, employee agent-assist, partner, technician); your product/service vocabulary; the organisation and assistant name |
+| 2. Who and what | the persona; how they prove who they are; what they look up; what they can change; the one fuzzy judgment the AI agent makes; which requests a person must decide |
+| 3. Rules, demo and runtime | the rules, limits and prices behind each action; multi-step requests; the demo storyline and logins; data the user must never see; the rule a prompt injection should attack; email yes/no; the runtime LLM; how far to test |
 
-A governed build costs single-digit to low-double-digit dollars of agent tokens **when done in a fresh
-session with the spec front-loaded and the e2e run once**; it balloons when done in a long session with
-avoidable re-runs. See [SKILL.md → Cost & efficiency](SKILL.md#cost--efficiency). Give these four prompts:
+Answer "you decide" to anything you'd rather it draft. Those answers show up as **Assumptions** in the
+plan, so you can still correct them. If you name a real customer or prospect to tailor the demo, the
+skill uses a fictional organisation and never writes that name into any file.
 
-**1. Start clean, then one message with the whole spec.** First `/clear` (or open a new session), then:
+It then shows you "What I heard", the assumptions, the classification table and the plan. **It builds
+nothing until you approve.**
+
+### Answering up front (optional)
+
+To skip most of the questions, put the answers in your first message:
 
 ```
-Use the agentic-ai-use-case-builder skill to build a governed use case.
-Vertical / persona: <who the end user is>
-Tools (reads + actions): <list>
-The one semantic step (the A2A agent): <the genuinely fuzzy judgment>
-Human-owned requests: <what a person must decide>
+Use the agentic-ai-use-case-builder skill to build a use case.
+Business problem / audience / region: <what it should solve, who watches, country>
+Persona and identity: <who chats; identifier + one-time code>
+Reads: <what they look up>
+Actions and their rules: <what they can change; limits, prices, what blocks it>
+The one fuzzy step (the A2A agent): <the genuinely semantic judgment>
+Human-owned requests: <what a person must decide, and which team>
+Demo storyline: <the happy path and the "wow" moment>
 Email: <yes / no>
 Runtime model: gpt-5.5            # capable tool-calling model; NOT gpt-5-nano
-Ports: pick free ones
 Run the full test ladder through the chat e2e.
-Plan first; I'll approve in one pass — don't stop for small confirmations.
-Use a subagent to read the reference sample/templates, and keep large command output out of context.
 ```
 
-**2. Approve the plan** (when the classification table + plan appear):
-
-```
-Approved — build it. Cheap steps first; run the chat e2e once at the end.
-```
-
-**3. (optional) Drive the dev-model per phase** — or just toggle `/model` yourself:
-
-```
-Use Sonnet for the build and tests; Opus only for a hard bug; Haiku for the README/docs/scrub.
-```
-
-**4. Finish:**
-
-```
-Scrub secrets, write the customer-facing README, add the catalogue rows, and give me the test results
-+ chatbot steps. Don't commit yet.
-```
+Approve the plan with *"Approved — build it."* When it's done, it scrubs the secrets, writes the
+customer-facing README and gives you the test results plus the chatbot steps. It doesn't commit unless
+you ask.
 
 ## What you get
 
@@ -86,6 +80,7 @@ Scrub secrets, write the customer-facing README, add the catalogue rows, and giv
 | `prompts.md` | demo and adversarial prompts |
 | `chat_e2e_transcript.md` | sanitized evidence from the last end-to-end run |
 | `_rebuild/` | `tool_spec.py` (single source of truth), fda drivers, `test_rules.py`, `mcp_smoke.py`, `chat_e2e.py` |
+| `_rebuild/README.md` | developer guide: what each artifact does, settings, how to regenerate the apps, test-ladder commands |
 
 ## The test ladder
 
@@ -98,19 +93,33 @@ Scrub secrets, write the customer-facing README, add the catalogue rows, and giv
 
 ## Prerequisites
 
-You need the Flogo Design CLI (`fda`), PostgreSQL + `psql`, an LLM API key, and
-`skills-library/.claude/skills/config.md`. For steps 3–4 you also need `flogobuild` (run
-`flogobuild list-context` for the context name) and `pip install websocket-client`. For the
-clone-and-adapt method you also need a governed reference app to clone from
-`samples/Agentic_AI/Industry_Use_Cases/`.
+**Design + SQL rule tests (steps 1–2)** need the Flogo Design CLI (`fda` — it ships inside the TIBCO
+Flogo VS Code extension 2.26.7+, downloadable from the [TIBCO downloads page](https://www.tibco.com/downloads/11810);
+nothing separate to install), PostgreSQL 14+ and `psql`, Python 3.9+, an LLM API key for a capable
+tool-calling model (`gpt-5.5` class — nano-class models drop tool calls), and
+`skills-library/.claude/skills/config.md`. **Only when you ask for the build / e2e steps (3–4)** you also
+need `flogobuild` (the Flogo App Build CLI — from the same [TIBCO downloads page](https://www.tibco.com/downloads/11810),
+not bundled in the VS Code extension; run `flogobuild list-context` for the context name) and the
+[Go runtime](https://go.dev/dl/) (building Flogo apps requires Go); the chat e2e also needs Node.js 16+
+(shared chatbot) and `pip install websocket-client`. `tibcop` is needed only if you deploy. For the
+clone-and-adapt method you also need a governed reference app to clone from `samples/Agentic_AI/Industry_Use_Cases/`.
+
+The full tiered table (versions, install sources, build-context creation, licence, Git Bash, `tibcop`,
+SMTP) is in [AGENT.md → Prerequisites and preflight](../../../AGENT.md#prerequisites-and-preflight).
+**Run the preflight first** (from the repo root):
+
+```bash
+python skills-library/.claude/skills/agentic-ai-use-case-builder/templates/preflight.py --need db           # design + SQL rule tests
+python skills-library/.claude/skills/agentic-ai-use-case-builder/templates/preflight.py --need build,chat   # before steps 3-4
+```
 
 ## Worked examples
 
-- [Scholarly Publishing — Author Services](../../../../samples/Agentic_AI/Industry_Use_Cases/Scholarly_Publishing_Author_Services_Use_Case/README.md):
+- [Scholarly Publishing — Author Services](../../../../samples/Agentic_AI/Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/README.md):
   authors verify with ORCID + a code, check status, get journal suggestions from an agent, see APC
   coverage computed in SQL, transfer a manuscript in two steps, and have fee waivers and appeals routed
   to people.
-- [Airline Passenger Services — Meridian](../../../../samples/Agentic_AI/Industry_Use_Cases/Airline_Passenger_Services_Use_Case/README.md):
+- [Airline Passenger Services — Meridian](../../../../samples/Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/README.md):
   travellers verify with PNR + a PIN, check flight status and **connection risk (computed in SQL, not
   guessed)**, get agent-ranked rebooking options, rebook in two confirmed steps, email the confirmation,
   and have compensation / baggage / name-change requests routed to people. Converted from the
@@ -118,7 +127,7 @@ clone-and-adapt method you also need a governed reference app to clone from
 
 ### Sample prompt (the airline example)
 
-This is the one-message spec (prompt 1 above) that produces the Meridian airline sample:
+This is the one-message spec that produces the Meridian airline sample:
 
 ```
 Use the agentic-ai-use-case-builder skill. Convert the Part-2 Airline Passenger Services demo into a
@@ -136,5 +145,5 @@ preferences ("arrive before 8pm, window seat, no red-eye") — identity never pa
 Human-owned: compensation claims, baggage claims, special assistance, complaints, name changes.
 Email: yes — a guarded tool that only emails an executed rebooking for the verified session.
 Runtime model: gpt-5.5.  Ports: pick free ones.
-Run the full test ladder through the chat e2e. Plan first; I'll approve in one pass.
+Run the full test ladder through the chat e2e.
 ```

@@ -18,11 +18,6 @@ summary.
   (action agents), and **1 AI Orchestrator** (WebSocket chat, LLM intent routing). All state
   lives in **PostgreSQL**.
 
-> **Sibling folder:** `samples/Agentic_AI/Hospital_FDA_Rebuild/` is a **CLI rebuild** of this same
-> use case (the three core apps re-generated with the `fda`/`flogobuild` toolchain). This folder
-> is the **original**, designer-authored version. Use one or the other — not both at once, since
-> they reuse the same default ports.
-
 ---
 
 ## Architecture
@@ -42,13 +37,10 @@ Chatbot UI --WebSocket--> AI Orchestrator                                       
 - **AI Orchestrator** (`HospitalAIOrchestrator.flogo`) — the AI brain. WebSocket chat endpoint;
   the LLM decides intent and either calls an MCP tool (read) or hands off to an A2A Agent (action).
 
-**Extra apps also present in this folder** (used by, or predecessors of, the core set):
+**Extra apps also present in this folder** (used by the core set):
 - `endevour-api.flogo` — the PostgreSQL-backed REST backend the A2A Agents call. **Required** for
   the write agents to work.
 - `eai-api.flogo` — a lightweight supplementary REST API.
-- `post-discharge-agent.flogo` — the **legacy monolith**: a single app that bundles the WebSocket
-  chat, all four sub-agents, and the REST calls together. It predates the MCP + A2A + Orchestrator
-  split and is kept for reference.
 
 ---
 
@@ -68,7 +60,6 @@ Chatbot UI --WebSocket--> AI Orchestrator                                       
 |-----|------|---------|------------------------|------|
 | REST backend | `endevour-api.flogo` | `#rest` | `API_PORT` = **9095**, base `/api/v1` | PostgreSQL-backed REST API called by the A2A write agents (discharge-summary, appointments, pharmacy orders, beds). Start it **before** the A2A app. |
 | Supplementary API | `eai-api.flogo` | `#rest` | **9999** (fixed), `GET /appointments` | Lightweight standalone appointments endpoint; optional. |
-| Legacy monolith | `post-discharge-agent.flogo` | `#wsserver` + `#agent` ×4 | **8082**, path `/ws/chat` | Original single-app orchestrator (WS chat + 4 sub-agents + REST). Superseded by the 3-app set; keep only for reference. |
 
 ---
 
@@ -175,10 +166,10 @@ results, and [agents.md](agents.md) for each agent's system prompt and handover 
 ## Prerequisites
 
 - **PostgreSQL** running; a database created for this demo, loaded from `database.sql`.
-- **TIBCO Flogo Enterprise** (import the `.flogo` apps into the designer) — or the `flogobuild`
-  CLI if you prefer to build `.exe`s. CLI tool paths/versions live in
-  `skills-library/.claude/skills/config.md` (see `config.example.md` for the template).
-- An **LLM provider** key (OpenAI-compatible; the apps default to model `gpt-5.6`). The base URL
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
+- **TIBCO Flogo Enterprise** — VS Code extension 2.26.7 or later (import the `.flogo` apps into the designer) — or the `flogobuild`
+  CLI if you prefer to build `.exe`s; set the app properties listed below before you run.
+- An **LLM provider** key (OpenAI-compatible; the apps default to model `gpt-5.5`). The base URL
   must be a **real endpoint**, e.g. `https://api.openai.com/v1` — it ships **blank** and must be set.
 - **SMTP** access for the `SendEmail` agent (Gmail: `smtp.gmail.com`, an app-specific password).
 - A **chatbot / WebSocket client** — the shared UI under `samples/Agentic_AI/Chatbot` works
@@ -200,7 +191,7 @@ results, and [agents.md](agents.md) for each agent's system prompt and handover 
    `endevour-api` URLs (`Appointments_URL`, `Discharge_Summary_URL`, `Pharmacy_Orders_URL`,
    `Beds_URL`), the ports, and the recipient email — see the manual-config section below.
 4. **Start order:** `endevour-api` (REST backend) → **MCP Server** → **A2A Servers / Agents** →
-   **AI Orchestrator**. (`eai-api` is optional; the legacy `post-discharge-agent` is not needed.)
+   **AI Orchestrator**. (`eai-api` is optional.)
 5. **Open the chatbot and connect** — the shared web client in `samples/Agentic_AI/Chatbot`:
    ```bash
    cd samples/Agentic_AI/Chatbot
@@ -232,7 +223,6 @@ results, and [agents.md](agents.md) for each agent's system prompt and handover 
 | AI Orchestrator (WebSocket) | `WebSocket_PORT` | 8652 | `/hospital` |
 | endevour-api (REST backend) | `API_PORT` | 9095 | `/api/v1/...` |
 | eai-api (supplementary) | — | 9999 | `GET /appointments` |
-| post-discharge-agent (legacy) | — | 8082 | `/ws/chat` |
 
 ---
 
@@ -267,7 +257,7 @@ them with your own before an end-to-end run. **Never commit real secrets.**
    - `LLM_Base_URL` — a **real endpoint** (`https://api.openai.com/v1`). It ships **blank**; an
      empty value becomes the literal `New_value` and the LLM call fails with
      `unsupported protocol scheme`.
-   - `LLM_Model` — confirm the model name (default `gpt-5.6`) is one your key can access.
+   - `LLM_Model` — confirm the model name (default `gpt-5.5`) is one your key can access.
 
 2. **PostgreSQL database & credentials.**
    - Create the database and load `database.sql`; run `reset_data.sql` to reset between demos.

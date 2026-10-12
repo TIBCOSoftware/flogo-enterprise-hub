@@ -42,7 +42,7 @@ Staff ─WS :9890 /servicing─► Card Servicing Agent  (AI Agent Trigger) ─�
 
 ## Prerequisites
 
-The base sample's prerequisites: Flogo VS Code extension 2.26.6+, PostgreSQL with `bankops_agents` loaded (reload
+The base sample's prerequisites: Flogo VS Code extension 2.26.7+, PostgreSQL (plus the PostgreSQL ODBC driver connector prerequisite) with `bankops_agents` loaded (reload
 `../database.sql` if you created it before this variant existed), an OpenAI key, and Node.js for the Chatbot.
 
 ## Steps to run
@@ -57,8 +57,10 @@ The base sample's prerequisites: Flogo VS Code extension 2.26.6+, PostgreSQL wit
    ```sql
    SELECT * FROM register_agent_client('agt-insight-01',   'accounts:read txns:read');
    SELECT * FROM register_agent_client('agt-servicing-01', 'accounts:read txns:read cards:block limits:request');
+   SELECT * FROM register_agent_client('agt-legacy-07',    'accounts:read');  -- suspended agent: shows the kill switch
    ```
-   Run it again at any time to rotate a secret. `reset_data.sql` keeps the registrations.
+   Run it again at any time to rotate a secret. `reset_data.sql` keeps the registrations. `agt-legacy-07` is
+   suspended in the registry, so even with a valid token and scope every call it makes is denied.
 2. **⚠️ Configure and start `BankAPIGateway.flogo`** (the shipped file carries placeholders):
 
    | App property | Set to |
@@ -115,3 +117,7 @@ Reset with `psql -U postgres -d bankops_agents -f ../reset_data.sql`.
   recommendation; the gateway runs and is tested without one.
 
 > ⚠️ Demonstration only: fictional data, a Flogo app standing in for the bank's IdP and gateway, shared-secret JWTs.
+
+## Rebuild from code
+
+To regenerate these apps from code or run the automated checks, see [`_rebuild/README.md`](_rebuild/README.md).

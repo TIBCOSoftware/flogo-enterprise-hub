@@ -284,7 +284,7 @@ In the [InsuranceClaimsProcessor](../InsuranceClaimsProcessor/) sample, MCP and 
 
 ## Prerequisites
 
-- **TIBCO Flogo 2.26.5 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
+- **TIBCO Flogo 2.26.7 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
 - An **OpenAI API key** (or swap for Anthropic, Gemini, Ollama, or vLLM in the LLM configuration properties)
 - A WebSocket client for testing: [Postman](https://www.postman.com/) or [websocat](https://github.com/vi/websocat)
 

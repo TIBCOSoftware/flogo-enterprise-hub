@@ -88,8 +88,9 @@ holds the RAG vector-store id. 7 personas; see `prompts.md`.
 ## Setup & Run
 
 ### 0. Prerequisites
-- TIBCO Flogo Enterprise (VS Code Flogo extension), matching `flogoVersion` **2.26.6**.
+- TIBCO Flogo Enterprise (VS Code Flogo extension) 2.26.7 or later (the apps were saved with `flogoVersion` **2.26.6**).
 - PostgreSQL reachable on `localhost:5432` (user `postgres`).
+- PostgreSQL ODBC driver (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
 - Python 3 with **fpdf2** (`pip install fpdf2`) to regenerate PDFs (they are already generated).
 - An **OpenAI API key** with Files + Vector Stores access.
 - The local **`extensions/openAI`** extension (Tech Preview) registered in the Flogo VS Code
@@ -175,9 +176,8 @@ vector store per policy and store its id per row in `document_index`.
 ## ⚠️ Below things are NOT configured — please configure them manually before running end to end
 
 `fda` wires the full app graph, but a few things depend on **your** environment, **your** secrets, and a
-**running engine with the openAI extension** — they can't be baked into a portable, secret-free app. Pull
-values from `skills-library/.claude/skills/config.md` and set them as app properties at import time;
-never commit real secrets.
+**running engine with the openAI extension** — they can't be baked into a portable, secret-free app. Set the
+app properties listed below with your own values at import time; never commit real secrets.
 
 1. **OpenAI credentials & endpoint.**
    - On `AutoInsuranceMCPServer` and `AutoInsuranceRAGIngestion` set `OPENAI_API_KEY` (a real key — the

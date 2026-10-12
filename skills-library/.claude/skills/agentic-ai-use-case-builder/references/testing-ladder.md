@@ -7,7 +7,7 @@ LLM calls and produces a misleading transcript.
 | Step | Script | Proves | Needs | Time |
 |---|---|---|---|---|
 | 1 | `_rebuild/test_rules.py` | every rule function returns the right outcome/reason for each seeded case, using the **exact SQL** from `tool_spec.py` | PostgreSQL | seconds |
-| 2 | `validate_governed_apps.py` | the generated apps are wired right, and governed (G1–G9) | nothing running | seconds |
+| 2 | `validate_governed_apps.py` | the generated apps are wired right, and governed (G1–G10) | nothing running | seconds |
 | 3 | `_rebuild/mcp_smoke.py` | the rules hold at the MCP edge through the real Flogo runtime, with no LLM | MCP app running | seconds |
 | 4 | `_rebuild/chat_e2e.py` | the whole system: WebSocket → orchestrator → MCP + A2A → PostgreSQL, including adversarial turns | all 3 apps + LLM key | ~5 min |
 
@@ -62,9 +62,21 @@ evidence. It should contain demo codes only, never a session token or key.
 
 ```
 mkdir -p "$HOME/<scratch>" && cp <UseCase>/*.flogo "$HOME/<scratch>/"      # outside the repo: copies hold secrets
-cd "$HOME/<scratch>" && flogobuild build-exe -a <App>.flogo -c <context>   # one per app
+cd "$HOME/<scratch>" && flogobuild build-exe -f <App>.flogo -c <context>   # one per app; RELATIVE -f
 ./<Prefix>MCPServer.exe > mcp_run.log 2>&1 &                                # then Agents, then Orchestrator
 PG_PWD=… A2A_LOG="$HOME/<scratch>/a2a_run.log" python <UseCase>/_rebuild/chat_e2e.py
 ```
+- **`-f`, relative, from the scratch folder.** `-f` works on flogobuild 1.0.6 and 1.1.0 (`-a` only on
+  1.1.0). An **absolute** `-f` drops the exe next to the source `.flogo`, inside the repo.
+- **Stopping the exes on Windows:** bash `kill` doesn't stop the native processes. Find each PID by port
+  and kill it:
+  ```
+  netstat -ano | grep :<port>        # last column is the PID (LISTENING row)
+  taskkill //PID <pid> //F           # double slashes in Git Bash
+  ```
+- **Quick log check:** `timeout 5 ./<App>.exe 2>&1 || true`. macOS has no `timeout` by default: use
+  `gtimeout` (`brew install coreutils`), or start the exe in the background and `kill` it after a few
+  seconds (on macOS and Linux `kill` works).
+
 Afterwards: stop the exes, reset the DB, delete the scratch copies and exes, and scrub the secrets from
 the `.flogo` files in the sample folder (see SKILL.md Phase 6).

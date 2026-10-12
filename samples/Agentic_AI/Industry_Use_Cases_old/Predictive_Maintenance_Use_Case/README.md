@@ -169,8 +169,9 @@ See `prompts.md` for the full, copy-pasteable prompt list and a suggested demo f
 ## Prerequisites
 
 - **PostgreSQL** running; a database named **`predictive_maintenance`** created for this demo.
-- **TIBCO Flogo Enterprise** (import the `.flogo` apps into the designer) — or the `flogobuild` CLI
-  if you prefer to build `.exe`s. CLI paths/versions live in `skills-library/.claude/skills/config.md`.
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
+- **TIBCO Flogo Enterprise** — VS Code extension 2.26.7 or later (import the `.flogo` apps into the designer) — or the `flogobuild` CLI
+  if you prefer to build `.exe`s; set the app properties listed below before you run.
 - An **LLM provider** key (OpenAI-compatible). The base URL must be a **real endpoint**, e.g.
   `https://api.openai.com/v1`. The committed agent app ships with the base URL **blank** (see
   Troubleshooting).
@@ -319,7 +320,7 @@ with your own before an end-to-end run. **Never commit real secrets.**
    - `AgenticAI.OpenAIConn.LLM_Base_URL` — **currently blank**; set a real endpoint
      (`https://api.openai.com/v1`). An empty value becomes the literal `New_value` and the call fails
      with `unsupported protocol scheme`.
-   - `LLM_Model` — the committed value is `gpt-5.6`; confirm it is a model your key can access.
+   - `LLM_Model` — the committed value is `gpt-5.5`; confirm it is a model your key can access.
 
 2. **PostgreSQL database & credentials** (MCP app `PostgresConn`, API app `PredMaintConn`).
    - Create the **`predictive_maintenance`** database; load `database.sql`; run `reset_data.sql` to

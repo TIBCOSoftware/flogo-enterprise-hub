@@ -91,6 +91,7 @@ coming soon...
 
 ### Prerequisites
 
+- **TIBCO Flogo® 2.26.7 or later** (VS Code extension) — only to open or modify the `.flogo` apps
 - **Node.js** v18 or higher
 - **Ollama** running locally with `llama3` or `deepseek-v3.1:671b-cloud` pulled
   *(or set `OPENAI_API_KEY` / `AZURE_OPENAI_*` env vars for cloud LLMs)*

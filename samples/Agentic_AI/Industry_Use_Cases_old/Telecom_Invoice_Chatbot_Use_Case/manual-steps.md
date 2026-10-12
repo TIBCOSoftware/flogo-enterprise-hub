@@ -6,7 +6,7 @@ Step-by-step instructions to deploy and run the Telecom Invoice Chatbot demo end
 
 ## Prerequisites
 
-- TIBCO Flogo Enterprise v2.26.5+
+- TIBCO Flogo Enterprise v2.26.7+
 - PostgreSQL 14+ (local or remote)
 - OpenAI API key (or an on-premises OpenAI-compatible LLM endpoint)
 - Gmail account with App Password (for the email agent)
@@ -68,7 +68,7 @@ Import all 3 `.flogo` files into TIBCO Flogo Enterprise:
 | Property | Value |
 |----------|-------|
 | `AgenticAI.OpenAIConn.API_Key` | Your OpenAI API key |
-| `LLM_Model` | `gpt-5.6` (or your preferred / on-prem model) |
+| `LLM_Model` | `gpt-5.5` (or your preferred / on-prem model) |
 | `PostgreSQL.PostgresConn.Host` | `localhost` |
 | `PostgreSQL.PostgresConn.Database_Name` | `telecom` |
 | `PostgreSQL.PostgresConn.User` | `postgres` |
@@ -85,7 +85,7 @@ Import all 3 `.flogo` files into TIBCO Flogo Enterprise:
 | Property | Value |
 |----------|-------|
 | `AgenticAI.OpenAIConn.API_Key` | Your OpenAI API key |
-| `LLM_Model` | `gpt-5.6` (or your preferred / on-prem model) |
+| `LLM_Model` | `gpt-5.5` (or your preferred / on-prem model) |
 
 ---
 

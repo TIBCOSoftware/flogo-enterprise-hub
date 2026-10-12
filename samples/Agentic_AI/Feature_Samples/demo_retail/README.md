@@ -49,6 +49,13 @@ Flogo acts as the **MCP tool server** exposing the retailer's enterprise data as
 | `M-1138-CASS` | Cassandra Williams | PLATINUM | Birthday month = today → triggers birthday offer WOW |
 | `M-0042-JUNE` | June Chen | MEMBER | New member, paraben allergy flagged — safety check fires |
 
+### Prerequisites
+
+- **TIBCO Flogo VS Code extension 2.26.7 or later** (and the Flogo CLI to build the apps).
+- **PostgreSQL 14+** and `psql`.
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
+- **Claude Desktop** as the MCP client. Full list: [beauty-intelligence-agent/README.md](beauty-intelligence-agent/README.md#prerequisites).
+
 ### Quick Start
 
 ```bash

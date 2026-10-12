@@ -156,7 +156,7 @@ The agent's behaviour is pinned by the `AgenticAI.systemPrompt` app property (~9
 
 ## Prerequisites
 
-- **TIBCO Flogo® Enterprise 2.26.2+** with the **Agentic AI (Tech Preview)**, **MCP** and **General** connectors
+- **TIBCO Flogo® Enterprise 2.26.7+** with the **Agentic AI (Tech Preview)**, **MCP** and **General** connectors
 - An **OpenAI API key** (or any provider the connector supports)
 - **Node.js 14+** — only if you want the browser chat client
 - An **SMTP account** for `schedule_visit` (Gmail needs an *App Password*, not your account password)

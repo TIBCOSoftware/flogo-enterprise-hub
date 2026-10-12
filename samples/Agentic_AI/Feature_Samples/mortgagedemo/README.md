@@ -117,8 +117,10 @@ mortgagedemo/
 | Tool | Version | Purpose |
 |---|---|---|
 | Docker Desktop | ≥ 24.x | Run PostgreSQL 16-alpine |
-| TIBCO Flogo CLI | 2.26.2 | Build and run Flogo apps |
+| TIBCO Flogo VS Code extension / CLI | 2.26.7+ | Build and run Flogo apps |
 | PostgreSQL client | ≥ 14 | Seed the database |
+| PostgreSQL ODBC driver | — | Flogo connector prerequisite — install before opening the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)) |
+| TIBCO EMS client | 10.3.0+ | Optional — only for the EMS escalation in `EscalateToUnderwriter` (it falls back to PostgreSQL-only); Flogo connector prerequisite, x86_64 only ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)) |
 | Claude Desktop | Latest | MCP client — connects to port 8035 |
 | Python | ≥ 3.9 | `record_demo.py` — no pip packages required |
 | ffmpeg | Any | Screen recording (optional) |

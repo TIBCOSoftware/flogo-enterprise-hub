@@ -1,0 +1,474 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "AuthorServicesAgents",
+  "description": "Author Services A2A agent - journal matching (read-only)",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Recommends alternative journals for a manuscript from its title, abstract, keywords and word count. Read-only: it searches the journal catalogue and ranks candidates; it cannot transfer anything.",
+      "settings": {
+        "llmProviderConnection": "conn://5fa9cd3e-50a3-4dea-b9c8-a2fd204ddb0e",
+        "agentName": "journal_match_agent",
+        "agentDescription": "Recommends alternative journals for a manuscript from its title, abstract, keywords and word count. Read-only: it searches the journal catalogue and ranks candidates; it cannot transfer anything.",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"journal_match_agent_PORT\"]",
+        "agentUrl": "=$property[\"journal_match_agent_URL\"]",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "0",
+        "enableGuardrails": "true",
+        "rateLimit": 25,
+        "tokenLimit": 2048,
+        "redactSensitiveData": "true",
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": "20",
+        "systemPrompt": "You recommend journals for a manuscript that received a transfer offer. You are given the manuscript's\ntitle, abstract, keywords, article type, word count and current journal code. You are never given the author's identity.\n\n1. Extract 4-8 topic keywords and one broad subject area, then call the search_journals tool exactly once.\n   If it returns nothing useful, retry once with broader keywords.\n2. From the returned journals only, pick up to 3 that best fit the manuscript's topic and method.\n   Exclude the current journal. Exclude any journal whose word_limit is below the manuscript's word count\n   and say which ones you excluded for that reason.\n3. For each pick return: journal_code, title, one sentence on why the aims & scope fit, oa_model, apc_usd,\n   word_limit and median_days_to_first_decision, copied exactly from the tool result.\n\nNever invent journals, codes, fees or turnaround times. Do not state whether the author's institution covers\nthe fee - that is checked elsewhere. Reply as a short numbered list."
+      },
+      "id": "journal_match_agent",
+      "handlers": [
+        {
+          "description": "Search active journals that accept transfers by topic. Pass comma-separated keywords taken from the manuscript&#39;s title, abstract and keywords, and optionally a broad subject area. Returns up to 8 journals with aims &amp; scope, OA model, APC, word limit and a relevance score.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "search_journals",
+            "agentToolDescription": "Search active journals that accept transfers by topic. Pass comma-separated keywords taken from the manuscript's title, abstract and keywords, and optionally a broad subject area. Returns up to 8 journals with aims & scope, OA model, APC, word limit and a relevance score.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:journal_match_agent_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"keywords\": {\n      \"type\": \"string\",\n      \"description\": \"Comma-separated topic keywords\"\n    },\n    \"subject_area\": {\n      \"type\": \"string\",\n      \"description\": \"Optional broad subject area, or empty\"\n    }\n  },\n  \"required\": [\n    \"keywords\"\n  ]\n}",
+                "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"keywords\": {\n      \"type\": \"string\",\n      \"description\": \"Comma-separated topic keywords\"\n    },\n    \"subject_area\": {\n      \"type\": \"string\",\n      \"description\": \"Optional broad subject area, or empty\"\n    }\n  },\n  \"required\": [\n    \"keywords\"\n  ]\n}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "journal_match_agent_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:journal_match_agent_flow",
+      "data": {
+        "name": "journal_match_agent_flow",
+        "description": "Search active journals that accept transfers by topic. Pass comma-separated keywords taken from the manuscript&#39;s title, abstract and keywords, and optionally a broad subject area. Returns up to 8 journals with aims &amp; scope, OA model, APC, word limit and a relevance score.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "SearchJournals",
+            "type": "label",
+            "label": "StartActivity to SearchJournals"
+          },
+          {
+            "id": 2,
+            "from": "SearchJournals",
+            "to": "Return",
+            "type": "label",
+            "label": "SearchJournals to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "SearchJournals",
+            "name": "SearchJournals",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://0d4c2b12-2989-49e1-be41-7b54a28dbc42",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM search_journals(CAST(?kw AS text), CAST(?area AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "kw",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "area",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "journal_code",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "title",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "subject_area",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "oa_model",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "apc_usd",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "word_limit",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "median_days_to_first_decision",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "aims_scope",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "relevance",
+                    "Type": "REAL",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "4bc8e5e7-f82d-4ae0-b120-a088e4765249SELECT * FROM search_journals(CAST(?kw AS text), CAST(?area AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "kw": "=$flow.toolParams.keywords",
+                      "area": "=$flow.toolParams.subject_area"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"kw\": {\"type\": \"string\"}, \"area\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"kw\": {\"type\": \"string\"}, \"area\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"journal_code\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"subject_area\": {\"type\": \"string\"}, \"oa_model\": {\"type\": \"string\"}, \"apc_usd\": {\"type\": \"number\"}, \"word_limit\": {\"type\": \"number\"}, \"median_days_to_first_decision\": {\"type\": \"number\"}, \"aims_scope\": {\"type\": \"string\"}, \"relevance\": {\"type\": \"number\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"journal_code\": {\"type\": \"string\"}, \"title\": {\"type\": \"string\"}, \"subject_area\": {\"type\": \"string\"}, \"oa_model\": {\"type\": \"string\"}, \"apc_usd\": {\"type\": \"number\"}, \"word_limit\": {\"type\": \"number\"}, \"median_days_to_first_decision\": {\"type\": \"number\"}, \"aims_scope\": {\"type\": \"string\"}, \"relevance\": {\"type\": \"number\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[SearchJournals].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlNlYXJjaEpvdXJuYWxzIjp7IngiOjI1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6MjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"keywords\":{\"type\":\"string\",\"description\":\"Comma-separated topic keywords\"},\"subject_area\":{\"type\":\"string\",\"description\":\"Optional broad subject area, or empty\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"journal_match_agent\", \"properties\": {\"toolParams\": {\"type\": \"object\", \"properties\": {\"keywords\": {\"type\": \"string\", \"description\": \"Comma-separated topic keywords\"}, \"subject_area\": {\"type\": \"string\", \"description\": \"Optional broad subject area, or empty\"}}, \"required\": [\"keywords\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}}}}, \"required\": []}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.API_Key",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "AgenticAI.OpenAIConn.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "author_services"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "journal_match_agent_PORT",
+      "type": "string",
+      "value": "9843"
+    },
+    {
+      "name": "journal_match_agent_URL",
+      "type": "string",
+      "value": "http://localhost:9843"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    }
+  ],
+  "schemas": {
+    "journal_match_agent_ToolParams": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"keywords\": {\n      \"type\": \"string\",\n      \"description\": \"Comma-separated topic keywords\"\n    },\n    \"subject_area\": {\n      \"type\": \"string\",\n      \"description\": \"Optional broad subject area, or empty\"\n    }\n  },\n  \"required\": [\n    \"keywords\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"keywords\": {\n      \"type\": \"string\",\n      \"description\": \"Comma-separated topic keywords\"\n    },\n    \"subject_area\": {\n      \"type\": \"string\",\n      \"description\": \"Optional broad subject area, or empty\"\n    }\n  },\n  \"required\": [\n    \"keywords\"\n  ]\n}"
+    },
+    "journal_match_agent_Resp": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+    }
+  },
+  "connections": {
+    "5fa9cd3e-50a3-4dea-b9c8-a2fd204ddb0e": {
+      "id": "5fa9cd3e-50a3-4dea-b9c8-a2fd204ddb0e",
+      "name": "OpenAIConn",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "OpenAIConn",
+        "description": "Your llmprovider Connector",
+        "llmProvider": "=$property[\"AgenticAI.OpenAIConn.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAIConn.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAIConn.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    },
+    "0d4c2b12-2989-49e1-be41-7b54a28dbc42": {
+      "id": "0d4c2b12-2989-49e1-be41-7b54a28dbc42",
+      "name": "PostgresConn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "Your PostgreSQL Connector",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.PostgresConn.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.PostgresConn.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40IiwidGFnIjoiMC45LjQtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL3dpLXBvc3RncmVzL3NyYy9hcHAvUG9zdGdyZVNRTCIsImlkIjoiUG9zdGdyZVNRTCIsInZlcnNpb24iOiIyLjcuMiIsInRhZyI6IjIuNy4yLWIwMSIsIm5hbWUiOiJQb3N0Z3JlU1FMIiwiczNsb2NhdGlvbiI6IlRpYmNvL1Bvc3RncmVTUUwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9843",
+        "title": "journal_match_agent",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

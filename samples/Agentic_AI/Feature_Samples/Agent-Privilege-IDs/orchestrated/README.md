@@ -38,7 +38,7 @@ the specialists' bank tokens: neither credential works anywhere it shouldn't.
 
 ## Prerequisites
 
-Everything from the base sample (Flogo VS Code extension 2.26.6+, PostgreSQL, an OpenAI key, Python 3.9+, Node.js for
+Everything from the base sample (Flogo VS Code extension 2.26.7+, PostgreSQL and its ODBC driver connector prerequisite, an OpenAI key, Python 3.9+, Node.js for
 the Chatbot), with the base sample's database already created.
 
 ## Steps to run
@@ -111,3 +111,7 @@ settings (PII redaction, rate and token limits); add your own checks if you need
 
 > ⚠️ Demonstration only: fictional data and shared-secret JWTs for simplicity. In production, issue tokens from your
 > identity provider and use the MCP Server trigger's OAuth 2.0 (JWKS) mode.
+
+## Rebuild from code
+
+To regenerate these apps from code or run the automated checks, see [`_rebuild/README.md`](_rebuild/README.md).

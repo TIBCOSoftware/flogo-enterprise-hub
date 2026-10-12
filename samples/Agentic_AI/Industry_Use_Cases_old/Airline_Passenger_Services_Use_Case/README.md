@@ -273,9 +273,9 @@ Agent: Confirmation email sent.
 ## Prerequisites
 
 - **PostgreSQL 14+** running; a database named **`airline`** created for this demo.
-- **TIBCO Flogo Enterprise** (import the `.flogo` apps into the designer) — or the `flogobuild` CLI
-  if you prefer to build `.exe`s. CLI paths/versions are in
-  `skills-library/.claude/skills/config.md`.
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
+- **TIBCO Flogo Enterprise** — VS Code extension 2.26.7 or later (import the `.flogo` apps into the designer) — or the `flogobuild` CLI
+  if you prefer to build `.exe`s; set the app properties listed below before you run.
 - An **LLM provider** key (OpenAI-compatible). The `LLM_Base_URL` must be a **real endpoint**, e.g.
   `https://api.openai.com/v1`, and `LLM_Model` must be a model your key can access.
 - **SMTP** access for the email agent (Gmail App Password — see Setup & Run).

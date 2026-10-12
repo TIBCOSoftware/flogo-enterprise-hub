@@ -252,6 +252,14 @@ $FDA mm <Agent>_flow.Return.input.mappings.response.mapping.data '=coerce.toStri
 #   (email agent: map a "sent" confirmation; opt-in REST agent: coerce.toString($activity[InvokeRESTService].responseBody))
 
 # --- handler = the agent's tool card ---
+# ⚠️ EVERY tr_agent with agentType "A2A Server" needs >= 1 Tool handler: with ZERO handlers the runtime
+#    silently starts it as a Local Agent and NEVER opens its port (the orchestrator can't reach it; design-time
+#    checks pass). A read-only REASONING agent (the governed default) still gets one: a harmless, identity-free,
+#    no-parameter tool flow returning static reference text (glossary of its input's columns/codes, no DB,
+#    no customer data), and its prompt says "call it at most once, only if something is unclear". One
+#    <Agent>_PORT property per agent. Multi-agent template:
+#    samples/Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/_rebuild/build_agents.py
+#    (validator G10 checks both the handler and unique agent ports).
 $FDA cth <Agent>_flow <Agent> "<agentToolDesc>"
 $FDA sa handler <Agent>.<Agent>_flow.settings.agentToolName        <Agent>
 $FDA sa handler <Agent>.<Agent>_flow.settings.agentToolDescription "<agentToolDesc>"
@@ -418,9 +426,14 @@ $FDA sa flow Orchestrator_Flow.metadata.input --jsonFile <meta_input.json>
 
 ```bash
 $FLB version                                   # print path+version first (Phase 0)
-$FLB build-exe -f "<app>.flogo" -c <context>   # per app; <context> from config.md/flogobuild skill
+# Build from a scratch dir OUTSIDE the repo (copies hold secrets) with a RELATIVE -f: an absolute -f
+#   drops the exe next to the source .flogo, i.e. inside the repo. -f works on flogobuild 1.0.6 and 1.1.0
+#   (-a exists only on 1.1.0), so use -f everywhere.
+cp <UseCaseDir>/*.flogo "$HOME/<scratch>/" && cd "$HOME/<scratch>"
+$FLB build-exe -f "<app>.flogo" -c <context>   # per app; <context> from `flogobuild list-context` (runtime-gotchas §7)
 # Note: build-exe exits 1 with a cosmetic path error ("…\engine\C:\…\X.exe: syntax is incorrect")
 #       but the .exe IS produced next to the .flogo — verify by `ls -la --time-style=full-iso <app>.exe`.
+# Stop the exes on Windows with `netstat -ano | grep :<port>` → `taskkill //PID <pid> //F` (bash kill won't).
 $FDA cm -f "<app>.flogo"                        # check-mappings: refs, imports, scopes
 grep -l New_value <UseCaseDir>/*.flogo          # must print NOTHING (gotcha 4c)
 grep -o '"temperature": *"\?[0-9.]*"\?' <UseCaseDir>/*.flogo   # every hit 0 or "0" (FDA writes the string "0")

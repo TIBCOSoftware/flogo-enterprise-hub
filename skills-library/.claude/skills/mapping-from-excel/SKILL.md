@@ -4,6 +4,8 @@ description: Description on how to create a flogo file that follows an excel map
 user-invocable: true
 ---
 
+> **Preflight:** run `python -c "import openpyxl"` first (`pip install openpyxl` if the import fails). `flogobuild version && flogobuild list-context && go version` are only needed when building the generated app — `flogobuild` from the [TIBCO downloads page](https://www.tibco.com/downloads/11810), Go from [go.dev/dl](https://go.dev/dl/) (see AGENT.md → Prerequisites and preflight).
+
 Build a Flogo app that performs the field mappings described in an Excel file. The number of mapper activities matches the number of sheets in the workbook — one mapper per sheet, chained in declaration order — and they all feed a log activity fired by a timer trigger.
 
 For mapping mechanics — `mm`, `sms`, source syntax (`$activity` / `$property` / `$flowctx` / `$loop`), `@foreach`, function packages — defer to the `fda-mapping` skill. For the underlying `fda` command reference and the full "Things to avoid" list, defer to the `fda` skill. This skill is just the per-Excel workflow.
@@ -11,7 +13,7 @@ For mapping mechanics — `mm`, `sms`, source syntax (`$activity` / `$property` 
 ## Before you start
 
 1. **Read `config.md` first** (the one next to this skill under `.claude/skills/`) for `FLOGOBUILD_CONTEXT_NAME`, the Flogo apps folder, and CLI paths. Never hardcode a context name or a secret.
-2. **Print the CLI tool path and version before running any commands** — e.g. `fda --version` and `flogobuild --version` from their configured paths.
+2. **Print the CLI tool path and version before running any commands** — e.g. `fda version` and `flogobuild version` from their configured paths (neither CLI accepts `--version`).
 3. **Working directory:** run all `fda` / `flogobuild` commands from the Flogo apps directory named by `FLOGO_APPS_DIR` in `config.md` — resolved relative to `config.md` (which lives at `skills-library/.claude/skills/config.md`); the default `../../Flogo_Apps` points at `skills-library/Flogo_Apps/`, the same folder whether you opened the hub root or `skills-library` (create apps there, never in `skills-library/`). The `.flogo` files are created here; executables go to `<FLOGO_APPS_DIR>/../bin` (i.e. `skills-library/bin/`).
 4. **Windows / Git Bash:** prefix any `fda` call whose value starts with `/` (or contains a URL) with `MSYS_NO_PATHCONV=1` so paths aren't mangled. Harmless on Linux/Mac. See the `fda` skill for details.
 

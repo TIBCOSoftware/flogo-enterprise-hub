@@ -10,9 +10,9 @@ responsibilities split cleanly — you only author the spec:
 
 | SDD phase (spec-kit) | Who owns it | Where it lives |
 |---|---|---|
-| **Constitution** — non-negotiable principles/architecture | the **skill** | `SKILL.md` "Key facts" + "Top gotchas" (3-app pattern: MCP = reads, A2A = writes, WebSocket orchestrator; PostgreSQL patterns) |
+| **Constitution** — non-negotiable principles/architecture | the **skill** | `SKILL.md` "Key facts" + "Top gotchas" (3-app pattern: MCP = scoped reads + guarded writes, A2A = read-only reasoning, WebSocket orchestrator; rules in PostgreSQL) |
 | **Specify** — requirements, scenarios, acceptance criteria (WHAT/WHY) | **you** | this `*.spec.md` |
-| **Clarify** — resolve ambiguity | you + skill | skill Phase 2 asks only about gaps left in the spec |
+| **Clarify** — resolve ambiguity | you + skill | skill Phase 1 discovery asks only about gaps left in the spec (references/discovery-questions.md) |
 | **Plan** — architecture/tech (HOW) | the **skill** | skill Phase 3 (maps this spec → 3 Flogo apps, tables, ports, connections) |
 | **Tasks / Implement** — generate apps, SQL, docs | the **skill** | skill Phase 4 |
 | **Analyze / Validate** — cross-check, run | the **skill** | skill Phase 5 (loads SQL, runs tool/agent SQL, JSON-validates) |
@@ -21,7 +21,7 @@ Principles (from the SDD references): write in **domain/ubiquitous language**, d
 implementation**, be **complete yet concise** (cover the critical path, not every edge case), prefer
 **structured, machine-readable** tables and Given/When/Then, and include **interface contracts**
 (input → output) — but do **not** name Flogo, MCP, A2A, ports, or SQL here. The skill derives all of
-that: read-only lookups → MCP tools, state-changing actions → A2A agents, entities → PostgreSQL,
+that: lookups → scoped-read MCP tools, state-changing actions → guarded (two-step) MCP tools, the fuzzy judgment → an A2A reasoning agent, entities → PostgreSQL,
 scenarios/seed-data → `database.sql` + `prompts.md`.
 
 ---
@@ -62,7 +62,7 @@ scenarios/seed-data → `database.sql` + `prompts.md`.
 |---|---|---|---|
 | `<Get… >` | `<identifier / filter>` | `<fields returned>` | `<entity>` |
 
-### 4b. Actions / workflows (state-changing) → the skill maps these to A2A agents
+### 4b. Actions / workflows (state-changing) → the skill maps these to guarded MCP tools (two-step when regrettable)
 > What the user can *do*. One row per action. Note validation, the state change, and guardrails
 > (e.g. confirm first, once-only, idempotency). Include input → output contract.
 

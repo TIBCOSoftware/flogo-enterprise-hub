@@ -8,7 +8,7 @@ Ready-to-run sample applications for **TIBCO Flogo®** — the low-code / no-cod
 
 ## Agentic AI Samples
 
-Build, orchestrate, and govern AI agents inside Flogo integration flows using the **Agentic AI Connector** (LLM Client Activity, AI Agent Activity, AI Agent Trigger) and the **Flogo-as-MCP-server** pattern. The [`Agentic_AI/`](./Agentic_AI/) folder holds two collections: **feature samples** (below) that each teach a building block, and **end-to-end industry use-case demos** grouped by vertical (see [Industry Use-Case Demos](#agentic-ai-industry-use-case-demos)).
+Build, orchestrate, and govern AI agents inside Flogo integration flows using the **Agentic AI Connector** (LLM Client Activity, AI Agent Activity, AI Agent Trigger) and the **Flogo-as-MCP-server** pattern. The [`Agentic_AI/`](./Agentic_AI/) folder holds two collections: **feature samples** (below) that each teach a building block, and **end-to-end industry use-case demos** grouped by industry (see [Industry Use-Case Demos](#agentic-ai-industry-use-case-demos)). To run a demo, start with the governed use cases in [`Agentic_AI/Industry_Use_Cases/`](./Agentic_AI/Industry_Use_Cases/); [`Industry_Use_Cases_old/`](./Agentic_AI/Industry_Use_Cases_old/) is legacy, kept for reference while it is migrated.
 
 **➡️ Full details, prerequisites & Quick Start: [Agentic AI README](./Agentic_AI/README.md)**
 
@@ -18,7 +18,7 @@ Build, orchestrate, and govern AI agents inside Flogo integration flows using th
 |---|---|---|
 | [Insurance Claims Processor](./Agentic_AI/Feature_Samples/InsuranceClaimsProcessor/) | Banking, Financial Services & Insurance | LLM Client chaining: MCP coverage check → A2A fraud scoring → decision |
 | [Mortgage AI Processor](./Agentic_AI/Feature_Samples/mortgagedemo/) | Banking, Financial Services & Insurance | Flogo as an MCP server for autonomous loan decisioning (approve/escalate/decline) |
-| [Agent Privilege IDs](./Agentic_AI/Feature_Samples/Agent-Privilege-IDs/) | Banking, Financial Services & Insurance | Each AI agent has its own privilege ID: JWT scopes hide tools, a registry suspends agents, humans approve privileged changes |
+| [Agent Privilege IDs](./Agentic_AI/Feature_Samples/Agent-Privilege-IDs/) | Agent Governance (cross-industry) | Each AI agent has its own privilege ID: JWT scopes hide tools, a registry suspends agents, humans approve privileged changes |
 | [Healthcare Patient Support Agent](./Agentic_AI/Feature_Samples/Healthcare-Compliance-Agent/) | Healthcare | AI Agent Trigger with a custom PHI guardrail + custom conversation store (HIPAA-aware) |
 | [BeautyCo Retail Intelligence](./Agentic_AI/Feature_Samples/demo_retail/) | Retail & Consumer | Flogo as an MCP server exposing enterprise data for personalized consultations |
 | [Mobile Customer Care Multi-Agent Hub](./Agentic_AI/Feature_Samples/Mobile-Customer-Care-Multi-Agent/) | Telecommunications & Customer Service | AI Agent dispatcher with multi-agent handoff + deterministic `callagent` routing |
@@ -36,28 +36,45 @@ Build, orchestrate, and govern AI agents inside Flogo integration flows using th
 
 ### Agentic AI Industry Use-Case Demos
 
-End-to-end, PostgreSQL-backed demos that apply the same **three-app pattern** — an **MCP Server** (read-only tools), an **A2A Agents** app (guarded write workflows), and a **WebSocket AI Orchestrator** — to a different vertical each time. All share the browser [Chatbot](./Agentic_AI/Chatbot/) test client. See the [Agentic AI README](./Agentic_AI/README.md#part-2--industry-use-case-demos) for the full catalog, ports, and status of each.
+End-to-end, PostgreSQL-backed chat assistants that apply the same governed **three-app pattern** to a different industry each time: an **MCP Server** (verified identity, scoped reads, guarded two-step writes and routing to people, with the rules enforced in SQL), an **A2A Agents** app (read-only reasoning agents that never see the customer's identity), and a **WebSocket AI Orchestrator** (the conversation, with per-connection memory). All share the browser [Chatbot](./Agentic_AI/Chatbot/) client. See the [Agentic AI README](./Agentic_AI/README.md#part-2--industry-use-case-demos) for the full catalog, ports, and status of each.
 
-| Use Case | Vertical |
+#### Industry use cases (governed — start here)
+
+| Use Case | Industry → Sub-category |
 |---|---|
-| [Aerospace MRO & AOG Operations](./Agentic_AI/Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case/) | Aerospace & Defense |
-| [Retail Banking Assistant](./Agentic_AI/Industry_Use_Cases_old/Retail_Banking_Assistant_Use_Case/) | Banking, Financial Services & Insurance |
-| [Life & Pensions Member Assistant](./Agentic_AI/Industry_Use_Cases_old/Life_And_Pensions_Use_Case/) | Banking, Financial Services & Insurance |
-| [Auto Insurance Policyholder Assistant](./Agentic_AI/Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) *(RAG)* | Banking, Financial Services & Insurance |
-| [Hospital Post-Discharge Assistant](./Agentic_AI/Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case/) | Healthcare |
-| [Telecom Invoice Chatbot](./Agentic_AI/Industry_Use_Cases_old/Telecom_Invoice_Chatbot_Use_Case/) | Telecommunications |
-| [Electric Power Distribution](./Agentic_AI/Industry_Use_Cases_old/Power_Distribution_Use_Case/) | Utilities & Energy |
-| [Semiconductor Customer & Order Assistant](./Agentic_AI/Industry_Use_Cases_old/Semiconductor_Customer_Use_Case/) | Manufacturing & Industrial |
-| [Predictive Maintenance & Asset Monitoring](./Agentic_AI/Industry_Use_Cases_old/Predictive_Maintenance_Use_Case/) | Manufacturing & Industrial |
-| [Airline Passenger Services](./Agentic_AI/Industry_Use_Cases_old/Airline_Passenger_Services_Use_Case/) | Transportation, Travel & Logistics |
-| [Logistics / Transport Shipper Assistant](./Agentic_AI/Industry_Use_Cases_old/Logistics_Transport_Use_Case/) | Transportation, Travel & Logistics |
-| [Retail — BW & Flogo, Better Together](./Agentic_AI/Industry_Use_Cases_old/Retail_AI_BW_Flogo/) *(BW6)* | Retail & Consumer |
-| [Real Estate Lead Engagement Assistant](./Agentic_AI/Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) | Real Estate |
-| [Scholarly Publishing — Author Services](./Agentic_AI/Industry_Use_Cases/Scholarly_Publishing_Author_Services_Use_Case/) *(governed)* | Publishing & Education |
-| [Airline Passenger Services — Meridian](./Agentic_AI/Industry_Use_Cases/Airline_Passenger_Services_Use_Case/) *(governed)* | Transportation & Travel |
-| [Parcel Delivery — Swiftbound Last-Mile](./Agentic_AI/Industry_Use_Cases/Parcel_Delivery_Last_Mile_Use_Case/) *(governed)* | Transportation, Travel & Logistics |
-| [Retail Banking Assistant — Kestrel Bank](./Agentic_AI/Industry_Use_Cases/Retail_Banking_Assistant_Use_Case/) *(governed)* | Banking & Financial Services |
-| [Corporate Payment Investigation & Status — Aurelia Global Bank](./Agentic_AI/Industry_Use_Cases/Corporate_Payments_Investigation_Use_Case/) *(governed)* | Banking & Financial Services |
+| [Banking — Retail Banking Assistant](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) | Financial Services → Banking |
+| [Banking — Corporate Payments Investigation Assistant](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Corporate_Payments_Investigation_Use_Case/) | Financial Services → Banking |
+| [Telecom — Mobile Billing & Spend Control Assistant](./Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) | Telecommunications → Mobile, Fixed & Cable Operators |
+| [Airline — Passenger Services Assistant](./Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) | Transportation & Logistics → Airlines & Aviation |
+| [Logistics — Parcel Delivery Assistant](./Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) | Transportation & Logistics → Parcel & Postal Logistics |
+| [Publishing — Author Services Assistant](./Agentic_AI/Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/) | Media & Travel → Media & Publishing |
+
+#### Legacy (`_old` — reference, being migrated)
+
+Earlier demos on the legacy pattern (the prompt filters the data and guards the writes, rather than the database). Kept for reference only; don't base new work on them.
+
+| Use Case | Industry | Superseded by |
+|---|---|---|
+| [Aerospace MRO & AOG Operations](./Agentic_AI/Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case/) | Aerospace & Defense | — |
+| [Retail Banking Assistant](./Agentic_AI/Industry_Use_Cases_old/Retail_Banking_Assistant_Use_Case/) | Financial Services | [Banking — Retail Banking Assistant](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) |
+| [Life & Pensions Member Assistant](./Agentic_AI/Industry_Use_Cases_old/Life_And_Pensions_Use_Case/) | Insurance | — |
+| [Auto Insurance Policyholder Assistant](./Agentic_AI/Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) *(RAG)* | Insurance | — |
+| [Hospital Post-Discharge Assistant](./Agentic_AI/Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case/) | Healthcare & Life Sciences | — |
+| [Telecom Invoice Chatbot](./Agentic_AI/Industry_Use_Cases_old/Telecom_Invoice_Chatbot_Use_Case/) | Telecommunications | [Telecom — Mobile Billing & Spend Control Assistant](./Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) |
+| [Electric Power Distribution](./Agentic_AI/Industry_Use_Cases_old/Power_Distribution_Use_Case/) | Energy & Utilities | — |
+| [Semiconductor Customer & Order Assistant](./Agentic_AI/Industry_Use_Cases_old/Semiconductor_Customer_Use_Case/) | High Tech & Software | — |
+| [Predictive Maintenance & Asset Monitoring](./Agentic_AI/Industry_Use_Cases_old/Predictive_Maintenance_Use_Case/) | Manufacturing & Industrial | — |
+| [Airline Passenger Services](./Agentic_AI/Industry_Use_Cases_old/Airline_Passenger_Services_Use_Case/) | Transportation & Logistics | [Airline — Passenger Services Assistant](./Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) |
+| [Logistics / Transport Shipper Assistant](./Agentic_AI/Industry_Use_Cases_old/Logistics_Transport_Use_Case/) | Transportation & Logistics | [Logistics — Parcel Delivery Assistant](./Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) |
+| [Real Estate Lead Engagement Assistant](./Agentic_AI/Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) | Real Estate | — |
+
+#### BW6 + Flogo samples
+
+TIBCO BusinessWorks 6 + Flogo "Better Together" samples — they need a BW6 runtime / Business Studio. See [`Agentic_AI/BW6_Flogo_Samples/`](./Agentic_AI/BW6_Flogo_Samples/).
+
+| Sample | Industry |
+|---|---|
+| [Retail — BW & Flogo, Better Together](./Agentic_AI/BW6_Flogo_Samples/Retail_AI_BW_Flogo/) *(BW6)* | Retail & Consumer Goods |
 
 ---
 

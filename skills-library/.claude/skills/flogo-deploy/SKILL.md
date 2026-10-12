@@ -4,6 +4,8 @@ description: Deploy a TIBCO Flogo application to the TIBCO Platform. Provide the
 user-invocable: true
 ---
 
+> **Preflight (only needed when deploying):** run `tibcop --version && tibcop list-profiles` first (see AGENT.md → Prerequisites and preflight, or `preflight.py --need deploy`). Every deploy command needs a profile name — use `TIBCOP_PROFILE` from `config.md` (create one with `tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com`, optional `--software-statement <software_statement>`; then `tibcop list-profiles`).
+
 # Deploy a Flogo Application to the TIBCO Platform
 
 This skill deploys a `.flogo` application file to a TIBCO Platform dataplane using the `tibcop` CLI.

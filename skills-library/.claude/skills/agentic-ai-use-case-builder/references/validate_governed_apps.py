@@ -23,6 +23,11 @@ integrity, password fields, A2A toolParams) and then the governance checks this 
                      readOnlyToolHint=true never sits on a tool whose flow writes.
   G9 SECRETS         no real-looking API key (sk-...) and no non-placeholder DB password in app properties.
                      Pass --local to downgrade G9 to a warning for a scratch build that needs real values.
+  G10 A2A SERVERS    every AI Agent trigger (#agent / #tr_agent) with agentType "A2A Server" has >= 1 Tool handler,
+                     and the agent ports (resolved from their app properties) are unique within the app. With ZERO
+                     Tool handlers the runtime silently starts it as a Local Agent and never opens its port, so the
+                     orchestrator can't reach it - give each reasoning agent one harmless, identity-free, no-parameter
+                     static reference tool (see the Telecom sample's _rebuild/build_agents.py).
 
 Usage:  python validate_governed_apps.py [--local] A.flogo [B.flogo ...]      exit 1 on any error
 """
@@ -125,6 +130,25 @@ def check(path, local):
         for cid in re.findall(r"conn://([\w-]+)", sval):
             if cid not in conn_ids: errs.append(f"G5 conn://{cid} does not resolve to a connection in this app")
         if "New_value" in sval: errs.append(f"G6 literal 'New_value' found: {sval[:80]!r}")
+
+    # G10: an A2A Server agent trigger needs >= 1 Tool handler (else it runs as a Local Agent, no port), unique ports.
+    agent_aliases = {"#" + (m.group(1) or "agent") for imp in d.get("imports", [])
+                     for m in [re.match(r"(?:(\w+)\s+)?\S*/trigger/agent$", imp)] if m} | {"#agent", "#tr_agent"}
+    props = {p.get("name"): p.get("value") for p in d.get("properties", [])}
+    seen_ports = {}
+    for tr in d.get("triggers", []):
+        s = tr.get("settings", {})
+        if tr.get("ref") not in agent_aliases or str(s.get("agentType", "")).strip() != "A2A Server": continue
+        tools = [h for h in tr.get("handlers", []) if (h.get("settings") or {}).get("handlerType", "Tool") == "Tool"]
+        if not tools:
+            errs.append(f"G10 {tr['id']}: A2A Server agent has no Tool handler - it starts as a Local Agent and never "
+                        f"opens its port; add one harmless, identity-free, no-parameter reference tool")
+        raw = str(s.get("agentPort", "")).strip()
+        m = re.fullmatch(r'=\$property\["([^"]+)"\]', raw)
+        port = str(props.get(m.group(1), "")) if m else raw
+        if port and port in seen_ports:
+            errs.append(f"G10 {tr['id']}: agent port {port} is also used by {seen_ports[port]} - one port per A2A agent")
+        elif port: seen_ports[port] = tr["id"]
 
     sec = warns if local else errs
     for p in d.get("properties", []):

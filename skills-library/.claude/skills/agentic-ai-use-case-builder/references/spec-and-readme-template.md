@@ -45,11 +45,16 @@ negative tests, limitations, and a file inventory go into **your report to the u
 not into the README. Fill in every port, path, property name and demo login from the built apps; never
 leave a value the reader has to guess.
 
-```markdown
-# <Use Case Name> — <Assistant name> (Governed Agentic AI)
+**Title and voice.** Title style is `# <Industry> — <What it does> Assistant` (e.g. `# Telecom — Mobile
+Billing & Spend Control Assistant`). Put **no** assistant name and **no** "(Governed Agentic AI)" in the title;
+introduce the assistant by name in the **first sentence** instead ("**Nova** is a chat assistant for …"). Use
+US spelling throughout (organization, authorized, center, traveler, color).
 
-<2–3 sentences: who uses it and what they can do. Name the human-owned requests and say the assistant
-never decides them.>
+```markdown
+# <Industry> — <What it does> Assistant
+
+**<Assistant name>** is a chat assistant for <who> (fictional **<Org>**). <1–2 more sentences: what they can
+do. Name the human-owned requests and say the assistant never decides them.>
 
 **Agentic in the middle, deterministic at the edges:** the AI handles the conversation and <the fuzzy
 step>. PostgreSQL decides <identity, eligibility, prices, every change>. People decide the exceptions.
@@ -68,7 +73,8 @@ the rules (database), the exceptions (people); then the "without the AI …" sen
 <one row per app; describe tools in plain words, not SQL; say what the A2A agent never sees>
 
 ## Prerequisites
-- TIBCO Flogo VS Code extension <version>+ · PostgreSQL 14+ · an LLM API key · Node.js 16+ for ../Chatbot
+- TIBCO Flogo VS Code extension 2.26.7+ · PostgreSQL 14+ · an LLM API key · Node.js 16+ for ../Chatbot
+- Connector prerequisites (install before opening the apps in the designer): PostgreSQL ODBC driver <+ any other connector detected per connector-prereqs.md> — VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…**, then reload VS Code
 
 ## Steps to run
 
@@ -102,4 +108,29 @@ More prompts are in [prompts.md](prompts.md).
 |---|---|
 <verification never succeeds (redaction on the orchestrator), can't reach tools (start order / URLs),
 LLM 401 / model not found, new tab must verify again (expected), stale demo data (reset)>
+
+## Rebuild from code
+
+To regenerate these apps from code or run the automated checks, see [`_rebuild/README.md`](_rebuild/README.md).
 ```
+
+## `_rebuild/README.md` template
+
+The main README stays run-only, so the file inventory and the test ladder go in a separate developer guide
+at `_rebuild/README.md`. Worked example:
+`samples/Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/_rebuild/README.md`.
+Copy its sections and fill every value from **this** sample's scripts (never copy the example's values):
+
+1. **Intro**: "You don't need this folder to run the demo", plus what the folder is for.
+2. **What's in this folder**: one row per `_rebuild/*.py` (and any extra script or spec), then the related
+   use-case files (`database.sql`, `seed_data.sql`, `reset_data.sql`, `prompts.md`, transcript).
+3. **Before you start**: prerequisites, and the settings table (env var / `config.md` key / default) built
+   from what the scripts actually read. Note any script that ignores `config.md`, a DB name or port.
+4. **Regenerate the apps**: `OUT_DIR=rebuilt python _rebuild/build_*.py`, plus both ⚠️ warnings (never
+   regenerate a designer-saved `.flogo`; generated apps hold real credentials, so scrub before commit).
+5. **Test ladder**: command, what it checks and what must be running, for each step. Give only commands,
+   **no** results or counts.
+6. **This sample's values**: DB, ports, paths, tool names, agent names.
+7. **Changing the use case**: edit SQL + `tool_spec.py`, then `test_rules.py`, then rebuild, then steps 2–4.
+
+Check that every relative link resolves: `_rebuild/` is one level deeper than the use-case folder.

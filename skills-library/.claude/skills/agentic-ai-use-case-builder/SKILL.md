@@ -1,11 +1,11 @@
 ---
 name: agentic-ai-use-case-builder
-description: Build ANY Agentic AI use case, demo, or chatbot on TIBCO Flogo Enterprise — a real-time WebSocket chatbot backed by three apps: an MCP Server (read tools), an A2A Agents app (reasoning/action agents), and a WebSocket AI Orchestrator, all PostgreSQL-backed. This is THE canonical builder for any vertical (telecom, airline, hospital, banking, retail, insurance, logistics, utilities, scholarly publishing, …). Governed by default: it first runs the Agentic AI decision framework (human-owned vs. agent vs. deterministic), then enforces identity, scoping, prices and state changes in PostgreSQL — not in prompts — with scoped reads (FROM rule_fn(token)), guarded writes (INSERT … SELECT rule_fn → 0 rows when blocked), two-step propose/confirm for state changes, routed human-review cases, session-token identity, per-connection conversation memory, minimised read-only A2A agents, and a four-step test ladder (SQL rules → static validator → MCP smoke → chat e2e with prompt injection). TWO build methods, and the skill ASKS which: the Flogo Design CLI (`fda`) built from scratch (the RECOMMENDED DEFAULT), or cloning a governed reference `.flogo` and swapping fields. Use when the user asks to build/create/scaffold an agentic AI use case, demo, chatbot, or "MCP + A2A + orchestrator" solution for any domain, or when an agent must act on a user's own records, money or state.
+description: Build ANY Agentic AI use case, demo, or chatbot on TIBCO Flogo Enterprise — a real-time WebSocket chatbot backed by three apps: an MCP Server (read tools), an A2A Agents app (reasoning/action agents), and a WebSocket AI Orchestrator, all PostgreSQL-backed. This is THE canonical builder for any vertical (telecom, airline, hospital, banking, retail, insurance, logistics, utilities, scholarly publishing, …). Governed by default: it first asks the user discovery questions (business goal, audience/region, persona, identity, reads, actions and their rules, the fuzzy step, human-owned requests, demo storyline, runtime model) for anything not already provided, then runs the Agentic AI decision framework (human-owned vs. agent vs. deterministic), then enforces identity, scoping, prices and state changes in PostgreSQL — not in prompts — with scoped reads (FROM rule_fn(token)), guarded writes (INSERT … SELECT rule_fn → 0 rows when blocked), two-step propose/confirm for state changes, routed human-review cases, session-token identity, per-connection conversation memory, minimised read-only A2A agents, and a four-step test ladder (SQL rules → static validator → MCP smoke → chat e2e with prompt injection). TWO build methods, and the skill ASKS which: the Flogo Design CLI (`fda`) built from scratch (the RECOMMENDED DEFAULT), or cloning a governed reference `.flogo` and swapping fields. Use when the user asks to build/create/scaffold an agentic AI use case, demo, chatbot, or "MCP + A2A + orchestrator" solution for any domain, or when an agent must act on a user's own records, money or state.
 user-invocable: true
 metadata:
   author: Flogo Skills Author <author@example.com>
-  version: "1.0.0"
-  last-updated-date: "2026-10-10"
+  version: "1.1.0"
+  last-updated-date: "2026-10-12"
 ---
 
 # Agentic AI Use Case Builder (governed by default)
@@ -33,7 +33,7 @@ plain, ungoverned demo:
 | Identity | none / trust the chat | `verify_*` → session token; per-connection `conversationId` |
 | Done means | design-time validation | **4-step test ladder**, including prompt injection |
 
-**Worked example:** `samples/Agentic_AI/Industry_Use_Cases/Scholarly_Publishing_Author_Services_Use_Case/`. Read its
+**Worked example:** `samples/Agentic_AI/Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/`. Read its
 `database.sql`, `_rebuild/tool_spec.py` and `README.md` before building a new one.
 
 ## What gets built
@@ -50,9 +50,9 @@ Chat UI --WebSocket--> <Prefix>AIOrchestrator --MCP(HTTP streamable)--> <Prefix>
 
 | App | Trigger | Port / path | What it holds |
 |---|---|---|---|
-| `<Prefix>AIOrchestrator` | `#wsserver` (WebSocket) | e.g. `7001`, path `/<usecase>` | the chat brain: an AI Agent that routes to MCP tools and the A2A agent, with per-connection memory |
-| `<Prefix>MCPServer` | `#mcpserver` (HTTP streamable) | e.g. `9091`, path `/<usecase>mcpserver` | the governed tools — scoped reads, guarded writes, two-step actions, human-review routing |
-| `<Prefix>Agents` | `#agent` / `tr_agent` (A2A, HTTP) | e.g. `8081`, its own `agentUrl` | one reasoning agent, read-only, given minimised input (no identity) |
+| `<Prefix>AIOrchestrator` | `#wsserver` (WebSocket) | block port `X0` (e.g. `9930`), path `/<usecase>` | the chat brain: an AI Agent that routes to MCP tools and the A2A agent, with per-connection memory |
+| `<Prefix>MCPServer` | `#mcpserver` (HTTP streamable) | `X2` (e.g. `9932`), path `/<usecase>mcpserver` | the governed tools — scoped reads, guarded writes, two-step actions, human-review routing |
+| `<Prefix>Agents` | `#agent` / `tr_agent` (A2A, HTTP) | `X3`+ (e.g. `9933`), one port + `agentUrl` per agent | usually one reasoning agent (up to 3), read-only, given minimised input (no identity) |
 
 **Where the apps live** is named by `<Prefix>` after the persona/vertical (`PassengerServices*`,
 `AuthorServices*`) — no `Gov` suffix (Phase 0 naming rule).
@@ -71,9 +71,11 @@ are illustrative, not fixed):
   it to a team with an SLA, and the model never decides the outcome.
 - **Email (MCP, optional):** `email_<confirmation>` — a guarded tool that only emails an action already
   executed for the verified session.
-- **Reasoning agent (A2A):** exactly one — e.g. rank options against the user's free-text preferences. It gets
-  only the fields it needs (title/abstract/keywords, or the candidate flights), never the user's identity, and
-  has no write tool.
+- **Reasoning agent (A2A):** usually one; up to 3 distinct semantic steps, one A2A agent (and port) each —
+  see the Telecom sample (`Telecom_Mobile_Billing_Use_Case`: plan recommender, charge classifier, bill
+  explainer). E.g. rank options against the user's free-text preferences. Each gets only the fields it needs
+  (title/abstract/keywords, or the candidate flights), never the user's identity, and has no write tool — but
+  it **must** have one harmless reference tool, or it never opens its port (runtime-gotchas.md §10, G10).
 
 ## Hard rules
 
@@ -83,7 +85,9 @@ FDA mode put every structural change through `fda`. In clone mode, carry the `co
 `SECRET:` value verbatim from the cloned app, and write a real `""` (never the literal `New_value`) for an
 empty OpenAI base URL. On top of that:
 
-1. **Gate first.** No design until every operation has an owner from
+1. **Ask, then gate.** Never invent the user's domain. Ask the
+   [discovery questions](references/discovery-questions.md) that the user hasn't already answered, and
+   put every "you decide" under **Assumptions** in the plan. No design until every operation has an owner from
    [decision-framework-gate.md](references/decision-framework-gate.md). If you can't write the "Why an
    agent here?" paragraph, tell the user the use case doesn't need an agent.
 2. **No rule in a prompt.** Filtering, arithmetic, eligibility, routing and "only show their own" are
@@ -96,8 +100,9 @@ empty OpenAI base URL. On top of that:
 6. **Tests assert on DB state.** Text checks stay loose, because the wording varies (temperature 0 =
    provider default).
 7. **Secrets.** Builds read secrets at run time (env or config.md). Never print config.md unredacted.
-   Scrub the `.flogo` files before handing them over (Phase 6). Executables and their copies live
-   outside the repo.
+   Keep the live values in the `.flogo` files after the build so the user can run the apps locally; scrub
+   them **only when the user asks to commit** (Phase 6). Executables and their copies live outside the
+   repo.
 8. **Report honestly.** Report pass counts, retries and the known limitations every time. Never
    report a green run you didn't see.
 
@@ -105,17 +110,22 @@ empty OpenAI base URL. On top of that:
 
 | File | Read when |
 |---|---|
+| [references/discovery-questions.md](references/discovery-questions.md) | Phase 1: the questions to ask the user (three rounds, skip what is answered) before you plan |
+| [references/industry-taxonomy.md](references/industry-taxonomy.md) | Phase 0: the `Industry/Sub_Category` folder for the sample, and the clone-safe path rules |
+| [references/port-registry.md](references/port-registry.md) | Phase 0: pick the next free port block (X0 WS, X2 MCP, X3+ A2A); update the registry in the same change |
+| [references/migration-playbook.md](references/migration-playbook.md) | Phases 0–1, **only when the input is a legacy sample** from `Industry_Use_Cases_old/`: discovery from its files, feature mapping, mapping table for all 13, retire steps |
 | [references/decision-framework-gate.md](references/decision-framework-gate.md) | Phase 1: classify operations, write "Why an agent here?" |
 | [references/governed-patterns.md](references/governed-patterns.md) | Phases 2–4: SQL shapes and the fda recipes that differ |
-| [references/runtime-gotchas.md](references/runtime-gotchas.md) | Phases 4–5: wsserver headers, temperature, guardrails, LLM timeout, flogobuild context |
+| [references/runtime-gotchas.md](references/runtime-gotchas.md) | Phases 4–5: wsserver headers, temperature, guardrails, LLM timeout, flogobuild context and `-f`, A2A agent needs a Tool handler |
 | [references/testing-ladder.md](references/testing-ladder.md) | Phase 5: the four steps and how to run the apps |
 | [references/spec-and-readme-template.md](references/spec-and-readme-template.md) | Phases 2 and 6: spec additions, README template |
-| [references/validate_governed_apps.py](references/validate_governed_apps.py) | Phase 5: runs the base validator, then G1–G9 |
+| [references/validate_governed_apps.py](references/validate_governed_apps.py) | Phase 5: runs the base validator, then G1–G10 |
 | [templates/_rebuild/fda_common.py](templates/_rebuild/fda_common.py) | Phase 4: `App` helper (`bake_pg`, `conn_ref`, `cap_empty`, connections) |
 | Local build references (self-contained): [fda-build-recipes](references/fda-build-recipes.md), [postgres-activity-patterns](references/postgres-activity-patterns.md), [fda-limitations](references/fda-limitations.md), [manual-config-gap](references/manual-config-gap.md), [connector-prereqs](references/connector-prereqs.md) | Phase 4A: the FDA recipes, PostgreSQL activity contract, Tech-Preview limits, manual-config gap, connector prerequisites |
 | [references/flogo-app-templates.md](references/flogo-app-templates.md) | Phase 4B: exact JSON shape of all 3 apps — the clone-and-adapt reference |
-| [references/use-case-spec-template.md](references/use-case-spec-template.md) | Phase 2: the base spec the governed additions extend |
+| [references/use-case-spec-template.md](references/use-case-spec-template.md) | Phases 1–2: a spec the user may hand you (ask only about its gaps); the base spec the governed additions extend |
 | [references/data-and-docs.md](references/data-and-docs.md) | Phase 4/6: conventions for `database.sql`, `reset_data.sql`, `prompts.md`, README |
+| [references/build-cost-and-time.md](references/build-cost-and-time.md) | **Only when the user asks** about cost, time, tokens or which model to build with. Never volunteer it |
 | [references/chatbot-test.md](references/chatbot-test.md) | Phase 6: bring up the shared chatbot and connect it (the ↻ step people miss) |
 
 ## Workflow
@@ -140,12 +150,28 @@ accordingly. (Do not silently pick a method — a build cloned without asking on
 trigger with designer-only errors.)
 
 ### Phase 0: environment
+**Preflight first.** Run `python templates/preflight.py --need db` (from this skill's folder) BEFORE
+Phase 1 discovery — it checks what design + the SQL rule tests need (`fda`, config.md, Python 3.9+,
+`psql` + a PostgreSQL connection). If it fails, stop and tell the user exactly what to install (see
+`skills-library/AGENT.md` → Prerequisites); don't start discovery on a machine that can't design or run
+the SQL tests. `flogobuild`, Go, Node.js and `tibcop` are **not** needed yet — they are checked in Phase 5
+(build/chat) or before a deploy, only if the user asks for those steps.
+
 Read `skills-library/.claude/skills/config.md` for the fda path, psql, PostgreSQL, LLM provider and
-model. **Redact** passwords and keys before echoing anything. Run `flogobuild list-context` and record
-the real context name; config.md's value can be stale (runtime-gotchas.md §7). Pick the output folder:
-`samples/Agentic_AI/Industry_Use_Cases/<UseCase>_Use_Case/` for a catalogue demo — this is the canonical
-home for governed use cases. When migrating an existing non-governed demo, build the governed version
-here and leave the original untouched under `samples/Agentic_AI/Industry_Use_Cases_old/`.
+model. **Redact** passwords and keys before echoing anything. If the full ladder (build/e2e) is in scope,
+run `flogobuild list-context` and record the real context name; config.md's value can be stale
+(runtime-gotchas.md §7). Pick the output folder:
+`samples/Agentic_AI/Industry_Use_Cases/<Industry>/<Sub_Category>/<UseCase>_Use_Case/` — the canonical home
+for governed use cases. Take the industry and sub-category from
+[industry-taxonomy.md](references/industry-taxonomy.md): use the folder if it exists, create it if it
+doesn't, and follow its clone-safe path rules (only `A-Z a-z 0-9 _`, every repo-relative path ≤ 160
+characters). When migrating an existing non-governed demo, build the governed version here and leave the
+original untouched under `samples/Agentic_AI/Industry_Use_Cases_old/` — **if the input is a legacy sample,
+follow [references/migration-playbook.md](references/migration-playbook.md)** (it replaces most of the
+Phase 1 discovery and fixes the folder, ports and DB name per sample).
+
+**Ports:** take the next free block from [references/port-registry.md](references/port-registry.md)
+(`X0` WebSocket, `X2` MCP, `X3`+ one per A2A agent), and add the new block to the registry in the same change.
 
 **Naming — no `Gov` suffix.** Name the apps `<Vertical>MCPServer` / `<Vertical>Agents` /
 `<Vertical>AIOrchestrator` after the persona/vertical (e.g. `AuthorServices*`, `PassengerServices*`). Do
@@ -157,22 +183,44 @@ to avoid a collision; drop the suffix once that original is retired.
 **Decide the runtime model now** (it is baked into the apps — getting it wrong means a rebuild): the
 orchestrator needs a capable tool-calling model that will delegate to the A2A agent. `gpt-5-nano` is
 too weak (drops tool calls, won't delegate); use **`gpt-5.5`** or a Sonnet-/Opus-class or Gemini 2.5
-Pro-class model. If config.md's `LLM_Model` is a tiny model, override it (env `LLM_MODEL=gpt-5.5` or set
-it in config.md) before Phase 4. See [cost-and-efficiency](#cost--efficiency); ideally run the whole
-build in a **fresh session**.
+Pro-class model. Confirm the model in the Phase 1 discovery (question 18). If config.md's `LLM_Model`
+is a tiny model, override it (env `LLM_MODEL=gpt-5.5` or set it in config.md) before Phase 4.
 
-### Phase 1: frame and gate
-Name the persona and the vertical. Use fictional organisations, and never a customer's name on
-screen. List the operations and classify each one (Q1 human? Q2 semantic?). Check that the catalogue
-doesn't already cover the vertical (`samples/Agentic_AI/README.md`).
+### Phase 1: discover, frame and gate ⛔
+**Legacy input?** When migrating a sample from `Industry_Use_Cases_old/`, use its README.md, database.sql,
+prompts.md and any `*.spec.md` as the discovery input, play back what you took, and ask ONE
+`AskUserQuestion` round — see [references/migration-playbook.md](references/migration-playbook.md). Never carry
+POC files or prospect/customer names from the legacy input into the new sample.
+
+**1a. Discover: ask the user.** Before you frame anything, work through
+[references/discovery-questions.md](references/discovery-questions.md). Skip what the user's message,
+spec file or earlier turns already answer, and ask the rest in at most three batched rounds:
+- **Round 1, context (open text):** the business problem and success criteria, the audience and region,
+  who chats, domain vocabulary, and the brand.
+- **Round 2, who and what (`AskUserQuestion`):** persona, identity proof, reads, actions, the fuzzy step
+  and the human-owned requests.
+- **Round 3, rules, demo and runtime:** rule thresholds, multi-step requests, the demo storyline and
+  logins, hidden data, the injection target, email, the runtime model, and how far to verify.
+
+Propose domain- and region-specific defaults for every option rather than asking the user to write
+from scratch. **Do not present the plan with gaps you filled silently.** A plan built from assumptions
+the user never saw was the failure this phase exists to prevent.
+
+**1b. Frame and gate.** Name the persona and the vertical. Use fictional organisations, and never put a
+real customer's or prospect's name in any file, app, prompt, seed row, transcript or commit message,
+even when the user names them to tailor the demo. List the operations and classify each one (Q1
+human? Q2 semantic?). Check that the catalogue doesn't already cover the vertical
+(`samples/Agentic_AI/README.md`).
 
 ### Phase 2: spec
 Fill in the spec with the governed additions: identity and scope, the classification, rules with
 reason codes and a seed row per code, two-step actions, request types → teams, adversarial acceptance.
 
 ### Phase 3: plan, then gate on approval ⛔
-Present the classification table, tools, agent, rules, ports and the demo script. Build nothing until
-the user approves.
+Open with **"What I heard"** (one line per discovery answer, naming the fictional org) and
+**"Assumptions"** (every "you decide" and every unconfirmed default). Then present the classification
+table, tools, agent, rules with reason codes, human-owned routing, demo logins and script, ports and the
+test scope. Build nothing until the user approves.
 
 ### Phase 4: build (only after approval)
 Do the shared data + contract + step-1 steps first — **the governance lives here, not in the app graph** —
@@ -208,6 +256,15 @@ write `prompts.md`.
      set `temperature` to the number `0` on every agent and the orchestrator.
    - **Keep the governance intact:** the cloned reference is already governed, so preserve its scoped-read /
      guarded-write / two-step / review-routing SQL shape and change only the domain specifics.
+   - **RAG (hybrid clone).** No governed sample has RAG yet, so: clone the governed trio from
+     `samples/Agentic_AI/Industry_Use_Cases/`, then **transplant** the `extensions/openAI` vector activity
+     (`vectorSearch`, and `vectorStoreCreate`/`fileUpload`/`fileList` only if needed) from the legacy app —
+     the task, its `imports` entry and its `contrib` blob entry, verbatim. Put the read-only retrieval behind
+     an MCP tool (or the A2A agent) like any other read. Ingestion may stay a **separate** small app (its own
+     port in the block, e.g. `X9`). Drop the legacy `.platform.flogo` variants unless the user needs a
+     platform deploy. Building it **requires the user-extensions build context**:
+     `flogobuild create-context … -u <repo>/extensions` (a plain context fails on the extension import).
+     Keep the vector extension's `OPENAI_API_ENDPOINT_URL` = `https://api.openai.com/v1` (it rejects empty).
 
 **Both methods then:**
 5. `prompts.md`.
@@ -222,6 +279,10 @@ build the exes in a scratch folder outside the repo → step 3 `mcp_smoke.py` �
 `chat_e2e.py` with `A2A_LOG` set. The user asking for an end-to-end test counts as the explicit
 request to build binaries. Otherwise, stop at step 2 and say so.
 
+**Only when the user asked for the full ladder:** right before building the exes / running the chat e2e,
+run `python templates/preflight.py --need build,chat` (`flogobuild` + build context + the Go runtime,
+Node.js + `websocket-client`). If it fails, stop after step 2 and tell the user what to install.
+
 **Run the cheap steps first and fix everything there, then run the expensive e2e once.** Steps 1–2 use
 no LLM and no binaries — make them fully green (and confirm the runtime model from Phase 0) before you
 build exes or touch the chat e2e. The e2e is the slowest, most token- and OpenAI-expensive step; a weak
@@ -230,54 +291,39 @@ runtime model, a wrong assertion, or a non-ASCII console crash each force a full
 
 ### Phase 6: hand over
 1. Stop the exes. Reset the DB.
-2. **Scrub the secrets** in the sample's `.flogo` files with surgical text replacement. Never
-   round-trip through `json.dump`, because that reorders keys and rewrites unicode. API key →
-   `sk-REPLACE-WITH-YOUR-OPENAI-KEY`, DB password → `SET_YOUR_DB_PASSWORD`.
+2. **Leave the live secrets in place** so the user can keep running the apps. Scrub them **only when the
+   user asks to commit**: surgical text replacement (never round-trip through `json.dump`, which reorders
+   keys and rewrites unicode). API key → `sk-REPLACE-WITH-YOUR-OPENAI-KEY`, DB password →
+   `SET_YOUR_DB_PASSWORD`, plus email passwords and personal email addresses.
 3. Delete the scratch exes and `.flogo` copies.
-4. Run `validate_governed_apps.py` **without** `--local` (G9 is now an error), plus a grep secret scan
-   over the sample and the skill folders.
+4. Check the path rules in [industry-taxonomy.md](references/industry-taxonomy.md) (longest path, forbidden
+   characters). At commit time only: run `validate_governed_apps.py` **without** `--local` (G9 becomes an
+   error) and a grep secret scan over the sample and the skill folders.
 5. Write the README from the template. It is for customers and partners who want to **run** the demo:
    "Why an agent here?", architecture, prerequisites, numbered steps to run (database, the ⚠️ app
    properties per app, start order, chat client, demo logins and script, reset), troubleshooting.
    Keep test results, negative tests, limitations and file lists **out** of the README; they go in the
-   report (step 7). Add a sanitized `chat_e2e_transcript.md`.
+   report (step 7). End it with the one-line "Rebuild from code" pointer, and write the developer guide
+   `_rebuild/README.md` (file inventory, settings, regenerate, test-ladder commands) from the same
+   template. Add a sanitized `chat_e2e_transcript.md`.
 6. Add a catalogue row in `samples/Agentic_AI/README.md` and `samples/README.md`.
 7. Report: what passed (with counts), retries, the limitations, and anything skipped. **End the report
    with "Test it in the chatbot"** from
    [chatbot-test.md](references/chatbot-test.md), filled in with this use case's
    `ws://localhost:<port><path>`. Include the ↻ click next to the URL box, which people miss. Don't commit
    unless asked.
+8. **Deploy only if asked:** run `python templates/preflight.py --need deploy` (`tibcop` + a profile)
+   first, then follow the `flogo-deploy` skill.
 
-## Cost & efficiency
+## Working efficiently
 
-A governed build is cheap when done well (single-digit to low-double-digit dollars of agent tokens) and
-expensive when done in a bloated session with avoidable re-runs. The cost is driven by **turns × context
-size** (cache reads dominate), not by app size. Levers, highest-impact first:
-
-1. **Build in a fresh session.** Don't chain a build onto a long prior task — every turn re-reads the
-   whole accumulated context. A clean session is the single biggest saving (often 6–10×).
-2. **Front-load the spec in one prompt** (vertical, persona, tools, the semantic step, human-owned list,
-   email yes/no, runtime model, ports, "run the test ladder", "I'll approve the plan in one pass").
-   Every clarification round-trip re-reads the context.
-3. **Pick the runtime model up front** (Phase 0) so you never rebuild to swap it.
-4. **Cheap steps first, e2e once** (Phase 5).
-5. **Delegate heavy reads to a subagent** (Explore/fork, on a cheaper model): reading the reference
-   sample and templates into the main context is costly — have a subagent read and summarise them.
-6. **Keep tool output out of context:** pipe long output through `grep`/`tail`, read only the file
-   slices you need, never dump a whole `.flogo` or log.
-
-**Which dev model for which phase** (switch with `/model`, or run a step as a subagent with a model
-override):
-
-| Phase | Model | Why |
-|---|---|---|
-| Frame + decision-framework gate + spec + plan (1–3) | **Opus** | judgment/architecture — the classification is the whole game |
-| Write drivers + SQL, write tests (4) | **Sonnet** | structured codegen following the templates |
-| Debug a hard failure (e.g. a SQL planner surprise) | **Opus** | deep reasoning |
-| Run the ladder, read logs, triage | **Sonnet** | mechanical; escalate to Opus only when stuck |
-| README, prompts.md, catalogue rows, secret scrub | **Haiku** (or Sonnet) | pure mechanical text |
-
-Rule of thumb: **Opus for design & debugging, Sonnet for the bulk build/tests, Haiku for docs/scrub.**
+- **Don't volunteer cost, time or token estimates, or advice on which dev model to use per phase.** If
+  the user asks, answer from [references/build-cost-and-time.md](references/build-cost-and-time.md).
+- **Delegate heavy reads to a subagent** (Explore/fork): have it read and summarise the reference sample
+  and templates instead of loading them into the main context.
+- **Keep tool output out of context:** pipe long output through `grep`/`tail`, read only the file
+  slices you need, and never dump a whole `.flogo` or log.
+- **Cheap steps first, e2e once** (Phase 5).
 
 ## Top gotchas (full list in runtime-gotchas.md)
 

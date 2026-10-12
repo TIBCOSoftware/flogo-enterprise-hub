@@ -87,7 +87,7 @@ a confirmation.
 | AI Orchestrator | `TelecomInvoiceAIOrchestrator.flogo` | `#wsserver` | **9500** (WebSocket trigger setting), path `/telecom` |
 
 > The orchestrator's WebSocket port (**9500**) is a trigger setting, not an app property; the MCP
-> and A2A ports are app properties (see [Ports](#port-summary)).
+> and A2A ports are app properties (see [Ports](#ports)).
 
 ### 1. `TelecomInvoiceMCPServer.flogo` — MCP Server (Port 9882)
 
@@ -298,9 +298,9 @@ Usage: Data 38.7 / 50 GB · Local 342 min · International 47 min · SMS 12 · R
 ## Prerequisites
 
 - **PostgreSQL 14+** running (local or remote); a database named **`telecom`** created for this demo.
-- **TIBCO Flogo Enterprise** (v2.26.5+) to import the `.flogo` apps into the designer — or the
-  `flogobuild` CLI if you prefer to build `.exe`s (CLI paths / versions live in
-  `skills-library/.claude/skills/config.md`).
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
+- **TIBCO Flogo Enterprise** (v2.26.7+) to import the `.flogo` apps into the designer — or the
+  `flogobuild` CLI if you prefer to build `.exe`s.
 - An **LLM provider** key (OpenAI-compatible). The base URL must be a **real endpoint**, e.g.
   `https://api.openai.com/v1` (or an on-premises OpenAI-compatible endpoint).
 - **SMTP** access for the `send_confirmation_email` agent (Gmail: `smtp.gmail.com:465`, SSL, an
@@ -365,7 +365,7 @@ are stored as `SECRET:` app properties (type stays `string`).
 |----------|-------|
 | `AgenticAI.OpenAIConn.API_Key` | `<your-llm-key>` (SECRET) |
 | `AgenticAI.OpenAIConn.LLM_Base_URL` | `<real-llm-endpoint>` (e.g. `https://api.openai.com/v1`) |
-| `LLM_Model` | `<model-name>` (e.g. `gpt-5.6`, or your preferred / on-prem model) |
+| `LLM_Model` | `<model-name>` (e.g. `gpt-5.5`, or your preferred / on-prem model) |
 | `PostgreSQL.PostgresConn.Host` | `<db-host>` |
 | `PostgreSQL.PostgresConn.Database_Name` | `telecom` |
 | `PostgreSQL.PostgresConn.User` | `<db-user>` |
@@ -465,7 +465,7 @@ refreshes due/payment/dispute dates relative to today.
 | **A2A write fails with `missing substitution for: <name>`** | The runtime `input.mapping.parameters` is missing that param; patch it, then **Sync** the agent flow to regenerate design-time schemas. |
 | **`Configured connection is not a WebSocket Connection`** | The orchestrator's `wsconnection` / `content` were coerced to `object`; they must stay type **`any`**. |
 | **Email field warns "type … differs from bound app property"** | Re-enter `Email_App_Password` in App Properties so it's stored as a `SECRET:` (keep the property type `string` — there is no `password` app-property type). |
-| **Orchestrator can't reach a tool/agent** | The MCP/A2A `serverUrl`s must match the ports in [Port Summary](#port-summary). |
+| **Orchestrator can't reach a tool/agent** | The MCP/A2A `serverUrl`s must match the ports in [Ports](#ports). |
 | **MCP Server not connecting** | Verify port 9882 is open and the MCP app is running. |
 | **A2A agents not responding** | Check ports 9883–9885 are open and the A2A app is running. |
 | **PostgreSQL connection failed** | Verify database `telecom` exists and credentials are correct. |

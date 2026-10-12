@@ -127,9 +127,10 @@ psql -U postgres -d realestate -f reset_data.sql
 
 ## Prerequisites
 
-- **TIBCO Flogo Enterprise** v2.26.x (to import/build the three `.flogo` apps).
+- **TIBCO Flogo Enterprise** v2.26.7+ (to import/build the three `.flogo` apps).
 - **PostgreSQL** 14+ with a database named `realestate`.
-- An **OpenAI API key** (the apps ship configured for the model in `config.md`; the key is an app property).
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
+- An **OpenAI API key** (the apps ship configured for `gpt-5.5`; the key is an app property).
 - A **Gmail App Password** for the confirmation-email agent (SMTP `smtp.gmail.com:465` SSL).
 - The **chatbot UI** in `samples/Agentic_AI/Chatbot`.
 
@@ -158,7 +159,7 @@ Import each `.flogo` into Flogo Enterprise and set its app properties:
 | Property | Value |
 |---|---|
 | `AgenticAI.OpenAIConn.API_Key` | your OpenAI API key |
-| `LLM_Model` | (from `config.md`) |
+| `LLM_Model` | `gpt-5.5` (or any model your key can access) |
 | `PostgreSQL.PostgresConn.*` | your PostgreSQL connection, DB `realestate` |
 | `Email_Username` / `Email_App_Password` / `To_Email` | Gmail sender / app password / recipient mailbox |
 | `book_property_showing_PORT` … `send_confirmation_email_PORT` | `9593` … `9597` (one `_PORT` + `_URL` per agent) |
@@ -167,7 +168,7 @@ Import each `.flogo` into Flogo Enterprise and set its app properties:
 | Property | Value |
 |---|---|
 | `AgenticAI.OpenAIConn.API_Key` | your OpenAI API key |
-| `LLM_Model` | (from `config.md`) |
+| `LLM_Model` | `gpt-5.5` (or any model your key can access) |
 | `WebSocket_PORT` | `9590` |
 
 > The orchestrator's connections point at `http://localhost:9592/realestate-mls` (MCP) and

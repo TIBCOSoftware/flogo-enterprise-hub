@@ -1,6 +1,20 @@
 # Data & Docs Conventions
 
-How to write `database.sql`, `reset_data.sql`, `prompts.md`, and the combined `README.md`.
+How to write `database.sql`, `seed_data.sql`, `reset_data.sql`, `prompts.md`, and the combined `README.md`.
+
+**Defaults:** USA locale and **USD** (US names, `+1 xxx 555-01xx` phone numbers, US addresses and regulations)
+unless the user explicitly asks for another country or currency; runtime model **`gpt-5.5`**.
+
+**File split (governed samples):**
+
+| File | Holds | Loaded by |
+|---|---|---|
+| `database.sql` | schema, rule functions, triggers, routing/reference tables — then `\ir seed_data.sql` at the end | `psql -d <db> -f database.sql` (once) |
+| `seed_data.sql` | the demo rows only, dates relative to `CURRENT_DATE`/`now()`; header says "included via `\ir` — do not load on its own" | `\ir` from `database.sql` and `reset_data.sql` |
+| `reset_data.sql` | `TRUNCATE … RESTART IDENTITY CASCADE` of every table the assistant writes plus the seeded ones, then `\ir seed_data.sql` — restores the demo state | between demos and after every test run |
+
+One copy of the demo data means `reset_data.sql` can never drift from the initial load. (`\ir` resolves
+relative to the including file, so run `psql` from any folder.)
 
 ---
 
@@ -21,13 +35,13 @@ How to write `database.sql`, `reset_data.sql`, `prompts.md`, and the combined `R
     a near-limit balance → upsell/recharge; a due item → the action).
   Pre-seed a couple of rows in write-target tables so read tools have something to show (e.g. an
   existing ticket with a status), and leave pure activation/log tables **empty** (the agent fills them).
-- Give ~6–10 personas with realistic, locale-appropriate names/currency so the demo feels real.
+- Give ~6–10 personas with realistic, locale-appropriate names/currency (default USA/USD) so the demo feels real.
 - Keep table/column names **exactly** what the `.flogo` queries use.
 
 ## reset_data.sql
 
 - Purpose: restore a clean demo state and undo agent writes between runs.
-- `TRUNCATE <all tables> RESTART IDENTITY CASCADE;` then re-insert the same seed data.
+- `TRUNCATE <all tables> RESTART IDENTITY CASCADE;` then `\ir seed_data.sql` (the same rows the initial load used).
 - Make **volatile** dates relative to today (`CURRENT_DATE + INTERVAL '7 days'`, `CURRENT_DATE - INTERVAL '3 days'`)
   so the demo always looks current; keep stable facts (amounts, names, historical "active since") fixed.
 - Re-seed the pre-seeded write-target rows; leave the agent-filled log/activation tables empty.
@@ -61,7 +75,7 @@ Sections, in order:
 2. **Architecture** — the ASCII diagram (Chatbot UI → WebSocket → Orchestrator → MCP/A2A → PostgreSQL).
 3. **Flogo Apps** — three subsections (MCP tools table; A2A agents table with ports; orchestrator settings).
 4. **Database** — table summary (table → purpose → row count).
-5. **Prerequisites** — Flogo Enterprise version, PostgreSQL, OpenAI key (model default `gpt-5-nano`;
+5. **Prerequisites** — Flogo Enterprise version, PostgreSQL, OpenAI key (model default `gpt-5.5`;
    base URL empty for OpenAI), Gmail App Password (if email), chatbot UI location, and **install the
    connector prerequisites** for every connector detected per [connector-prereqs.md](connector-prereqs.md):
    VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…**,
@@ -71,7 +85,7 @@ Sections, in order:
    table per app (DB creds, LLM key/model, ports, email); **start order MCP → A2A → Orchestrator**;
    connect the chatbot UI to `ws://<host>:<wsPort>/<path>`; run the demo; reset with `reset_data.sql`.
 7. **Configure before running end to end** — a compact checklist, tailored to the use case:
-   (1) OpenAI API key — the only required LLM value; confirm the model (default `gpt-5-nano`) is
+   (1) OpenAI API key — the only required LLM value; confirm the model (default `gpt-5.5`) is
    available to the key; base URL stays empty unless Azure OpenAI / a gateway / another provider;
    (2) connector prerequisites installed (item 5); (3) PostgreSQL DB created, `database.sql` loaded,
    credentials set; (4) SMTP username/app password + recipient (if email agent); (5) ports free and the
@@ -79,10 +93,9 @@ Sections, in order:
    and re-enter secrets (the repo holds dummy `SECRET:` blobs / placeholders); (7) start MCP → A2A →
    Orchestrator, then point a WebSocket client at `ws://<host>:<port>/<path>`; (8) at deploy, inject
    secrets as platform app properties; (9) if RAG, keep `OPENAI_API_ENDPOINT_URL` =
-   `https://api.openai.com/v1` and run ingestion first. Add the runtime note: all chat clients share
-   **one** conversation memory (the orchestrator's `conversationId` is empty → a constant), up to
-   `memoryMaxSize` messages until restart — restart the orchestrator between demos; simultaneous users
-   see each other's context.
+   `https://api.openai.com/v1` and run ingestion first. Governed samples map the orchestrator's `conversationId` from the
+   WebSocket key, so every connection has its own memory and must verify again (a new tab = a new
+   conversation — say so in Troubleshooting).
 8. **Demo scenarios** — the headline chat walkthroughs.
 9. **Ports table** and **Troubleshooting** table.
 10. Optional **security/production notes** (TLS, bearer auth, on-prem LLM, swap DB for real backend APIs).

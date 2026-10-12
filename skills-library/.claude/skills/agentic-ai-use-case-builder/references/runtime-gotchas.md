@@ -81,13 +81,15 @@ A `tools/call` result's `content[0].text` is the Return's `response.data` **dire
 `FLOGOBUILD_CONTEXT_NAME` in `config.md` can go stale. It may name a context that doesn't exist on this
 machine (for example, one written with dots after the version, while the real one uses digits only). Run
 `flogobuild list-context` and use the name it prints; never copy a context name from another machine or
-from a doc. Use `-a <app.flogo>`; `-f` is deprecated.
+from a doc. Use `-f <app.flogo>`: it works on flogobuild 1.0.6 and 1.1.0, while `-a` exists only on 1.1.0.
 
 ```
-flogobuild build-exe -a <App>.flogo -c <context from list-context>
+cd "$HOME/<scratch>" && flogobuild build-exe -f <App>.flogo -c <context from list-context>   # RELATIVE -f
 ```
-Build in a scratch folder **outside the repo**, because the copies carry real secrets. Each build takes
-about a minute.
+Build in a scratch folder **outside the repo**, because the copies carry real secrets, and pass a
+**relative** `-f` from inside that folder. With an **absolute** `-f` the exe lands next to the source
+`.flogo`, i.e. inside the repo. Each build takes about a minute. On Windows, bash `kill` doesn't stop the
+native exes: find the PID with `netstat -ano | grep :<port>` and run `taskkill //PID <pid> //F`.
 
 ## 8. fda without `-f` creates a stub
 
@@ -101,3 +103,17 @@ for. Two lessons:
 (a) don't rely on the prompt for anything that matters, because the DB decides;
 (b) write the prompt for the behaviour you actually want. The sample now says "when the request is
 clear, open the case right away", and the test tolerates either path.
+
+## 10. An A2A Server with zero Tool handlers silently runs as a Local Agent
+
+The AI Agent trigger (`#agent` / `tr_agent`) starts its A2A server, with the port and the agent card,
+**only when the trigger has at least one handler of type `Tool`**. With zero handlers it logs
+`Local Agent [...] started`, never listens on its port, and the orchestrator can't reach it. Design-time
+checks pass. So a "pure reasoning" agent still needs one tool: give every reasoning agent **one harmless,
+identity-free, no-parameter tool** that returns static reference text (a glossary of the columns or codes
+in its input, no database connection, no customer data), and tell its prompt to call it **at most once**,
+only if something in its input is unclear. Give each agent its own port property. The multi-agent
+template is
+`samples/Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/_rebuild/build_agents.py`
+(three agents, one reference tool and one port each). Validator G10 rejects an A2A Server agent trigger
+with no Tool handler, and duplicate agent ports within one app.

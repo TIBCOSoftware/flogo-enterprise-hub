@@ -7,7 +7,8 @@
   OAuth 2.0 client-credentials connection (client_id = the agent's privilege ID). No MCP anywhere.
 
 Re-run:  python no-mcp/_rebuild/build_agents_nomcp.py   (OUT_DIR=<empty dir> to replay)
-Needs env: LLM_MODEL; INSIGHT_CLIENT_SECRET / SERVICING_CLIENT_SECRET (else read from IDP_CLIENTS_FILE)."""
+Needs env: LLM_MODEL; INSIGHT_CLIENT_SECRET / SERVICING_CLIENT_SECRET (else read from GATEWAY_CLIENTS_FILE, the
+"client_id | secret | scopes" lines that `SELECT * FROM register_agent_client(...)` printed - same file as gateway_smoke.py)."""
 import json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 NOMCP_DIR = os.path.dirname(HERE)
@@ -64,10 +65,14 @@ request a higher daily transfer limit, and check the status of a request.
 def client_secret(env, agent):
     if os.environ.get(env):
         return os.environ[env]
-    path = os.environ.get("IDP_CLIENTS_FILE") or os.path.join(NOMCP_DIR, "bankops_idp_clients.json")
-    if not os.path.exists(path):
-        sys.exit(f"set {env} or run: python no-mcp/bank_gateway.py init")
-    return json.load(open(path, encoding="utf-8"))["clients"][agent]["secret"]
+    path = os.environ.get("GATEWAY_CLIENTS_FILE")
+    if not path or not os.path.exists(path):
+        sys.exit(f"set {env}, or GATEWAY_CLIENTS_FILE=<file with the 'client_id | secret | scopes' rows that "
+                 f"SELECT * FROM register_agent_client('{agent}', ...) printed>")
+    for line in open(path, encoding="utf-8"):
+        if line.count("|") >= 2 and line.split("|")[0].strip() == agent:
+            return line.split("|")[1].strip()
+    sys.exit(f"{agent} not found in {path}: register it with register_agent_client (see no-mcp/README.md)")
 
 
 app = App("BankOpsAgentsNoMCP.flogo", os.environ.get("OUT_DIR") or NOMCP_DIR)

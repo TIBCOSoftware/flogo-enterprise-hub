@@ -4,6 +4,8 @@ description: A command line tool to create and modify TIBCO Flogo Integration Ap
 user-invocable: true
 ---
 
+> **Preflight:** run `fda version` first (see AGENT.md → Prerequisites and preflight). If it fails, install/update the TIBCO Flogo VS Code extension (2.26.6+).
+
 Follow the multi-step processes and "Things to avoid" below — do not skip steps.
 
 `fda` (Flogo Design Assistant) builds and edits Flogo Integration apps from the command line. Every task takes the same global flags and either prints a human-readable result or, with `-j`, emits machine-readable JSON.
@@ -180,7 +182,7 @@ Quick rule: **prompt/image says "REST" or "Receive HTTP Message" → `tr_rest`**
 
 | Symptom at runtime | cm code | Fix |
 |---|---|---|
-| `connection with id 'conn://' not configured` at engine init | (caught by `analyze-vscode-extension` — `conn://` defaults are blanked at seed-time, never appear in the flogo) | Re-seed `default-config.json` if you see one: `fda ave resources/tibco.flogo-2.26.5-ENGR-001-3005 --type activity --toConfigFile <path>` |
+| `connection with id 'conn://' not configured` at engine init | (caught by `analyze-vscode-extension` — `conn://` defaults are blanked at seed-time, never appear in the flogo) | Re-seed `default-config.json` if you see one: `fda ave <path-to-extension> --type activity --toConfigFile <path>` (`<path-to-extension>` = the newest `~/.vscode*/extensions/tibco.flogo-*` folder, resolved dynamically as in AGENT.md — never pin the version) |
 | `WriteHeader code 0` panic from an `actreturn` flow | `INPUT_VS_SETTINGS_MISWRITE` | `actreturn.mappings` lives under `settings`, not `input`. `mm` and `sa` rewrite the path automatically (settingFields metadata); legacy files trip the cm error and need the block moved. |
 | `handler.Schemas() nil pointer` panic on first REST request | `TR_REST_NO_SWAGGER` | `tr_rest` needs `settings.swagger`. Use `cas` to scaffold from a spec, or replace with `tr_http`. |
 | `function [length] is not installed` at runtime | `FUNCTION_AMBIGUOUS` / `FUNCTION_NOT_QUALIFIED` | **Always qualify function calls** with the package name (`string.length(...)`, `utils.uuid(...)`). `mm` rejects every bare call at write-time, regardless of whether it currently resolves to one package or many — uniform rule, future-proof against extensions adding same-named functions. |
@@ -324,7 +326,7 @@ The `<fieldName>` must match the input field name from `exp`. **Do NOT** set `in
 - **Pass the `--file` global with the right shape.** A bare `fda <task>` with no `-f` opens `flogo-project.flogo` in the cwd and AUTO-CREATES it if missing — a silent no-op trap when you meant to operate on a different file. When scripting, always pass `-f <path>` explicitly.
 - **`exp function <name>` has three modes** — `category.fnName` (qualified), bare unique name (works), bare ambiguous name (errors with disambiguation), and bare category name (expands to every function in the package). When in doubt, qualify with `category.`.
 - **`-j` JSON output suppresses tables.** Helpful when piping into `jq` from a script, but if you want to read the table yourself, drop the flag.
-- **Stale `default-config.json`.** When working on a fresh clone the function catalog (`fda lf`, `fda exp function ...`) needs to be seeded once: `fda ave resources/tibco.flogo-2.26.5-ENGR-001-3005 --type function --toConfigFile tibcopilot-flogo-command-line-developer/default-config/default-config.json`. The repo's committed `default-config.json` already has it; only matters if someone has reset that file.
+- **Stale `default-config.json`.** When working on a fresh clone the function catalog (`fda lf`, `fda exp function ...`) needs to be seeded once: `fda ave <path-to-extension> --type function --toConfigFile tibcopilot-flogo-command-line-developer/default-config/default-config.json`, where `<path-to-extension>` is the newest `~/.vscode*/extensions/tibco.flogo-*` folder resolved dynamically (see AGENT.md → Resolving the `fda` CLI). The repo's committed `default-config.json` already has it; only matters if someone has reset that file.
 - **Never guess activity output paths — run `fda lms <target-field>` before any `mm` that reads from another activity's output.**
 - **Don't use `sms` on Mapper activity output side.** The Mapper's Output tab in the UI is read-only — it always mirrors the input schema. Setting an inline schema on the output via `sms --json-schema` or `--json-value-to-schema` writes to the JSON file but has no effect in the UI. Only use `sms` on the input side (or omit the direction to apply to both, which is the default).
 - **SQL queries must end with `;`.** The trailing semicolon terminates the query so the engine can fetch metadata (column names, types). Without it, metadata discovery fails silently and downstream mappings may not resolve.

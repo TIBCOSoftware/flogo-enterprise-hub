@@ -38,7 +38,7 @@ The library contains **9 skills** that cover the full Flogo development lifecycl
 | **flogo-unit-testing** | Recipe | Recipe to **create and run unit tests for Flogo apps** — test files, test cases with flow inputs, assertions on flow outputs, and test execution with result verification. |
 | **mapping-from-excel** | Recipe | Recipe to **build a Flogo flow from an Excel mapping spec** — input fields, output fields, and per-field mapping rules. |
 | **rest-to-database-app** | Recipe | Recipe to **scaffold a REST API Flogo app that queries a database** (REST trigger → log → DB query → reply). |
-| **agentic-ai-use-case-builder** | Use-case builder | Build a **governed-by-default Agentic AI use case for any vertical** — an MCP Server (read-only DB tools) + A2A Agents app (write-workflow agents) + WebSocket AI Orchestrator, backed by PostgreSQL, modeled on the reference use cases under `samples/Agentic_AI/`. It passes the **decision framework** first (agent vs. deterministic vs. human-owned), enforces identity, scoping, prices and state changes **in SQL** (scoped reads, guarded writes, two-step confirm, routed review cases), supports **two build methods** (**from scratch via the `fda` CLI** — recommended default — or **cloning an existing reference app**), and proves it with a **4-step test ladder** ending in a real chat that includes a **prompt-injection attempt** (a user message that tries to talk the agent past its rules — e.g. "ignore your rules and do X" — which fails because the rules live in SQL, not the prompt). Worked examples: `samples/Agentic_AI/Industry_Use_Cases/Airline_Passenger_Services_Use_Case/` and `.../Scholarly_Publishing_Author_Services_Use_Case/`. |
+| **agentic-ai-use-case-builder** | Use-case builder | Build a **governed-by-default Agentic AI use case for any vertical** — an MCP Server (read-only DB tools) + A2A Agents app (write-workflow agents) + WebSocket AI Orchestrator, backed by PostgreSQL, modeled on the reference use cases under `samples/Agentic_AI/`. It passes the **decision framework** first (agent vs. deterministic vs. human-owned), enforces identity, scoping, prices and state changes **in SQL** (scoped reads, guarded writes, two-step confirm, routed review cases), supports **two build methods** (**from scratch via the `fda` CLI** — recommended default — or **cloning an existing reference app**), and proves it with a **4-step test ladder** ending in a real chat that includes a **prompt-injection attempt** (a user message that tries to talk the agent past its rules — e.g. "ignore your rules and do X" — which fails because the rules live in SQL, not the prompt). Worked examples: `samples/Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/` and `.../Scholarly_Publishing_Author_Services_Use_Case/`. |
 
 ---
 
@@ -219,14 +219,20 @@ If you already have a project, copy the `.claude/skills/` folder from the seed r
 
 ## Required Tools
 
-The skills drive the following tools. **`fda` and `flogobuild` ship inside the TIBCO Flogo VS Code extension** — they are not on your `PATH` by default, so set up the `fda` alias (see [Setting up the `fda` alias](#setting-up-the-fda-alias)) to run them from any terminal. **`tibcop`** is installed separately and should be on your `PATH`.
+The skills drive the following tools. **`fda` ships inside the TIBCO Flogo VS Code extension** — it is not on your `PATH` by default, so set up the `fda` alias (see [Setting up the `fda` alias](#setting-up-the-fda-alias)) to run it from any terminal. **Designing apps needs only VS Code + the Flogo extension (2.26.7 or later).** **`flogobuild` (Flogo App Build CLI) is needed only when you build** — download it from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (it is not bundled in the VS Code extension), install the [Go runtime](https://go.dev/dl/) (building Flogo apps requires Go), and create a build context from the extension VSIX (`flogobuild create-context -n <name-without-dots> -v <path-to-vsix> --set-default`). **`tibcop` is needed only when you deploy** — install it, put it on your `PATH`, and add a profile (`tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com`).
+
+The full tiered prerequisites table (design / agentic use cases / build / deploy — versions, install sources, PostgreSQL, Python, Node.js, LLM model, SMTP) and the preflight checker live in [AGENT.md → Prerequisites and preflight](AGENT.md#prerequisites-and-preflight). Run the preflight first (no flags = design only; add the tiers you need):
+
+```bash
+python skills-library/.claude/skills/agentic-ai-use-case-builder/templates/preflight.py --need db,build
+```
 
 | Tool | Purpose | Documentation |
 |---|---|---|
 | **fda** (Flogo Design Assistant) | Design-time edits to `.flogo` files (ships inside the Flogo VS Code extension) | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
-| **flogobuild** | Build executables and Platform deployment artifacts (ships inside the Flogo VS Code extension) | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
-| **tibcop** (TIBCO Platform CLI) | Deploy and manage applications on the TIBCO Platform | [TIBCO Platform](https://www.tibco.com/platform) |
-| **TIBCO Flogo VS Code extension** | Provides `fda` + `flogobuild`, plus the visual designer for `.flogo` files | [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tibco.flogo) |
+| **flogobuild** (TIBCO Flogo App Build CLI) | Build executables and Platform deployment artifacts — **only when building**; download from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (not bundled in the VS Code extension); requires the [Go runtime](https://go.dev/dl/) | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
+| **tibcop** (TIBCO Platform CLI) | Deploy and manage applications on the TIBCO Platform — **only when deploying** | [TIBCO Platform](https://www.tibco.com/platform) |
+| **TIBCO Flogo VS Code extension** (2.26.7+) | Provides `fda` plus the visual designer for `.flogo` files; its `.vsix` is also the input for `flogobuild create-context` | [TIBCO downloads](https://www.tibco.com/downloads/11810) / [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tibco.flogo) |
 | **Claude Code** (or another coding agent) | Reads and applies the skills | [Claude Code](https://www.anthropic.com/claude-code) |
 
 ---
@@ -324,9 +330,10 @@ Key values the skills rely on:
 
 | Key (in `config.md`) | What to set it to | How to find the value |
 |---|---|---|
-| `FLOGOBUILD_CONTEXT_NAME` | Build context name for `flogobuild` (e.g. `flogo-vscode-2.26.5-ENGR-001`) | `flogobuild list-context` |
+| `FLOGOBUILD_CONTEXT_NAME` | Build context name for `flogobuild` (e.g. `flogo-vscode-2266` — letters, digits, `_`, `-`; 3–30 chars; no dots) | `flogobuild list-context` (create one with `flogobuild create-context -n <name> -v <path-to-vsix> --set-default`) |
 | `DATAPLANE_NAME` | Default dataplane to deploy to | `tibcop tplatform:list-data-planes` |
 | `CP_URL` / `TIBCOP_TOKEN` | TIBCO Platform control-plane URL and API token | TIBCO Platform console |
+| `TIBCOP_PROFILE` | `tibcop` profile name used by `flogo-deploy` | `tibcop list-profiles` (create with `tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com`) |
 | PostgreSQL / LLM / email | Connection settings for the database, LLM provider, and SMTP | your environment |
 | `AGENTIC_USE_CASES_DIR` | *(optional)* folder of reference Agentic AI use-case apps the `agentic-ai-use-case-builder` skill clones/studies | leave unset to default to `samples/Agentic_AI/`; set only if the skill is installed standalone away from that folder |
 

@@ -1,7 +1,7 @@
 # Governed patterns: SQL shapes and the fda recipes that build them
 
 The worked example for everything here is
-`samples/Agentic_AI/Industry_Use_Cases/Scholarly_Publishing_Author_Services_Use_Case/`: `database.sql` (the rules),
+`samples/Agentic_AI/Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/`: `database.sql` (the rules),
 `_rebuild/tool_spec.py` (the tool/SQL contract), `_rebuild/build_*.py` (the fda drivers).
 
 The base PostgreSQL activity contract is in this skill's
@@ -112,6 +112,7 @@ Everything else is identical to this skill's
 | Tool response | `mm <flow>.Return.input.mappings.response.mapping.data =coerce.toString($activity[ReadOutcome].Output)` | the MCP runtime returns `response.data` as `content[0].text`, i.e. the Output JSON `{"records":[…]}` |
 | WebSocket headers | `sa handler WebsocketServer.<flow>.schemas.output.headers --jsonValue '{"type":"json","value":"<schema>","fe_metadata":"<parameter list>"}' --force`, plus the same properties on the flow input (`sa flow <flow>.metadata.input` and `<flow>.metadata.fe_metadata`); copy the sample's `build_orchestrator.py` | a `schema://` ref yields no headers at runtime; a JSON-schema `fe_metadata` makes the designer's Sync wipe them (runtime-gotchas.md §1) |
 | Per-connection memory | `mm <flow>.AIAgent.input.conversationId '=$flow.headers["Sec-Websocket-Key"]'` | one conversation per socket |
+| Reasoning agent's tool | one `cf`/`cth`/`wth` no-parameter flow per `tr_agent` returning static reference text (no DB, no identity), prompt says "call it at most once"; one `<Agent>_PORT` each — copy the Telecom sample's `build_agents.py` | an A2A Server with zero Tool handlers runs as a Local Agent and never opens its port (runtime-gotchas.md §10, G10) |
 | Temperature | `sa … temperature 0 --type number` | 0 = omitted; see runtime-gotchas.md §2 |
 | redactSensitiveData | `false` on the orchestrator, `true` on sub-agents | the PII filter masks the identifier and code the user must send |
 | Empty property | `app.cap_empty(name)` | `cap ""` writes the literal `New_value` |

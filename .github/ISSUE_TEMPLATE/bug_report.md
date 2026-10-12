@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 ## Affected Sample / Demo / Skill
 
 Which item in the repository is affected? Include the path if you can, e.g.
-`samples/Agentic_AI/Industry_Use_Cases/Airline_Passenger_Services_Use_Case` or `skills-library/.claude/skills/fda`.
+`samples/Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case` or `skills-library/.claude/skills/fda`.
 
 ## Steps to Reproduce
 

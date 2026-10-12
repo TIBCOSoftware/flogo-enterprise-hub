@@ -1,0 +1,3008 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/insert",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/query",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/activity/sendmail",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "PassengerServicesMCPServer",
+  "description": "Meridian Passenger Services (governed) MCP Server - scoped reads and guarded writes for verified travellers",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "Meridian Passenger Services governed MCP server",
+      "settings": {
+        "serverName": "PassengerServicesMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"MCP_SERVER_PORT\"]",
+        "statelessServer": false,
+        "serverEndpointPath": "/passenger-services-gov-mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": "",
+        "oauthIssuer": "",
+        "oauthJWKSURL": "",
+        "oauthAudience": "",
+        "oauthAuthorizationServers": "",
+        "oauthRequiredScopes": "",
+        "oauthResourceURL": ""
+      },
+      "id": "PassengerServicesMCPServer",
+      "handlers": [
+        {
+          "description": "Verify the traveller&#39;s identity with their 6-character PNR (booking reference) and the 4-digit PIN from their Meridian app or booking email. Returns VERIFIED with a session_token (valid 60 minutes), their name and loyalty tier, or NOT_VERIFIED. Call this before any other tool. Never reveal or guess PINs.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "verify_traveller",
+            "handlerDescription": "Verify the traveller's identity with their 6-character PNR (booking reference) and the 4-digit PIN from their Meridian app or booking email. Returns VERIFIED with a session_token (valid 60 minutes), their name and loyalty tier, or NOT_VERIFIED. Call this before any other tool. Never reveal or guess PINs.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:verify_traveller_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://verify_traveller_Args"
+            }
+          },
+          "name": "verify_traveller_flow"
+        },
+        {
+          "description": "List the verified traveller&#39;s own itinerary: each leg with flight number, route, scheduled and estimated times, live flight status, delay, gate, seat and cabin. Only this booking&#39;s legs are returned.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_my_itinerary",
+            "handlerDescription": "List the verified traveller's own itinerary: each leg with flight number, route, scheduled and estimated times, live flight status, delay, gate, seat and cabin. Only this booking's legs are returned.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_my_itinerary_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://get_my_itinerary_Args"
+            }
+          },
+          "name": "get_my_itinerary_flow"
+        },
+        {
+          "description": "Get the live status of one flight that is on the verified traveller&#39;s own itinerary: scheduled vs estimated times, status, delay minutes and reason, and gate. Returns NOT_ON_ITINERARY for a flight that is not on their booking.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_flight_status",
+            "handlerDescription": "Get the live status of one flight that is on the verified traveller's own itinerary: scheduled vs estimated times, status, delay minutes and reason, and gate. Returns NOT_ON_ITINERARY for a flight that is not on their booking.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_flight_status_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://get_flight_status_Args"
+            }
+          },
+          "name": "get_flight_status_flow"
+        },
+        {
+          "description": "Show the verified traveller&#39;s loyalty standing: frequent-flyer number, tier and miles balance.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_my_loyalty",
+            "handlerDescription": "Show the verified traveller's loyalty standing: frequent-flyer number, tier and miles balance.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_my_loyalty_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://get_my_loyalty_Args"
+            }
+          },
+          "name": "get_my_loyalty_flow"
+        },
+        {
+          "description": "Assess whether the verified traveller will make each connection on their booking. The system computes it from the live inbound arrival vs the next departure and the minimum connection time, and returns SAFE, AT_RISK or MISSED per connection, plus the earliest_rebook_departure a replacement flight must leave after. This is computed - never estimate connection risk yourself.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "check_connection_risk",
+            "handlerDescription": "Assess whether the verified traveller will make each connection on their booking. The system computes it from the live inbound arrival vs the next departure and the minimum connection time, and returns SAFE, AT_RISK or MISSED per connection, plus the earliest_rebook_departure a replacement flight must leave after. This is computed - never estimate connection risk yourself.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:check_connection_risk_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://check_connection_risk_Args"
+            }
+          },
+          "name": "check_connection_risk_flow"
+        },
+        {
+          "description": "Step 1 of 2 for rebooking a disrupted leg. Give the leg&#39;s current flight and the chosen new flight. The system checks every rule (ownership, the leg is changeable, same route, target not cancelled, seats available, and that it departs after the inbound arrival plus the minimum connection) and returns PROPOSED with an action_id, new seat and times, or NOT_PROPOSED with the reason. Nothing changes until confirm_rebook is called.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "propose_rebook",
+            "handlerDescription": "Step 1 of 2 for rebooking a disrupted leg. Give the leg's current flight and the chosen new flight. The system checks every rule (ownership, the leg is changeable, same route, target not cancelled, seats available, and that it departs after the inbound arrival plus the minimum connection) and returns PROPOSED with an action_id, new seat and times, or NOT_PROPOSED with the reason. Nothing changes until confirm_rebook is called.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:propose_rebook_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://propose_rebook_Args"
+            }
+          },
+          "name": "propose_rebook_flow"
+        },
+        {
+          "description": "Step 2 of 2: execute a rebooking the traveller has explicitly confirmed. Pass the action_id from propose_rebook. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the new flight, seat and times) or NOT_EXECUTED with the reason. Only call after the traveller says yes to the exact proposal.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "confirm_rebook",
+            "handlerDescription": "Step 2 of 2: execute a rebooking the traveller has explicitly confirmed. Pass the action_id from propose_rebook. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the new flight, seat and times) or NOT_EXECUTED with the reason. Only call after the traveller says yes to the exact proposal.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:confirm_rebook_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://confirm_rebook_Args"
+            }
+          },
+          "name": "confirm_rebook_flow"
+        },
+        {
+          "description": "Email the traveller the confirmation for a rebooking they have already executed. Pass the action_id from confirm_rebook. The system sends the email only when that rebooking belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful rebooking.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "email_my_confirmation",
+            "handlerDescription": "Email the traveller the confirmation for a rebooking they have already executed. Pass the action_id from confirm_rebook. The system sends the email only when that rebooking belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful rebooking.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:email_my_confirmation_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://email_my_confirmation_Args"
+            }
+          },
+          "name": "email_my_confirmation_flow"
+        },
+        {
+          "description": "Hand a request that needs a human to the right team: COMPENSATION_CLAIM (delay/cancellation compensation or a refund), BAGGAGE_CLAIM (lost, delayed or damaged bags), SPECIAL_ASSISTANCE (mobility, medical or unaccompanied-minor help), COMPLAINT (service complaint), NAME_CHANGE (change the name on a ticket) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts these.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "open_service_case",
+            "handlerDescription": "Hand a request that needs a human to the right team: COMPENSATION_CLAIM (delay/cancellation compensation or a refund), BAGGAGE_CLAIM (lost, delayed or damaged bags), SPECIAL_ASSISTANCE (mobility, medical or unaccompanied-minor help), COMPLAINT (service complaint), NAME_CHANGE (change the name on a ticket) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts these.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:open_service_case_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://open_service_case_Args"
+            }
+          },
+          "name": "open_service_case_flow"
+        },
+        {
+          "description": "List the verified traveller&#39;s open and past service cases with the assigned team and status.",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_my_cases",
+            "handlerDescription": "List the verified traveller's open and past service cases with the assigned team and status.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_my_cases_flow"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": "schema://ToolResponse"
+            },
+            "output": {
+              "arguments": "schema://get_my_cases_Args"
+            }
+          },
+          "name": "get_my_cases_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:verify_traveller_flow",
+      "data": {
+        "name": "verify_traveller_flow",
+        "description": "Verify the traveller&#39;s identity with their 6-character PNR (booking reference) and the 4-digit PIN from their Meridian app or booking email. Returns VERIFIED with a session_token (valid 60 minutes), their name and loyalty tier, or NOT_VERIFIED. Call this before any other tool. Never reveal or guess PINs.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO traveler_sessions (booking_id) SELECT booking_id FROM verify_and_record(CAST(?w_pnr AS text), CAST(?w_pin AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_pnr",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_pin",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "04da00d9-b6ec-4621-865d-6e9708eeb9e1INSERT INTO traveler_sessions (booking_id) SELECT booking_id FROM verify_and_record(CAST(?w_pnr AS text), CAST(?w_pin AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_pnr": "=$flow.arguments.pnr",
+                      "w_pin": "=$flow.arguments.pin"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"w_pnr\":{\"type\":\"string\"},\"w_pin\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"w_pnr\":{\"type\":\"string\"},\"w_pin\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM verify_result(CAST(?r_pnr AS text), CAST(?r_pin AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_pnr",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "r_pin",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "session_token",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "passenger_name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "pnr",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tier",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "cd0605f4-7102-4941-b5dc-2730f00026efSELECT * FROM verify_result(CAST(?r_pnr AS text), CAST(?r_pin AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_pnr": "=$flow.arguments.pnr",
+                      "r_pin": "=$flow.arguments.pin"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_pnr\":{\"type\":\"string\"},\"r_pin\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_pnr\":{\"type\":\"string\"},\"r_pin\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"session_token\":{\"type\":\"string\"},\"passenger_name\":{\"type\":\"string\"},\"pnr\":{\"type\":\"string\"},\"tier\":{\"type\":\"string\"},\"expires_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"session_token\":{\"type\":\"string\"},\"passenger_name\":{\"type\":\"string\"},\"pnr\":{\"type\":\"string\"},\"tier\":{\"type\":\"string\"},\"expires_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkd1YXJkZWRXcml0ZSI6eyJ4IjoyNTAsInkiOjE1MH0sIlJlYWRPdXRjb21lIjp7IngiOjQ1MCwieSI6MjUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6MzUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"pnr\":{\"type\":\"string\",\"description\":\"6-character PNR / booking reference, e.g. ABCDE1\"},\"pin\":{\"type\":\"string\",\"description\":\"4-digit verification PIN the traveller received\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"pnr\": {\"type\": \"string\", \"description\": \"6-character PNR / booking reference, e.g. ABCDE1\"}, \"pin\": {\"type\": \"string\", \"description\": \"4-digit verification PIN the traveller received\"}}, \"required\": [\"pnr\", \"pin\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_my_itinerary_flow",
+      "data": {
+        "name": "get_my_itinerary_flow",
+        "description": "List the verified traveller&#39;s own itinerary: each leg with flight number, route, scheduled and estimated times, live flight status, delay, gate, seat and cabin. Only this booking&#39;s legs are returned.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM my_itinerary(CAST(?tok AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "session_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "pnr",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "segment_order",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "flight_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "origin",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "destination",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "scheduled_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "estimated_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "scheduled_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "estimated_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "flight_status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "delay_minutes",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "gate",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "seat",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "cabin",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "segment_status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "e4193411-849c-45c9-93d6-eb02352c7473SELECT * FROM my_itinerary(CAST(?tok AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"session_status\":{\"type\":\"string\"},\"pnr\":{\"type\":\"string\"},\"segment_order\":{\"type\":\"integer\"},\"flight_number\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"scheduled_departure\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_departure\":{\"type\":\"string\",\"format\":\"time\"},\"scheduled_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"flight_status\":{\"type\":\"string\"},\"delay_minutes\":{\"type\":\"integer\"},\"gate\":{\"type\":\"string\"},\"seat\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"segment_status\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"session_status\":{\"type\":\"string\"},\"pnr\":{\"type\":\"string\"},\"segment_order\":{\"type\":\"integer\"},\"flight_number\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"scheduled_departure\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_departure\":{\"type\":\"string\",\"format\":\"time\"},\"scheduled_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"flight_status\":{\"type\":\"string\"},\"delay_minutes\":{\"type\":\"integer\"},\"gate\":{\"type\":\"string\"},\"seat\":{\"type\":\"string\"},\"cabin\":{\"type\":\"string\"},\"segment_status\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRPdXRjb21lIjp7IngiOjI1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6MjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}}, \"required\": [\"session_token\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_flight_status_flow",
+      "data": {
+        "name": "get_flight_status_flow",
+        "description": "Get the live status of one flight that is on the verified traveller&#39;s own itinerary: scheduled vs estimated times, status, delay minutes and reason, and gate. Returns NOT_ON_ITINERARY for a flight that is not on their booking.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM flight_status_for_session(CAST(?tok AS text), CAST(?fl AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "fl",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "lookup_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "flight_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "origin",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "destination",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "scheduled_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "estimated_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "scheduled_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "estimated_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "delay_minutes",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "delay_reason",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "gate",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "a5fbf25c-a210-4e06-a6b4-fbcabf0e4e33SELECT * FROM flight_status_for_session(CAST(?tok AS text), CAST(?fl AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token",
+                      "fl": "=$flow.arguments.flight_number"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"},\"fl\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"},\"fl\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"lookup_status\":{\"type\":\"string\"},\"flight_number\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"scheduled_departure\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_departure\":{\"type\":\"string\",\"format\":\"time\"},\"scheduled_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"status\":{\"type\":\"string\"},\"delay_minutes\":{\"type\":\"integer\"},\"delay_reason\":{\"type\":\"string\"},\"gate\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"lookup_status\":{\"type\":\"string\"},\"flight_number\":{\"type\":\"string\"},\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"scheduled_departure\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_departure\":{\"type\":\"string\",\"format\":\"time\"},\"scheduled_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"estimated_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"status\":{\"type\":\"string\"},\"delay_minutes\":{\"type\":\"integer\"},\"delay_reason\":{\"type\":\"string\"},\"gate\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRPdXRjb21lIjp7IngiOjI1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6MjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"},\"flight_number\":{\"type\":\"string\",\"description\":\"Flight number, e.g. FL801\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}, \"flight_number\": {\"type\": \"string\", \"description\": \"Flight number, e.g. FL801\"}}, \"required\": [\"session_token\", \"flight_number\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_my_loyalty_flow",
+      "data": {
+        "name": "get_my_loyalty_flow",
+        "description": "Show the verified traveller&#39;s loyalty standing: frequent-flyer number, tier and miles balance.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM my_loyalty(CAST(?tok AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "session_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "passenger_name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "frequentflyer_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tier",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "miles_balance",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tier_miles_ytd",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "a8535571-74b5-4e42-a9fe-fb4506b95542SELECT * FROM my_loyalty(CAST(?tok AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"session_status\":{\"type\":\"string\"},\"passenger_name\":{\"type\":\"string\"},\"frequentflyer_number\":{\"type\":\"string\"},\"tier\":{\"type\":\"string\"},\"miles_balance\":{\"type\":\"integer\"},\"tier_miles_ytd\":{\"type\":\"integer\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"session_status\":{\"type\":\"string\"},\"passenger_name\":{\"type\":\"string\"},\"frequentflyer_number\":{\"type\":\"string\"},\"tier\":{\"type\":\"string\"},\"miles_balance\":{\"type\":\"integer\"},\"tier_miles_ytd\":{\"type\":\"integer\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRPdXRjb21lIjp7IngiOjI1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6MjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}}, \"required\": [\"session_token\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:check_connection_risk_flow",
+      "data": {
+        "name": "check_connection_risk_flow",
+        "description": "Assess whether the verified traveller will make each connection on their booking. The system computes it from the live inbound arrival vs the next departure and the minimum connection time, and returns SAFE, AT_RISK or MISSED per connection, plus the earliest_rebook_departure a replacement flight must leave after. This is computed - never estimate connection risk yourself.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM connection_risk(CAST(?tok AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "session_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "pnr",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "connection_at",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "inbound_flight",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "inbound_status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "inbound_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "outbound_flight",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "outbound_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "connection_minutes",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "risk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "earliest_rebook_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "detail",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "f5ed4eae-92d7-45bf-8a0d-10d77ab07b9cSELECT * FROM connection_risk(CAST(?tok AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"session_status\":{\"type\":\"string\"},\"pnr\":{\"type\":\"string\"},\"connection_at\":{\"type\":\"string\"},\"inbound_flight\":{\"type\":\"string\"},\"inbound_status\":{\"type\":\"string\"},\"inbound_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"outbound_flight\":{\"type\":\"string\"},\"outbound_departure\":{\"type\":\"string\",\"format\":\"time\"},\"connection_minutes\":{\"type\":\"integer\"},\"risk\":{\"type\":\"string\"},\"earliest_rebook_departure\":{\"type\":\"string\",\"format\":\"time\"},\"detail\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"session_status\":{\"type\":\"string\"},\"pnr\":{\"type\":\"string\"},\"connection_at\":{\"type\":\"string\"},\"inbound_flight\":{\"type\":\"string\"},\"inbound_status\":{\"type\":\"string\"},\"inbound_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"outbound_flight\":{\"type\":\"string\"},\"outbound_departure\":{\"type\":\"string\",\"format\":\"time\"},\"connection_minutes\":{\"type\":\"integer\"},\"risk\":{\"type\":\"string\"},\"earliest_rebook_departure\":{\"type\":\"string\",\"format\":\"time\"},\"detail\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRPdXRjb21lIjp7IngiOjI1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6MjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}}, \"required\": [\"session_token\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:propose_rebook_flow",
+      "data": {
+        "name": "propose_rebook_flow",
+        "description": "Step 1 of 2 for rebooking a disrupted leg. Give the leg&#39;s current flight and the chosen new flight. The system checks every rule (ownership, the leg is changeable, same route, target not cancelled, seats available, and that it departs after the inbound arrival plus the minimum connection) and returns PROPOSED with an action_id, new seat and times, or NOT_PROPOSED with the reason. Nothing changes until confirm_rebook is called.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO pending_actions (action_type, booking_id, segment_id, from_flight, to_flight, new_seat) SELECT * FROM rebook_proposal_row(CAST(?w_tok AS text), CAST(?w_cur AS text), CAST(?w_fl AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_cur",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_fl",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "52e64225-aa26-4e77-8ecd-d09033c8f194INSERT INTO pending_actions (action_type, booking_id, segment_id, from_flight, to_flight, new_seat) SELECT * FROM rebook_proposal_row(CAST(?w_tok AS text), CAST(?w_cur AS text), CAST(?w_fl AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_cur": "=$flow.arguments.current_flight",
+                      "w_fl": "=$flow.arguments.new_flight"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"w_tok\":{\"type\":\"string\"},\"w_cur\":{\"type\":\"string\"},\"w_fl\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"w_tok\":{\"type\":\"string\"},\"w_cur\":{\"type\":\"string\"},\"w_fl\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM propose_rebook_result(CAST(?r_tok AS text), CAST(?r_cur AS text), CAST(?r_fl AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "r_cur",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "r_fl",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "from_flight",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "to_flight",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "new_seat",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "new_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "new_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "d7e54fe5-e1a4-4d7e-a9ad-6be310efc454SELECT * FROM propose_rebook_result(CAST(?r_tok AS text), CAST(?r_cur AS text), CAST(?r_fl AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_cur": "=$flow.arguments.current_flight",
+                      "r_fl": "=$flow.arguments.new_flight"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_tok\":{\"type\":\"string\"},\"r_cur\":{\"type\":\"string\"},\"r_fl\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_tok\":{\"type\":\"string\"},\"r_cur\":{\"type\":\"string\"},\"r_fl\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"outcome\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"action_id\":{\"type\":\"string\"},\"from_flight\":{\"type\":\"string\"},\"to_flight\":{\"type\":\"string\"},\"new_seat\":{\"type\":\"string\"},\"new_departure\":{\"type\":\"string\",\"format\":\"time\"},\"new_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"expires_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"outcome\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"action_id\":{\"type\":\"string\"},\"from_flight\":{\"type\":\"string\"},\"to_flight\":{\"type\":\"string\"},\"new_seat\":{\"type\":\"string\"},\"new_departure\":{\"type\":\"string\",\"format\":\"time\"},\"new_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"expires_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkd1YXJkZWRXcml0ZSI6eyJ4IjoyNTAsInkiOjE1MH0sIlJlYWRPdXRjb21lIjp7IngiOjQ1MCwieSI6MjUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6MzUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"},\"current_flight\":{\"type\":\"string\",\"description\":\"The leg's current flight number, e.g. FL445\"},\"new_flight\":{\"type\":\"string\",\"description\":\"The replacement flight number, e.g. FL447\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}, \"current_flight\": {\"type\": \"string\", \"description\": \"The leg's current flight number, e.g. FL445\"}, \"new_flight\": {\"type\": \"string\", \"description\": \"The replacement flight number, e.g. FL447\"}}, \"required\": [\"session_token\", \"current_flight\", \"new_flight\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:confirm_rebook_flow",
+      "data": {
+        "name": "confirm_rebook_flow",
+        "description": "Step 2 of 2: execute a rebooking the traveller has explicitly confirmed. Pass the action_id from propose_rebook. The system re-checks every rule and expires proposals after 15 minutes. Returns EXECUTED (with the new flight, seat and times) or NOT_EXECUTED with the reason. Only call after the traveller says yes to the exact proposal.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO rebookings (action_id, segment_id, from_flight, to_flight, new_seat) SELECT * FROM rebook_confirmation_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "af79e7b6-c84b-4dcd-b751-b57f62f6431fINSERT INTO rebookings (action_id, segment_id, from_flight, to_flight, new_seat) SELECT * FROM rebook_confirmation_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"w_tok\":{\"type\":\"string\"},\"w_act\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"w_tok\":{\"type\":\"string\"},\"w_act\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM confirm_rebook_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "r_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "pnr",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "from_flight",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "to_flight",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "new_seat",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "new_departure",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "new_arrival",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "rebooked_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "31fbbc23-65cf-47e4-8c78-086e0f2ef2aaSELECT * FROM confirm_rebook_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_tok\":{\"type\":\"string\"},\"r_act\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_tok\":{\"type\":\"string\"},\"r_act\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"outcome\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"pnr\":{\"type\":\"string\"},\"from_flight\":{\"type\":\"string\"},\"to_flight\":{\"type\":\"string\"},\"new_seat\":{\"type\":\"string\"},\"new_departure\":{\"type\":\"string\",\"format\":\"time\"},\"new_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"rebooked_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"outcome\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"pnr\":{\"type\":\"string\"},\"from_flight\":{\"type\":\"string\"},\"to_flight\":{\"type\":\"string\"},\"new_seat\":{\"type\":\"string\"},\"new_departure\":{\"type\":\"string\",\"format\":\"time\"},\"new_arrival\":{\"type\":\"string\",\"format\":\"time\"},\"rebooked_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkd1YXJkZWRXcml0ZSI6eyJ4IjoyNTAsInkiOjE1MH0sIlJlYWRPdXRjb21lIjp7IngiOjQ1MCwieSI6MjUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6MzUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"},\"action_id\":{\"type\":\"string\",\"description\":\"action_id returned by propose_rebook, e.g. ACT-1A2B3C4D\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id returned by propose_rebook, e.g. ACT-1A2B3C4D\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:email_my_confirmation_flow",
+      "data": {
+        "name": "email_my_confirmation_flow",
+        "description": "Email the traveller the confirmation for a rebooking they have already executed. Pass the action_id from confirm_rebook. The system sends the email only when that rebooking belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful rebooking.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "SendMail",
+            "type": "label",
+            "label": "ReadOutcome to SendMail"
+          },
+          {
+            "id": 3,
+            "from": "SendMail",
+            "to": "Return",
+            "type": "label",
+            "label": "SendMail to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "r_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "send_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "to_email",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "subject",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "body",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "cb426b38-989a-4461-b555-7b4cc5f00f2aSELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_tok\":{\"type\":\"string\"},\"r_act\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_tok\":{\"type\":\"string\"},\"r_act\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"send_status\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"to_email\":{\"type\":\"string\"},\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"send_status\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"to_email\":{\"type\":\"string\"},\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "SendMail",
+            "name": "SendMail",
+            "description": "Send confirmation email",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sendmail",
+              "input": {
+                "Server": "smtp.gmail.com",
+                "Port": 465,
+                "authorizationType": "Basic",
+                "Username": "=$property[\"Email_Username\"]",
+                "Password": "=$property[\"Email_App_Password\"]",
+                "authorizationConn": "",
+                "Connection Security": "SSL",
+                "serverCertificate": "",
+                "message_content_type": "text/plain",
+                "sender": "=$property[\"To_Email\"]",
+                "recipients": "=$property[\"To_Email\"]",
+                "cc_recipients": "",
+                "bcc_recipients": "",
+                "reply_to": "=$property[\"Email_Username\"]",
+                "subject": "=$activity[ReadOutcome].Output.records[0].subject",
+                "message": "=$activity[ReadOutcome].Output.records[0].body"
+              },
+              "schemas": {
+                "input": {
+                  "attachments": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRPdXRjb21lIjp7IngiOjI1MCwieSI6MTUwfSwiU2VuZE1haWwiOnsieCI6NDUwLCJ5IjoyNTB9LCJSZXR1cm4iOnsieCI6NjUwLCJ5IjozNTB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"},\"action_id\":{\"type\":\"string\",\"description\":\"action_id of the executed rebooking\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id of the executed rebooking\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:open_service_case_flow",
+      "data": {
+        "name": "open_service_case_flow",
+        "description": "Hand a request that needs a human to the right team: COMPENSATION_CLAIM (delay/cancellation compensation or a refund), BAGGAGE_CLAIM (lost, delayed or damaged bags), SPECIAL_ASSISTANCE (mobility, medical or unaccompanied-minor help), COMPLAINT (service complaint), NAME_CHANGE (change the name on a ticket) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts these.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO service_cases (booking_id, pnr, request_type, traveler_statement, agent_brief) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_stmt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_brief",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "cbbf2e94-4165-4d41-bb6e-835206b3c49bINSERT INTO service_cases (booking_id, pnr, request_type, traveler_statement, agent_brief) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_type": "=$flow.arguments.request_type",
+                      "w_stmt": "=$flow.arguments.traveler_statement",
+                      "w_brief": "=$flow.arguments.brief"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"w_tok\":{\"type\":\"string\"},\"w_type\":{\"type\":\"string\"},\"w_stmt\":{\"type\":\"string\"},\"w_brief\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}},\"parameters\":{\"type\":\"object\",\"properties\":{\"w_tok\":{\"type\":\"string\"},\"w_type\":{\"type\":\"string\"},\"w_stmt\":{\"type\":\"string\"},\"w_brief\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "r_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "request_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "assigned_team",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_within_business_days",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "3af4c1c6-6c81-4803-8601-5a56833abbf4SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_type": "=$flow.arguments.request_type"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_tok\":{\"type\":\"string\"},\"r_type\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"r_tok\":{\"type\":\"string\"},\"r_type\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"outcome\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"case_id\":{\"type\":\"string\"},\"request_type\":{\"type\":\"string\"},\"assigned_team\":{\"type\":\"string\"},\"reply_within_business_days\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"outcome\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"},\"case_id\":{\"type\":\"string\"},\"request_type\":{\"type\":\"string\"},\"assigned_team\":{\"type\":\"string\"},\"reply_within_business_days\":{\"type\":\"integer\"},\"status\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIkd1YXJkZWRXcml0ZSI6eyJ4IjoyNTAsInkiOjE1MH0sIlJlYWRPdXRjb21lIjp7IngiOjQ1MCwieSI6MjUwfSwiUmV0dXJuIjp7IngiOjY1MCwieSI6MzUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"},\"request_type\":{\"type\":\"string\",\"description\":\"COMPENSATION_CLAIM | BAGGAGE_CLAIM | SPECIAL_ASSISTANCE | COMPLAINT | NAME_CHANGE | OTHER\"},\"traveler_statement\":{\"type\":\"string\",\"description\":\"The traveller's request in their own words\"},\"brief\":{\"type\":\"string\",\"description\":\"A neutral 2-4 sentence summary for the agent: facts only, no recommendation\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}, \"request_type\": {\"type\": \"string\", \"description\": \"COMPENSATION_CLAIM | BAGGAGE_CLAIM | SPECIAL_ASSISTANCE | COMPLAINT | NAME_CHANGE | OTHER\"}, \"traveler_statement\": {\"type\": \"string\", \"description\": \"The traveller's request in their own words\"}, \"brief\": {\"type\": \"string\", \"description\": \"A neutral 2-4 sentence summary for the agent: facts only, no recommendation\"}}, \"required\": [\"session_token\", \"request_type\", \"traveler_statement\", \"brief\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_my_cases_flow",
+      "data": {
+        "name": "get_my_cases_flow",
+        "description": "List the verified traveller&#39;s open and past service cases with the assigned team and status.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#query",
+              "input": {
+                "Connection": "conn://70c516c8-5e4b-4b42-92ee-126dcceae187",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM my_cases(CAST(?tok AS text));",
+                "manualmode": false,
+                "fetchMetadata": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "session_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "request_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "assigned_team",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "created_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "1c80aa0e-ae80-415e-a032-8523068d5960SELECT * FROM my_cases(CAST(?tok AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"parameters\":{\"type\":\"object\",\"properties\":{\"tok\":{\"type\":\"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"session_status\":{\"type\":\"string\"},\"case_id\":{\"type\":\"string\"},\"request_type\":{\"type\":\"string\"},\"assigned_team\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"definitions\":{},\"properties\":{\"records\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"session_status\":{\"type\":\"string\"},\"case_id\":{\"type\":\"string\"},\"request_type\":{\"type\":\"string\"},\"assigned_team\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"created_at\":{\"type\":\"string\",\"format\":\"time\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo1MH0sIlJlYWRPdXRjb21lIjp7IngiOjI1MCwieSI6MTUwfSwiUmV0dXJuIjp7IngiOjQ1MCwieSI6MjUwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\":{\"type\":\"string\",\"description\":\"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"PassengerServicesMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"}}, \"required\": [\"session_token\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "airline_governed"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    },
+    {
+      "name": "MCP_SERVER_PORT",
+      "type": "string",
+      "value": "9852"
+    },
+    {
+      "name": "Email_Username",
+      "type": "string",
+      "value": "sender@example.com"
+    },
+    {
+      "name": "Email_App_Password",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "To_Email",
+      "type": "string",
+      "value": "recipient@example.com"
+    }
+  ],
+  "schemas": {
+    "ToolResponse": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\"\n    },\n    \"error\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+    },
+    "verify_traveller_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"pnr\": {\n      \"type\": \"string\",\n      \"description\": \"6-character PNR / booking reference, e.g. ABCDE1\"\n    },\n    \"pin\": {\n      \"type\": \"string\",\n      \"description\": \"4-digit verification PIN the traveller received\"\n    }\n  },\n  \"required\": [\n    \"pnr\",\n    \"pin\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"pnr\": {\n      \"type\": \"string\",\n      \"description\": \"6-character PNR / booking reference, e.g. ABCDE1\"\n    },\n    \"pin\": {\n      \"type\": \"string\",\n      \"description\": \"4-digit verification PIN the traveller received\"\n    }\n  },\n  \"required\": [\n    \"pnr\",\n    \"pin\"\n  ]\n}"
+    },
+    "get_my_itinerary_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    },
+    "get_flight_status_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"flight_number\": {\n      \"type\": \"string\",\n      \"description\": \"Flight number, e.g. FL801\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"flight_number\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"flight_number\": {\n      \"type\": \"string\",\n      \"description\": \"Flight number, e.g. FL801\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"flight_number\"\n  ]\n}"
+    },
+    "get_my_loyalty_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    },
+    "check_connection_risk_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    },
+    "propose_rebook_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"current_flight\": {\n      \"type\": \"string\",\n      \"description\": \"The leg's current flight number, e.g. FL445\"\n    },\n    \"new_flight\": {\n      \"type\": \"string\",\n      \"description\": \"The replacement flight number, e.g. FL447\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"current_flight\",\n    \"new_flight\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"current_flight\": {\n      \"type\": \"string\",\n      \"description\": \"The leg's current flight number, e.g. FL445\"\n    },\n    \"new_flight\": {\n      \"type\": \"string\",\n      \"description\": \"The replacement flight number, e.g. FL447\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"current_flight\",\n    \"new_flight\"\n  ]\n}"
+    },
+    "confirm_rebook_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_rebook, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_rebook, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+    },
+    "email_my_confirmation_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id of the executed rebooking\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id of the executed rebooking\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+    },
+    "open_service_case_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"request_type\": {\n      \"type\": \"string\",\n      \"description\": \"COMPENSATION_CLAIM | BAGGAGE_CLAIM | SPECIAL_ASSISTANCE | COMPLAINT | NAME_CHANGE | OTHER\"\n    },\n    \"traveler_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The traveller's request in their own words\"\n    },\n    \"brief\": {\n      \"type\": \"string\",\n      \"description\": \"A neutral 2-4 sentence summary for the agent: facts only, no recommendation\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"request_type\",\n    \"traveler_statement\",\n    \"brief\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    },\n    \"request_type\": {\n      \"type\": \"string\",\n      \"description\": \"COMPENSATION_CLAIM | BAGGAGE_CLAIM | SPECIAL_ASSISTANCE | COMPLAINT | NAME_CHANGE | OTHER\"\n    },\n    \"traveler_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The traveller's request in their own words\"\n    },\n    \"brief\": {\n      \"type\": \"string\",\n      \"description\": \"A neutral 2-4 sentence summary for the agent: facts only, no recommendation\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"request_type\",\n    \"traveler_statement\",\n    \"brief\"\n  ]\n}"
+    },
+    "get_my_cases_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_traveller. Required; never invent one. If a tool answers SESSION_INVALID, ask the traveller to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    }
+  },
+  "connections": {
+    "70c516c8-5e4b-4b42-92ee-126dcceae187": {
+      "id": "70c516c8-5e4b-4b42-92ee-126dcceae187",
+      "name": "PostgresConn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "Your PostgreSQL Connector",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.PostgresConn.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.PostgresConn.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuNCIsInRhZyI6IjEuMC40LWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby93aS1wb3N0Z3Jlcy9zcmMvYXBwL1Bvc3RncmVTUUwiLCJpZCI6IlBvc3RncmVTUUwiLCJ2ZXJzaW9uIjoiMi43LjIiLCJ0YWciOiIyLjcuMi1iMDEiLCJuYW1lIjoiUG9zdGdyZVNRTCIsInMzbG9jYXRpb24iOiJUaWJjby9Qb3N0Z3JlU1FMIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWdlbmVyYWwvc3JjL2FwcC9HZW5lcmFsIiwiaWQiOiJHZW5lcmFsIiwidmVyc2lvbiI6IjEuNi4xNiIsInRhZyI6IjEuNi4xNi1iMDUiLCJuYW1lIjoiR2VuZXJhbCIsInMzbG9jYXRpb24iOiJUaWJjby9HZW5lcmFsIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9852",
+        "title": "PassengerServicesMCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

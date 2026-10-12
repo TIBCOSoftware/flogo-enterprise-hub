@@ -11,66 +11,82 @@ cp config.example.md config.md
 `config.md` is git-ignored so your real credentials are never committed.
 Never put real secrets in this template.
 
-> **OS note:** the paths below are shown as **Windows** examples (`C:\…`, `.exe`).
-> On **macOS/Linux** use POSIX paths and drop the `.exe` suffix — e.g. `psql`,
-> `flogodesign-cli`, `flogobuild`, `tibcop` (often already on your `PATH`). The
-> CLI tool paths (`FLOGODESIGN_CLI_PATH`, `FLOGOBUILD_PATH`, `TIBCOP_PATH`) are
-> whatever `which <tool>` / `where <tool>` reports on your machine.
+> **Format rules (the scripts parse this file):**
+> - Table rows are read as `| KEY | `value` | …` — only the **first backticked value** in a row is used,
+>   so put exactly one value per row. Anything still shown as `<placeholder>` is treated as **unset**.
+> - The LLM / email sections use `Key: value` lines. Keys match case-insensitively and a space equals an
+>   underscore (`API Key:` == `API_Key:`), but prefer the underscore form shown here.
+> - Use **native paths** for your OS (`C:\…\psql.exe` on Windows, `/usr/bin/psql` on Linux/macOS).
+>   Leave a CLI path as its placeholder if the tool is already on your `PATH`.
+> - Prerequisites (what to install, versions, where from) and the preflight checker are described in
+>   [`../../AGENT.md` → Prerequisites and preflight](../../AGENT.md#prerequisites-and-preflight).
 
 ---
 
 ## PostgreSQL
 
-| Key | Value |
-|---|---|
-| PSQL_PATH | `C:\Program Files\PostgreSQL\18\bin\psql.exe` (Windows) · `/usr/bin/psql` or `/opt/homebrew/bin/psql` (Linux/macOS) |
-| PSQL_PATH_GITBASH | `/c/Program Files/PostgreSQL/18/bin/psql.exe` *(Git-Bash-on-Windows form; ignore on real Linux/macOS)* |
-| PG_HOST | `localhost` |
-| PG_PORT | `5432` |
-| PG_USER | `postgres` |
-| PG_PASSWORD | `<your-postgres-password>` |
+| Key | Value | Read by |
+|---|---|---|
+| PSQL_PATH | `<path-to-psql>` | agentic-ai-use-case-builder test scripts, preflight |
+| PG_HOST | `localhost` | agentic-ai-use-case-builder (apps + tests), preflight |
+| PG_PORT | `5432` | same as above |
+| PG_USER | `postgres` | same as above |
+| PG_PASSWORD | `<your-postgres-password>` | same as above (env `PG_PWD` / `PG_PASSWORD` wins) |
+
+> `PSQL_PATH` — full path to the `psql` client, one value only. Examples:
+> - Windows: `C:\Program Files\PostgreSQL\<version>\bin\psql.exe`
+> - macOS (Homebrew): `/opt/homebrew/bin/psql` (Apple Silicon prefix) or `/usr/local/bin/psql`
+> - Linux: `/usr/bin/psql`
+>
+> If you leave the placeholder, the scripts use env `PSQL`, then `psql` on your `PATH`.
 
 ---
 
-## LLM Provider Connection  or LLM Client Activity Configuration
-LLM Provider: OpenAI
+## LLM Provider Connection or LLM Client Activity Configuration
 
-API Key: <your-openai-api-key>
+*Read by: agentic-ai-use-case-builder (baked into the AI Agent / LLM connections), preflight.*
+
+LLM_Provider: OpenAI
+
+API_Key: <your-openai-api-key>
 
 LLM_Base_URL:
 
-LLM_Model: gpt-5-nano
+LLM_Model: gpt-5.5
 
 LLM_Temperature: 0
 
 > Leave `LLM_Base_URL` **empty** for OpenAI (the connector uses the OpenAI default endpoint).
-> Set it only for Azure OpenAI, a gateway/proxy, or a non-OpenAI provider. `gpt-5-nano` is the
-> cheapest option for demos/testing; if this file is missing, the agentic skills default to
-> `gpt-5-nano`, an empty base URL, and temperature `0`.
+> Set it only for Azure OpenAI, a gateway/proxy, or a non-OpenAI provider.
 >
-> **Runtime model for multi-agent / governed use cases:** the AI **Orchestrator** must do multi-step
-> tool-calling and hand off to the A2A agent — `gpt-5-nano` is too weak for that (it drops tool calls
-> and fails to delegate). Use a capable tool-calling model such as **`gpt-5.5`** (or a Claude
-> Sonnet-/Opus-class or Gemini 2.5 Pro-class model) for the orchestrator; the A2A agent can be one tier
-> down. Because all rules live in SQL, a cheaper runtime model only lowers conversation quality, never
-> safety — so pick the cheapest model that still delegates reliably (confirm at test step 4). Set this
-> in `LLM_Model` **before** building so the apps are baked with the right model and you don't rebuild.
+> **`LLM_Model` defaults to `gpt-5.5`** — the AI **Orchestrator** must do multi-step tool-calling and
+> hand off to the A2A agent, and nano-class models (e.g. `gpt-5-nano`) drop tool calls and fail to
+> delegate. Use a capable tool-calling model (`gpt-5.5`, or a Claude Sonnet-/Opus-class or
+> Gemini 2.5 Pro-class model). Because all rules live in SQL, a cheaper runtime model only lowers
+> conversation quality, never safety — pick the cheapest model that still delegates reliably (confirm
+> at test step 4). Set this **before** building so the apps are baked with the right model.
+
 ---
 
 ## Email Server, Username and app password
+
+*Read by: agentic-ai-use-case-builder — only for use cases with an email tool; preflight warns if unset.*
 
 Server: smtp.gmail.com
 Username: <your-email-address>
 Port: 465
 Password: <your-app-password>
 
+> For Gmail, `Password` must be an **app password**, not your account password — create one at
+> https://support.google.com/accounts/answer/185833 (requires 2-Step Verification).
+
 ---
 
 ## Agentic AI Use Cases (skill: `agentic-ai-use-case-builder`)
 
-| Key | Value |
-|---|---|
-| AGENTIC_USE_CASES_DIR | *(optional — leave unset)* |
+| Key | Value | Read by |
+|---|---|---|
+| AGENTIC_USE_CASES_DIR | *(optional — leave unset)* | agentic-ai-use-case-builder |
 
 Optional override — a path **relative to the repo root** (or an absolute path) to the
 folder holding the reference Agentic AI use-case apps that the agentic skill
@@ -81,63 +97,80 @@ another project. If the folder can't be found, the skills will ask you to point 
 
 ## Flogo VSCode Extension
 
-| Key | Value |
-|---|---|
-| VSIX_FILE_PATH | `"C:\Users\<you>\Downloads\flogo-vscode-win32-x64-2.26.5-ENGR-001-3035.vsix"` |
-| FLOGOBUILD_CONTEXT_NAME | `flogo-vscode-2.26.5-ENGR-001` |
-| FLOGO_VERSION  | `2.26.5` |
+| Key | Value | Read by |
+|---|---|---|
+| VSIX_FILE_PATH | `<path-to-flogo-vscode-extension.vsix>` | flogobuild (`create-context -v`) |
+| FLOGOBUILD_CONTEXT_NAME | `<your-build-context-name>` | flogobuild, mapping-from-excel, flogo-unit-testing, agentic-ai-use-case-builder |
+| FLOGO_VERSION | `<extension-version, e.g. 2.26.6>` | reference only |
+
+> - `VSIX_FILE_PATH` — the Flogo VS Code extension `.vsix` you downloaded (Marketplace / TIBCO); used only to create a build context.
+> - `FLOGOBUILD_CONTEXT_NAME` — create it with `flogobuild create-context -n <name> -v <VSIX_FILE_PATH> --set-default`;
+>   names allow letters, digits, `_`, `-` (3–30 chars, **no dots**). List existing ones with `flogobuild list-context`.
+> - `FLOGO_VERSION` — minimum supported VS Code extension is **2.26.6**.
 
 ---
 
 ## Flogo Design CLI (flogodesign-cli)
 
-| Key | Value |
-|---|---|
-| FLOGODESIGN_CLI_PATH | `"C:\Users\<you>\.vscode\extensions\tibco.flogo-2.26.5-ENGR-001-3035\bin\flogodesign-cli.exe"` |
-| FLOGODESIGN_CLI_VERSION | `v0.9.3` |
+| Key | Value | Read by |
+|---|---|---|
+| FLOGODESIGN_CLI_PATH | `<path-to-flogodesign-cli>` | fallback only — fda is discovered dynamically |
+| FLOGODESIGN_CLI_VERSION | `<output of fda version>` | reference only |
 
-> The extension folder name is **version-specific** — do not hardcode it. The `fda`
-> alias in [../../README.md](../../README.md) discovers the newest
-> `flogodesign-cli` under your installed extension automatically; this row is for
-> reference only. (Same idea for `FLOGOBUILD_PATH`.)
-
+> The extension folder name is **version-specific** — do not hardcode it. The scripts and the `fda`
+> alias in [../../README.md](../../README.md) discover the newest
+> `~/.vscode*/extensions/tibco.flogo-*/bin/flogodesign-cli[.exe]` automatically; set this row only if
+> discovery fails (e.g. a non-standard VS Code install).
 
 ---
 
 ## Flogobuild CLI
 
-| Key | Value |
-|---|---|
-| FLOGOBUILD_PATH | `C:\tibco\TIB_flogo-app-build-cli_1.0.6\windows_amd64\flogobuild.exe` |
-| FLOGOBUILD_VERSION | `v1.0.6` |
+| Key | Value | Read by |
+|---|---|---|
+| FLOGOBUILD_PATH | `<path-to-flogobuild>` | flogobuild, flogo-unit-testing, agentic-ai-use-case-builder, preflight |
+| FLOGOBUILD_VERSION | `<output of flogobuild version>` | reference only |
+
+> `flogobuild` (Flogo App Build CLI) is needed **only when building** — download it from the
+> [TIBCO downloads page](https://www.tibco.com/downloads/11810) (it is **not bundled in the VS Code extension**). Building Flogo apps also
+> requires the **Go runtime** ([go.dev/dl](https://go.dev/dl/); check with `go version`). Point this at
+> `<unzip-dir>/<os>_<arch>/flogobuild[.exe]`, or leave the placeholder if `flogobuild` is on your `PATH`.
 
 ---
 
 ## TIBCO Platform CLI (tibcop)
 
-| Key | Value |
-|---|---|
-| TIBCOP_PATH | `C:\tibco\tibco-platform-cli_1.8.0-win-amd64\tibcop.exe` |
-| TIBCOP_VERSION | `v1.8.0` |
-| CP_URL | `https://<your-subscription>.<region>.my.tibco.com` |
-| DATAPLANE_NAME | `<your-dataplane-name>` |
-| TIBCOP_TOKEN | `<your-platform-token>` |
+| Key | Value | Read by |
+|---|---|---|
+| TIBCOP_PATH | `<path-to-tibcop>` | tibcop, flogo-deploy |
+| TIBCOP_VERSION | `<output of tibcop --version>` | reference only |
+| TIBCOP_PROFILE | `<your-tibcop-profile-name>` | flogo-deploy, tibcop (`--profile`) |
+| CP_URL | `https://<your-subscription>.<region>.my.tibco.com` | tibcop, flogo-deploy |
+| DATAPLANE_NAME | `<your-dataplane-name>` | tibcop, flogo-deploy |
+| TIBCOP_TOKEN | `<your-platform-token>` | tibcop, flogo-deploy |
+
+> - `TIBCOP_PATH` — leave the placeholder if `tibcop` is on your `PATH`.
+> - `tibcop` is needed **only when deploying** to TIBCO Platform.
+> - `TIBCOP_PROFILE` — create with `tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com` (optional `--software-statement <software_statement>`); list with `tibcop list-profiles`.
 
 ---
 
 ## Flogo License
 
-| Key | Value |
-|---|---|
-| LICENSE_FILE_PATH | `C:\Work\MyflogoLicence_ANY.bin` |
+| Key | Value | Read by |
+|---|---|---|
+| LICENSE_FILE_PATH | `<path-to-flogo-license.bin>` | flogobuild (`build-exe -l`, optional) |
+
+> Optional for local non-production builds — without a licence, local builds on non-Linux hosts run as
+> non-prod and stop after 24 hours.
 
 ---
 
 ## Output Directory
 
-| Key | Value |
-|---|---|
-| FLOGO_APPS_DIR | `../../Flogo_Apps` |
+| Key | Value | Read by |
+|---|---|---|
+| FLOGO_APPS_DIR | `../../Flogo_Apps` | all skills that create `.flogo` apps |
 
 > Path is **relative to this `config.md`** (which lives at
 > `skills-library/.claude/skills/`), so `../../Flogo_Apps` resolves to

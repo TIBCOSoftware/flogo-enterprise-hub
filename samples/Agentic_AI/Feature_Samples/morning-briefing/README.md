@@ -83,7 +83,7 @@ morning-briefing/
 | Tool            | Version    | Purpose                                |
 |-----------------|------------|----------------------------------------|
 | Docker Desktop  | ≥ 24.x     | Run Wiremock + MailHog containers      |
-| TIBCO Flogo CLI | 2.26.2     | Build and run the Flogo app            |
+| TIBCO Flogo VS Code extension / CLI | 2.26.7+ | Build and run the Flogo app            |
 | Anthropic API   | —          | Claude AI for briefing generation      |
 
 ---

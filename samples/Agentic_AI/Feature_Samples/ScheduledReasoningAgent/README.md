@@ -203,7 +203,7 @@ All tools take no arguments and return pre-populated mock data.
 
 ## Prerequisites
 
-- **TIBCO Flogo 2.26.4 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
+- **TIBCO Flogo 2.26.7 or later**. For more information, please refer [documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm)
 - An **OpenAI API key** (or swap for Anthropic, Gemini, Ollama, or vLLM in the app properties)
 - A REST client for testing: [Postman](https://www.postman.com/) or curl
 - *Optional*: SMTP credentials (Gmail, Outlook, or any SMTP server) for email delivery

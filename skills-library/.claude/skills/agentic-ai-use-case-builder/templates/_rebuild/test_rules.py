@@ -21,17 +21,42 @@
 """Run the EXACT tool SQL from tool_spec.py against the airline_governed DB and assert the business rules.
 No Flogo needed. Re-loads reset_data.sql first and again at the end.
 
-  PG_PWD=<password> python _rebuild/test_rules.py          (PSQL env var overrides the psql path)
+  PG_DB=<database> PG_PWD=<password> python _rebuild/test_rules.py   (PSQL env var overrides the psql path;
+  PG_PWD may also come from env PG_PASSWORD or config.md PG_PASSWORD)
 """
 import os, re, subprocess, sys, csv, io
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tool_spec import TOOLS, SEARCH_ALTERNATIVES
 
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PSQL = os.environ.get("PSQL", r"C:\Program Files\PostgreSQL\18\bin\psql.exe")
-ENV = dict(os.environ, PGPASSWORD=os.environ["PG_PWD"])
+# psql + password lookup (cross-platform): env PSQL > config.md PSQL_PATH > psql on PATH;
+# password: env PG_PWD / PG_PASSWORD > config.md PG_PASSWORD (never printed). Install hints: skills-library/AGENT.md
+# -> "Prerequisites and preflight".
+import re, shutil
+def _config_md_value(key):
+    """First backticked value of the `| KEY | `value` |` row in the nearest skills-library/.claude/skills/config.md."""
+    path, d = os.environ.get("CONFIG_MD", ""), os.path.dirname(os.path.abspath(__file__))
+    while not path:
+        hits = [p for p in (os.path.join(d, "skills-library", ".claude", "skills", "config.md"),
+                            os.path.join(d, ".claude", "skills", "config.md")) if os.path.exists(p)]
+        if hits: path = hits[0]
+        elif os.path.dirname(d) == d: return ""
+        else: d = os.path.dirname(d)
+    if not os.path.exists(path): return ""
+    for line in open(path, encoding="utf-8"):
+        m = re.match(r"\|\s*([A-Za-z][A-Za-z0-9_ ]*?)\s*\|\s*`([^`]*)`", line)
+        if m and re.sub(r"\s+", "_", m.group(1)).upper() == key.upper():
+            v = m.group(2).strip()
+            return "" if re.fullmatch(r"<[^>]*>", v) else v
+    return ""
+PSQL = (os.environ.get("PSQL") or _config_md_value("PSQL_PATH") or shutil.which("psql")
+        or sys.exit("psql not found: install the PostgreSQL client and put psql on PATH, or set env PSQL / config.md "
+                    "PSQL_PATH (see skills-library/AGENT.md -> Prerequisites and preflight)"))
+PG_DB = os.environ.get("PG_DB") or sys.exit("set PG_DB to the use case's database name (worked example: PG_DB=airline_governed)")
+ENV = dict(os.environ, PGPASSWORD=os.environ.get("PG_PWD") or os.environ.get("PG_PASSWORD") or _config_md_value("PG_PASSWORD")
+           or sys.exit("PostgreSQL password not set: export PG_PWD (or PG_PASSWORD), or fill PG_PASSWORD in config.md"))
 BASE = [PSQL, "-h", os.environ.get("PG_HOST", "localhost"), "-U", os.environ.get("PG_USER", "postgres"),
-        "-d", os.environ.get("PG_DB", "airline_governed"), "-v", "ON_ERROR_STOP=1", "-q"]
+        "-d", PG_DB, "-v", "ON_ERROR_STOP=1", "-q"]
 T = {t["tool"]: t for t in TOOLS}
 fails = 0
 

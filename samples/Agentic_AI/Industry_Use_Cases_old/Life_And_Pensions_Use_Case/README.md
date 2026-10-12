@@ -21,7 +21,7 @@ An AI-powered member self-service assistant for a mutual life, pensions & invest
                │  AI Orchestrator               │
                │  (LifePensionsAIOrchestrator)  │
                │  Port 9600 (WebSocket)         │
-               │  LLM: OpenAI gpt-5.6           │
+               │  LLM: OpenAI gpt-5.5           │
                └───────┬───────────┬────────────┘
                        │           │
           MCP (HTTP)   │           │  A2A Protocol
@@ -104,7 +104,7 @@ The main orchestration app. Exposes a WebSocket endpoint for natural-language ch
 | Setting | Value |
 |---------|-------|
 | WebSocket Path | `/lifepensions` |
-| LLM | OpenAI gpt-5.6 |
+| LLM | OpenAI gpt-5.5 |
 | MCP Server | `http://localhost:9982/life-pensions` |
 | A2A Servers / Agents | update_beneficiary (9983), change_contribution (9984), fund_switch (9985), submit_claim (9986), adviser_callback (9987), email (9988) |
 
@@ -143,18 +143,18 @@ in `reset_data.sql`, so the demo always looks current. All money is **USD**.
 ## Prerequisites
 
 - **PostgreSQL 14+** (local or remote); a database named **`life_pensions`** created for this demo.
-- **TIBCO Flogo Enterprise** (v2.26.5+) to import the three `.flogo` apps into the designer — or the
-  `flogobuild` CLI if you prefer to build `.exe`s (CLI paths/versions live in
-  `skills-library/.claude/skills/config.md`).
+- **PostgreSQL ODBC driver** (Flogo connector prerequisite) — install it before you open the apps in the designer: VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…** → PostgreSQL, then reload VS Code ([details](../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md)).
+- **TIBCO Flogo Enterprise** (v2.26.7+) to import the three `.flogo` apps into the designer — or the
+  `flogobuild` CLI if you prefer to build `.exe`s.
 - An **LLM provider** key (OpenAI-compatible). `LLM_Base_URL` must be a **real endpoint**, e.g.
-  `https://api.openai.com/v1`; default `LLM_Model` is `gpt-5.6` (use any model your key can access,
+  `https://api.openai.com/v1`; default `LLM_Model` is `gpt-5.5` (use any model your key can access,
   including an on-prem OpenAI-compatible endpoint).
 - **SMTP access** for the `send_confirmation_email` agent (Gmail: `smtp.gmail.com:465`, SSL, with a
   Gmail **App Password** — not the account password; see the manual-config section).
 - A **chatbot / WebSocket client** — the reference UI is under `samples/Agentic_AI/Chatbot`.
 
-> Environment-specific values (PostgreSQL host/credentials, OpenAI API key, SMTP account) belong in
-> `skills-library/.claude/skills/config.md` — substitute your own; never commit real secrets.
+> Environment-specific values (PostgreSQL host/credentials, OpenAI API key, SMTP account) are app
+> properties — set the app properties listed below with your own values; never commit real secrets.
 
 ---
 
@@ -206,7 +206,7 @@ Substitute your own values (placeholders shown).
 |----------|-------|
 | `AgenticAI.OpenAIConn.API_Key` | `<your OpenAI key>` (`SECRET:`) |
 | `AgenticAI.OpenAIConn.LLM_Base_URL` | a **real endpoint** (e.g. `https://api.openai.com/v1`) |
-| `LLM_Model` | `gpt-5.6` (or your preferred / on-prem model) |
+| `LLM_Model` | `gpt-5.5` (or your preferred / on-prem model) |
 | `PostgreSQL.PostgresConn.*` | Host / Port / Database_Name / User / Password (as above) |
 | `Email_Server` | `smtp.gmail.com` |
 | `Email_Port` | `465` (SSL) |
@@ -226,7 +226,7 @@ Substitute your own values (placeholders shown).
 |--------------------|-------|
 | `AgenticAI.OpenAIConn.API_Key` | `<your OpenAI key>` (`SECRET:`) |
 | `AgenticAI.OpenAIConn.LLM_Base_URL` | a **real endpoint** (e.g. `https://api.openai.com/v1`) |
-| `LLM_Model` | `gpt-5.6` |
+| `LLM_Model` | `gpt-5.5` |
 | WebSocket port | `9600` (set directly on the `#wsserver` trigger — there is no `_PORT` property) |
 | WebSocket path | `/lifepensions` |
 
@@ -444,7 +444,7 @@ with your own before an end-to-end run. **Never commit real secrets.**
    - `AgenticAI.OpenAIConn.API_Key` — set your real provider key (a `SECRET:` app property; keep it out of the repo).
    - `AgenticAI.OpenAIConn.LLM_Base_URL` — a **real endpoint** (`https://api.openai.com/v1`). An empty
      value becomes the literal `New_value` and the LLM call fails with `unsupported protocol scheme`.
-   - `LLM_Model` — confirm the model name (default `gpt-5.6`) is one your key can access.
+   - `LLM_Model` — confirm the model name (default `gpt-5.5`) is one your key can access.
 
 2. **PostgreSQL database & credentials.**
    - Create the **`life_pensions`** database and load `database.sql`; run `reset_data.sql` to reset between demos.
