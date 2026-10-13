@@ -62,7 +62,7 @@ REQUESTS = {
     "rate_plan_agent":
         "Plan rows: STANDARD Residential Standard, rates $0.045/kWh, needs none, est_monthly_cost 80.15, "
         "current_plan_est_cost 80.15, est_monthly_savings 0.00, is_current yes, eligible no, reason_code NO_CHANGE; "
-        "EV EV Time-of-Use, rates on-peak $0.09/kWh, off-peak $0.03/kWh, needs smart meter, est_monthly_cost 74.27, "
+        "EV EV Time-of-Use, rates on-peak $0.09/kWh, off-peak $0.025/kWh, needs smart meter, est_monthly_cost 74.27, "
         "current_plan_est_cost 80.15, est_monthly_savings 5.88, is_current no, eligible yes, effective_date 2026-11-01; "
         "TOU Residential Time-of-Use, rates on-peak $0.08/kWh, off-peak $0.03/kWh, needs smart meter, est_monthly_cost "
         "76.90, current_plan_est_cost 80.15, est_monthly_savings 3.25, is_current no, eligible yes, effective_date "

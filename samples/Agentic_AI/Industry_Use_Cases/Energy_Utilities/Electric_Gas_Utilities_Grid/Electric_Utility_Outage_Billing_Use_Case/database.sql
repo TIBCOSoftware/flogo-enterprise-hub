@@ -381,6 +381,9 @@ CREATE OR REPLACE FUNCTION usd(n NUMERIC) RETURNS TEXT AS $$
               WHEN n < 0 THEN '-$' || to_char(-n, 'FM999,999,990.00')
               ELSE '$' || to_char(n, 'FM999,999,990.00') END
 $$ LANGUAGE sql IMMUTABLE;
+-- exact per-kWh price: 0.0250 -> $0.025, 0.0300 -> $0.03 (usd() rounds to cents)
+CREATE OR REPLACE FUNCTION rate_txt(n NUMERIC) RETURNS TEXT AS $$
+  SELECT '$' || rtrim(to_char(n, 'FM990.0000'), '0') $$ LANGUAGE sql IMMUTABLE;
 CREATE OR REPLACE FUNCTION kwh_txt(n NUMERIC) RETURNS TEXT AS $$
   SELECT to_char(n, 'FM999,999,990') || ' kWh' $$ LANGUAGE sql IMMUTABLE;
 CREATE OR REPLACE FUNCTION ts_txt(t TIMESTAMP) RETURNS TEXT AS $$
@@ -828,9 +831,9 @@ RETURNS TABLE (status TEXT, plan_code VARCHAR, plan_name VARCHAR, description VA
                effective_date DATE, basis TEXT) AS $$
   SELECT CASE WHEN c.customer_id IS NULL THEN 'SESSION_INVALID' ELSE 'OK' END,
          rp.plan_code, rp.plan_name, rp.description, rp.base_charge,
-         CASE WHEN rp.energy_rate IS NOT NULL THEN usd(rp.energy_rate) || '/kWh'
-              ELSE 'on-peak ' || usd(rp.on_peak_rate) || '/kWh, off-peak ' || usd(rp.off_peak_rate) || '/kWh' END
-           || CASE WHEN rp.export_credit_rate > 0 THEN ', solar export credit ' || usd(rp.export_credit_rate) || '/kWh' ELSE '' END,
+         CASE WHEN rp.energy_rate IS NOT NULL THEN rate_txt(rp.energy_rate) || '/kWh'
+              ELSE 'on-peak ' || rate_txt(rp.on_peak_rate) || '/kWh, off-peak ' || rate_txt(rp.off_peak_rate) || '/kWh' END
+           || CASE WHEN rp.export_credit_rate > 0 THEN ', solar export credit ' || rate_txt(rp.export_credit_rate) || '/kWh' ELSE '' END,
          CASE WHEN rp.needs_solar THEN 'smart meter + solar on file' WHEN rp.needs_smart_meter THEN 'smart meter' ELSE 'none' END,
          plan_cost(c.customer_id, rp.plan_code), plan_cost(c.customer_id, c.plan_code),
          plan_cost(c.customer_id, c.plan_code) - plan_cost(c.customer_id, rp.plan_code),
@@ -1536,10 +1539,6 @@ RETURNS TABLE (section TEXT, term TEXT, meaning TEXT) AS $$
    ORDER BY array_position(ARRAY['CATEGORY','HAZARD_SIGN','CONNECTION','NEXT_PATH','ROUTING','SAFETY_LINE','RULE'], r.sec),
             r.ord, r.trm
 $$ LANGUAGE sql STABLE;
-
--- exact per-kWh price for the reference rows: 0.0250 -> $0.025 (usd() rounds to cents)
-CREATE OR REPLACE FUNCTION rate_txt(n NUMERIC) RETURNS TEXT AS $$
-  SELECT '$' || rtrim(to_char(n, 'FM990.0000'), '0') $$ LANGUAGE sql IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION ref_rate_plans(p_term TEXT)
 RETURNS TABLE (section TEXT, term TEXT, meaning TEXT) AS $$
