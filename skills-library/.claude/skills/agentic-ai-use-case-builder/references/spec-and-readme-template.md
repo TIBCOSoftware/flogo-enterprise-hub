@@ -70,7 +70,8 @@ the rules (database), the exceptions (people); then the "without the AI …" sen
 
 | App | Port / path | What it does |
 |---|---|---|
-<one row per app; describe tools in plain words, not SQL; say what the A2A agent never sees>
+<one row per app; describe tools in plain words, not SQL; say what the A2A agent never sees, and that it
+reads only reference tables (its one PostgreSQL reference tool)>
 
 ## Prerequisites
 - TIBCO Flogo VS Code extension 2.26.7+ · PostgreSQL 14+ · an LLM API key · Node.js 16+ for ../Chatbot
@@ -83,8 +84,10 @@ the rules (database), the exceptions (people); then the "without the AI …" sen
 
 ### 2. ⚠️ Configure the apps — these are NOT configured in the shipped files
 <one property table per app: DB host/port/user/password/database, LLM key/provider/base URL/model
-(state what the model ships as); then "click Connect/Test on each connection; if a trigger shows a red ✗,
-click Sync"; then a note on which port property AND connection URL to change together>
+(state what the model ships as). The Agents app's table has BOTH its LLM properties and its
+`PostgreSQL.PostgresConn.*` connection (the agents read reference tables only). Then "click Connect/Test on
+each connection; if a trigger shows a red ✗, click Sync"; then a note on which port property AND connection
+URL to change together>
 
 ### 3. Start the apps in this order
 **MCP Server (<port>) → Agents (<port>) → Orchestrator (<port>).**

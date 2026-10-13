@@ -7,6 +7,7 @@
 # reference - just change):
 #   - app names / prefix       (PassengerServices... -> <YourUseCase>...)
 #   - the tool_spec entries     below: tools, args, SQL (scoped reads + guarded writes)
+#   - AGENT_REF_TOOLS           at the end: one ref_<topic>() reference read per A2A agent (generic placeholders)
 #   - ports / endpoint paths    (9850 / 9852 / 9853, /passenger-services-gov-mcp, ...)
 #   - the test assertions       (test_rules.py / mcp_smoke.py / chat_e2e.py expectations)
 #
@@ -17,10 +18,10 @@
 #
 # No secrets here: credentials are read at RUN time from config.md / env (see fda_common.py).
 # =============================================================================
-"""Single source of truth for the MCP tools and the rebooking-options agent's tool.
+"""Single source of truth for the MCP tools (TOOLS) and the A2A agents' reference tools (AGENT_REF_TOOLS).
 
-Imported by build_mcp.py / build_agents.py (to generate the apps) and by test_rules.py
-(to run the exact same SQL against PostgreSQL before any app is built).
+Imported by build_mcp.py / build_agents.py (to generate the apps), by test_rules.py (to run the exact
+same SQL against PostgreSQL before any app is built) and by a2a_smoke.py / chat_e2e.py.
 
 Each tool: optional guarded WRITE (INSERT ... SELECT * FROM <rule fn>) then a READ that returns
 a deterministic outcome row. `?placeholders` are never reused within one statement and are always
@@ -144,16 +145,33 @@ TOOLS = [
     },
 ]
 
-# Tool of the A2A rebooking-options agent. Route + time window + cabin only - never passenger identity.
-SEARCH_ALTERNATIVES = {
-    "desc": ("Search available replacement flights for a route after a given earliest departure time. Pass the "
-             "origin and destination airport codes, the earliest_rebook_departure (ISO timestamp the flight must "
-             "leave after) and the preferred cabin. Returns up to 8 flights with times, seats and aircraft. "
-             "Never pass any passenger-identifying information."),
-    "args": [("origin", "Origin airport IATA code, e.g. ATL"),
-             ("destination", "Destination airport IATA code, e.g. MIA"),
-             ("earliest_departure", "ISO timestamp the replacement flight must depart after"),
-             ("cabin", "Preferred cabin: Economy or Business (or empty)")],
-    "read": ("SELECT * FROM search_alternatives(CAST(?org AS text), CAST(?dst AS text), CAST(?aft AS text), CAST(?cab AS text));",
-             [("org", "origin"), ("dst", "destination"), ("aft", "earliest_departure"), ("cab", "cabin")]),
-}
+# =============================================================================
+# A2A AGENT REFERENCE TOOLS - every reasoning agent's ONE tool (governed-patterns.md section 8).
+# GENERIC TEMPLATE (generalised from the Hospital / Semiconductor samples): fill in one entry per agent (1-3).
+# Each reads a REFERENCE table (section / term / meaning, NO personal data) through a ref_<topic>() function:
+#   SELECT * FROM ref_<topic>(CAST(?lookup AS text));
+# - The placeholder MUST be ?lookup, never ?term: a placeholder named like a result column gives duplicate Fields.
+# - The model supplies only the optional `term` ("" = the whole guide). It never gets identity and never changes
+#   the SQL. Keep each guide to about 20-35 rows: agents send term="" almost every time.
+# - "sections" = the CHECK list of the table, in the order ref_<topic>() returns them (array_position).
+# Used by build_agents.py (the tool flows), test_rules.py (reference-tool block), a2a_smoke.py and chat_e2e.py.
+# =============================================================================
+REF_TERM_DESC = ("Optional lookup: one or more words separated by commas (for example a code or a phrase from your "
+                 "input, or a section name), or an empty string for the whole guide. Never put <customer> details here.")
+REF_COLUMNS = ["section", "term", "meaning"]
+AGENT_REF_TOOLS = [
+    {"agent": "<agent_a>", "tool": "get_<topic_a>_guide", "fn": "ref_<topic_a>", "table": "<topic_a>_guide",
+     "sections": ["<SECTION_1>", "<SECTION_2>", "<SECTION_3>"],
+     "desc": ("Reads <Org>'s <topic a> guide from the <use case> database: <what its rows explain, in plain words>. "
+              "Rows of section, term, meaning. Read-only reference data with no <customer> data. Pass term \"\" for "
+              "the whole guide."),
+     "args": [("term", REF_TERM_DESC)],
+     "read": ("SELECT * FROM ref_<topic_a>(CAST(?lookup AS text));", [("lookup", "term")])},
+    # {"agent": "<agent_b>", "tool": "get_<topic_b>_guide", "fn": "ref_<topic_b>", ...},   # one per agent, up to 3
+]
+
+
+def ref_tools_filled():
+    """False while AGENT_REF_TOOLS still holds <placeholders>: the drivers and tests refuse to run on them."""
+    return bool(AGENT_REF_TOOLS) and not any("<" in str(t[k]) for t in AGENT_REF_TOOLS
+                                             for k in ("agent", "tool", "fn", "table", "sections"))

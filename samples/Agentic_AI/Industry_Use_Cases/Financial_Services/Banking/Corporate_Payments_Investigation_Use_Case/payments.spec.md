@@ -1,175 +1,193 @@
 # Corporate Payment Investigation & Status — governed spec (Aurelia Global Bank)
 
-Built with the `agentic-ai-use-case-builder` skill (governed, FDA-CLI method). Reference implementation to
-mirror file-for-file: `Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/` and
-`Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/` (database.sql / seed_data.sql / reset_data.sql /
-_rebuild/*.py). Aurelia Global Bank, its clients, accounts, beneficiaries and payments are fictional.
+Built with the `agentic-ai-use-case-builder` skill (governed, FDA-CLI method). Upgraded 2026-10-13 to the current
+standard: three A2A agents, every agent's reference tool reads PostgreSQL, and the full human-in-the-loop reviewer
+loop. Reference implementations: `Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/`
+(same industry, same reviewer-loop shape) and `Industry_Use_Cases/Insurance/Life_Pensions_Wealth/Life_Pensions_Member_Services_Use_Case/`.
+Aurelia Global Bank, its clients, staff, accounts, buyers, beneficiaries and payments are fictional.
 
 **Why this applies to every large bank:** retail, commercial and transaction-banking institutions all run
 high-value and cross-border payments; "where is my payment, why was it returned/held, trace it, recall it" is
-the universal servicing pain. The AI reads the client's free text and decodes cryptic return-reason codes; the
-database decides identity, scope, eligibility, delivery estimates and every state change; people own money
-reversals and compliance.
+the universal servicing pain, and cash application of short payments and verification of payee (the defence against
+business email compromise) are the two most common corporate-servicing follow-ons. The AI reads the client's free
+text, decodes return codes, reads remittance notes and compares company names; the database decides identity, scope,
+eligibility, delivery estimates, the cash split, the name-check band and every state change; people own recalls,
+held payments, disputed deductions and compliance.
 
 ## Identity, apps, ports
 
 | Item | Value |
 |---|---|
-| Persona | An authorised user at a **corporate client** of Aurelia Global Bank (treasury / accounts-payable), self-serving over chat |
+| Persona | An authorised user at a **corporate client** of Aurelia Global Bank (treasury / AP / AR), self-serving over chat; and an Aurelia **staff reviewer** (Payment Operations, Client Servicing) working a team queue in the same chatbot |
 | Database | `payments_governed` |
 | Orchestrator | `CorporatePaymentsAIOrchestrator.flogo` — WebSocket `9870` path `/corporatepayments` |
-| MCP server | `CorporatePaymentsMCPServer.flogo` — MCP `9872` path `/corporate-payments-mcp`, serverName `CorporatePayments` |
-| A2A agents | `CorporatePaymentsAgents.flogo` — `payment_triage_agent` on `9873` |
+| MCP server | `CorporatePaymentsMCPServer.flogo` — MCP `9872` path `/corporate-payments-mcp`, serverName `CorporatePayments`, 22 tools |
+| A2A agents | `CorporatePaymentsAgents.flogo` — `payment_triage_agent` `9873`, `remittance_match_agent` `9874`, `payee_name_match_agent` `9875` |
 | Runtime LLM | `gpt-5.5` (property `LLM_Model`) |
-| Email | Gmail SMTP 465 SSL; `Email_Username`, `Email_App_Password` (SECRET), `To_Email` (ops inbox) — reuse Airline creds |
+| Email | Gmail SMTP 465 SSL; `Email_Username`, `Email_App_Password` (SECRET; portable placeholder until re-entered), `To_Email` (ops inbox) |
 
 ## Decision-framework classification
 
 | Operation | Q1 human? | Q2 semantic? | Owner | Implemented as |
 |---|---|---|---|---|
-| Verify the user | no | no | Deterministic | `verify_client` (client_id + 6-digit passcode) → session token 30 min; 5 wrong → 15-min lock |
-| See only the client's own payments / cases | no | no | Deterministic, scoped | scoped reads `FROM my_x(token)` |
+| Verify the user | no | no | Deterministic | `verify_client` (client_id + 6-digit passcode) → session token 30 min; 5 wrong → 15-min lock. Staff: `verify_reviewer` (staff id + code), role REVIEWER |
+| See only the client's own payments / invoices / cases | no | no | Deterministic, scoped | scoped reads `FROM my_x(token)` |
 | Payment status, rail, FX, fees, decoded return reason | no | no | Deterministic | rule functions; LLM quotes verbatim |
 | Will it settle by the cutoff / SLA | no | no | Deterministic **arithmetic** | `delivery_estimate` from `cutoff_rules` (never guessed) |
-| Raise a trace / investigation on a delayed payment | no | no | Deterministic, **two-step** | `propose_trace` → yes → `confirm_trace` (investigations + trigger) |
-| Recall / return a payment (money reversal) | **yes** | no | Human, **two-step** | `propose_recall` → yes → `confirm_recall` opens a **Payment Ops review case** (trigger); the assistant never reverses money |
-| Decode a return/reason code, classify the free-text issue + urgency, recommend trace vs recall | no | **yes** | **Agent** | `payment_triage_agent` (A2A, read-only `lookup_reason_code`), never receives identity |
-| Fee waivers, compensation, suspected fraud, sanctions queries, payment repair | **yes** | – | Human | `open_review_case` → `service_teams` |
+| Raise a trace on a delayed payment | no | no | Deterministic, **two-step** | `propose_trace` → yes → `confirm_trace` (investigations + trigger) |
+| Recall a payment (money reversal) | **yes** | no | Human, **two-step + reviewer** | `propose_recall` → yes → `confirm_recall` opens a Payment Ops case that **parks** `RECALL:<payment>`; a reviewer approves (recall executed) or rejects (status restored) |
+| Decode a return code, match the client's words to a payment, recommend trace vs recall | no | **yes** | **Agent** | `payment_triage_agent` (read-only `lookup_reason_code`), never receives identity |
+| Match a remittance / short-pay note to open invoices, name the deduction reasons | no | **yes** | **Agent** | `remittance_match_agent` (read-only `get_remittance_guide`), never receives identity |
+| Which invoices are paid, the earned discount, what is disputed | no | no | Deterministic, **two-step** | `propose_cash_application` → yes → `confirm_cash_application` (`cash_assessment` validates the agent's output; posting + trigger) |
+| Accept a disputed deduction over the tolerance | **yes** | – | Human (reviewer) | `DEDUCTION_REVIEW` case parks `DEDUCTION_WRITE_OFF:<application>` for Client Servicing |
+| Compare the typed beneficiary name with the name on file | no | **yes** | **Agent** | `payee_name_match_agent` (read-only `get_payee_name_rules`), sees only the two names |
+| Whether a new payment can go, needs a warning or is held | no | no | Deterministic, **two-step** | `propose_payment` → yes → `confirm_payment` (`payee_assessment` bands the agent verdict + SQL name score + amount) |
+| Release or cancel a held payment | **yes** | – | Human (reviewer) | `PAYEE_VERIFICATION` case parks `RELEASE_PAYMENT:<request>` for Payment Operations |
+| Fee waivers | **yes** | – | Human (reviewer) | `open_review_case` FEE_WAIVER parks `FEE_REFUND:<payment>` for Client Servicing |
+| Compensation, suspected fraud, sanctions queries, payment repair | **yes** | – | Human | `open_review_case` → `service_teams` |
 
 ## Rules (reason codes) — all in SQL
 
-Session: `SESSION_INVALID` (unknown/expired token) on every scoped tool.
-verify: `VERIFIED` / `NOT_VERIFIED` / `LOCKED` (5 failures in 15 min → locked; no token while locked).
+Session: `SESSION_INVALID` (unknown/expired/reviewer token) on every client tool; `NOT_REVIEWER` on every reviewer tool.
+verify: `VERIFIED` / `NOT_VERIFIED` / `LOCKED` (5 failures in 15 min → locked; no token while locked). Same for staff codes.
 
-get_payment_status(payment_ref): `NOT_YOUR_PAYMENT` (absent or another client's) → else a status row:
-direction, rail, amount, currency, fx_rate, fees, beneficiary_name, beneficiary_bank, status
-(INITIATED|IN_TRANSIT|COMPLETED|RETURNED|HELD|RECALL_REQUESTED|RECALLED), decoded return reason when RETURNED,
-value_date, created_at.
+Unchanged from the first build: `get_payment_status` (`NOT_YOUR_PAYMENT`), `check_delivery_estimate`
+(`ON_TRACK` / `PAST_CUTOFF` / `DELAYED` / `SETTLED` / `NOT_APPLICABLE` / `NO_ESTIMATE`), `propose_trace` / `confirm_trace`
+(`NOT_YOUR_PAYMENT`, `NOT_TRACEABLE`, `ALREADY_UNDER_INVESTIGATION`, `BAD_REASON`; `NO_SUCH_PROPOSAL`, `EXPIRED`,
+`ALREADY_EXECUTED` → `OPENED` INV-2026-NNNN), `propose_recall` / `confirm_recall` (`NOT_YOUR_PAYMENT`, `NOT_RECALLABLE`,
+`ALREADY_RECALL_REQUESTED`, `BAD_REASON` → `SUBMITTED`: payment RECALL_REQUESTED, the status it replaced remembered,
+Payment Operations case parking `RECALL:<payment>` for the full amount).
 
-check_delivery_estimate(payment_ref): `NOT_YOUR_PAYMENT` → else computes from `cutoff_rules` (rail+currency →
-cutoff hour, settlement_days, business-day aware): returns `ON_TRACK` / `PAST_CUTOFF` (missed today's cutoff) /
-`DELAYED` (past expected settlement, still not COMPLETED) / `SETTLED`, with the expected settlement date.
+`get_my_payments` — INCOMING rows carry the payer (`ordering_party`), the remittance text and any applied cash
+application; their beneficiary shows as `own account` (the client's legal name never travels to an agent).
 
-propose_trace(payment_ref, reason_code, client_statement):
-- `NOT_YOUR_PAYMENT`, `NOT_TRACEABLE` (created < 2 hours ago — too soon; or status INITIATED),
-  `ALREADY_UNDER_INVESTIGATION` (an OPEN investigation exists), `BAD_REASON` (reason_code not in the directory)
-  → else `PROPOSED` with amount, beneficiary, decoded reason, est_response_date = `add_business_days(current_date, 3)`.
-confirm_trace(action_id): `NO_SUCH_PROPOSAL` / `EXPIRED` (>15 min) / `ALREADY_EXECUTED`, rules re-checked →
-`OPENED` with investigation_id `INV-2026-NNNN`. Trigger: audit + a payment_event "INVESTIGATION OPENED".
+`open_review_case(request_type, client_statement, brief, reference_id)` → `CASE_OPENED` / `ALREADY_OPEN` /
+`NOT_OPENED` (`BAD_TYPE`, `BAD_REFERENCE`, `SESSION_INVALID`). RECALL, PAYEE_VERIFICATION and DEDUCTION_REVIEW are not
+client-openable (they come only from the rules). FEE_WAIVER parks `FEE_REFUND:<payment>` (reference = a payment of
+this client with an unrefunded fee; empty = the most recent one in 90 days), requested = the fee.
 
-propose_recall(payment_ref, reason_code, client_statement):
-- `NOT_YOUR_PAYMENT`, `NOT_RECALLABLE` (direction INCOMING, or status RETURNED/RECALLED/RECALL_REQUESTED, or
-  COMPLETED more than 5 business days ago), `ALREADY_RECALL_REQUESTED`, `BAD_REASON`
-  → else `PROPOSED` with a clear note: a recall is a **request** subject to the beneficiary bank and a human
-  reviewer; it is **not** guaranteed and does not reverse funds automatically.
-confirm_recall(action_id): `NO_SUCH_PROPOSAL` / `EXPIRED` / `ALREADY_EXECUTED`, rules re-checked → `SUBMITTED`:
-sets the payment to RECALL_REQUESTED and (trigger) opens a **review_case** `RECALL` routed to **Payment Operations**,
-returning the case_id; audit rows. The assistant states a person will decide.
+| request_type | team | reply (business days) | client-openable |
+|---|---|---|---|
+| RECALL | Payment Operations | 1 | no (confirm_recall) |
+| PAYEE_VERIFICATION | Payment Operations | 1 | no (held payment) |
+| PAYMENT_REPAIR | Payment Operations | 1 | yes |
+| FEE_WAIVER | Client Servicing | 2 | yes |
+| COMPENSATION | Client Servicing | 2 | yes |
+| DEDUCTION_REVIEW | Client Servicing | 2 | no (cash posting) |
+| FRAUD | Financial Crime | 1 | yes |
+| SANCTIONS_QUERY | Sanctions & Compliance | 2 | yes |
+| OTHER | Client Servicing | 3 | yes |
 
-open_review_case(request_type, client_statement, brief): `BAD_TYPE` or `CASE_OPENED` with case_id `CASE-NNNNN`,
-team, reply_within (business days). Types → teams:
+**Cash application.** `get_open_invoices(search)` lists the client's OPEN invoices (terms, early-pay date).
+`propose_cash_application(payment_ref, remittance_text, invoice_numbers, deductions, confidence, agent_notes)`:
+`NOT_YOUR_PAYMENT`, `NOT_INCOMING`, `FUNDS_NOT_RECEIVED` (not COMPLETED), `ALREADY_APPLIED`, `NO_INVOICES`,
+`INVOICE_NOT_OPEN` (not an open invoice of this client in the payment currency), `LOW_CONFIDENCE` (not HIGH/MEDIUM),
+`OVERPAYMENT`, `DEDUCTIONS_EXCEED_SHORT_PAY` → else `PROPOSED`. Deduction items must be `remittance_guide` DEDUCTION
+terms (unknown ones are recorded in `ignored_items` and never used). The early-pay discount is recomputed from the
+invoice terms on the payment's value date (`discount_pct` within `discount_days`); a claimed discount above that is
+disputed as "not earned"; a short payment with no stated reason is `UNAPPLIED` and disputed. Disputed ≤
+`small_balance_tolerance()` ($250) → written off; above → `review_amount`. `confirm_cash_application(application_id)`:
+`NO_SUCH_APPLICATION`, `EXPIRED`, `ALREADY_APPLIED`, `INVOICES_CHANGED` → `APPLIED`: the posting trigger allocates
+payment + earned discount + write-off to the invoices (oldest first), marks the application APPLIED, writes a
+payment event and audit, and opens a `DEDUCTION_REVIEW` case parking `DEDUCTION_WRITE_OFF:<application>` for the
+review amount (its brief = SQL facts + the agent's notes).
 
-| request_type | team | reply (business days) |
-|---|---|---|
-| RECALL | Payment Operations | 1 |
-| PAYMENT_REPAIR | Payment Operations | 1 |
-| FEE_WAIVER | Client Servicing | 2 |
-| COMPENSATION | Client Servicing | 2 |
-| FRAUD | Financial Crime | 1 |
-| SANCTIONS_QUERY | Sanctions & Compliance | 2 |
-| OTHER | Client Servicing | 3 |
+**Payments with verification of payee.** `check_payee_account(beneficiary_account, typed_name)` → `OK` with the name on
+file (`payee_register`), `NOT_FOUND`. `propose_payment(from_account, beneficiary_account, typed_name, amount, purpose,
+name_verdict, name_reasons, agent_notes)`: `ACCOUNT_NOT_FOUND`, `BENEFICIARY_NOT_FOUND`, `NAME_REQUIRED`,
+`CURRENCY_MISMATCH`, `BAD_AMOUNT`, `OVER_CHANNEL_LIMIT` ($1,000,000) → else assessed by `payee_assessment`: verdict
+validated (MATCH/CLOSE_MATCH/NO_MATCH), reasons validated against `payee_name_guide` REASON terms, deterministic
+`name_similarity` (100 when the names are identical after the guide's own LEGAL_SUFFIX / ABBREVIATION /
+TRANSLITERATION rows; else a character-pair Dice score). Band: score 100 → MATCH; agent MATCH and score ≥ 75 →
+MATCH; agent NO_MATCH or score < 40 → NO_MATCH; else CLOSE_MATCH. MATCH → `PROPOSED`; CLOSE_MATCH ≤
+`payee_hold_threshold()` ($10,000) → `PROPOSED_WITH_WARNING` (warning text names the account holder); CLOSE_MATCH above
+it or NO_MATCH → `HELD_FOR_REVIEW` + `PAYEE_VERIFICATION` case parking `RELEASE_PAYMENT:<request>`. The client sees
+the name check and the name on file, never the score or the agent's reasons. `confirm_payment(request_id,
+acknowledge_warning)`: `NO_SUCH_REQUEST`, `HELD_FOR_REVIEW`, `CANCELLED`, `EXPIRED`, `WARNING_NOT_ACKNOWLEDGED`,
+`ALREADY_SENT` → `SENT`: the release trigger creates the payment (INITIATED, value date from `cutoff_rules`).
 
-email_my_confirmation(reference_id): reference = an `INV-…` or `CASE-…` of THIS client → `SEND` with subject/body
-built by SQL; else `NOT_SENT` + reason (`NO_SUCH_REFERENCE`, `SESSION_INVALID`). Sends to the configured `To_Email`.
+**Reviewer loop.** `get_review_queue` (the team's OPEN cases by reply-due time; another team's cases never appear),
+`get_review_case` (statement, AI brief marked unverified, facts from SQL, max approvable, own limit, options; another
+team's case → `NOT_FOUND`), `decide_review_case(case_id, decision, amount, internal_note, customer_message)` →
+`decide_case_row` returns 0 rows with a reason when blocked: `NOT_REVIEWER`, `NOT_FOUND`, `NOT_YOUR_TEAM`,
+`ALREADY_DECIDED`, `INVALID_DECISION`, `NOTE_REQUIRED` (< 5 chars), `AMOUNT_INVALID` (≤ 0, above the eligible maximum,
+or not the full amount for a recall / held payment), `OVER_AUTHORITY` (above the reviewer's approval limit; case stays
+OPEN). The `review_decisions` trigger sets the case status + client message and runs the parked action through the
+guarded rows: `fee_refund_row`, `recall_execute_row` (payment RECALLED), `payment_release_row` (payment submitted),
+`deduction_writeoff_row` (invoice balance closed); REJECT cancels a held payment, restores a recalled payment's status,
+leaves a deduction open; audit `CASE_DECIDED` (actor = reviewer).
 
-Reads: get_my_payments(session_token, search) (empty = recent 90 days, newest first, max 25; non-empty searches
-ref/beneficiary/amount back 18 months), get_payment_timeline(session_token, payment_ref) (GPI-style events),
-get_my_cases(session_token) (investigations UNION review cases).
+email_my_confirmation(reference_id): INV- / CASE- / CAP- (applied) / PMT- (submitted through the assistant) of THIS
+client → `SEND` (guarded `email_log` row, then the flow sends); else `NOT_SENT` (`NO_SUCH_REFERENCE`, `SESSION_INVALID`).
 
-## Tables (sketch — names binding, columns indicative)
+## Tables (names binding)
 
-clients(client_id PK `CLI-2026-NNNNN`, legal_name, contact_email, passcode_hash, created_at)
-accounts(account_id PK `ACC-NNNN`, client_id FK, account_number_masked, currency)
-payments(payment_ref PK `PMT-2026-NNNNNN`, client_id FK, debtor_account FK, direction OUTGOING|INCOMING, rail
-SWIFT|SEPA|FEDWIRE|FASTER_PAYMENTS|ACH, amount NUMERIC, currency, fx_rate NUMERIC NULL, fees NUMERIC,
-beneficiary_name, beneficiary_bank_bic, status, return_reason_code NULL, value_date DATE, created_at TIMESTAMP)
-payment_events(id, payment_ref FK, event_time, actor (agent bank/system), action, detail) — GPI-style timeline
-reason_codes(code PK, rail, plain_language, category BENEFICIARY|COMPLIANCE|TECHNICAL|ACCOUNT|OTHER, typical_action)
-cutoff_rules(rail, currency, cutoff_hour INT, settlement_days INT, PRIMARY KEY(rail,currency))
-client_sessions(session_token, client_id, created_at, expires_at) · verify_attempts(client_id, ok, at)
-pending_actions(action_id `ACT-XXXXXXXX`, action_type TRACE|RECALL, client_id, payment_ref, reason_code,
-client_statement, created_at, expires_at, confirm_count, executed_no)
-investigations(investigation_id `INV-2026-NNNN`, action_id UNIQUE NULL, client_id, payment_ref, reason_code,
-client_statement, status OPEN|UNDER_REVIEW|RESOLVED, est_response_date, created_at) + trigger
-review_cases(case_id `CASE-NNNNN`, client_id, request_type, payment_ref NULL, client_statement, agent_brief,
-assigned_team, status, created_at) + recall trigger
-service_teams(request_type PK, team, reply_business_days)
-agent_audit(id, at, client_id, action VERIFY|TRACE_PROPOSED|TRACE_OPENED|RECALL_PROPOSED|RECALL_SUBMITTED|REVIEW_CASE_OPENED, ref, detail) — triggers only; no MCP tool exposes it
-helpers: add_business_days(date,int); session_client(token) plpgsql STABLE; passcode_hash(id,code).
-
-Lessons carried: session resolver is **plpgsql** (not inlinable SQL); placeholders never repeat within one
-statement (`?w_*` write / `?r_*` read); always `CAST(?p AS text)`; the optional `search` arg handled inside
-`my_payments(tok, search)`.
+clients, accounts, reason_codes, cutoff_rules, payments (+ ordering_party, remittance_info, status_before_recall),
+payment_events, reviewers (reviewer_id `AGB-NNNN`, display_name, team, one_time_code, approval_limit, active),
+client_sessions (role CLIENT|REVIEWER), verify_attempts, reviewer_verify_attempts, pending_actions, investigations,
+service_teams (+ label, client_openable), review_cases (+ currency, requested_amount, parked_action, status
+OPEN|APPROVED|REJECTED, sla_due_at, customer_message, approved_amount, decided_at), review_decisions (insert-only),
+decide_attempts, open_invoices, cash_applications (`CAP-NNNNN`), cash_postings, deduction_writeoffs (`WO-NNNNN`),
+payee_register, payment_requests (`PRQ-NNNNN`), payment_releases, payment_recalls, fee_refunds,
+remittance_guide, payee_name_guide (agent reference tables: section / term / meaning, no client data), agent_audit
+(+ actor), email_log.
 
 ## Seed data (dates/times relative to CURRENT_DATE / now())
 
 | Client | Passcode | Story |
 |---|---|---|
-| CLI-2026-00101 Northwind Manufacturing | 486201 | PMT-…01 OUTGOING SWIFT USD $250,000 **IN_TRANSIT** created 3 days ago (trace); PMT-…02 OUTGOING SEPA EUR €48,500 **RETURNED** reason `AC04` (account closed) 2 days ago; PMT-…03 OUTGOING FEDWIRE USD $12,000 **COMPLETED** (SETTLED); PMT-…04 OUTGOING SWIFT GBP £90,000 created today 30 min ago **INITIATED** (NOT_TRACEABLE); PMT-…05 OUTGOING SWIFT USD past expected settlement, still IN_TRANSIT (**DELAYED** / PAST_CUTOFF) |
-| CLI-2026-00102 Helios Trading | 730955 | PMT-…06 OUTGOING SWIFT USD $780,000 IN_TRANSIT to the **wrong beneficiary** (recall → human Payment Ops); PMT-…07 OUTGOING SWIFT USD **HELD** (sanctions screening) → SANCTIONS_QUERY human; PMT-…08 already has an OPEN investigation (ALREADY_UNDER_INVESTIGATION) |
-| CLI-2026-00103 Veridian Foods | 615338 | PMT-…09 **INCOMING** SEPA EUR (recall attempt → NOT_RECALLABLE); PMT-…10 OUTGOING with an unexpected `fees` charge → FEE_WAIVER human; a COMPLETED > 5 business days ago (recall → NOT_RECALLABLE) |
-| CLI-2026-00104 Bramwell Logistics | 904177 | a clean COMPLETED payment; used for cross-client scoping (Northwind must not see/trace Bramwell's PMT) |
+| CLI-2026-00101 Northwind Manufacturing | 486201 | PMT-…01 SWIFT $250,000 IN_TRANSIT (trace); PMT-…02 SEPA €48,500 RETURNED AC04; PMT-…03 COMPLETED; PMT-…04 INITIATED 30 min ago (NOT_TRACEABLE); PMT-…05 past cutoff; **PMT-…13 INCOMING $46,728 from Harbor Retail Group** with "INV 4417/4425 LESS 2PCT EARLY PAY FRT DED 312.00"; open invoices 4398 (old), 4417 $30,000 and 4425 $18,000 (2/10 NET 30, 7 days old), 4431 $18,000, 4433 Summit $9,750; PMT-…14 $310,000 duplicate already RECALL_REQUESTED (CASE-00001) |
+| CLI-2026-00102 Helios Trading | 730955 | PMT-…06 $780,000 wrong beneficiary (recall); PMT-…07 HELD (sanctions); PMT-…08 already under investigation; PMT-…15 INCOMING $61,850 from Coastal Grocers applied to invoice 7702 with a $3,150 damaged-goods deduction (CAP-00001, CASE-00004); open invoice 7715 |
+| CLI-2026-00103 Veridian Foods | 615338 | PMT-…09 INCOMING (NOT_RECALLABLE); PMT-…10 $45 ACH fee (FEE_WAIVER); PMT-…11 completed 12 days ago; PRQ-00001 $42,500 to "new bank details" for Pacific Rim (CLOSE_MATCH over the threshold → HELD, CASE-00002) |
+| CLI-2026-00104 Bramwell Logistics | 904177 | PMT-…12 COMPLETED with a $40 SWIFT fee (CASE-00003 fee waiver); pays ACME Corp (MATCH), Rotterdam Shipping BV "new bank details" (NO_MATCH → held), Atlas Freight (CLOSE_MATCH → warning) |
 
-reason_codes directory must decode at least: `AC04` (account closed), `AC06` (account blocked), `BE01`
-(beneficiary name/account mismatch), `AM05` (duplicate payment), `RR04` (regulatory/compliance),
-`MS03` (reason not specified), `RC01` (bank identifier incorrect) — each with plain_language, category, typical_action.
-cutoff_rules: at least SWIFT/USD (cutoff 16, T+1), SEPA/EUR (15, T+0), FEDWIRE/USD (18, same-day),
-FASTER_PAYMENTS/GBP (immediate, T+0), ACH/USD (17, T+2).
+Reviewers: AGB-5001 Elena Park (Payment Operations, $250,000 — OVER_AUTHORITY on CASE-00001), AGB-5002 Marcus Webb
+(Payment Operations, $2,000,000), AGB-5003 Sofia Alvarez (Client Servicing, $2,500 — OVER_AUTHORITY on CASE-00004).
+Payee register: 4410028811 Acme Corporation Ltd, 7781200456 RD Global Trading LLC, 3390044127 Atlas Freight Forwarding
+Inc, 5520019837 Pacific Rim Imports & Export LLC, DE44500105175407324931 Müller Logistik GmbH (EUR).
 
-## MCP tools (12) — single source of truth `_rebuild/tool_spec.py`
+## MCP tools (22) — single source of truth `_rebuild/tool_spec.py`
 
-verify_client(client_id, passcode) · get_my_payments(session_token, search) · get_payment_status(session_token,
-payment_ref) · get_payment_timeline(session_token, payment_ref) · check_delivery_estimate(session_token,
-payment_ref) · propose_trace(session_token, payment_ref, reason_code, client_statement) · confirm_trace(session_token,
-action_id) · propose_recall(session_token, payment_ref, reason_code, client_statement) · confirm_recall(session_token,
-action_id) · open_review_case(session_token, request_type, client_statement, brief) · get_my_cases(session_token) ·
-email_my_confirmation(session_token, reference_id)
+Client: verify_client · get_my_payments · get_payment_status · get_payment_timeline · check_delivery_estimate ·
+propose_trace · confirm_trace · propose_recall · confirm_recall · open_review_case · get_my_cases ·
+email_my_confirmation · get_open_invoices · propose_cash_application · confirm_cash_application · check_payee_account ·
+propose_payment · confirm_payment. Reviewer: verify_reviewer · get_review_queue · get_review_case · decide_review_case.
+Hints: reads `readOnlyHint=true`; `decide_review_case` `destructiveHint=false`, `idempotentHint=false`.
 
-## A2A agent — `payment_triage_agent` (CorporatePaymentsAgents, :9873)
+## A2A agents (CorporatePaymentsAgents) — read-only, no identity, one PostgreSQL reference tool each
 
-Input from the orchestrator: the client's own words + the candidate payments (payment_ref, direction, rail,
-amount, currency, beneficiary_name, status, return_reason_code, value_date, created_at only). Never legal name,
-client_id, account number or token. Tool: `lookup_reason_code(code)` → reason_codes rows (read-only, no identity).
-Returns: the best-matching payment_ref, the return/reason code decoded into plain language, the issue classified
-(e.g. RETURNED_ACCOUNT_ISSUE / WRONG_BENEFICIARY / DELAYED_IN_TRANSIT / COMPLIANCE_HOLD / DUPLICATE) with an
-urgency, and a recommended next step (raise a trace, request a recall, or open a human review case) — or the ONE
-question to ask when it hinges on intent (e.g. "did the funds reach the wrong party, or not arrive at all?").
-It never traces, recalls, files, approves or promises anything.
+| Agent | Port | Input from the orchestrator | Tool (SQL) | Returns |
+|---|---|---|---|---|
+| `payment_triage_agent` (kept) | 9873 | the client's words + candidate payments (ref, direction, rail, amount, currency, beneficiary, status, return code, dates) | `lookup_reason_code(code)` → `reason_codes` | payment_ref, decoded reason, issue + urgency, next step or the one question |
+| `remittance_match_agent` | 9874 | the remittance note + the incoming amount/currency/value date + candidate open invoices (number, buyer, date, open amount, terms) | `get_remittance_guide(term)` → `ref_remittance_guide` (DEDUCTION, NOTE_PATTERN, MATCH_RULE, CONFIDENCE, REVIEW_LINE, WHO_DECIDES from `service_teams`) | invoices, deductions (guide terms + amounts), confidence, explanation, review_note (verbatim table line) |
+| `payee_name_match_agent` | 9875 | the typed beneficiary name + the name on file, nothing else | `get_payee_name_rules(term)` → `ref_payee_name_rules` (VERDICT, REASON, LEGAL_SUFFIX, ABBREVIATION, TRANSLITERATION, WHO_DECIDES) | verdict, reasons, explanation, verdict_note (verbatim table line) |
 
-## Orchestrator rules (prompt explains; SQL decides)
+The deduction codes, confidence levels, verdict codes and reason codes are not in the prompts (only in the tables),
+so each answer depends on the tool. SQL validates every agent answer that drives a decision (`cash_assessment`,
+`payee_assessment`); `payee_name_norm` uses the same guide rows, so agent and SQL share one rule set.
 
-Verify first (client id + 6-digit passcode); never reveal/guess passcodes; LOCKED → recovery only. Investigations:
-get_my_payments(search) → payment_triage_agent (client words + candidate payment facts only, no identity) → tell
-the client what the return/reason code means and the recommended step → for a delayed/missing payment propose_trace
-→ read back amount/beneficiary/decoded reason/est response date exactly as returned → explicit yes → confirm_trace.
-For a wrong-beneficiary or erroneous payment, propose_recall → make clear a recall is a request a person decides and
-funds are not auto-reversed → explicit yes → confirm_recall (opens a Payment Ops review case). Human-owned requests
-(fee waiver, compensation, fraud, sanctions query, payment repair) → open_review_case with a neutral brief; give
-case id + team + reply time; never decide/promise/predict. Delivery estimates and fees come only from tools, quoted
-verbatim — never computed in the prompt. email_my_confirmation only when asked and only with an INV-/CASE- reference.
-Explain NOT_* outcomes using the returned reason, never override them. Honest that it is an AI. Never reveal internal
-tool names, call history or audit. USD/EUR/GBP formatting per the payment. Per-connection conversationId from
-Sec-Websocket-Key.
+## Orchestrator rules (prompt explains; SQL decides) — `_rebuild/orchestrator_prompt.txt`
+
+Two personas (client verify / staff verify; the role only from the verify tool). Verify first; LOCKED → recovery
+only. Investigations → payment_triage_agent → propose/confirm trace or recall (a recall is a request a person
+decides). Cash application → get_my_payments + get_open_invoices → remittance_match_agent → propose (agent lines
+passed unchanged) → read back → explicit yes → confirm → case for disputed deductions. New payment →
+check_payee_account → payee_name_match_agent (two names only) → propose → PROPOSED / warning word for word /
+HELD (no scores, no reasons) → explicit yes → confirm. Human-owned requests → open_review_case with reference_id.
+Reviewer flow → queue → case (brief presented neutrally, marked AI-prepared) → decision + note + client message →
+restate → explicit "confirm" → decide → report truthfully (OVER_AUTHORITY = needs a senior reviewer). Agents never
+receive the client's legal name, ids, account numbers or tokens. Per-connection conversationId from Sec-Websocket-Key.
 
 ## Acceptance (test ladder)
 
-Step 1 SQL: every reason code above has a passing case; scoping (Northwind cannot see/trace/recall Bramwell's payment);
-two-step expiry + ALREADY_EXECUTED; delivery-estimate arithmetic (ON_TRACK/PAST_CUTOFF/DELAYED/SETTLED); trigger
-effects (investigation opened + payment_event; recall → RECALL_REQUESTED + Payment Ops review case; audit rows);
-lockout; reason-code decode; email payload SEND/NOT_SENT.
-Step 2: validate_governed_apps.py --local (G1–G9) + `fda cm` clean on all three apps.
-Step 3: MCP smoke of all 12 tools incl. edge cases; direct A2A JSON-RPC call to :9873; WebSocket connect.
-Step 4 chat e2e (DB-state assertions): Northwind flagship (verify → decode AC04 return → propose/confirm trace on
-the IN_TRANSIT payment → email), Helios (wrong-beneficiary → two-step recall → Payment Ops review case; sanctions
-HELD → SANCTIONS_QUERY case), Veridian (incoming → NOT_RECALLABLE; fee → FEE_WAIVER case), cross-client injection
-refused, confirm-without-propose refused, "are you a human?" → AI, delivery estimate not computed in chat.
+Step 1 SQL (`test_rules.py`): every reason code above, scoping, two-step expiry + ALREADY_*, delivery arithmetic,
+the cash split (earned / unearned discount, unapplied, tolerance), the name-check matrix, every reviewer reason code
+with DB effects (recall executed / declined, payment released / cancelled, deduction written off, fee refunded),
+minimum-necessary outputs, audit, and the agents' reference tables (rows, lookups, no personal data, SELECT-only).
+Step 2: validate_flogo_apps.py + validate_governed_apps.py --local + `fda cm` clean on all three apps.
+Step 3: mcp_smoke (all 22 tools incl. reviewer tools), a2a_smoke (each agent's tool queried PostgreSQL; table-only
+text in the answer), ws_smoke.
+Step 4 chat e2e (DB assertions): Northwind flagship, Helios recall + sanctions, Veridian NOT_RECALLABLE, Northwind
+cash application (+ self-approval injection), Bramwell MATCH payment + NO_MATCH hold, cross-client injection,
+confirm-without-propose, the Client Servicing reviewer approving the deduction on a separate connection, the client
+reconnecting to see the outcome, minimisation of every agent input and each agent's PostgreSQL read.

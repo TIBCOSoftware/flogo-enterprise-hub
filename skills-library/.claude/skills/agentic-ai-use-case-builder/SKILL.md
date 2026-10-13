@@ -5,7 +5,7 @@ user-invocable: true
 metadata:
   author: Flogo Skills Author <author@example.com>
   version: "1.1.0"
-  last-updated-date: "2026-10-12"
+  last-updated-date: "2026-10-13"
 ---
 
 # Agentic AI Use Case Builder (governed by default)
@@ -52,7 +52,7 @@ Chat UI --WebSocket--> <Prefix>AIOrchestrator --MCP(HTTP streamable)--> <Prefix>
 |---|---|---|---|
 | `<Prefix>AIOrchestrator` | `#wsserver` (WebSocket) | block port `X0` (e.g. `9930`), path `/<usecase>` | the chat brain: an AI Agent that routes to MCP tools and the A2A agent, with per-connection memory |
 | `<Prefix>MCPServer` | `#mcpserver` (HTTP streamable) | `X2` (e.g. `9932`), path `/<usecase>mcpserver` | the governed tools — scoped reads, guarded writes, two-step actions, human-review routing |
-| `<Prefix>Agents` | `#agent` / `tr_agent` (A2A, HTTP) | `X3`+ (e.g. `9933`), one port + `agentUrl` per agent | usually one reasoning agent (up to 3), read-only, given minimised input (no identity) |
+| `<Prefix>Agents` | `#agent` / `tr_agent` (A2A, HTTP) | `X3`+ (e.g. `9933`), one port + `agentUrl` per agent | usually one reasoning agent (up to 3), read-only, given minimised input (no identity); a PostgreSQL connection used **only** to read reference tables (`ref_<topic>()`), one reference tool per agent |
 
 **Where the apps live** is named by `<Prefix>` after the persona/vertical (`PassengerServices*`,
 `AuthorServices*`) — no `Gov` suffix (Phase 0 naming rule).
@@ -72,10 +72,12 @@ are illustrative, not fixed):
 - **Email (MCP, optional):** `email_<confirmation>` — a guarded tool that only emails an action already
   executed for the verified session.
 - **Reasoning agent (A2A):** usually one; up to 3 distinct semantic steps, one A2A agent (and port) each —
-  see the Telecom sample (`Telecom_Mobile_Billing_Use_Case`: plan recommender, charge classifier, bill
-  explainer). E.g. rank options against the user's free-text preferences. Each gets only the fields it needs
-  (title/abstract/keywords, or the candidate flights), never the user's identity, and has no write tool — but
-  it **must** have one harmless reference tool, or it never opens its port (runtime-gotchas.md §10, G10).
+  see the Hospital sample (`Hospital_Post_Discharge_Care_Use_Case`: discharge instructions, medication
+  reconciliation, follow-up slot ranking). E.g. rank options against the user's free-text preferences. Each
+  gets only the fields it needs (title/abstract/keywords, or the candidate flights), never the user's
+  identity, and has no write tool — but it **must** have one identity-free, read-only **PostgreSQL reference
+  tool**, `SELECT * FROM ref_<topic>(CAST(?lookup AS text))` over a section/term/meaning table with no
+  personal data, or it never opens its port (runtime-gotchas.md §10, governed-patterns.md §8, G10).
 
 ## Hard rules
 
@@ -115,8 +117,8 @@ empty OpenAI base URL. On top of that:
 | [references/port-registry.md](references/port-registry.md) | Phase 0: pick the next free port block (X0 WS, X2 MCP, X3+ A2A); update the registry in the same change |
 | [references/migration-playbook.md](references/migration-playbook.md) | Phases 0–1, **only when the input is a legacy sample** from `Industry_Use_Cases_old/`: discovery from its files, feature mapping, mapping table for all 13, retire steps |
 | [references/decision-framework-gate.md](references/decision-framework-gate.md) | Phase 1: classify operations, write "Why an agent here?" |
-| [references/governed-patterns.md](references/governed-patterns.md) | Phases 2–4: SQL shapes and the fda recipes that differ |
-| [references/runtime-gotchas.md](references/runtime-gotchas.md) | Phases 4–5: wsserver headers, temperature, guardrails, LLM timeout, flogobuild context and `-f`, A2A agent needs a Tool handler |
+| [references/governed-patterns.md](references/governed-patterns.md) | Phases 2–4: SQL shapes, the agent reference tools (`ref_<topic>()`), and the fda recipes that differ |
+| [references/runtime-gotchas.md](references/runtime-gotchas.md) | Phases 4–5: wsserver headers, temperature, guardrails, LLM timeout, flogobuild context and `-f`, A2A agent needs a PostgreSQL reference tool |
 | [references/testing-ladder.md](references/testing-ladder.md) | Phase 5: the four steps and how to run the apps |
 | [references/spec-and-readme-template.md](references/spec-and-readme-template.md) | Phases 2 and 6: spec additions, README template |
 | [references/validate_governed_apps.py](references/validate_governed_apps.py) | Phase 5: runs the base validator, then G1–G10 |
@@ -229,15 +231,16 @@ write `prompts.md`.
 
 **Shared steps (both methods):**
 1. `database.sql` (schema + rule functions + seeds) and `reset_data.sql`. Load them.
-2. `_rebuild/tool_spec.py`: every tool's description, args, and guarded write + read SQL. This is the
-   single source of truth for both methods.
+2. `_rebuild/tool_spec.py`: every tool's description, args, and guarded write + read SQL, plus
+   `AGENT_REF_TOOLS` (each A2A agent's `ref_<topic>()` reference read). This is the single source of truth
+   for both methods.
 3. `_rebuild/test_rules.py`: **run it and make it pass before generating or cloning any app** (step 1).
 
 #### Phase 4A — build (FDA mode)
 4. `_rebuild/build_mcp.py`, `build_agents.py`, `build_orchestrator.py` drive `fda` through
    `fda_common.App`, following the sample's drivers. Each driver refuses to overwrite an existing app. The
    governed recipes (scoped read, guarded write + readback, two-step, WebSocket headers, MCP hint booleans,
-   per-connection memory) are in [references/governed-patterns.md](references/governed-patterns.md) on top of
+   per-connection memory, agent reference tools) are in [references/governed-patterns.md](references/governed-patterns.md) on top of
    the base [references/fda-build-recipes.md](references/fda-build-recipes.md).
 
 #### Phase 4B — build (clone-and-adapt)
@@ -275,8 +278,8 @@ load, and Phase 5 runs the same 4-step ladder regardless.
 
 ### Phase 5: verify (the testing ladder, all four steps)
 Step 1 `test_rules.py` → step 2 `validate_governed_apps.py --local` + `fda cm -f` for each app →
-build the exes in a scratch folder outside the repo → step 3 `mcp_smoke.py` → reset the DB → step 4
-`chat_e2e.py` with `A2A_LOG` set. The user asking for an end-to-end test counts as the explicit
+build the exes in a scratch folder outside the repo → step 3 `mcp_smoke.py` → step 3b `a2a_smoke.py`
+(Agents app started with `FLOGO_LOG_LEVEL=DEBUG`) → reset the DB → step 4 `chat_e2e.py` with `A2A_LOG` set. The user asking for an end-to-end test counts as the explicit
 request to build binaries. Otherwise, stop at step 2 and say so.
 
 **Only when the user asked for the full ladder:** right before building the exes / running the chat e2e,
@@ -301,7 +304,8 @@ runtime model, a wrong assertion, or a non-ASCII console crash each force a full
    error) and a grep secret scan over the sample and the skill folders.
 5. Write the README from the template. It is for customers and partners who want to **run** the demo:
    "Why an agent here?", architecture, prerequisites, numbered steps to run (database, the ⚠️ app
-   properties per app, start order, chat client, demo logins and script, reset), troubleshooting.
+   properties per app — the Agents app's table includes its `PostgreSQL.PostgresConn.*` connection next to
+   the LLM ones — start order, chat client, demo logins and script, reset), troubleshooting.
    Keep test results, negative tests, limitations and file lists **out** of the README; they go in the
    report (step 7). End it with the one-line "Rebuild from code" pointer, and write the developer guide
    `_rebuild/README.md` (file inventory, settings, regenerate, test-ladder commands) from the same
@@ -336,3 +340,8 @@ runtime model, a wrong assertion, or a non-ASCII console crash each force a full
   reports it.
 - **`fda` without `-f`** creates `flogo-project.flogo` in the current folder.
 - **Placeholders can't repeat within one statement.** The write uses `?w_*` and the read uses `?r_*`.
+- **Every A2A agent needs one PostgreSQL reference tool**, `SELECT * FROM ref_<topic>(CAST(?lookup AS text))`.
+  With zero Tool handlers it runs as a Local Agent with no port; a static `#noop` → `#actreturn` text fails G10.
+  Name the placeholder `?lookup`, never `?term` (duplicate `Fields`).
+- **An agent skips its tool when its prompt already holds the facts.** Make one part of each reply depend on
+  text only the table holds, remove those facts from the prompt, and assert it in `a2a_smoke.py` (`TABLE_ONLY`).

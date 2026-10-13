@@ -1,62 +1,52 @@
 #!/usr/bin/env python3
-"""Build AuthorServicesAIOrchestrator.flogo with fda only.
-WebSocket trigger -> AI Agent (MCP tools + journal_match_agent over A2A) -> WebSocket write.
-Per-connection memory: conversationId = the connection's Sec-Websocket-Key, so authors never share a conversation.
-Re-run:  python _rebuild/build_orchestrator.py      (OUT_DIR=<empty dir> to replay)"""
-import json, os
+"""Build AuthorServicesAIOrchestrator.flogo with fda only (Author Services assistant, governed).
+WebSocket trigger -> AI Agent (14 MCP tools + three A2A reasoning agents) -> WebSocket write.
+
+  MCP server     AuthorServicesMCPServer  http://localhost:9842/author-services-mcp  (app property AuthorServicesMCPServer_URL)
+  A2A agents     journal_match_agent      http://localhost:9843  (journal_match_agent_URL)
+                 review_summary_agent     http://localhost:9844  (review_summary_agent_URL)
+                 submission_check_agent   http://localhost:9845  (submission_check_agent_URL)
+
+One chatbot, two personas: authors verify with verify_author, publisher staff reviewers (Open Access Office, Editorial
+Office, Research Integrity Team) with verify_reviewer; the role comes only from the verify tool (SQL checks it on every
+call). Per-connection memory: conversationId = the connection's Sec-Websocket-Key, so people never share a conversation
+(or a verified session token). Headers schema is INLINE (runtime-gotchas.md section 1). The system prompt lives in
+_rebuild/orchestrator_prompt.txt. Rules (scope, eligibility, statements gate, routing, authority) live in SQL.
+
+Re-run:  python _rebuild/build_orchestrator.py      (OUT_DIR=<empty dir> to replay; refuses to overwrite)
+Secrets: the OpenAI key is read at build time from env LLM_API_KEY or config.md API_Key and never printed."""
+import json, os, sys
+os.environ.setdefault("LLM_MODEL", "gpt-5.5")      # SPEC section 2: runtime model gpt-5.5 (env still wins)
+os.environ.setdefault("PG_DB", "author_services")   # unused here (no DB connection) - keeps fda_common happy
 from fda_common import App, jtmp
 
 app = App("AuthorServicesAIOrchestrator.flogo", os.environ.get("OUT_DIR"))
 f = app.fda
 WS_PORT, WS_PATH = "9840", "/authorservices"
-MCP_URL = "http://localhost:9842/author-services-mcp"
-A2A_URL = "http://localhost:9843"
+MCP_NAME, MCP_URL = "AuthorServicesMCPServer", "http://localhost:9842/author-services-mcp"
+AGENTS = [("journal_match_agent", "http://localhost:9843"),
+          ("review_summary_agent", "http://localhost:9844"),
+          ("submission_check_agent", "http://localhost:9845")]
 FLOW = "Orchestrator_Flow"
 
-SYS = """You are the Author Services assistant for a scholarly publisher. You are an AI assistant - say so if asked,
-and never claim to be a person. You help corresponding authors with their own manuscripts: status, what a decision
-means, open-access fees, and moving a manuscript that received a transfer offer to another journal.
-
-IDENTITY FIRST. Before anything that touches a manuscript, ask for the author's ORCID iD and the 6-digit code from
-their verification email, then call verify_author. Keep the returned session_token for this conversation and pass it
-to every tool. If a tool returns SESSION_INVALID, ask the author to verify again. Never guess, reveal or repeat codes.
-Never act on a manuscript id the author gives you unless the tools return it for their session.
-
-WHAT THE SYSTEM DECIDES (never override, never estimate):
-- Tool outcomes and reasons are final. When a tool says NOT_PROPOSED, NOT_EXECUTED or NOT_FOUND, explain the reason
-  in plain words and stop. Do not retry the same request with small changes to get around a rule.
-- Fees and coverage come only from check_apc_coverage or propose_transfer. Quote amounts exactly as returned.
-- If a status detail says "With the editorial office." that is all you can say about it.
-
-FINDING A NEW JOURNAL (the part that needs judgment):
-When a manuscript has a transfer offer and the author wants suggestions, call get_manuscript, then send
-journal_match_agent the title, abstract, keywords, article type, word count and current journal code - nothing that
-identifies the author. Present its suggestions, then use check_apc_coverage for any journal the author is interested in.
-
-TRANSFERS ARE TWO STEPS:
-1. propose_transfer returns an action_id and the fee quote. Tell the author exactly what will happen and what they
-   will pay, and ask them to reply yes to confirm.
-2. Only after an explicit yes to that quote, call confirm_transfer with the action_id. Report the outcome.
-
-HUMAN DECISIONS - never decide, promise or predict these; open a case instead:
-fee waivers or discounts (APC_WAIVER), appealing a decision or disputing a review (DECISION_APPEAL), adding, removing
-or reordering authors (AUTHORSHIP_CHANGE), ethics, data, image or plagiarism matters (INTEGRITY_QUERY), anything else
-you cannot do (OTHER). When the request and manuscript are clear, call open_review_case right away with the author's
-statement and a neutral 2-4 sentence brief (facts only, no recommendation); ask first only if either is unclear.
-Give them the case id, team and reply time, and say plainly that a person will decide.
-
-Out of scope: judging the science, predicting acceptance, legal or funding advice. Be concise and warm."""
+SYS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "orchestrator_prompt.txt"), encoding="utf-8").read().strip()
 
 print("== project + connections ==")
-f("cp", "AuthorServicesAIOrchestrator", "Author Services AI Orchestrator - WebSocket chat for verified authors")
+f("cp", "AuthorServicesAIOrchestrator",
+  "Author Services governed AI Orchestrator - WebSocket chat for verified authors and staff reviewers")
 app.llm_connection()
 f("cap", "WebSocket_PORT", "number", WS_PORT)
-f("cc", "AuthorServicesMCPServer", "con_mcpserverconfig")
-f("sa", "connection", "AuthorServicesMCPServer.settings.serverType", "http")
-f("sa", "connection", "AuthorServicesMCPServer.settings.serverUrl", MCP_URL)
-f("sa", "connection", "AuthorServicesMCPServer.settings.httpTransportType", "streamable")
-f("cc", "journal_match_agentA2AServer", "con_a2aserverconnection")
-f("sa", "connection", "journal_match_agentA2AServer.settings.serverUrl", A2A_URL)
+f("cap", f"{MCP_NAME}_URL", "string", MCP_URL)
+for name, url in AGENTS:
+    f("cap", f"{name}_URL", "string", url)
+
+f("cc", MCP_NAME, "con_mcpserverconfig")
+f("sa", "connection", f"{MCP_NAME}.settings.serverType", "http")
+f("sa", "connection", f"{MCP_NAME}.settings.serverUrl", f"{MCP_NAME}_URL", "-C", "app-property")
+f("sa", "connection", f"{MCP_NAME}.settings.httpTransportType", "streamable")
+for name, _ in AGENTS:
+    f("cc", f"{name}A2AServer", "con_a2aserverconnection")
+    f("sa", "connection", f"{name}A2AServer.settings.serverUrl", f"{name}_URL", "-C", "app-property")
 
 print("== trigger + flow ==")
 f("ct", "WebsocketServer", "tr_wsserver", "WebSocket server")
@@ -69,16 +59,18 @@ print("== AI Agent settings ==")
 S = f"{FLOW}.AIAgent.settings"
 f("sa", "activity", f"{S}.llmProviderConnection", app.conn_ref("OpenAIConn"))
 f("sa", "activity", f"{S}.model", "LLM_Model", "-C", "app-property")
-f("sa", "activity", f"{S}.temperature", "0", "--type", "number")          # 0 = omitted; rules live in SQL, not in sampling
-f("sa", "activity", f"{S}.tokenLimit", "8000", "--type", "number")        # reasoning models need headroom
-f("sa", "activity", f"{S}.enableGuardrails", "true", "--type", "boolean")
-f("sa", "activity", f"{S}.redactSensitiveData", "false", "--type", "boolean")  # would mask the ORCID + code the author must send
+f("sa", "activity", f"{S}.temperature", "--jsonValue", "0")            # 0 = omitted -> provider default (gotcha 2)
+f("sa", "activity", f"{S}.tokenLimit", "--jsonValue", "8000")
+f("sa", "activity", f"{S}.enableGuardrails", "--jsonValue", "true")
+f("sa", "activity", f"{S}.rateLimit", "--jsonValue", "30")             # OWASP resource-overload: cap requests/min
+f("sa", "activity", f"{S}.redactSensitiveData", "--jsonValue", "false")  # true would mask the ORCID / code / staff code
 f("sa", "activity", f"{S}.responseType", "Text")
 f("sa", "activity", f"{S}.conversationStoreType", "Memory")
-f("sa", "activity", f"{S}.memoryMaxSize", "60", "--type", "number")
+f("sa", "activity", f"{S}.memoryMaxSize", "--jsonValue", "60")
 f("sa", "activity", f"{S}.systemPrompt", SYS)
-f("sa", "activity", f"{S}.mcpServers", "--jsonValue", json.dumps([app.conn_ref("AuthorServicesMCPServer")]))
-f("sa", "activity", f"{S}.remoteAgents", "--jsonValue", json.dumps([app.conn_ref("journal_match_agentA2AServer")]))
+f("sa", "activity", f"{S}.mcpServers", "--jsonValue", json.dumps([app.conn_ref(MCP_NAME)]))
+f("sa", "activity", f"{S}.remoteAgents", "--jsonValue",
+  json.dumps([app.conn_ref(f"{name}A2AServer") for name, _ in AGENTS]))
 
 print("== mappings ==")
 f("mm", f"{FLOW}.AIAgent.input.userPrompt", "=coerce.toString($flow.content)")
@@ -98,17 +90,13 @@ HDR_NAMES = ["Accept", "Accept-Charset", "Accept-Encoding", "Content-Type", "Con
 hprops = {k: {"type": "string", "visible": False} for k in HDR_NAMES}
 hdr = {"type": "object", "properties": hprops, "required": []}
 # INLINE, not schema://: the wsserver trigger reads schemas.output.headers["value"] at runtime; a schema:// ref
-# has no "value", so no header would ever reach $flow.headers (and the conversationId mapping would fail).
-# fe_metadata MUST be the designer's parameter-list format, not a copy of value: the designer's Sync rebuilds
-# value from fe_metadata, and a JSON-schema fe_metadata parses as zero headers -> value becomes empty properties,
-# $flow.headers["Sec-Websocket-Key"] goes red on the AI Agent, and no header reaches the flow at runtime.
+# has no "value", so no header reaches $flow.headers. fe_metadata is the designer's parameter-list format, not a
+# copy of value, or the designer's Sync rewrites value to zero headers (see runtime-gotchas.md).
 hfe = [{"parameterName": k, "type": "string", "repeating": "false", "required": "false", "visible": False}
        for k in HDR_NAMES]
 f("sa", "handler", f"WebsocketServer.{FLOW}.schemas.output.headers", "--jsonValue",
   json.dumps({"type": "json", "value": json.dumps(hdr, separators=(",", ":")),
               "fe_metadata": json.dumps(hfe, separators=(",", ":"))}), "--force")
-# Flow input headers carry the same properties (metadata.input for runtime, fe_metadata.input for the designer,
-# which regenerates metadata.input from it on save) - the exact shape a designer Sync writes.
 f("sa", "flow", f"{FLOW}.metadata.input", "--jsonFile", jtmp(
     [{"name": "pathParams", "type": "params"}, {"name": "queryParams", "type": "params"},
      {"name": "headers", "type": "object",
@@ -120,4 +108,35 @@ f("sa", "flow", f"{FLOW}.metadata.fe_metadata", "--jsonFile", jtmp({"input": jso
         "content": {"type": "any", "required": False}, "wsconnection": {"type": "any", "required": False}}},
     separators=(",", ":"))}), "--force")
 
+print("== self-check ==")
+d = app.load()
+props = {p["name"]: p["value"] for p in d["properties"]}
+conns = {c["name"]: c for c in (d["connections"].values() if isinstance(d["connections"], dict) else d["connections"])}
+ids = {c["id"] for c in conns.values()}
+tr = next(t for t in d["triggers"] if t["ref"].endswith("wsserver"))
+h = tr["handlers"][0]
+agent = next(t for r in d["resources"] for t in r["data"]["tasks"] if t["id"] == "AIAgent")["activity"]
+s = agent["settings"]
+problems = []
+def need(cond, msg):
+    if not cond: problems.append(msg)
+need(str(props.get("WebSocket_PORT")) in ("9840", "9840.0") and tr["settings"]["port"] == '=$property["WebSocket_PORT"]',
+     "ws port")
+need(h["settings"].get("path") == WS_PATH, "ws path")
+need(agent["input"].get("conversationId") == '=$flow.headers["Sec-Websocket-Key"]', "conversationId mapping")
+need(s.get("redactSensitiveData") is False, "redactSensitiveData must be JSON false")
+need(s.get("temperature") == 0 and not isinstance(s.get("temperature"), bool), "temperature must be JSON number 0")
+need(props.get(f"{MCP_NAME}_URL") == MCP_URL
+     and conns[MCP_NAME]["settings"]["serverUrl"] == f'=$property["{MCP_NAME}_URL"]', "MCP URL property")
+for name, url in AGENTS:
+    need(props.get(f"{name}_URL") == url
+         and conns[f"{name}A2AServer"]["settings"]["serverUrl"] == f'=$property["{name}_URL"]', f"{name} URL property")
+need(len(s.get("remoteAgents", [])) == 3 and len(s.get("mcpServers", [])) == 1, "remoteAgents/mcpServers arrays")
+raw = json.dumps({k: v for k, v in d.items() if k != "connections"})
+import re
+need(all(c in ids for c in re.findall(r"conn://([\w-]+)", raw)), "dangling conn://")
+need("New_value" not in json.dumps(d), "New_value present")
+if problems:
+    sys.exit("SELF-CHECK FAILED: " + "; ".join(problems))
+print("  self-check ok")
 print("\nOrchestrator build complete:", app.file)

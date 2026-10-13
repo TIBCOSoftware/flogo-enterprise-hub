@@ -2,10 +2,13 @@
 """Step 3: call the running RetailBankingMCPServer tools directly - no LLM - to prove the rules hold at the MCP edge.
 Start the MCP server first, then:   PG_PWD=<pwd> python _rebuild/mcp_smoke.py
 Env: MCP_URL (default http://localhost:9862/retail-banking-mcp), PG_DB (banking_governed), PG_HOST/PG_PORT/PG_USER, PSQL.
-The DB is reset (reset_data.sql) before and after. Sends ONE real confirmation email (James's dispute) to To_Email."""
+Covers the 16 customer tools (scoped reads, two-step card block / dispute / payment incl. a HIGH scam hold, routed
+cases) and the 4 reviewer tools (happy path + one blocked call each, parked action executed).
+The DB is reset (reset_data.sql) before and after. Attempts ONE real confirmation email (James's dispute) to To_Email;
+the SQL guard + email_log are asserted, SMTP delivery is reported separately (the shipped password is a placeholder)."""
 import csv, io, json, os, re, subprocess, sys, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tool_spec import TOOLS
+from tool_spec import TOOLS, REVIEWER_TOOLS, PUBLIC_TOOLS, HIDDEN_COLUMNS
 
 URL = os.environ.get("MCP_URL", "http://localhost:9862/retail-banking-mcp")
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -69,11 +72,18 @@ def rpc(method, params=None, notify=False):
     if "error" in msg: raise RuntimeError(msg["error"])
     return msg["result"]
 
+SPEC_ARGS = {t["tool"]: [a for a, _ in t["args"]] for t in TOOLS}
+OUTPUTS = []
+
 def call(tool, **args):
+    args = {a: args.get(a, "") for a in SPEC_ARGS[tool]}
     res = rpc("tools/call", {"name": tool, "arguments": args})
     text = res["content"][0]["text"]
+    if res.get("isError"): raise RuntimeError(f"{tool} returned isError: {text[:300]}")
     body = json.loads(text)
-    return (json.loads(body["data"]) if "data" in body else body)["records"]
+    rows = (json.loads(body["data"]) if "data" in body else body)["records"]
+    OUTPUTS.append((tool, rows))
+    return rows
 
 # Flogo may hand numbers/booleans back as JSON numbers/bools or as strings - compare tolerantly
 def num(v):
@@ -100,7 +110,7 @@ try:
     rpc("notifications/initialized", notify=True)
     tools = {t["name"]: t for t in rpc("tools/list")["tools"]}
     expected = {t["tool"] for t in TOOLS}
-    check("tools/list = exactly the 13 tools from tool_spec.py", set(tools) == expected and len(expected) == 13,
+    check("tools/list = exactly the 20 tools from tool_spec.py", set(tools) == expected and len(expected) == 20,
           {"missing": sorted(expected - set(tools)), "extra": sorted(set(tools) - expected)})
     reads = [t["tool"] for t in TOOLS if t.get("readonly") and t["tool"] in tools]
     check("readOnlyHint on every read tool", all(tools[r].get("annotations", {}).get("readOnlyHint") is True for r in reads),
@@ -108,6 +118,10 @@ try:
     bad_schema = [t["tool"] for t in TOOLS if t["tool"] in tools
                   and not all(a in json.dumps(tools[t["tool"]].get("inputSchema")) for a, _ in t["args"])]
     check("every tool publishes its argument schema", not bad_schema, bad_schema)
+    ann = tools["decide_review_case"].get("annotations", {})
+    check("decide_review_case hints: not read-only, not destructive, not idempotent",
+          ann.get("readOnlyHint") is not True and ann.get("destructiveHint") is False and ann.get("idempotentHint") is not True, ann)
+    # (the runtime omits false readOnly/idempotent hints from tools/list; the .flogo holds real JSON booleans - validator G8)
 
     # ---- identity ----
     r = call("verify_customer", customer_id=JAMES, passcode="000000")
@@ -121,9 +135,15 @@ try:
           n(f"SELECT count(*) FROM customer_sessions WHERE customer_id='{JAMES}'") == 1
           and n("SELECT count(*) FROM customer_sessions") == 1)
 
-    # ---- SESSION_INVALID on every scoped tool (no writes, no email with a bogus token) ----
+    # ---- SESSION_INVALID on every scoped customer tool, NOT_REVIEWER on every reviewer tool (no writes) ----
+    n_cases0 = n("SELECT count(*) FROM service_cases")
     for t in TOOLS:
-        if t["tool"] in ("verify_customer", "find_branch"):
+        if t["tool"] in PUBLIC_TOOLS:
+            continue
+        if t["tool"] in REVIEWER_TOOLS:
+            row = call(t["tool"], session_token="bogus-token-0000", case_id="CASE-00004", decision="APPROVE",
+                       internal_note="smoke test note", customer_message="x")[0]
+            check(f"{t['tool']} with bogus token -> NOT_REVIEWER", (row.get("status") or row.get("outcome")) == "NOT_REVIEWER", row)
             continue
         args = {a: "x" for a, _ in t["args"]}
         args["session_token"] = "bogus-token-0000"
@@ -131,7 +151,8 @@ try:
         code = row.get("session_status") or row.get("reason_code")
         check(f"{t['tool']} with bogus token -> SESSION_INVALID", code == "SESSION_INVALID", row)
     check("DB: bogus-token calls wrote nothing", n("SELECT count(*) FROM pending_actions") == 0
-          and n("SELECT count(*) FROM service_cases WHERE request_type <> 'FRAUD_REVIEW'") == 0)
+          and n("SELECT count(*) FROM service_cases") == n_cases0 and n("SELECT count(*) FROM review_decisions") == 0
+          and n("SELECT count(*) FROM payment_requests") == 1 and n("SELECT count(*) FROM email_log") == 0)
 
     # ---- scoped reads ----
     r = call("get_my_accounts", session_token=tok)
@@ -215,9 +236,14 @@ try:
     check("get_my_cases now shows the dispute + fraud case, not Sophia's DSP-2026-0001",
           dsp in refs and s(f.get("fraud_case_id")) in refs and "DSP-2026-0001" not in refs, refs)
 
-    # ---- guarded email (ONE real send) ----
-    e = call("email_my_confirmation", session_token=tok, reference_id=dsp)[0]
-    check(f"email_my_confirmation {dsp} -> SEND", s(e.get("send_status")).upper().startswith("SEND"), e)
+    # ---- guarded email (ONE real send attempt) ----
+    try:
+        e = call("email_my_confirmation", session_token=tok, reference_id=dsp)[0]
+        check(f"email_my_confirmation {dsp} -> SEND (SMTP delivered)", s(e.get("send_status")).upper() == "SEND", e)
+    except Exception as ex:                       # noqa: BLE001 - the SQL guard is asserted below either way
+        out(f"NOTE SMTP send failed (expected with the placeholder Email_App_Password): {str(ex)[:160]}")
+    check(f"DB: the authorised email request for {dsp} was logged (SQL guard passed)",
+          n(f"SELECT count(*) FROM email_log WHERE reference_id='{dsp}' AND customer_id='{JAMES}'") == 1)
     e = call("email_my_confirmation", session_token=tok, reference_id="DSP-2026-9999")[0]
     check("email bogus reference -> NOT_SENT NO_SUCH_REFERENCE",
           e["send_status"] == "NOT_SENT" and e.get("reason_code") == "NO_SUCH_REFERENCE", e)
@@ -225,7 +251,7 @@ try:
     check("email Sophia's DSP-2026-0001 from James -> NOT_SENT", e["send_status"] == "NOT_SENT", e)
 
     # ---- human-owned request ----
-    k = call("open_service_case", session_token=tok, request_type="FEE_REFUND",
+    k0 = k = call("open_service_case", session_token=tok, request_type="FEE_REFUND",
              customer_statement="Please refund the monthly maintenance fee.",
              brief="Customer asks for a fee refund; routed for a human to decide.")[0]
     check("open_service_case FEE_REFUND -> CASE_OPENED, Customer Care",
@@ -237,11 +263,81 @@ try:
              customer_statement="Approve my loan.", brief="n/a")[0]
     check("open_service_case bad type -> NOT_OPENED BAD_TYPE", k["outcome"] == "NOT_OPENED" and k["reason_code"] == "BAD_TYPE", k)
 
+    # ---- payments to saved payees: LOW two-step (Emma) and a HIGH scam hold (Patricia) ----
+    emma = call("verify_customer", customer_id="CUST-2026-00106", passcode="918342")[0]["session_token"]
+    r = call("get_my_payees", session_token=emma)
+    check("get_my_payees = Emma's 2 payees only", sorted(s(x["payee_id"]) for x in r) == ["PYE-0201", "PYE-0202"], r)
+    pp = call("propose_payment", session_token=emma, from_account="ACC-1009", payee="PYE-0201", amount="1850.00",
+              customer_story="Monthly rent to my landlord.", scam_indicators="NONE", narrative_score="5",
+              agent_notes="indicators: NONE")[0]
+    check("propose_payment rent to a known landlord -> PROPOSED", pp["outcome"] == "PROPOSED" and pp.get("payment_id"), pp)
+    check("DB: nothing sent before confirm", n("SELECT count(*) FROM payment_sends") == 0)
+    cp = call("confirm_payment", session_token=emma, payment_id=s(pp.get("payment_id")), acknowledge_warning="NO")[0]
+    check("confirm_payment -> SENT, balance 5,600 -> 3,750", cp["outcome"] == "SENT" and num(cp.get("available_balance_after")) == 3750.0, cp)
+    check("DB: POSTED debit for the rent + payment_sends row",
+          n("SELECT count(*) FROM transactions WHERE account_id='ACC-1009' AND descriptor='PAYMENT TO HARBOR PROPERTY MANAGEMENT'") == 1
+          and n("SELECT count(*) FROM payment_sends WHERE via='CUSTOMER'") == 1)
+    pat = call("verify_customer", customer_id="CUST-2026-00108", passcode="641205")[0]["session_token"]
+    h = call("propose_payment", session_token=pat, from_account="ACC-1014", payee="PYE-0102", amount="9500",
+             customer_story="A man from the bank's fraud team told me to move my savings to a safe account and not to tell the branch.",
+             scam_indicators="SAFE_ACCOUNT, IMPERSONATION, SECRECY", narrative_score="90",
+             agent_notes="indicators: SAFE_ACCOUNT, IMPERSONATION, SECRECY")[0]
+    check("propose_payment safe-account story -> HELD_FOR_REVIEW with case id (no score in the reply)",
+          h["outcome"] == "HELD_FOR_REVIEW" and re.fullmatch(r"CASE-\d{5}", s(h.get("case_id")))
+          and "score" not in json.dumps(h).lower(), h)
+    check("DB: request HELD (HIGH), PAYMENT_HOLD case for Fraud Operations, savings untouched",
+          n(f"SELECT count(*) FROM payment_requests WHERE payment_id='{s(h.get('payment_id'))}' AND status='HELD' AND risk_band='HIGH'") == 1
+          and n(f"SELECT count(*) FROM service_cases WHERE case_id='{s(h.get('case_id'))}' AND request_type='PAYMENT_HOLD' "
+                "AND assigned_team='Fraud Operations'") == 1
+          and q("SELECT available_balance FROM accounts WHERE account_id='ACC-1014'")[0]["available_balance"] == "24000.00")
+    r = call("confirm_payment", session_token=pat, payment_id=s(h.get("payment_id")), acknowledge_warning="YES")[0]
+    check("confirm_payment on a held payment -> NOT_SENT HELD_FOR_REVIEW", r["reason_code"] == "HELD_FOR_REVIEW", r)
+
+    # ---- reviewer tools: happy path + one blocked call each ----
+    r = call("verify_reviewer", staff_id="KST-7001", code="000000")[0]
+    check("verify_reviewer wrong code -> NOT_VERIFIED, no token", r["status"] == "NOT_VERIFIED" and not r.get("session_token"), r)
+    r = call("verify_reviewer", staff_id="KST-7001", code="246810")[0]
+    check("verify_reviewer Maya -> VERIFIED, REVIEWER, Customer Care", r["status"] == "VERIFIED" and r.get("role") == "REVIEWER"
+          and r.get("team") == "Customer Care", {k: v for k, v in r.items() if k != "session_token"})
+    maya = s(r.get("session_token"))
+    r = call("get_review_queue", session_token=tok)
+    check("get_review_queue with a customer token -> NOT_REVIEWER", r[0]["status"] == "NOT_REVIEWER", r)
+    r = call("get_review_queue", session_token=maya)
+    ids = [s(x.get("case_id")) for x in r]
+    check("get_review_queue = Customer Care OPEN cases incl. seeded CASE-00004 and James's new fee refund",
+          "CASE-00004" in ids and s(k0.get("case_id")) in ids and r[0]["status"] == "OK"
+          and all(s(x.get("team")) == "Customer Care" for x in r), r)
+    r = call("get_review_case", session_token=maya, case_id=s(h.get("case_id")))[0]
+    check("get_review_case on a Fraud Operations case -> NOT_FOUND (cross-team invisible)", r["status"] == "NOT_FOUND", r)
+    r = call("get_review_case", session_token=maya, case_id="CASE-00004")[0]
+    check("get_review_case CASE-00004 -> facts, max $29, Maya's $25 limit", r["status"] == "OK" and num(r.get("max_approvable")) == 29.0
+          and num(r.get("your_approval_limit")) == 25.0 and "LATE PAYMENT FEE" in s(r.get("facts")), r)
+    r = call("decide_review_case", session_token=maya, case_id="CASE-00004", decision="APPROVE", amount="",
+             internal_note="Holiday delay confirmed.", customer_message="Your late fee has been refunded.")[0]
+    check("decide_review_case full $29 > $25 limit -> BLOCKED OVER_AUTHORITY, case stays OPEN",
+          r["outcome"] == "BLOCKED" and r["reason_code"] == "OVER_AUTHORITY" and r.get("case_status") == "OPEN", r)
+    r = call("decide_review_case", session_token=maya, case_id="CASE-00004", decision="APPROVE", amount="20",
+             internal_note="Holiday delay confirmed; goodwill within my limit.", customer_message="We refunded $20.00 of the late fee.")[0]
+    check("decide_review_case approve $20 -> APPROVED, fee refunded", r["outcome"] == "APPROVED" and num(r.get("approved_amount")) == 20.0
+          and "refunded" in s(r.get("executed_action")), r)
+    check("DB: decision row + FEE REFUND credit + CASE_DECIDED audit by KST-7001",
+          n("SELECT count(*) FROM review_decisions WHERE case_id='CASE-00004' AND reviewer_id='KST-7001' AND approved_amount=20") == 1
+          and n("SELECT count(*) FROM transactions WHERE descriptor='FEE REFUND TXN-50024' AND amount=20 AND txn_type='CREDIT'") == 1
+          and n("SELECT count(*) FROM agent_audit WHERE action='CASE_DECIDED' AND ref='CASE-00004' AND actor='KST-7001'") == 1)
+    mike = call("verify_customer", customer_id="CUST-2026-00107", passcode="377150")[0]["session_token"]
+    r = {s(x.get("reference_id")): x for x in call("get_my_cases", session_token=mike)}
+    check("the customer sees APPROVED + the customer message (never the note or reviewer)",
+          s(r["CASE-00004"].get("status")) == "APPROVED" and "refunded" in s(r["CASE-00004"].get("customer_message"))
+          and "goodwill" not in json.dumps(r) and "Maya" not in json.dumps(r), r.get("CASE-00004"))
+    cust_cols = {k for t, rows in OUTPUTS if t not in REVIEWER_TOOLS for row in rows for k in row}
+    check("customer tool outputs carry no hidden column", not (cust_cols & HIDDEN_COLUMNS), cust_cols & HIDDEN_COLUMNS)
+
     # ---- audit trail written by triggers ----
     au = {x["action"]: int(x["n"]) for x in q("SELECT action, count(*) AS n FROM agent_audit GROUP BY action")}
-    check("DB: audit rows for VERIFY, CARD_BLOCKED, DISPUTE_FILED, SERVICE_CASE_OPENED",
+    check("DB: audit rows for VERIFY, CARD_BLOCKED, DISPUTE_FILED, SERVICE_CASE_OPENED, PAYMENT_SENT/HELD, REVIEWER_VERIFY, CASE_DECIDED",
           au.get("VERIFY", 0) >= 1 and au.get("CARD_BLOCKED") == 1 and au.get("DISPUTE_FILED") == 1
-          and au.get("SERVICE_CASE_OPENED", 0) >= 2, au)
+          and au.get("SERVICE_CASE_OPENED", 0) >= 3 and au.get("PAYMENT_SENT") == 1 and au.get("PAYMENT_HELD") == 1
+          and au.get("REVIEWER_VERIFY") == 1 and au.get("CASE_DECIDED") == 1, au)
 finally:
     reset()
 

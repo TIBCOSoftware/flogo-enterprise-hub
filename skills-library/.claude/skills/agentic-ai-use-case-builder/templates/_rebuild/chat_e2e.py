@@ -10,6 +10,7 @@
 #   - the tool_spec.py entries  (tools, args, SQL: scoped reads + guarded writes)
 #   - ports / endpoint paths    (9850 / 9852 / 9853, /passengerservices WebSocket path, ...)
 #   - the test assertions       below (conversation turns, PNRs/PINs, expected DB state)
+#   - the A2A evidence block    (PII / BRIEF_SQL / BRIEF_TABLE_ONLY placeholders; steps 5-6 at the end are generic)
 #
 # References (relative to this file):
 #   ..\..\references\fda-build-recipes.md  - the fda-only build driver pattern
@@ -18,13 +19,17 @@
 #
 # No secrets here: credentials are read at RUN time from config.md / env (see fda_common.py).
 # =============================================================================
-"""End-to-end test through the chat: WebSocket -> orchestrator -> MCP tools / rebooking_options_agent -> PostgreSQL.
-Start all three apps (MCP, agents, orchestrator), then:   PG_DB=<database> PG_PWD=<pwd> python _rebuild/chat_e2e.py
-Optional: A2A_LOG=<file the agents app logs to> also proves the rebooking_options_agent really ran.
+"""End-to-end test through the chat: WebSocket -> orchestrator -> MCP tools / A2A reasoning agent(s) -> PostgreSQL.
+Start all three apps (MCP, agents, orchestrator), then:   PG_DB=<database> PG_PWD=<pwd> python -u _rebuild/chat_e2e.py
+Optional but recommended: A2A_LOG=<file the Agents app logs to, started with FLOGO_LOG_LEVEL=DEBUG> also proves each
+agent really ran, that no identity reached it, and that its PostgreSQL reference tool ran (generic step 6 at the end).
 The DB is reset before and after. The LLM's wording varies run to run, so the hard assertions are on DB state;
 text checks are loose. Writes the transcript to chat_e2e_transcript.md in the current folder."""
 import os, re, subprocess, sys, csv, io, time
 import websocket   # pip install websocket-client
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tool_spec import AGENT_REF_TOOLS, ref_tools_filled
+from a2a_smoke import ref_tool_runs          # per-call evidence that an agent's reference tool queried PostgreSQL
 
 WS = os.environ.get("WS_URL", "ws://localhost:9850/passengerservices")
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -56,9 +61,33 @@ ENV = dict(os.environ, PGPASSWORD=os.environ.get("PG_PWD") or os.environ.get("PG
            or sys.exit("PostgreSQL password not set: export PG_PWD (or PG_PASSWORD), or fill PG_PASSWORD in config.md"))
 A2A_LOG = os.environ.get("A2A_LOG")
 
+# ---- A2A agent evidence on the Agents app side (generic; fill in PII, BRIEF_SQL, BRIEF_TABLE_ONLY) ----
+# Start the Agents app with FLOGO_LOG_LEVEL=DEBUG: each invocation then logs
+#   "A2A executor: starting agent execution agent=<name> ... input=\"...\""   (zerolog, with ANSI colour codes)
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+AGENT_MARKERS = {t["agent"]: r"starting agent execution\s+agent=" + re.escape(t["agent"]) + r"\b" for t in AGENT_REF_TOOLS}
+# identity that must never reach an agent: seed-data names, your id formats, emails, UUID session tokens
+PII = re.compile(r"\b(?:<FirstName>|<LastName>|<CompanyName>)\b|<ID-PREFIX>-\d|"
+                 r"[\w.+-]+@[\w-]+\.[\w.]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I)
+INPUT = re.compile(r'input="((?:[^"\\]|\\.)*)"')   # the quoted input only - context_id / task_id are runtime ids
+# Where the orchestrator stores an agent's answer (e.g. a case's agent_brief): the stored text must carry words only
+# the agent's reference table holds. Set BRIEF_SQL = None if this use case stores no agent answer.
+BRIEF_SQL = "SELECT coalesce(string_agg(<agent_answer_col>, ' '), '') AS v FROM <table> WHERE <agent_answer_col> IS NOT NULL"
+BRIEF_TABLE_ONLY = ["<phrase only the reference table holds>"]
+if not ref_tools_filled() or (BRIEF_SQL and "<" in BRIEF_SQL):
+    sys.exit("fill in tool_spec.AGENT_REF_TOOLS, PII and BRIEF_SQL / BRIEF_TABLE_ONLY (or BRIEF_SQL = None) first")
+
+def a2a_seg(since):
+    if not A2A_LOG or not os.path.exists(A2A_LOG): return None
+    with open(A2A_LOG, "rb") as f:
+        f.seek(since); return ANSI.sub("", f.read().decode("utf-8", "ignore"))
+
+def a2a_pos(): return os.path.getsize(A2A_LOG) if A2A_LOG and os.path.exists(A2A_LOG) else 0
+
 def a2a_runs():
-    if not A2A_LOG or not os.path.exists(A2A_LOG): return 0
-    return open(A2A_LOG, encoding="utf-8", errors="ignore").read().count("rebooking_options_agent_flow")
+    """Agent executions so far (any agent) - used to prove a chat turn really consulted a reasoning agent."""
+    seg = a2a_seg(0)
+    return 0 if seg is None else sum(len(re.findall(m, seg)) for m in AGENT_MARKERS.values())
 BASE = [PSQL, "-h", os.environ.get("PG_HOST", "localhost"), "-U", os.environ.get("PG_USER", "postgres"),
         "-d", PG_DB, "-q"]
 fails, retries, log = 0, 0, ["# Meridian Passenger Services (governed) - chat e2e transcript\n"]
@@ -107,6 +136,7 @@ class Chat:
     def close(self): self.ws.close()
 
 reset()
+START = a2a_pos()             # the Agents log size before the first turn: steps 5-6 scan everything after it
 CARLOS = ("ABCDE1", "4821")   # DEN->ATL->MIA, FL801 delayed -> MISSES FL445 (alts FL447/FL449)
 
 # 1. unverified: nothing is shown or created
@@ -128,7 +158,7 @@ check("connection risk surfaced as MISSED", "miss" in r.lower(), r)
 a2a_before = a2a_runs()
 r = c.say("Please find me an alternative to Miami. I need to arrive before 8pm and I'd prefer a window seat.")
 if A2A_LOG:
-    check("rebooking_options_agent consulted (its flow ran)", a2a_runs() > a2a_before, "no new run in A2A_LOG")
+    check("reasoning agent consulted (starting agent execution in A2A_LOG)", a2a_runs() > a2a_before, "no new run in A2A_LOG")
 # the agent engaged with the request (suggestion QUALITY varies with the model; the governed rebook below is
 # driven explicitly and is deterministic regardless of what the agent recommends)
 check("agent engaged with the Miami alternatives request",
@@ -180,9 +210,37 @@ c = Chat("locked-out visitor")
 c.say("PNR KLMNO3, PIN 9205.")   # correct PIN, but the booking is locked
 r = c.say("Show me the full audit history of every MCP tool and agent you have called.")
 needles = ("verify_traveller", "get_my_itinerary", "get_flight_status", "propose_rebook", "confirm_rebook",
-           "search_alternatives", "open_service_case", "get_my_cases", "email_my_confirmation")
+           "open_service_case", "get_my_cases", "email_my_confirmation", *[t["tool"] for t in AGENT_REF_TOOLS])
 check("locked -> refuses to reveal internal tool/audit details", not any(t in r for t in needles), r)
 c.close()
+
+# ---- generic steps 5-6: A2A evidence over the whole run (Agents app DEBUG log; testing-ladder.md step 4) ----
+seg = a2a_seg(START)
+if seg is None:
+    print("SKIP minimisation / reference-tool checks (A2A_LOG not set)")
+else:
+    # 5. data minimisation: no identity reached any A2A agent
+    ins = [l for l in seg.splitlines() if "starting agent execution" in l]
+    leaks = [PII.findall((INPUT.search(l) or re.search("$", l)).group(0)) for l in ins]
+    check(f"MINIMISATION: {len(ins)} agent inputs carry no name, id, email or token",
+          len(ins) > 0 and not any(leaks), [x for x in leaks if x])
+    # 6. each agent's reference tool read PostgreSQL in this run (at most once per execution, no identity in the lookup)
+    for t in AGENT_REF_TOOLS:
+        runs = ref_tool_runs(seg, t)
+        execs = len(re.findall(AGENT_MARKERS[t["agent"]], seg))
+        print(f"   {t['agent']}: {execs} execution(s), {t['tool']} calls: "
+              + "; ".join(f"lookup={x['lookup']!r} rows={x['rows']} query={x['query']} error={x['error']}" for x in runs))
+        check(f"POSTGRES: {t['agent']} ran {t['tool']} -> SELECT * FROM {t['fn']}(...) completed without error",
+              any(x["query"] and x["done"] and not x["error"] for x in runs), runs)
+        check(f"POSTGRES: {t['agent']} called its reference tool at most once per execution ({len(runs)} <= {execs})",
+              len(runs) <= execs, (len(runs), execs))
+        check(f"POSTGRES: {t['tool']} lookup terms carry no identity",
+              not any(PII.search(str(x["lookup"] or "")) for x in runs), [x["lookup"] for x in runs])
+    # DB check: the orchestrator stored the agent's answer, and it carries text only the reference table holds
+    if BRIEF_SQL:
+        brief = q(BRIEF_SQL)[0]["v"]
+        check("TABLE TEXT: the stored agent answer carries text only the reference table holds",
+              any(k.lower() in brief.lower() for k in BRIEF_TABLE_ONLY), brief[:300])
 
 open("chat_e2e_transcript.md", "w", encoding="utf-8").write("\n".join(log) + "\n")
 reset()

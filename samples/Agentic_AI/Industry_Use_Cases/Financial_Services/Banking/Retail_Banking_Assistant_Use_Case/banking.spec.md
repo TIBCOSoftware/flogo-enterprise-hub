@@ -9,11 +9,11 @@ _rebuild/*.py). Kestrel Bank, its customers, accounts and merchants are fictiona
 
 | Item | Value |
 |---|---|
-| Persona | Retail customer of **Kestrel Bank** self-serving over chat (USD, en-US) |
+| Personas | Retail customer of **Kestrel Bank** self-serving over chat (USD, en-US); Kestrel **staff reviewers** (Customer Care, Financial Support, Fraud Operations) deciding human-owned cases in the same chatbot |
 | Database | `banking_governed` (original `banking` DB untouched) |
 | Orchestrator | `RetailBankingAIOrchestrator.flogo` — WebSocket `9860` path `/retailbanking` |
 | MCP server | `RetailBankingMCPServer.flogo` — MCP `9862` path `/retail-banking-mcp`, serverName `RetailBanking` |
-| A2A agents | `RetailBankingAgents.flogo` — `dispute_triage_agent` on `9863` |
+| A2A agents | `RetailBankingAgents.flogo` — `dispute_triage_agent` `9863`, `scam_signal_agent` `9864`, `hardship_intake_agent` `9865` (each with one read-only PostgreSQL reference tool) |
 | Runtime LLM | `gpt-5.5` (property `LLM_Model`) |
 | Email | Gmail SMTP 465 SSL; `Email_Username`, `Email_App_Password` (SECRET), `To_Email` (ops inbox) — same as Airline |
 
@@ -27,7 +27,11 @@ _rebuild/*.py). Kestrel Bank, its customers, accounts and merchants are fictiona
 | Block lost/stolen card | no | no | Deterministic, two-step | `propose_card_block` → yes → `confirm_card_block` (card_blocks event + trigger: BLOCKED + replacement) |
 | Dispute eligibility, provisional credit, decision date | no | no | Deterministic, two-step | `propose_dispute` → yes → `confirm_dispute` (disputes event + trigger) |
 | Decode a cryptic descriptor, match the customer's words to a transaction, suggest reason code | no | **yes** | **Agent** | `dispute_triage_agent` (A2A, read-only `lookup_merchant`), never receives identity |
-| Fee refund, loan hardship/deferral, credit-limit increase, complaint, personal-details change, account closure, bereavement, fraud review | **yes** | – | Human | `open_service_case` → `service_teams`; FRAUD_REVIEW also auto-opened by trigger |
+| Pay a saved payee (rules: own account, saved payee, funds, $10,000/day) | no | no | Deterministic, two-step | `propose_payment` → yes (+ warning acknowledgement for MEDIUM) → `confirm_payment` (payment_sends event + trigger) |
+| Read the customer's story about a payment for authorised-push-payment scam signs | no | **yes** | **Agent** | `scam_signal_agent` (A2A, read-only `get_scam_signal_guide` → `ref_scam_signals`), never receives identity |
+| Band the scam risk (agent indicators validated + new payee, unusual amount, first payee type, share of balance, payee on hold) | no | no | Deterministic | `scam_assessment()` → LOW / MEDIUM (warning) / HIGH (payment HELD + `PAYMENT_HOLD` case) |
+| Turn a hardship story into a structured brief (cause, duration, products, programs, documents) | no | **yes** | **Agent** | `hardship_intake_agent` (A2A, read-only `get_hardship_guide` → `ref_hardship_guide`), never receives identity |
+| Fee refund, loan hardship/deferral, release of a held payment, credit-limit increase, complaint, personal-details change, account closure, bereavement, fraud review | **yes** | – | Human (reviewer loop) | `open_service_case` → `service_teams` (fee refund / hardship park a refund / 3-payment deferral); `PAYMENT_HOLD` opened by the payment rules; FRAUD_REVIEW also auto-opened by trigger; staff reviewers decide via `decide_review_case` |
 
 ## Rules (reason codes) — all in SQL
 
@@ -114,7 +118,7 @@ QuickPay processor), `STRMPLS*` (StreamPlus video streaming, RECURRING monthly),
 Media app store, ONE_OFF), `LUXEJET` (LuxeJet Travel, flights/holidays, ONE_OFF), `ACME HARDWARE`, `CAFE LUMEN`,
 plus a few distractors (`SQ *`, `AMZN MKTP`-style generic — fictional names).
 
-## MCP tools (13) — single source of truth `_rebuild/tool_spec.py`
+## MCP tools (13 original; 20 after the upgrade below) — single source of truth `_rebuild/tool_spec.py`
 
 verify_customer(customer_id, passcode) · get_my_accounts(session_token) · get_my_transactions(session_token, search) ·
 get_my_cards(session_token) · get_my_loans(session_token) · find_branch(city) · propose_card_block(session_token, card, reason) ·
@@ -149,3 +153,50 @@ Step 4 chat e2e (DB-state assertions): James flagship (verify → decode QUICKPA
 credit + FRAUD_REVIEW → block CARD-9001 → email SEND), Olivia (CANCELLED_RECURRING + FEE_REFUND case), Benjamin
 (ALREADY_BLOCKED + LOAN_HARDSHIP), Sophia (NOT_DUPLICATE), cross-customer injection refused, confirm-without-propose
 refused, "are you a human?" → AI, out-of-scope loan approval declined.
+
+## Upgrade 2026-10-13 — 3 agents, PostgreSQL reference tools, full reviewer loop
+
+Approved upgrade of the earlier governed sample (same ports block, DB and app names; everything above still holds).
+
+**New A2A agents (one port and one read-only PostgreSQL reference tool each; never identity, never a write):**
+
+| Agent | Port | Input (minimised by the orchestrator) | Reference tool | Output | What SQL does with it |
+|---|---|---|---|---|---|
+| `dispute_triage_agent` (kept) | 9863 | customer's words + candidate transactions | `lookup_merchant(descriptor)` (merchant_directory) | transaction, merchant, billing, reason code, card-block advice | `propose_dispute` checks eligibility and computes the quote |
+| `scam_signal_agent` | 9864 | the customer's story + amount, payee type, new payee yes/no, from-account type | `get_scam_signal_guide` → `ref_scam_signals(term)` over `scam_signal_guide` (HIGH_RISK, CAUTION, PAYEE_TYPE, SCORE_RULE, REVIEW_STEP + WHO_DECIDES from service_teams) | indicators (guide terms only), evidence, narrative_score, reviewer_steps | `scam_assessment()` validates the indicator names against the guide (others recorded and ignored), clamps the score, adds deterministic signals and bands: points = 4 x HIGH_RISK + 1 x CAUTION + score/25 + NEW_PAYEE 2 + FIRST_PAYEE_TYPE 1 + AMOUNT_UNUSUAL 2 + LARGE_SHARE_OF_BALANCE 1 + PAYEE_ON_HOLD 7; >= 7 HIGH, >= 4 MEDIUM |
+| `hardship_intake_agent` | 9865 | the customer's hardship story + affected products with figures | `get_hardship_guide` → `ref_hardship_guide(term)` over `hardship_guide` (CAUSE, DURATION, PRODUCT, PROGRAM, DOCUMENT, SUPPORT_LINE, BRIEF_RULE + WHO_DECIDES) | cause, duration, products, programs_to_consider, documents_to_request, care note, support line, summary | the brief is stored as the case's `agent_brief`; `case_parking()` parks the standard 3-payment deferral for a reviewer |
+
+**New MCP tools (20 total):** `get_my_payees`, `propose_payment` (+ the agent's indicators / score / notes), `confirm_payment`
+(+ `acknowledge_warning`), `verify_reviewer`, `get_review_queue`, `get_review_case`, `decide_review_case`;
+`open_service_case` gains `reference_id`; `get_my_cases` shows status + `customer_message`; `email_my_confirmation` also
+covers decided cases (`CASE-`) and sent payments (`PAY-`) and logs every authorised request (`email_log`).
+
+**Payment reason codes:** `ACCOUNT_NOT_FOUND`, `PAYEE_NOT_FOUND`, `BAD_AMOUNT`, `INSUFFICIENT_FUNDS`, `OVER_DAILY_LIMIT`,
+`SESSION_INVALID`; outcomes `PROPOSED`, `PROPOSED_WITH_WARNING`, `HELD_FOR_REVIEW`; confirm: `SENT`, `NO_SUCH_PAYMENT`,
+`HELD_FOR_REVIEW`, `CANCELLED`, `EXPIRED`, `WARNING_NOT_ACKNOWLEDGED`, `ALREADY_SENT`. The customer never sees the score,
+band or indicators; the Fraud Operations reviewer does (case facts + brief).
+
+**Case parking (`case_parking`):** FEE_REFUND + a posted, unrefunded FEES debit (empty → the latest in 120 days) →
+`FEE_REFUND:<txn>` (requested = fee); LOAN_HARDSHIP + an ACTIVE loan (empty → the only one) → `LOAN_DEFERRAL:<loan>`
+(requested = 3 x monthly payment); a HIGH payment → `PAYMENT_HOLD` case `RELEASE_PAYMENT:<payment>` (requested = amount;
+not customer-openable). A foreign or non-fee reference → `BAD_REFERENCE`; an OPEN case with the same parked action →
+`ALREADY_OPEN`. Every case gets `sla_due_at` from `service_teams` (trigger).
+
+**Reviewer loop (HITL_CONTRACT shape):** `reviewers` (KST-7001 Maya Chen, Customer Care, limit $25; KST-7002 Daniel
+Ortiz, Financial Support, $5,000; KST-7003 Priya Nair, Fraud Operations, $20,000), REVIEWER sessions in the same
+`customer_sessions` table (role checked everywhere), `review_decisions` (insert-only) + `trg_review_decision`
+executing the parked action through `fee_refund_row` / `loan_deferral_row` (whole payments, 1-3) / `payment_release_row`
+(in full only); REJECT on a held payment cancels it (no money moves); `CASE_DECIDED` audit with the reviewer as actor.
+`decide_case_row` reason codes: `NOT_REVIEWER`, `NOT_FOUND`, `NOT_YOUR_TEAM`, `ALREADY_DECIDED`, `INVALID_DECISION`,
+`NOTE_REQUIRED`, `AMOUNT_INVALID`, `OVER_AUTHORITY`. Seeded OPEN cases: Sophia's FRAUD_REVIEW + William's held
+$6,200 payment (Fraud Operations), Olivia's hardship deferral (Financial Support), Michael's $29 late fee (Customer Care).
+
+**New seed persona:** CUST-2026-00108 Patricia Wilson (641205) — checking $3,250, savings $24,000, a landlord payee and a
+"secure holding" PERSON payee added today → the safe-account story is HELD. Emma gains a landlord payee (LOW) and a new
+crypto-exchange payee (MEDIUM).
+
+**Acceptance added:** test_rules (payments, bands, floor, validation, parking, every reviewer reason code, parked actions
+executed, cross-team invisible, hidden columns, reference tables); mcp_smoke (payments + reviewer tools happy path and one
+blocked call each); a2a_smoke (each agent's tool ran PostgreSQL and its answer carries table-only text); chat e2e
+(scam hold with the agent's text in the stored brief, hardship case with the agent's brief, self-approval injection,
+reviewer loop across separate connections with DB checks, customer sees the outcome on reconnect).

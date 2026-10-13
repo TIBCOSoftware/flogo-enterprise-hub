@@ -96,9 +96,131 @@ types.
 ## 7. Agent input minimisation
 
 An A2A agent gets **only** the fields its reasoning needs. The journal matcher gets title, abstract,
-keywords, type and word count, and never the author. Its own tool is a scoped read (`search_*`) and it
-has no write tool. Say this in the orchestrator prompt ("nothing that identifies the user") and in the
-agent's prompt ("you are never given the user's identity").
+keywords, type and word count, and never the author. Its one tool is an identity-free read (a
+`ref_<topic>()` reference function, §8) and it has no write tool. Say this in the orchestrator prompt
+("nothing that identifies the user") and in the agent's prompt ("you are never given the user's identity").
+
+## 8. Agent reference tools (PostgreSQL)
+
+Every A2A reasoning agent has exactly **one** tool, and it reads **reference data** from PostgreSQL. It
+needs a tool because an A2A Server with zero Tool handlers runs as a Local Agent and never opens its port
+(runtime-gotchas.md §10). Validator G10 rejects a static `#noop` → `#actreturn` text. The template is the
+Hospital sample
+(`samples/Agentic_AI/Industry_Use_Cases/Healthcare_Life_Sciences/Providers_Health_Systems/Hospital_Post_Discharge_Care_Use_Case/`:
+`database.sql`, `seed_data.sql`, `_rebuild/tool_spec.py`, `_rebuild/build_agents.py`). The Semiconductor sample
+(`High_Tech_Software/Semiconductors_Electronics/Semiconductor_Orders_RMA_Use_Case/`) is the cleanest later
+version, with the `TABLE_ONLY` check in `_rebuild/a2a_smoke.py`.
+
+**Table shape.** One table per agent, all with the same shape, holding **no personal data**: no names,
+ids of people or accounts, emails, phones, tokens, case ids or customer free text.
+
+```sql
+CREATE TABLE <topic>_guide (                       -- <agent>: what the words and codes in its input mean
+  entry_id    SERIAL PRIMARY KEY,
+  section     VARCHAR(20) NOT NULL CHECK (section IN ('<SECTION_A>', '<SECTION_B>', '<SECTION_C>')),
+  term        VARCHAR(60) NOT NULL,
+  meaning     VARCHAR(300) NOT NULL,
+  UNIQUE (section, term)
+);
+```
+- Seed it in `seed_data.sql`. Add it to the `DROP TABLE` list in `database.sql` and to the `TRUNCATE` in
+  `reset_data.sql`.
+- Keep each guide to about 20–35 rows, because agents send `term=""` (the whole guide) almost every time.
+- Seed a row for **every code the runtime writes** that reaches the agent: reason codes, normalised
+  categories, statuses. Grep `database.sql` for `_reason_code = '` and the `norm_*()` functions.
+- Write each meaning as plain-language **meaning text, not a code**.
+- Choose section lookup words (`safety net`, `note line`) that appear in no other row, so a section lookup
+  returns exactly that section.
+- Don't write `%` into reference text unless the literal-`%` test allows it (testing-ladder.md step 1), and
+  don't format per-unit prices with a cents formatter.
+
+**The shared matcher `ref_match`.** Copy it verbatim from the Hospital `database.sql`:
+
+```sql
+CREATE OR REPLACE FUNCTION ref_match(p_term TEXT, p_section TEXT, p_entry TEXT, p_meaning TEXT) RETURNS BOOLEAN AS $$
+  SELECT regexp_replace(coalesce(p_term, ''), '[[:space:],;]', '', 'g') = ''
+      OR EXISTS (SELECT 1 FROM regexp_split_to_table(lower(p_term), '[,;]') w
+                  WHERE btrim(w) <> ''
+                    AND (lower(p_section) = regexp_replace(btrim(w), '[[:space:]]+', '_', 'g')
+                         OR strpos(lower(p_entry), btrim(w)) > 0 OR strpos(lower(p_meaning), btrim(w)) > 0))
+$$ LANGUAGE sql IMMUTABLE;
+```
+An empty or NULL term, or one with only separators, matches every row. Otherwise the term is split on `,` /
+`;`, and a row matches when a word equals its section (spaces = underscores) or is a plain substring of its
+term or meaning. It uses `strpos`, not `LIKE`, so `%` and `_` are literal. Unknown words give 0 rows, never an
+error.
+
+**The `ref_<topic>` function.** It is `LANGUAGE sql STABLE` and SELECT-only, takes a single `p_term text`
+argument (never an identity), alias-qualifies every column (otherwise they clash with the `RETURNS TABLE`
+names), and orders sections with `array_position`:
+
+```sql
+CREATE OR REPLACE FUNCTION ref_<topic>(p_term TEXT)
+RETURNS TABLE (section TEXT, term TEXT, meaning TEXT) AS $$
+  SELECT g.section::text, g.term::text, g.meaning::text
+    FROM <topic>_guide g
+   WHERE ref_match(p_term, g.section, g.term, g.meaning)
+   ORDER BY array_position(ARRAY['<SECTION_A>','<SECTION_B>','<SECTION_C>'], g.section::text), g.entry_id
+$$ LANGUAGE sql STABLE;
+```
+
+**UNION from an existing table (single source of truth).** When a list already lives in a table, derive it
+instead of copying it. Hospital's high-alert list comes from `medication_catalog`, and Life & Pensions reads
+"who decides" from `case_routing`:
+
+```sql
+  SELECT r.sec, r.trm, r.mng
+    FROM (SELECT m.section::text AS sec, m.term::text AS trm, m.meaning::text AS mng, m.entry_id AS ord
+            FROM <topic>_guide m
+          UNION ALL                                 -- one source of truth: the existing table
+          SELECT 'HIGH_ALERT', c.generic_name::text, '<plain-language meaning>', 1000
+            FROM medication_catalog c WHERE c.high_alert) r
+   WHERE ref_match(p_term, r.sec, r.trm, r.mng)
+   ORDER BY array_position(ARRAY['<SECTION_A>', …, 'HIGH_ALERT'], r.sec), r.ord, r.trm
+```
+UNION only the public facts the agent needs. Don't UNION a large catalogue the agent must not rank from.
+
+**`tool_spec.py`.**
+```python
+REF_TERM_DESC = ("Optional lookup: one or more words separated by commas (...), or an empty string for the whole "
+                 "guide. Never put <customer> details here.")
+REF_COLUMNS = ["section", "term", "meaning"]
+AGENT_REF_TOOLS = [{"agent": "<agent>", "tool": "get_<topic>_guide", "fn": "ref_<topic>", "table": "<topic>_guide",
+                    "sections": ["<SECTION_A>", ...], "desc": "<what the guide holds; no customer data>",
+                    "args": [("term", REF_TERM_DESC)],
+                    "read": ("SELECT * FROM ref_<topic>(CAST(?lookup AS text));", [("lookup", "term")])}, ...]
+```
+The placeholder **must** be `?lookup`, never `?term`: a placeholder named like a result column gives duplicate
+`Fields`.
+
+**fda recipe**, per agent, in `build_agents.py` after `app.llm_connection(); app.postgres_connection()`:
+
+| Step | Command |
+|---|---|
+| Tool flow | `cf <tool>_flow "<desc>"` |
+| Query | `ca <tool>_flow ReadReference act_postgresql_query "PostgreSQL Query" -C PostgresConn` |
+| Return | `ca <tool>_flow Return act_default_actreturn "Simple Return"` |
+| Bake the query | `app.bake_pg(FLOW, "ReadReference", "act_postgresql_query", sql, [("lookup", "=$flow.toolParams.term")], result_columns(sql))`: parameters mode, all 3 parts of the contract, and it re-asserts `Connection == PostgresConn` |
+| Reply | `mm <tool>_flow.Return.input.mappings.response.mapping.data =coerce.toString($activity[ReadReference].Output)` |
+| Handler | `cth`, `agentToolName`, `agentToolDescription`, then `wth … --input toolParams:object --output response:object` |
+| toolParams schema | **inline**: `sa handler <agent>.<tool>_flow.schemas.output.toolParams --jsonValue '{"type":"json","value":<tp>,"fe_metadata":<tp>}' --force`, with `tp = {"type":"object","properties":{"term":{…}},"required":["term"]}`. `term` is required so the model always sends it; `""` = the whole guide |
+| Flow input | `sa flow <tool>_flow.metadata.input` = `[{"name":"toolParams","type":"object","schema":{"type":"json","value":"{\"term\":{\"type\":\"string\"}}"}}]`, and the same properties in `metadata.fe_metadata.input` |
+| Prompt | one paragraph per agent (`tool_rule()` in Hospital): what the guide holds; "call it at most once, and only when your input needs it: …"; "pass term "" for the whole guide"; "never put <customer> details in term" |
+
+After the build, self-check each tool flow: the Query, `Connection == conn_ref("PostgresConn")`, the parameters
+`{"lookup": "=$flow.toolParams.term"}`, and the connection refs `#con_llmprovider` and `#con_postgresql`. Expect
+the Agents app's `fda cm` mapping count to rise (about 7 per agent). The Agents README's ⚠️ app-properties table
+then lists the `PostgreSQL.PostgresConn.*` properties next to the LLM ones.
+
+**Why this stays governed.**
+- The agent still gets no identity, no session token and no scoped customer data. The orchestrator passes
+  it minimised input, and its one tool reaches reference tables only.
+- The SQL is fixed at build time. The model can supply only the optional lookup word, and `ref_match`
+  treats it as a plain string.
+- The function is `STABLE` and SELECT-only, has no identity argument, and isn't `SECURITY DEFINER`.
+- Moving the reference text from a static flow into a table makes it one reviewable, testable source of
+  truth. `test_rules.py` proves that it carries no personal data, that it explains every code the runtime
+  writes, and that nothing from the old text was lost.
 
 ## fda recipes that differ from the base recipes
 
@@ -112,7 +234,7 @@ Everything else is identical to this skill's
 | Tool response | `mm <flow>.Return.input.mappings.response.mapping.data =coerce.toString($activity[ReadOutcome].Output)` | the MCP runtime returns `response.data` as `content[0].text`, i.e. the Output JSON `{"records":[…]}` |
 | WebSocket headers | `sa handler WebsocketServer.<flow>.schemas.output.headers --jsonValue '{"type":"json","value":"<schema>","fe_metadata":"<parameter list>"}' --force`, plus the same properties on the flow input (`sa flow <flow>.metadata.input` and `<flow>.metadata.fe_metadata`); copy the sample's `build_orchestrator.py` | a `schema://` ref yields no headers at runtime; a JSON-schema `fe_metadata` makes the designer's Sync wipe them (runtime-gotchas.md §1) |
 | Per-connection memory | `mm <flow>.AIAgent.input.conversationId '=$flow.headers["Sec-Websocket-Key"]'` | one conversation per socket |
-| Reasoning agent's tool | one `cf`/`cth`/`wth` no-parameter flow per `tr_agent` returning static reference text (no DB, no identity), prompt says "call it at most once"; one `<Agent>_PORT` each — copy the Telecom sample's `build_agents.py` | an A2A Server with zero Tool handlers runs as a Local Agent and never opens its port (runtime-gotchas.md §10, G10) |
+| Reasoning agent's tool | one `cf`/`cth`/`wth` flow per `tr_agent`: `ca ReadReference act_postgresql_query -C PostgresConn` + `bake_pg` (`SELECT * FROM ref_<topic>(CAST(?lookup AS text))`, `lookup = $flow.toolParams.term`) + `Return`; inline toolParams schema with `term` required; the prompt says "call it at most once"; one `<Agent>_PORT` each. Copy the Hospital sample's `build_agents.py` (§8) | an A2A Server with zero Tool handlers runs as a Local Agent and never opens its port, and G10 rejects a static-text tool (runtime-gotchas.md §10) |
 | Temperature | `sa … temperature 0 --type number` | 0 = omitted; see runtime-gotchas.md §2 |
 | redactSensitiveData | `false` on the orchestrator, `true` on sub-agents | the PII filter masks the identifier and code the user must send |
 | Empty property | `app.cap_empty(name)` | `cap ""` writes the literal `New_value` |

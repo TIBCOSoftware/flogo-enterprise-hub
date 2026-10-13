@@ -1,134 +1,131 @@
 #!/usr/bin/env python3
-"""Step 3: call the running RetailBankingAgents A2A server directly (no orchestrator) and prove the
-dispute_triage_agent decodes a cryptic descriptor and suggests a reason code.
-Start the agents app first, then:   python _rebuild/a2a_smoke.py
-Env: A2A_URL (default http://localhost:9863), A2A_TIMEOUT (default 180 s). Read-only: no DB state is changed.
-The agent's wording varies run to run, so the text checks are loose."""
-import json, os, re, sys, urllib.error, urllib.request, uuid
-from datetime import date, timedelta
+"""Test ladder step 3b: send each A2A agent of RetailBankingAgents one small, identity-free request over A2A JSON-RPC
+(message/send) - no orchestrator - and prove from the Agents log that the agent answered, that its reference tool flow
+(<tool>_flow) ran, that the PostgreSQL query in it executed without error and returned rows, and that the answer carries
+text that only the reference table holds (so the agent really used it).
+Start the Agents exe with FLOGO_LOG_LEVEL=DEBUG and its output in a file, then:
+    A2A_LOG=<agents log> python _rebuild/a2a_smoke.py
+Env: A2A_LOG (required), A2A_HOST (default http://localhost), REPLY_TIMEOUT (seconds per agent, default 240).
+Uses the LLM (3 agent calls). Reads no database itself and writes nothing.
+ref_tool_runs() is also imported by chat_e2e.py for the same evidence during the chat run."""
+import json, os, re, sys, time, urllib.request, uuid
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from tool_spec import AGENT_REF_TOOLS
 
-A2A_URL = os.environ.get("A2A_URL", "http://localhost:9863").rstrip("/")
-TIMEOUT = int(os.environ.get("A2A_TIMEOUT", "180"))
-fails, passes = 0, 0
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+PORTS = {"dispute_triage_agent": 9863, "scam_signal_agent": 9864, "hardship_intake_agent": 9865}
+ERROR_LINE = re.compile(r"\tERROR\t|query execution failed|missing substitution")
+LOOKUP = re.compile(r'input arguments data: \{"parameters":\{"\w+":("(?:[^"\\]|\\.)*"|null)')
 
-def out(s):
-    print(str(s).encode("ascii", "replace").decode())   # console is cp1252-safe
 
-def check(label, cond, detail=""):
-    global fails, passes
-    out(("PASS " if cond else "FAIL ") + label + ("" if cond else f"  -> {str(detail)[:400]}"))
-    fails += 0 if cond else 1
-    passes += 1 if cond else 0
-
-def http(url, body=None, timeout=30):
-    data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(url, data, method="POST" if body is not None else "GET",
-                                 headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        raw = r.read().decode("utf-8", errors="replace")
-    lines = [l[5:].strip() for l in raw.splitlines() if l.startswith("data:")]   # tolerate an SSE-framed reply
-    return json.loads(lines[-1] if lines else raw)
-
-def norm(x): return re.sub(r"[\s\-]+", "_", str(x or "").strip().lower())
-
-# ---------------- 1. agent card ----------------
-card, card_path = None, None
-# current A2A path first; the legacy agent.json path answers 200 with a JSON-RPC error on the Flogo runtime
-for path in ("/.well-known/agent-card.json", "/.well-known/agent.json"):
-    try:
-        got = http(A2A_URL + path)
-        if not (isinstance(got, dict) and got.get("name")):
-            out(f"  (GET {path} returned no agent card: {str(got)[:120]})")
+def ref_tool_runs(seg, t):
+    """Every call of reference tool t in a DEBUG-log segment of the Agents app, with the evidence that its PostgreSQL
+    query ran: [{event, query, done, rows, error, lookup}]. The window is the handler's start/complete lines (same
+    event id), so calls of different agents in one segment are told apart. rows counts t["row_key"] keys in the
+    (truncated) response line - a lower bound."""
+    flow, fn = t["tool"] + "_flow", t["fn"]
+    start = re.compile(r"Executing handler \[" + re.escape(flow) + r"\] for event Id \[([^\]]+)\]")
+    lines, runs = seg.splitlines(), []
+    for i, line in enumerate(lines):
+        m = start.search(line)
+        if not m:
             continue
-        card, card_path = got, path
-        break
-    except Exception as e:   # 404 / refused / timeout / not JSON
-        out(f"  (GET {path} failed: {e})")
-check("agent card served", card is not None, f"neither card path answered at {A2A_URL}")
-if card is None:
-    out(f"\n1 FAILURE(S) - is RetailBankingAgents running on {A2A_URL}?")
-    sys.exit(1)
-out(f"  card at {card_path}: name={card.get('name')!r} url={card.get('url')!r} skills="
-    f"{[sk.get('name') or sk.get('id') for sk in card.get('skills', [])]}")
-names = {norm(card.get("name"))} | {norm(sk.get(k)) for sk in card.get("skills", []) for k in ("id", "name")}
-check("card names dispute_triage_agent (agent or skill)", "dispute_triage_agent" in names, names)
+        end = next((j for j in range(i + 1, len(lines))
+                    if f"Handler [{flow}] for event id [{m.group(1)}] completed" in lines[j]), len(lines) - 1)
+        w = lines[i:end + 1]
+        resp = next((l for l in w if "SetAttr - name: response, value:" in l), "")
+        lk = next((LOOKUP.search(l) for l in w if LOOKUP.search(l)), None)
+        runs.append(dict(event=m.group(1),
+                         query=any(f"Prepared Query Statement is : SELECT * FROM {fn}(CAST($1 AS text));" in l for l in w),
+                         done=any("Activity [ReadReference] for instance" in l and "completed" in l for l in w),
+                         rows=resp.count(f'"{t.get("row_key") or "section"}":'),
+                         error=any(ERROR_LINE.search(l) for l in w),
+                         lookup=json.loads(lk.group(1)) if lk else None))
+    return runs
 
-# ---------------- 2. message/send ----------------
-today = date.today()
-PROMPT = ("Customer's own words: \"I don't recognise this charge, I never bought anything from them.\"\n"
-          "Candidate transactions:\n"
-          f"- TXN-50003 | QUICKPAY*XYZ 872-555 | 249.99 USD | {today - timedelta(days=6)}\n"
-          f"- TXN-50013 | QUICKPAY*XYZ 872-555 | 18.75 USD | {today - timedelta(days=20)}\n"
-          "The customer mentioned the 249.99 charge. Which transaction is it, who is the merchant really, how does it "
-          "bill, and which dispute reason code do you recommend?")
 
-def payload(method):
-    msg = {"role": "user", "kind": "message", "messageId": str(uuid.uuid4()),
-           "parts": [{"kind": "text", "text": PROMPT}]}
-    params = {"message": msg}
-    if method == "tasks/send":   # pre-0.2 A2A shape: task id + parts typed with "type"
-        msg["parts"][0]["type"] = "text"
-        params["id"] = str(uuid.uuid4())
-    return {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
+# Each request is shaped like the orchestrator's minimised A2A message (no name, ids, account numbers or tokens).
+REQUESTS = {
+    "dispute_triage_agent":
+        "Customer's words: 'I don't recognise a $249.99 charge from QUICKPAY last week, I never ordered anything.' "
+        "Candidate transactions: TXN-50003 | QUICKPAY*XYZ 872-555 | 249.99 | 6 days ago; TXN-50013 | QUICKPAY*XYZ 872-555 | "
+        "18.75 | 20 days ago; TXN-50002 | FRESHMART GROCERY #44 | 86.42 | 8 days ago.",
+    "scam_signal_agent":
+        "Customer's words about the payment: 'Someone from the bank's fraud team called and said my account is compromised. "
+        "He told me to move my savings to a safe account they set up for me today, and not to tell anyone at the branch "
+        "because staff might be involved.' Payment facts: amount $9,500.00; payee type PERSON; new payee: yes; from a "
+        "savings account.",
+    "hardship_intake_agent":
+        "Customer's words: 'I was laid off three weeks ago. I start a new job in about two months, but until then I can't "
+        "make my car loan payments.' Affected products: AUTO loan - monthly payment $812.33, next due in 14 days.",
+}
+# Text that ONLY the agent's reference table holds - proves the answer used the rows (not the prompt).
+TABLE_ONLY = {
+    "dispute_triage_agent": ["XYZ Gadgets Online"],
+    "scam_signal_agent": ["SAFE_ACCOUNT", "no bank uses safe accounts"],
+    "hardship_intake_agent": ["JOB_LOSS", "work this out alone"],
+}
 
-def texts(node):
-    """All text parts below a node (parts[].text, also parts[].data / parts[].root.text)."""
-    found = []
-    if isinstance(node, dict):
-        for p in node.get("parts", []) or []:
-            if isinstance(p, dict):
-                p = p.get("root", p)
-                if isinstance(p.get("text"), str): found.append(p["text"])
-                elif p.get("data") is not None: found.append(json.dumps(p["data"]))
-    return found
 
-def reply_text(result):
-    if isinstance(result, str): return result
-    if not isinstance(result, dict): return json.dumps(result)
-    parts = []
-    parts += texts(result)                                              # result is a Message
-    parts += texts((result.get("status") or {}).get("message") or {})   # Task.status.message
-    for a in result.get("artifacts", []) or []:                         # Task.artifacts[]
-        parts += texts(a)
-    if not parts:   # last resort: agent messages in history (skip the user's own turn)
-        for m in result.get("history", []) or []:
-            if isinstance(m, dict) and m.get("role") != "user": parts += texts(m)
-    return "\n".join(parts)
+def send(host, port, text, timeout):
+    body = {"jsonrpc": "2.0", "id": str(uuid.uuid4()), "method": "message/send",
+            "params": {"message": {"role": "user", "kind": "message", "messageId": str(uuid.uuid4()),
+                                   "parts": [{"kind": "text", "text": text}]}}}
+    req = urllib.request.Request(f"{host}:{port}", json.dumps(body).encode(), {"Content-Type": "application/json"})
+    return json.loads(urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8"))
 
-rpc_urls = [A2A_URL]
-if card.get("url") and card["url"].rstrip("/") != A2A_URL:
-    rpc_urls.append(card["url"].rstrip("/"))
-result, used, errors = None, None, []
-for url in rpc_urls:
-    for method in ("message/send", "tasks/send"):
-        out(f"  POST {url} method={method} (timeout {TIMEOUT}s) ...")
+
+def texts(o):
+    """Text parts of the agent's answer (task artifacts / status message / direct message) - not the echoed history."""
+    if isinstance(o, dict):
+        own = [o["text"]] if o.get("kind") == "text" and isinstance(o.get("text"), str) else []
+        return own + [t for k, v in o.items() if k != "history" for t in texts(v)]
+    return [t for v in o for t in texts(v)] if isinstance(o, list) else []
+
+
+def main():
+    log = os.environ.get("A2A_LOG") or sys.exit("set A2A_LOG to the Agents app's log file (FLOGO_LOG_LEVEL=DEBUG)")
+    host = os.environ.get("A2A_HOST", "http://localhost")
+    timeout = int(os.environ.get("REPLY_TIMEOUT", "240"))
+    res_ = {"passes": 0, "fails": 0}
+
+    def check(label, cond, detail=""):
+        print((("PASS " if cond else "FAIL ") + label + ("" if cond else f"  -> {str(detail)[:500]}")).encode("ascii", "replace").decode())
+        res_["passes" if cond else "fails"] += 1
+
+    for t in AGENT_REF_TOOLS:
+        agent, tool, flow = t["agent"], t["tool"], t["tool"] + "_flow"
+        pos, t0 = os.path.getsize(log), time.time()
         try:
-            resp = http(url, payload(method), timeout=TIMEOUT)
-        except urllib.error.HTTPError as e:
-            errors.append(f"{url} {method}: HTTP {e.code} {e.read()[:200]!r}"); continue
-        except Exception as e:   # timeout / refused / bad JSON
-            errors.append(f"{url} {method}: {type(e).__name__}: {e}"); continue
-        if "error" in resp:
-            errors.append(f"{url} {method}: JSON-RPC error {resp['error']}")
-            continue   # -32601 method not found -> try the older method name
-        result, used = resp.get("result"), (url, method)
-        break
-    if result is not None:
-        break
+            res = send(host, PORTS[agent], REQUESTS[agent], timeout)
+        except Exception as e:                    # noqa: BLE001 - report and continue with the next agent
+            check(f"{agent}: A2A message/send answered", False, e)
+            continue
+        answer = "\n".join(texts(res.get("result", {})))
+        check(f"{agent}: A2A message/send answered in {time.time() - t0:.0f}s", bool(answer.strip()) and "error" not in res,
+              res.get("error") or res)
+        time.sleep(1)
+        with open(log, "rb") as f:
+            f.seek(pos)
+            seg = ANSI.sub("", f.read().decode("utf-8", "ignore"))
+        runs = ref_tool_runs(seg, t)
+        check(f"{agent}: tool {tool} was called (Executing toolmap[toolName:{tool}])",
+              f"Executing toolmap[toolName:{tool}]" in seg)
+        check(f"{agent}: handler [{flow}] ran", bool(runs))
+        check(f"{agent}: PostgreSQL ran SELECT * FROM {t['fn']}(...) and ReadReference completed",
+              bool(runs) and all(r["query"] and r["done"] for r in runs), runs)
+        check(f"{agent}: the query returned reference rows", bool(runs) and all(r["rows"] > 0 for r in runs), runs)
+        check(f"{agent}: no ERROR / query failure in the tool flow", bool(runs) and not any(r["error"] for r in runs), runs)
+        miss = [k for k in TABLE_ONLY[agent] if k.lower() not in answer.lower()]
+        check(f"{agent}: the answer carries table-only text {TABLE_ONLY[agent]}", not miss, miss)
+        print(f"   lookup term(s) the model sent: {[r['lookup'] for r in runs]}")
+        print("   answer:", answer.strip().replace("\n", " | ")[:500].encode("ascii", "replace").decode())
 
-for e in errors: out("  ! " + e)
-check("A2A JSON-RPC call answered", result is not None, errors)
-if result is None:
-    out(f"\n{fails} FAILURE(S)")
-    sys.exit(1)
-out(f"  method that worked: {used[1]} at {used[0]}")
-reply = reply_text(result)
-out("  raw reply: " + (reply[:600].replace("\n", " ") + ("..." if len(reply) > 600 else "")))
-low = reply.lower()
-check("reply is non-empty", bool(reply.strip()), json.dumps(result)[:400])
-check("decodes the merchant (mentions XYZ)", "xyz" in low, reply[:300])
-check("picks the right charge (TXN-50003 or 249.99)", "txn-50003" in low or "249.99" in low, reply[:300])
-check("recommends UNRECOGNISED/UNRECOGNIZED/FRAUD", re.search(r"unrecogni[sz]ed|fraud", low) is not None, reply[:300])
+    p, f_ = res_["passes"], res_["fails"]
+    print(f"\n{'A2A SMOKE OK' if not f_ else str(f_) + ' FAILURE(S)'}  ({p} passed, {f_} failed)")
+    sys.exit(1 if f_ else 0)
 
-out(f"\n{'A2A AGENT OK' if not fails else str(fails) + ' FAILURE(S)'}  ({passes} passed, {fails} failed; method={used[1]})")
-sys.exit(1 if fails else 0)
+
+if __name__ == "__main__":
+    main()

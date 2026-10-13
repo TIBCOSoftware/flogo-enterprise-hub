@@ -26,8 +26,13 @@ integrity, password fields, A2A toolParams) and then the governance checks this 
   G10 A2A SERVERS    every AI Agent trigger (#agent / #tr_agent) with agentType "A2A Server" has >= 1 Tool handler,
                      and the agent ports (resolved from their app properties) are unique within the app. With ZERO
                      Tool handlers the runtime silently starts it as a Local Agent and never opens its port, so the
-                     orchestrator can't reach it - give each reasoning agent one harmless, identity-free, no-parameter
-                     static reference tool (see the Telecom sample's _rebuild/build_agents.py).
+                     orchestrator can't reach it. Every Tool handler's flow must READ POSTGRESQL: it contains a
+                     PostgreSQL query activity whose SQL starts with SELECT and calls a ref_<topic>() function (or
+                     another non-identity read function), with no session/token placeholder and no write activity.
+                     A static #noop -> #actreturn reference text is an ERROR - give each reasoning agent one
+                     identity-free PostgreSQL reference tool, SELECT * FROM ref_<topic>(CAST(?lookup AS text))
+                     (governed-patterns.md "Agent reference tools (PostgreSQL)"; template: the Hospital sample's
+                     _rebuild/build_agents.py).
 
 Usage:  python validate_governed_apps.py [--local] A.flogo [B.flogo ...]      exit 1 on any error
 """
@@ -142,7 +147,10 @@ def check(path, local):
         tools = [h for h in tr.get("handlers", []) if (h.get("settings") or {}).get("handlerType", "Tool") == "Tool"]
         if not tools:
             errs.append(f"G10 {tr['id']}: A2A Server agent has no Tool handler - it starts as a Local Agent and never "
-                        f"opens its port; add one harmless, identity-free, no-parameter reference tool")
+                        f"opens its port; add one identity-free PostgreSQL reference tool "
+                        f"(SELECT * FROM ref_<topic>(CAST(?lookup AS text)))")
+        for h in tools:
+            check_ref_tool(tr["id"], h, d, kinds, errs)
         raw = str(s.get("agentPort", "")).strip()
         m = re.fullmatch(r'=\$property\["([^"]+)"\]', raw)
         port = str(props.get(m.group(1), "")) if m else raw
@@ -158,6 +166,43 @@ def check(path, local):
         if p["name"].lower().endswith("password") and v not in PASSWORD_PLACEHOLDERS and not v.startswith("SECRET:"):
             sec.append(f"G9 property {p['name']}: non-placeholder password - scrub to SET_YOUR_DB_PASSWORD")
     return errs, warns
+
+# Names that mark a read as identity/customer-scoped - an A2A agent never gets those (minimised input, no identity).
+IDENTITY_READ = re.compile(r"session|token|verify|(?:^|_)my_|customer|member|patient|account|subscriber|traveler|traveller|"
+                           r"passenger|buyer|author|contact|person|people|employee|staff|user", re.I)
+
+def check_ref_tool(agent, h, d, kinds, errs):
+    """G10: an A2A agent's Tool handler flow reads reference data from PostgreSQL (never static text, never identity)."""
+    tool = (h.get("settings") or {}).get("agentToolName") or "?"
+    flow = h.get("action", {}).get("settings", {}).get("flowURI", "").split(":")[-1]
+    where = f"{agent}/{tool} ({flow})"
+    acts = [(t["id"], kinds.get(t.get("activity", {}).get("ref")), t.get("activity", {})) for f, t in tasks(d) if f == flow]
+    for tid, kind, _ in acts:
+        if kind and kind != "query":
+            errs.append(f"G10 {where}: task {tid} is a PostgreSQL #{kind} - an A2A agent's reference tool is read-only")
+    queries = [(tid, a) for tid, kind, a in acts if kind == "query"]
+    if not queries:
+        errs.append(f"G10 {where}: the tool flow has no PostgreSQL query activity - a static #noop -> #actreturn reference "
+                    f"text is not allowed. Read a reference table instead: #act_postgresql_query "
+                    f"SELECT * FROM ref_<topic>(CAST(?lookup AS text)) -> #actreturn (governed-patterns.md "
+                    f"'Agent reference tools (PostgreSQL)')")
+        return
+    for tid, a in queries:
+        inp = a.get("input") or {}
+        q = re.sub(r"\s+", " ", inp.get("Query", "")).strip()
+        if not re.match(r"SELECT\b", q, re.I):
+            errs.append(f"G10 {where}.{tid}: reference query must start with SELECT, got {q[:60]!r}")
+            continue
+        srcs = re.findall(r"\bFROM\s+([A-Za-z_][\w.]*)", q, re.I)
+        bad = [s for s in srcs if not s.split(".")[-1].lower().startswith("ref_") and IDENTITY_READ.search(s)]
+        if not srcs or bad:
+            errs.append(f"G10 {where}.{tid}: reads {bad or 'nothing'} - an agent's tool reads a ref_<topic>() function "
+                        f"or another non-identity table, never identity/customer-scoped data")
+        params = (inp.get("input") or {}).get("mapping", {}).get("parameters", {}) if isinstance(inp.get("input"), dict) else {}
+        idp = [p for p in set(re.findall(r"\?(\w+)", q)) | set(params) if re.search(r"tok|session", p, re.I)]
+        idp += [v for v in params.values() if re.search(r"tok|session", str(v), re.I)]
+        if idp:
+            errs.append(f"G10 {where}.{tid}: identity parameter(s) {idp} - an A2A agent never gets a session token")
 
 def check_agent(where, s, errs, warns, user_facing=False):
     prompt = str(s.get("systemPrompt", ""))

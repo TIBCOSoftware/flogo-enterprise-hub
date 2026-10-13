@@ -74,21 +74,22 @@ you ask.
 |---|---|
 | `database.sql` / `reset_data.sql` | schema, **rule functions**, seeds (one row per reason code) / reset |
 | `<Prefix>MCPServer.flogo` | scoped-read, guarded-write, two-step and review-case tools |
-| `<Prefix>Agents.flogo` | the reasoning agent(s): read-only, minimised input |
+| `<Prefix>Agents.flogo` | the reasoning agent(s): read-only, minimised input (no identity), one PostgreSQL reference tool each (reference tables only, no personal data) |
 | `<Prefix>AIOrchestrator.flogo` | WebSocket chat, AI Agent, per-connection memory |
 | `README.md` | customer-facing: **"Why an agent here?"**, architecture, prerequisites, numbered steps to run, demo logins and script, troubleshooting |
 | `prompts.md` | demo and adversarial prompts |
 | `chat_e2e_transcript.md` | sanitized evidence from the last end-to-end run |
-| `_rebuild/` | `tool_spec.py` (single source of truth), fda drivers, `test_rules.py`, `mcp_smoke.py`, `chat_e2e.py` |
+| `_rebuild/` | `tool_spec.py` (single source of truth), fda drivers, `test_rules.py`, `mcp_smoke.py`, `a2a_smoke.py`, `chat_e2e.py` |
 | `_rebuild/README.md` | developer guide: what each artifact does, settings, how to regenerate the apps, test-ladder commands |
 
 ## The test ladder
 
 | Step | What it proves |
 |---|---|
-| 1 `test_rules.py` | every SQL rule and reason code, using the exact tool SQL |
-| 2 `validate_governed_apps.py` | wiring + governance: scoped reads, guarded writes, prompt hygiene, temperature, conn refs, WebSocket headers/conversationId, MCP hint booleans, secrets |
+| 1 `test_rules.py` | every SQL rule and reason code, using the exact tool SQL, plus the agents' reference tables (no personal data, lookups, every code explained) |
+| 2 `validate_governed_apps.py` | wiring + governance: scoped reads, guarded writes, prompt hygiene, temperature, conn refs, WebSocket headers/conversationId, MCP hint booleans, secrets, A2A agents with a PostgreSQL reference tool |
 | 3 `mcp_smoke.py` | the rules hold at the MCP edge in the real Flogo runtime, no LLM |
+| 3b `a2a_smoke.py` | each A2A agent answers on its port, queries its reference table, and uses its text |
 | 4 `chat_e2e.py` | the whole system through a real chat, with assertions on DB state |
 
 ## Prerequisites

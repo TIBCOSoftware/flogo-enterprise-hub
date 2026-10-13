@@ -254,12 +254,13 @@ $FDA mm <Agent>_flow.Return.input.mappings.response.mapping.data '=coerce.toStri
 # --- handler = the agent's tool card ---
 # ⚠️ EVERY tr_agent with agentType "A2A Server" needs >= 1 Tool handler: with ZERO handlers the runtime
 #    silently starts it as a Local Agent and NEVER opens its port (the orchestrator can't reach it; design-time
-#    checks pass). A read-only REASONING agent (the governed default) still gets one: a harmless, identity-free,
-#    no-parameter tool flow returning static reference text (glossary of its input's columns/codes, no DB,
-#    no customer data), and its prompt says "call it at most once, only if something is unclear". One
-#    <Agent>_PORT property per agent. Multi-agent template:
-#    samples/Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/_rebuild/build_agents.py
-#    (validator G10 checks both the handler and unique agent ports).
+#    checks pass). A read-only REASONING agent (the governed default) still gets one: an identity-free
+#    PostgreSQL reference tool, #act_postgresql_query SELECT * FROM ref_<topic>(CAST(?lookup AS text)) ->
+#    #actreturn, over a section/term/meaning table with no customer data (governed-patterns.md section 8). Its
+#    prompt says "call it at most once, only when your input needs it". One <Agent>_PORT property per agent.
+#    Multi-agent template:
+#    samples/Agentic_AI/Industry_Use_Cases/Healthcare_Life_Sciences/Providers_Health_Systems/Hospital_Post_Discharge_Care_Use_Case/_rebuild/build_agents.py
+#    (validator G10 checks the handler, that its flow runs a PostgreSQL SELECT - never static text - and unique ports).
 $FDA cth <Agent>_flow <Agent> "<agentToolDesc>"
 $FDA sa handler <Agent>.<Agent>_flow.settings.agentToolName        <Agent>
 $FDA sa handler <Agent>.<Agent>_flow.settings.agentToolDescription "<agentToolDesc>"

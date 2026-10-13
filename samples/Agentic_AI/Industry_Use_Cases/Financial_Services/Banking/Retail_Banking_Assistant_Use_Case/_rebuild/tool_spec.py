@@ -1,7 +1,10 @@
-"""Single source of truth for the MCP tools and the dispute_triage_agent's tool.
+"""Single source of truth for the 20 MCP tools of RetailBankingMCPServer and the 3 A2A agents' reference tools.
 
-Imported by build_mcp.py / build_agents.py (to generate the apps) and by test_rules.py
+Imported by build_mcp.py / build_agents.py (to generate the apps) and by test_rules.py / mcp_smoke.py / a2a_smoke.py
 (to run the exact same SQL against PostgreSQL before any app is built).
+
+Two personas share one MCP server: CUSTOMER tools resolve only customer tokens (verify_customer), REVIEWER tools only
+reviewer tokens (verify_reviewer) - the role is checked in SQL on every call.
 
 Each tool: optional guarded WRITE (INSERT ... SELECT * FROM <rule fn>) then a READ that returns
 a deterministic outcome row. `?placeholders` are never reused within one statement and are always
@@ -13,6 +16,8 @@ when the SQL authorises it (send_status = SEND; a conditional branch, added in b
 
 TOKEN_DESC = ("Session token returned by verify_customer. Required; never invent one. "
               "If a tool answers SESSION_INVALID, ask the customer to verify again.")
+RTOKEN_DESC = ("Reviewer session token returned by verify_reviewer. Required; never invent one. A customer token does "
+               "not work here (NOT_REVIEWER).")
 
 TOOLS = [
     {
@@ -21,7 +26,8 @@ TOOLS = [
                  "6-digit passcode from their Kestrel app. Returns VERIFIED with a session_token (valid 30 minutes) and "
                  "their name, NOT_VERIFIED when the id and passcode do not match, or LOCKED after 5 failed attempts in "
                  "15 minutes (no token is issued while locked, even with the right passcode; offer account recovery "
-                 "only). Call this before any other customer tool. Never reveal, hint at or guess passcodes."),
+                 "only). Call this before any other customer tool. Never reveal, hint at or guess passcodes. Kestrel staff use "
+                 "verify_reviewer instead."),
         "args": [("customer_id", "Kestrel Bank customer id, e.g. CUST-2026-00101"),
                  ("passcode", "6-digit passcode the customer typed")],
         "write": ("INSERT INTO customer_sessions (customer_id) "
@@ -149,46 +155,182 @@ TOOLS = [
     },
     {
         "tool": "open_service_case", "flow": "open_service_case_flow", "readonly": False,
-        "desc": ("Hand a request that needs a human to the right team: FEE_REFUND (refund of a fee such as overdraft), "
-                 "LOAN_HARDSHIP (payment difficulty, deferral), CREDIT_LIMIT_INCREASE, COMPLAINT, "
+        "desc": ("Hand a request that needs a human to the right team: FEE_REFUND (refund of a fee such as overdraft or "
+                 "late fee; reference_id = the fee's transaction_id), LOAN_HARDSHIP (payment difficulty or deferral; "
+                 "reference_id = the loan_id; brief = the hardship intake brief), CREDIT_LIMIT_INCREASE, COMPLAINT, "
                  "PERSONAL_DETAILS_CHANGE (address, phone, name), ACCOUNT_CLOSURE, BEREAVEMENT, FRAUD_REVIEW or OTHER. "
-                 "The system routes it and returns CASE_OPENED with case_id (CASE-NNNNN), team and reply time in "
-                 "business days, or NOT_OPENED with BAD_TYPE or SESSION_INVALID. The assistant never decides, approves, "
-                 "promises or predicts the outcome of these requests."),
+                 "The system routes it, works out what a person could approve (e.g. refund that fee, defer up to 3 loan "
+                 "payments) and returns CASE_OPENED with case_id (CASE-NNNNN), team, reply time and requested amount, "
+                 "ALREADY_OPEN when the same request is already with the team, or NOT_OPENED with BAD_TYPE, BAD_REFERENCE "
+                 "or SESSION_INVALID. A person decides; the assistant never decides, approves, promises or predicts the "
+                 "outcome of these requests."),
         "args": [("session_token", TOKEN_DESC),
                  ("request_type", "FEE_REFUND | LOAN_HARDSHIP | CREDIT_LIMIT_INCREASE | COMPLAINT | PERSONAL_DETAILS_CHANGE | ACCOUNT_CLOSURE | BEREAVEMENT | FRAUD_REVIEW | OTHER"),
                  ("customer_statement", "The customer's request in their own words"),
-                 ("brief", "A neutral 2-4 sentence summary for the team: facts only, no recommendation")],
-        "write": ("INSERT INTO service_cases (customer_id, request_type, customer_statement, agent_brief, assigned_team) "
+                 ("brief", "A neutral summary for the team (facts only, no recommendation); for LOAN_HARDSHIP the hardship intake brief"),
+                 ("reference_id", "FEE_REFUND: the fee's transaction_id; LOAN_HARDSHIP: the loan_id; otherwise empty")],
+        "write": ("INSERT INTO service_cases (customer_id, request_type, customer_statement, agent_brief, assigned_team, "
+                  "requested_amount, parked_action) "
                   "SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_stmt AS text), "
-                  "CAST(?w_brief AS text));",
+                  "CAST(?w_brief AS text), CAST(?w_ref AS text));",
                   [("w_tok", "session_token"), ("w_type", "request_type"), ("w_stmt", "customer_statement"),
-                   ("w_brief", "brief")]),
-        "read": ("SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
-                 [("r_tok", "session_token"), ("r_type", "request_type")]),
+                   ("w_brief", "brief"), ("w_ref", "reference_id")]),
+        "read": ("SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text), CAST(?r_ref AS text));",
+                 [("r_tok", "session_token"), ("r_type", "request_type"), ("r_ref", "reference_id")]),
     },
     {
         "tool": "get_my_cases", "flow": "get_my_cases_flow", "readonly": True,
-        "desc": ("List the verified customer's disputes (DSP-) and service cases (CASE-) with type, status, assigned "
-                 "team, amount, provisional credit and the expected decision or reply date."),
+        "desc": ("List the verified customer's disputes (DSP-) and service cases (CASE-) with type, status (OPEN, "
+                 "APPROVED, REJECTED for cases), assigned team, amount, provisional credit, the expected decision or reply "
+                 "date and - once a person has decided - the approved amount and the customer_message from the team. Use "
+                 "it when the customer asks about the status of a request, a payment security check or a hardship case."),
         "args": [("session_token", TOKEN_DESC)],
         "read": ("SELECT * FROM my_cases(CAST(?tok AS text));", [("tok", "session_token")]),
     },
     {
         "tool": "email_my_confirmation", "flow": "email_my_confirmation_flow", "readonly": False, "idempotent": True,
         "email": True,
-        "desc": ("Email the confirmation for a dispute (DSP-...) or card block (BLK-...) of this customer. Pass the "
-                 "reference_id from confirm_dispute or confirm_card_block. The system sends the email only when that "
-                 "reference belongs to this session's customer; otherwise it returns NOT_SENT with reason_code "
-                 "NO_SUCH_REFERENCE or SESSION_INVALID. Call only after a successful filing or block."),
+        "desc": ("Email the confirmation for a dispute (DSP-...), card block (BLK-...), decided case (CASE-...) or sent "
+                 "payment (PAY-...) of this customer. Pass the reference from confirm_dispute, confirm_card_block, "
+                 "confirm_payment or get_my_cases. The system sends the email only when that reference belongs to this "
+                 "session's customer (and a case only once a person has decided it); otherwise it returns NOT_SENT with "
+                 "reason_code NO_SUCH_REFERENCE or SESSION_INVALID."),
         "args": [("session_token", TOKEN_DESC),
-                 ("reference_id", "dispute_id (DSP-2026-NNNN) or block_id (BLK-NNNNN)")],
+                 ("reference_id", "DSP-2026-NNNN, BLK-NNNNN, CASE-NNNNN or PAY-NNNNN")],
+        "write": ("INSERT INTO email_log (customer_id, reference_id, subject) "
+                  "SELECT * FROM email_log_row(CAST(?w_tok AS text), CAST(?w_ref AS text));",
+                  [("w_tok", "session_token"), ("w_ref", "reference_id")]),
         "read": ("SELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_ref AS text));",
                  [("r_tok", "session_token"), ("r_ref", "reference_id")]),
     },
+    # ------------------------------------------------------------------ payments to saved payees (scam protection)
+    {
+        "tool": "get_my_payees", "flow": "get_my_payees_flow", "readonly": True,
+        "desc": ("List the verified customer's saved payees: payee_id, name, bank, masked account, payee_type (PERSON, "
+                 "BUSINESS, INVESTMENT_PLATFORM, CRYPTO_EXCHANGE), date added, date last paid and is_new_payee (never paid "
+                 "and added in the last 30 days). Payments go only to these payees; new payees are added in the Kestrel app."),
+        "args": [("session_token", TOKEN_DESC)],
+        "read": ("SELECT * FROM my_payees(CAST(?tok AS text));", [("tok", "session_token")]),
+    },
+    {
+        "tool": "propose_payment", "flow": "propose_payment_flow", "readonly": False, "idempotent": False,
+        "desc": ("Step 1 of 2 for paying a saved payee from the customer's own checking or savings account. Pass the "
+                 "from-account (account_id), the payee (payee_id), the amount in dollars, the customer's own words about "
+                 "the payment, and the scam_signal_agent's indicators, narrative_score and full answer exactly as it "
+                 "returned them. The system checks the rules, combines the agent's signals with its own checks and returns "
+                 "PROPOSED (ask for an explicit yes), PROPOSED_WITH_WARNING (read warning_text word for word first), "
+                 "HELD_FOR_REVIEW (nothing sent; a fraud specialist reviews it - give the case_id and reply date), or "
+                 "NOT_PROPOSED with reason_code ACCOUNT_NOT_FOUND, PAYEE_NOT_FOUND, BAD_AMOUNT, INSUFFICIENT_FUNDS, "
+                 "OVER_DAILY_LIMIT or SESSION_INVALID. Nothing is sent until confirm_payment."),
+        "args": [("session_token", TOKEN_DESC),
+                 ("from_account", "account_id from get_my_accounts, e.g. ACC-1014 (checking or savings)"),
+                 ("payee", "payee_id from get_my_payees, e.g. PYE-0102"),
+                 ("amount", "Amount in US dollars, e.g. 1850.00"),
+                 ("customer_story", "The customer's own words about what the payment is for and why they are making it"),
+                 ("scam_indicators", "The indicators line from scam_signal_agent, exactly as returned (or NONE)"),
+                 ("narrative_score", "The narrative_score from scam_signal_agent, exactly as returned"),
+                 ("agent_notes", "scam_signal_agent's full answer, unchanged")],
+        "write": ("INSERT INTO payment_requests (customer_id, account_id, payee_id, amount, customer_story, agent_notes, "
+                  "narrative_indicators, ignored_indicators, narrative_score, signals, risk_points, risk_band, status, "
+                  "warning_required) "
+                  "SELECT * FROM payment_request_row(CAST(?w_tok AS text), CAST(?w_acct AS text), CAST(?w_payee AS text), "
+                  "CAST(?w_amt AS text), CAST(?w_story AS text), CAST(?w_ind AS text), CAST(?w_score AS text), "
+                  "CAST(?w_notes AS text));",
+                  [("w_tok", "session_token"), ("w_acct", "from_account"), ("w_payee", "payee"), ("w_amt", "amount"),
+                   ("w_story", "customer_story"), ("w_ind", "scam_indicators"), ("w_score", "narrative_score"),
+                   ("w_notes", "agent_notes")]),
+        "read": ("SELECT * FROM propose_payment_result(CAST(?r_tok AS text), CAST(?r_acct AS text), CAST(?r_payee AS text), "
+                 "CAST(?r_amt AS text));",
+                 [("r_tok", "session_token"), ("r_acct", "from_account"), ("r_payee", "payee"), ("r_amt", "amount")]),
+    },
+    {
+        "tool": "confirm_payment", "flow": "confirm_payment_flow", "readonly": False, "idempotent": False,
+        "desc": ("Step 2 of 2: send a payment the customer has explicitly confirmed. Pass the payment_id from "
+                 "propose_payment and acknowledge_warning YES only when the proposal was PROPOSED_WITH_WARNING and the "
+                 "customer said they read the warning and still want to go ahead (otherwise NO). The system re-checks every "
+                 "rule; proposals expire after 15 minutes. Returns SENT with the payment details, or NOT_SENT with "
+                 "reason_code NO_SUCH_PAYMENT, HELD_FOR_REVIEW, CANCELLED, EXPIRED, WARNING_NOT_ACKNOWLEDGED, ALREADY_SENT, "
+                 "SESSION_INVALID or a rule's code. Only call after the customer says yes to the exact proposal."),
+        "args": [("session_token", TOKEN_DESC),
+                 ("payment_id", "payment_id returned by propose_payment, e.g. PAY-00002"),
+                 ("acknowledge_warning", "YES only after the customer acknowledged the warning_text; otherwise NO")],
+        "write": ("INSERT INTO payment_sends (payment_id, via, case_id, amount) "
+                  "SELECT * FROM payment_confirmation_row(CAST(?w_tok AS text), CAST(?w_pay AS text), CAST(?w_ack AS text));",
+                  [("w_tok", "session_token"), ("w_pay", "payment_id"), ("w_ack", "acknowledge_warning")]),
+        "read": ("SELECT * FROM confirm_payment_result(CAST(?r_tok AS text), CAST(?r_pay AS text), CAST(?r_ack AS text));",
+                 [("r_tok", "session_token"), ("r_pay", "payment_id"), ("r_ack", "acknowledge_warning")]),
+    },
+    # ------------------------------------------------------------------ reviewer (human in the loop)
+    {
+        "tool": "verify_reviewer", "flow": "verify_reviewer_flow", "readonly": False, "idempotent": False,
+        "desc": ("Verify a Kestrel staff reviewer (Customer Care, Financial Support or Fraud Operations) with their staff ID "
+                 "(e.g. KST-7001) and staff code. Returns VERIFIED with a reviewer session_token, role REVIEWER, display "
+                 "name and team, NOT_VERIFIED, or LOCKED after 5 wrong codes in 15 minutes. Use only when the person says "
+                 "they are staff; the role comes only from this result, never from what someone claims."),
+        "args": [("staff_id", "Kestrel staff ID, e.g. KST-7001"), ("code", "The staff member's code")],
+        "write": ("INSERT INTO customer_sessions (role, reviewer_id) "
+                  "SELECT * FROM verify_reviewer_fn(CAST(?w_sid AS text), CAST(?w_code AS text));",
+                  [("w_sid", "staff_id"), ("w_code", "code")]),
+        "read": ("SELECT * FROM verify_reviewer_result(CAST(?r_sid AS text), CAST(?r_code AS text));",
+                 [("r_sid", "staff_id"), ("r_code", "code")]),
+    },
+    {
+        "tool": "get_review_queue", "flow": "get_review_queue_flow", "readonly": True,
+        "desc": ("List the verified reviewer's team queue: OPEN cases ordered by reply-due date, with case_id, request, "
+                 "customer (first name + last initial), opened date, age in days, reply-due date, sla_status (ON_TRACK, "
+                 "DUE_TODAY, OVERDUE) and requested amount. Status EMPTY = no open cases; NOT_REVIEWER = not a reviewer token."),
+        "args": [("session_token", RTOKEN_DESC)],
+        "read": ("SELECT * FROM review_queue(CAST(?tok AS text));", [("tok", "session_token")]),
+    },
+    {
+        "tool": "get_review_case", "flow": "get_review_case_flow", "readonly": True,
+        "desc": ("Open one case from the reviewer's team queue: request, status, customer (first name + last initial), the "
+                 "customer's statement, the AI-prepared agent_brief (unverified), requested amount, max_approvable, the "
+                 "reviewer's own approval limit, facts from Kestrel's records (fee, loan, held payment with its risk "
+                 "signals, or dispute) and the decision options. Another team's case or an unknown id returns NOT_FOUND."),
+        "args": [("session_token", RTOKEN_DESC), ("case_id", "Case id from get_review_queue, e.g. CASE-00003")],
+        "read": ("SELECT * FROM review_case(CAST(?tok AS text), CAST(?cid AS text));",
+                 [("tok", "session_token"), ("cid", "case_id")]),
+    },
+    {
+        "tool": "decide_review_case", "flow": "decide_review_case_flow", "readonly": False, "idempotent": False,
+        "desc": ("Record the reviewer's decision on a case in their team queue - only after the reviewer explicitly "
+                 "confirmed the restated decision. decision is APPROVE or REJECT; amount is the approved amount in dollars "
+                 "(empty = the full eligible amount; ignored for REJECT); internal_note is required (at least 5 characters, "
+                 "never shown to the customer); customer_message is what the customer will see. Approving runs the parked "
+                 "action (fee refund, loan payment deferral or release of a held payment) through the system's checks; "
+                 "rejecting a held payment cancels it. Returns APPROVED / REJECTED with executed_action, or BLOCKED with "
+                 "reason_code NOT_YOUR_TEAM, ALREADY_DECIDED, NOTE_REQUIRED, AMOUNT_INVALID, OVER_AUTHORITY (case stays "
+                 "open for a senior reviewer), INVALID_DECISION or NOT_FOUND, or NOT_REVIEWER."),
+        "args": [("session_token", RTOKEN_DESC),
+                 ("case_id", "Case id, e.g. CASE-00003"),
+                 ("decision", "APPROVE | REJECT"),
+                 ("amount", "Approved amount in dollars, or empty for the full eligible amount"),
+                 ("internal_note", "Reviewer's internal note (required, at least 5 characters; never shown to the customer)"),
+                 ("customer_message", "Message the customer will see with the outcome")],
+        "write": ("INSERT INTO review_decisions (case_id, reviewer_id, decision, approved_amount, internal_note, customer_message) "
+                  "SELECT * FROM decide_case_row(CAST(?w_tok AS text), CAST(?w_cid AS text), CAST(?w_dec AS text), "
+                  "CAST(?w_amt AS text), CAST(?w_note AS text), CAST(?w_msg AS text));",
+                  [("w_tok", "session_token"), ("w_cid", "case_id"), ("w_dec", "decision"), ("w_amt", "amount"),
+                   ("w_note", "internal_note"), ("w_msg", "customer_message")]),
+        "read": ("SELECT * FROM decide_case_result(CAST(?r_tok AS text), CAST(?r_cid AS text));",
+                 [("r_tok", "session_token"), ("r_cid", "case_id")]),
+    },
 ]
 
-# Tool of the A2A dispute_triage_agent. A statement descriptor only - never customer identity.
+REVIEWER_TOOLS = {"verify_reviewer", "get_review_queue", "get_review_case", "decide_review_case"}
+PUBLIC_TOOLS = {"verify_customer", "verify_reviewer", "find_branch"}
+
+# Columns that must NEVER appear in any CUSTOMER tool output (asserted by test_rules.py / mcp_smoke.py). (find_branch's
+# public branch phone is allowed; customer phone numbers are never returned.)
+HIDDEN_COLUMNS = {"passcode_hash", "email", "one_time_code", "internal_note", "agent_brief", "agent_notes",
+                  "reviewer_id", "approval_limit", "parked_action", "narrative_score", "narrative_indicators",
+                  "ignored_indicators", "signals", "risk_points", "risk_band"}
+# Columns that must never appear in REVIEWER tool output (minimum necessary).
+HIDDEN_FROM_REVIEWER = {"passcode_hash", "email", "phone", "one_time_code", "last_name", "customer_id"}
+
+# Tool of the A2A dispute_triage_agent (kept as built: a non-identity PostgreSQL read of the merchant directory).
+# A statement descriptor only - never customer identity.
 LOOKUP_MERCHANT = {
     "desc": ("Decode a card-statement descriptor into the real merchant. Pass the descriptor text exactly as it "
              "appears on the transaction (e.g. QUICKPAY*XYZ 872-555), or a fragment of it. Returns matching merchant "
@@ -198,3 +340,45 @@ LOOKUP_MERCHANT = {
     "args": [("descriptor", "Statement descriptor text, e.g. STRMPLS*MEMBERSHIP 888-555")],
     "read": ("SELECT * FROM lookup_merchant(CAST(?dsc AS text));", [("dsc", "descriptor")]),
 }
+
+# ----------------------------------------------------------------------------------------------------------------------
+# A2A agent reference tools (RetailBankingAgents). One per agent; each is the agent's ONLY database access.
+# Flow: #act_postgresql_query (SELECT * FROM <fn>(CAST(?<placeholder> AS text))) -> #actreturn (rows as JSON text).
+# - dispute_triage_agent keeps its lookup_merchant(descriptor) read over merchant_directory (no customer data).
+# - scam_signal_agent / hardship_intake_agent read section / term / meaning guides via ref_<topic>(term); the
+#   placeholder is ?lookup, not ?term (a placeholder named like a result column gives duplicate Fields).
+# The model can supply only the one lookup value; it can never change the SQL. The tables hold reference data only
+# (asserted by test_rules.py). WHO_DECIDES rows are read from service_teams (one source of truth).
+# ----------------------------------------------------------------------------------------------------------------------
+REF_TERM_DESC = ("Optional lookup: one or more words separated by commas (for example an indicator, a cause, a program "
+                 "or a section name), or an empty string for the whole guide. Never put customer details here.")
+REF_COLUMNS = ["section", "term", "meaning"]
+AGENT_REF_TOOLS = [
+    {"agent": "dispute_triage_agent", "tool": "lookup_merchant", "fn": "lookup_merchant", "table": "merchant_directory",
+     "sections": None, "row_key": "match_type",
+     "desc": LOOKUP_MERCHANT["desc"], "args": LOOKUP_MERCHANT["args"], "read": LOOKUP_MERCHANT["read"]},
+    {"agent": "scam_signal_agent", "tool": "get_scam_signal_guide", "fn": "ref_scam_signals", "table": "scam_signal_guide",
+     "sections": ["HIGH_RISK", "CAUTION", "PAYEE_TYPE", "SCORE_RULE", "REVIEW_STEP", "WHO_DECIDES"], "row_key": "section",
+     "desc": ("Reads Kestrel Bank's payment-scam signal guide from the database: the HIGH_RISK and CAUTION indicator names "
+              "of authorised push payment scams and what each looks like, the payee types, how to set the narrative "
+              "score, the reviewer step for each indicator and who reviews a held payment. Rows of section, term, "
+              "meaning. Read-only reference data with no customer data. Pass term \"\" for the whole guide."),
+     "args": [("term", REF_TERM_DESC)],
+     "read": ("SELECT * FROM ref_scam_signals(CAST(?lookup AS text));", [("lookup", "term")])},
+    {"agent": "hardship_intake_agent", "tool": "get_hardship_guide", "fn": "ref_hardship_guide", "table": "hardship_guide",
+     "sections": ["CAUSE", "DURATION", "PRODUCT", "PROGRAM", "DOCUMENT", "SUPPORT_LINE", "BRIEF_RULE", "WHO_DECIDES"],
+     "row_key": "section",
+     "desc": ("Reads Kestrel Bank's hardship intake guide from the database: the hardship cause and duration categories, "
+              "the product names, the hardship programs and which products and durations each suits, the documents to "
+              "request for each cause, the brief rules, a standard support line and who decides. Rows of section, term, "
+              "meaning. Read-only reference data with no customer data. Pass term \"\" for the whole guide."),
+     "args": [("term", REF_TERM_DESC)],
+     "read": ("SELECT * FROM ref_hardship_guide(CAST(?lookup AS text));", [("lookup", "term")])},
+]
+GUIDE_TOOLS = [t for t in AGENT_REF_TOOLS if t["sections"]]      # the section / term / meaning guides
+
+
+def ref_tools_filled():
+    """False while AGENT_REF_TOOLS still holds <placeholders>: the drivers and tests refuse to run on them."""
+    return bool(AGENT_REF_TOOLS) and not any("<" in str(t[k]) for t in AGENT_REF_TOOLS
+                                             for k in ("agent", "tool", "fn", "table", "sections"))

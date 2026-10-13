@@ -4,12 +4,15 @@ at the MCP edge, asserting on DB state with psql.
 Start the MCP server exe first, then:   python _rebuild/mcp_smoke.py
 Env: MCP_URL (default http://localhost:9902/mobilebillingmcpserver), PG_PWD (else PG_PASSWORD from config.md, never
 printed), PG_DB (mobile_billing), PG_HOST/PG_PORT/PG_USER, PSQL, CONFIG_MD.
-The DB is reset (reset_data.sql) before and after. Sends ONE real confirmation email (Maria's cancelled
-StarPlay Games subscription) to the EMAIL_TO app property."""
+Covers the 14 customer tools and the 4 reviewer tools (happy path + one blocked call each: verify, queue, case view,
+decide incl. OVER_AUTHORITY, then the parked SIM-swap reversal executed and the customer's view of the outcome).
+The DB is reset (reset_data.sql) before and after. Attempts ONE real confirmation email (Maria's cancelled StarPlay Games
+subscription) to the EMAIL_TO app property: the SQL guard + email_log are asserted, SMTP delivery is reported separately
+(the shipped Email_App_Password is a portable placeholder)."""
 import csv, io, json, os, re, shutil, subprocess, sys, urllib.error, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from tool_spec import TOOLS, HIDDEN_COLUMNS
+from tool_spec import TOOLS, HIDDEN_COLUMNS, HIDDEN_FROM_REVIEWER, REVIEWER_TOOLS, PUBLIC_TOOLS
 
 URL = os.environ.get("MCP_URL", "http://localhost:9902/mobilebillingmcpserver")
 DIR = os.path.dirname(HERE)
@@ -84,6 +87,7 @@ def rpc(method, params=None, notify=False):
 
 
 def call(tool, **args):
+    args = {a: args.get(a, "") for a, _ in SPEC[tool]["args"]}        # like the orchestrator: every spec arg
     res = rpc("tools/call", {"name": tool, "arguments": args})
     text = res["content"][0]["text"]
     if res.get("isError"): raise RuntimeError(f"{tool} returned isError: {text[:300]}")
@@ -121,7 +125,7 @@ try:
     rpc("initialize", {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "smoke", "version": "1"}})
     rpc("notifications/initialized", notify=True)
     tools = {t["name"]: t for t in rpc("tools/list")["tools"]}
-    check("tools/list = exactly the 13 tools from tool_spec.py", set(tools) == set(SPEC) and len(SPEC) == 13,
+    check("tools/list = exactly the 18 tools from tool_spec.py", set(tools) == set(SPEC) and len(SPEC) == 18,
           {"missing": sorted(set(SPEC) - set(tools)), "extra": sorted(set(tools) - set(SPEC))})
     ann = {k: tools[k].get("annotations", {}) for k in tools if k in SPEC}
     # The MCP connector omits readOnlyHint/idempotentHint when false (Go omitempty); per the MCP spec an absent
@@ -154,16 +158,17 @@ try:
 
     # ---- SESSION_INVALID on every scoped tool (no writes, no email with a bogus token) ----
     for t in TOOLS:
-        if t["tool"] == "verify_customer":
+        if t["tool"] in PUBLIC_TOOLS:
             continue
         args = {a: "x" for a, _ in t["args"]}
         args["session_token"] = BAD
         row = one(t["tool"], **args)
         code = row.get("reason_code") if t.get("email") else (row.get("status") or row.get("outcome"))
-        check(f"{t['tool']} with bogus token -> SESSION_INVALID", code == "SESSION_INVALID", row)
+        want = "NOT_REVIEWER" if t["tool"] in REVIEWER_TOOLS else "SESSION_INVALID"
+        check(f"{t['tool']} with bogus token -> {want}", code == want, row)
     check("DB: bogus-token calls wrote nothing", n("SELECT count(*) FROM pending_actions") == 0
-          and n("SELECT count(*) FROM account_events") == 0 and n("SELECT count(*) FROM service_cases") == 0
-          and n("SELECT count(*) FROM email_log") == 0)
+          and n("SELECT count(*) FROM account_events") == 0 and n("SELECT count(*) FROM service_cases WHERE case_no > 43") == 0
+          and n("SELECT count(*) FROM email_log") == 0 and n("SELECT count(*) FROM review_decisions") == 0)
 
     # ---- scoped reads (Maria); multi-row tools must return ALL rows ----
     a = one("get_my_account", session_token=maria)
@@ -279,10 +284,21 @@ try:
     check("unknown type -> INVALID_TYPE, no team, customer-facing text (no internal codes)",
           k3["outcome"] == "INVALID_TYPE" and not k3.get("team") and "billing_dispute" not in s(k3.get("reason_text")), k3)
     kf = one("open_service_case", session_token=priya, request_type="suspected_fraud",
-             summary="Does not recognise a Canada roaming charge; never left the US; recent SIM swap.")
-    check("Priya suspected_fraud -> OPENED, Fraud Team", kf["outcome"] == "OPENED" and kf.get("team") == "Fraud Team", kf)
-    check("DB: two service cases (Maria billing_dispute, Priya suspected_fraud); no credit rows",
-          n("SELECT count(*) FROM service_cases") == 2
+             summary="Does not recognise a Canada roaming charge; never left the US; recent SIM swap.",
+             brief="category: SUSPECTED_FRAUD\nnext_path: open_fraud_case", reference="")
+    check("Priya suspected_fraud -> OPENED, Fraud Team, requested $96.32, if_approved names the SIM-swap reversal",
+          kf["outcome"] == "OPENED" and kf.get("team") == "Fraud Team" and num(kf.get("requested_amount")) == 96.32
+          and "SIM swap" in s(kf.get("if_approved")), kf)
+    PCASE = s(kf.get("case_id"))
+    check("DB: SQL parked SIM_SWAP_REVERSAL on Priya's latest bill with the brief stored",
+          n(f"SELECT count(*) FROM service_cases WHERE case_id='{PCASE}' AND parked_action LIKE 'SIM_SWAP_REVERSAL:TWB-0103-%' "
+            f"AND requested_amount=96.32 AND agent_brief LIKE 'category: SUSPECTED_FRAUD%'") == 1)
+    kb = one("open_service_case", session_token=james, request_type="billing_dispute", summary="x", brief="",
+             reference=latest)
+    check("SCOPE: James disputes Maria's bill id -> BAD_REFERENCE, no case", kb["outcome"] == "BAD_REFERENCE"
+          and not kb.get("case_id"), kb)
+    check("DB: two new service cases (Maria billing_dispute, Priya suspected_fraud) + 3 seeded; no credit rows",
+          n("SELECT count(*) FROM service_cases WHERE case_no > 43") == 2
           and n(f"SELECT count(*) FROM service_cases WHERE customer_id='{MARIA_C}' AND request_type='billing_dispute'") == 1
           and n(f"SELECT count(*) FROM service_cases WHERE customer_id='{PRIYA_C}' AND request_type='suspected_fraud'") == 1
           and n("SELECT count(*) FROM bill_lines WHERE amount < 0") == 0)
@@ -296,16 +312,67 @@ try:
     check("DB: refused email requests logged nothing", n("SELECT count(*) FROM email_log") == 0)
     try:
         e = one("email_action_confirmation", session_token=maria, reference=ref_cancel)
-        check("email own EXECUTED action -> SEND_OK, readback row returned after SendMail",
+        check("email own EXECUTED action -> SEND_OK, readback row returned after SendMail (SMTP delivered)",
               e["send_status"] == "SEND_OK" and ref_cancel in s(e.get("subject")) and "StarPlay" in s(e.get("body")), e)
     except (RuntimeError, urllib.error.URLError) as ex:   # SendMail failure surfaces as a tool error
-        check("email own EXECUTED action -> SEND_OK (SMTP send)", False, f"tool error - check Email_* / EMAIL_TO app properties: {ex}")
-    check("DB: exactly one email_log row, for that reference",
+        out(f"NOTE SMTP send failed (expected with the placeholder Email_App_Password): {str(ex)[:160]}")
+    check("DB: the authorised email request was logged (SQL guard passed): exactly one email_log row, for that reference",
           n("SELECT count(*) FROM email_log") == 1 and n(f"SELECT count(*) FROM email_log WHERE reference='{ref_cancel}'") == 1)
 
+    # ---- reviewer loop over MCP: verify -> queue -> case -> decide (one blocked call each) -> executed -> customer view
+    r = one("verify_reviewer", staff_id="TWS-7002", code="000000")
+    check("verify_reviewer wrong code -> VERIFY_FAILED, no token", r["outcome"] == "VERIFY_FAILED" and not r.get("session_token"), r)
+    r = one("verify_reviewer", staff_id="TWS-7002", code="562039")
+    jordan = s(r.get("session_token")) or "missing"
+    check("verify_reviewer Jordan (Fraud Team) -> VERIFIED, role REVIEWER", r["outcome"] == "VERIFIED"
+          and r.get("role") == "REVIEWER" and r.get("team") == "Fraud Team", {k: v for k, v in r.items() if k != "session_token"})
+    alex = s(one("verify_reviewer", staff_id="TWS-7001", code="318274").get("session_token")) or "missing"
+    check("DB: two REVIEWER sessions + REVIEWER_VERIFY audit rows",
+          n("SELECT count(*) FROM customer_sessions WHERE role='REVIEWER'") == 2
+          and n("SELECT count(*) FROM agent_audit WHERE action='REVIEWER_VERIFY'") == 2)
+    check("customer token on get_review_queue -> NOT_REVIEWER", one("get_review_queue", session_token=maria)["status"] == "NOT_REVIEWER")
+    qj = {s(x.get("case_id")) for x in call("get_review_queue", session_token=jordan)}
+    check("Fraud Team queue: Dana's seeded case + Priya's new case (multi-row)", qj == {"TW-CASE-000042", PCASE}, qj)
+    rc = one("get_review_case", session_token=jordan, case_id=PCASE)
+    check("get_review_case: brief, $96.32 eligible, SIM-swap + no-roaming-record facts", rc["status"] == "OK"
+          and num(rc.get("max_approvable")) == 96.32 and "SIM swap on" in s(rc.get("facts"))
+          and "SUSPECTED_FRAUD" in s(rc.get("agent_brief")), rc)
+    check("another team's case is invisible to Alex -> NOT_FOUND",
+          one("get_review_case", session_token=alex, case_id=PCASE)["status"] == "NOT_FOUND")
+    d = one("decide_review_case", session_token=alex, case_id="TW-CASE-000041", decision="APPROVE", amount="",
+            internal_note="Duplicate confirmed on the bill.", customer_message="Credited.")
+    check("decide: Alex approves Grace's full $69.98 above his $60 limit -> BLOCKED OVER_AUTHORITY, case stays OPEN",
+          d["outcome"] == "BLOCKED" and d.get("reason_code") == "OVER_AUTHORITY" and d.get("case_status") == "OPEN", d)
+    check("DB: blocked decision wrote nothing", n("SELECT count(*) FROM review_decisions") == 0 and n("SELECT count(*) FROM case_actions") == 0)
+    d = one("decide_review_case", session_token=jordan, case_id=PCASE, decision="APPROVE", amount="",
+            internal_note="No days abroad on record; SIM swap without ID check.",
+            customer_message="We reversed the SIM swap and credited the Canada roaming charges.")
+    check("decide: Jordan approves Priya's case -> APPROVED, SIM swap reversed + $96.32 credited (executed_action)",
+          d["outcome"] == "APPROVED" and num(d.get("approved_amount")) == 96.32 and "SIM swap reversed" in s(d.get("executed_action")), d)
+    check("DB: decision row, case_actions SIM_SWAP_REVERSAL $96.32, sim_swap_reversed_at set, -$96.32 credit, CASE_DECIDED audit",
+          n(f"SELECT count(*) FROM review_decisions WHERE case_id='{PCASE}' AND reviewer_id='TWS-7002'") == 1
+          and n(f"SELECT count(*) FROM case_actions WHERE case_id='{PCASE}' AND kind='SIM_SWAP_REVERSAL' AND credit_amount=96.32") == 1
+          and n(f"SELECT count(*) FROM customers WHERE customer_id='{PRIYA_C}' AND sim_swap_reversed_at IS NOT NULL") == 1
+          and n(f"SELECT count(*) FROM unbilled_charges WHERE customer_id='{PRIYA_C}' AND amount=-96.32") == 1
+          and n(f"SELECT count(*) FROM agent_audit WHERE action='CASE_DECIDED' AND ref='{PCASE}' AND actor='TWS-7002'") == 1)
+    mc = {s(x.get("case_id")): x for x in call("get_my_cases", session_token=priya)}
+    check("get_my_cases (Priya): APPROVED with the customer message, no internal note column",
+          mc.get(PCASE, {}).get("case_status") == "APPROVED" and "reversed the SIM swap" in s(mc[PCASE].get("customer_message"))
+          and "internal_note" not in mc[PCASE], mc)
+    try:
+        e = one("email_action_confirmation", session_token=priya, reference=PCASE)
+        check("email the decided case -> SEND_OK (SMTP delivered)", e["send_status"] == "SEND_OK", e)
+    except (RuntimeError, urllib.error.URLError) as ex:
+        out(f"NOTE SMTP send failed (expected with the placeholder Email_App_Password): {str(ex)[:160]}")
+    check("DB: the decided-case email request was logged (SQL guard passed)",
+          n(f"SELECT count(*) FROM email_log WHERE reference='{PCASE}' AND customer_id='{PRIYA_C}'") == 1)
+    rev_cols = {k for t, rows in OUTPUTS if t in REVIEWER_TOOLS for row in rows for k in row}
+    check("reviewer tool outputs carry no mobile number / email / SSN / OTP / last name / customer id column",
+          not (rev_cols & HIDDEN_FROM_REVIEWER), rev_cols & HIDDEN_FROM_REVIEWER)
+
     # ---- hidden columns never leave the DB ----
-    leaked = sorted({k for _, rows in OUTPUTS for row in rows for k in row} & HIDDEN_COLUMNS)
-    check("no tool output carries a hidden column", not leaked, leaked)
+    leaked = sorted({k for t, rows in OUTPUTS if t not in REVIEWER_TOOLS for row in rows for k in row} & HIDDEN_COLUMNS)
+    check("no customer tool output carries a hidden column", not leaked, leaked)
     check("every tool was exercised over MCP", {t for t, _ in OUTPUTS} == set(SPEC), set(SPEC) - {t for t, _ in OUTPUTS})
 finally:
     reset()

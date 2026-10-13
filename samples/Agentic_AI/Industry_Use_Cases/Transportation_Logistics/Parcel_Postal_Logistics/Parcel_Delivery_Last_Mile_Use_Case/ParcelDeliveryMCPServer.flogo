@@ -11,7 +11,7 @@
     "act_general_sendmail github.com/tibco/flogo-general/src/app/General/activity/sendmail"
   ],
   "name": "ParcelDeliveryMCPServer",
-  "description": "Swiftbound Parcel Delivery (governed) MCP Server - scoped reads and guarded writes for verified recipients",
+  "description": "Swiftbound Parcel Delivery (governed) MCP Server - scoped reads, guarded writes, claims, delivery instructions and the reviewer loop",
   "version": "1.0.0",
   "type": "flogo:app",
   "appModel": "1.1.1",
@@ -407,7 +407,7 @@
             "handlerType": "Tool",
             "resourceUri": "",
             "handlerName": "email_confirmation",
-            "handlerDescription": "Email the recipient the confirmation for a reschedule or redirect they have already executed. Pass the action_id from confirm_reschedule or confirm_redirect. The system sends the email only when that change belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful change.",
+            "handlerDescription": "Email the recipient a confirmation of something already done for them: a reschedule or redirect they executed, delivery instructions they saved (pass the action_id), or a case a person has decided (pass the case id SC-...). The system sends the email only when that action or case belongs to this session and is executed or decided; otherwise it returns NOT_SENT with the reason. Call only when the recipient asks.",
             "toolTitle": "",
             "readOnlyToolHint": false,
             "destructiveToolHint": false,
@@ -437,7 +437,7 @@
             "structuredContent": {}
           },
           "name": "email_confirmation_flow",
-          "description": "Email the recipient the confirmation for a reschedule or redirect they have already executed. Pass the action_id from confirm_reschedule or confirm_redirect. The system sends the email only when that change belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful change.",
+          "description": "Email the recipient a confirmation of something already done for them: a reschedule or redirect they executed, delivery instructions they saved (pass the action_id), or a case a person has decided (pass the case id SC-...). The system sends the email only when that action or case belongs to this session and is executed or decided; otherwise it returns NOT_SENT with the reason. Call only when the recipient asks.",
           "schemas": {
             "output": {
               "arguments": "schema://email_confirmation_Args"
@@ -452,7 +452,7 @@
             "handlerType": "Tool",
             "resourceUri": "",
             "handlerName": "open_service_case",
-            "handlerDescription": "Hand a request that needs a human to the right team: LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
+            "handlerDescription": "Hand a request that needs a human to the right team (for compensation claims on a damaged, lost or incomplete parcel use open_damage_claim instead): LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
             "toolTitle": "",
             "readOnlyToolHint": false,
             "destructiveToolHint": false,
@@ -482,7 +482,7 @@
             "structuredContent": {}
           },
           "name": "open_service_case_flow",
-          "description": "Hand a request that needs a human to the right team: LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
+          "description": "Hand a request that needs a human to the right team (for compensation claims on a damaged, lost or incomplete parcel use open_damage_claim instead): LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
           "schemas": {
             "output": {
               "arguments": "schema://open_service_case_Args"
@@ -497,7 +497,7 @@
             "handlerType": "Tool",
             "resourceUri": "",
             "handlerName": "get_my_cases",
-            "handlerDescription": "List the verified recipient's open and past service cases with the assigned team and status.",
+            "handlerDescription": "List the verified recipient's open and past cases and claims: case id, claim id, request type, parcel, assigned team, status (OPEN, APPROVED, REJECTED), the amount under review, and - once a person has decided - the approved amount, any compensation paid and the customer_message from the team. Use it when the recipient asks about the status of a claim or request.",
             "toolTitle": "",
             "readOnlyToolHint": true,
             "destructiveToolHint": false,
@@ -527,10 +527,325 @@
             "structuredContent": {}
           },
           "name": "get_my_cases_flow",
-          "description": "List the verified recipient's open and past service cases with the assigned team and status.",
+          "description": "List the verified recipient's open and past cases and claims: case id, claim id, request type, parcel, assigned team, status (OPEN, APPROVED, REJECTED), the amount under review, and - once a person has decided - the approved amount, any compensation paid and the customer_message from the team. Use it when the recipient asks about the status of a claim or request.",
           "schemas": {
             "output": {
               "arguments": "schema://get_my_cases_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "open_damage_claim",
+            "handlerDescription": "Open a compensation claim for one of the verified recipient's own parcels that arrived damaged (DAMAGED), arrived with items missing (MISSING_CONTENTS) or never arrived (LOST). Pass the tracking number, the damage_claim_agent's claim_type, packaging_condition and likely_cause exactly as it returned them, the amount the recipient is claiming (empty = the declared value), the recipient's own words and the agent's full answer. The system checks the rules (ownership, delivery status, claim window, one open claim per parcel), caps the claimable amount at the declared value and Swiftbound's coverage limit, and returns CLAIM_OPENED with claim_id, case_id, team, reply date, the amount under review, why it was capped and the evidence to send; ALREADY_OPEN; or NOT_OPENED with reason_code NOT_FOUND, BAD_CLAIM_TYPE, NOT_DELIVERED_YET, DELIVERED_NOT_LOST, NOT_YET_LOST, RETURNED_TO_SENDER, CLAIM_WINDOW_CLOSED, BAD_AMOUNT or SESSION_INVALID. A person decides the claim and any compensation; never promise an amount.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:open_damage_claim_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "open_damage_claim_flow",
+          "description": "Open a compensation claim for one of the verified recipient's own parcels that arrived damaged (DAMAGED), arrived with items missing (MISSING_CONTENTS) or never arrived (LOST). Pass the tracking number, the damage_claim_agent's claim_type, packaging_condition and likely_cause exactly as it returned them, the amount the recipient is claiming (empty = the declared value), the recipient's own words and the agent's full answer. The system checks the rules (ownership, delivery status, claim window, one open claim per parcel), caps the claimable amount at the declared value and Swiftbound's coverage limit, and returns CLAIM_OPENED with claim_id, case_id, team, reply date, the amount under review, why it was capped and the evidence to send; ALREADY_OPEN; or NOT_OPENED with reason_code NOT_FOUND, BAD_CLAIM_TYPE, NOT_DELIVERED_YET, DELIVERED_NOT_LOST, NOT_YET_LOST, RETURNED_TO_SENDER, CLAIM_WINDOW_CLOSED, BAD_AMOUNT or SESSION_INVALID. A person decides the claim and any compensation; never promise an amount.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://open_damage_claim_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "propose_delivery_instructions",
+            "handlerDescription": "Step 1 of 2 to save delivery instructions (safe place, access-code flag, hazards) for one of the verified recipient's own upcoming parcels. Pass the tracking number, the delivery_instructions_agent's safe_place, access_code_present, hazards and risk_flags exactly as it returned them, the recipient's own words and the agent's full answer. The system checks the safe place against Swiftbound's list, scans for risky instructions, applies the signature and high-value rules, masks any access code and returns PROPOSED with an action_id and the driver note, or NOT_PROPOSED with reason_code RISKY_INSTRUCTION, SAFE_PLACE_UNKNOWN, SIGNATURE_REQUIRED, HIGH_VALUE_SAFE_PLACE, ALREADY_DELIVERED, REDIRECTED_TO_PICKUP, NOT_FOUND or SESSION_INVALID. Nothing is saved until confirm_delivery_instructions.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:propose_delivery_instructions_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "propose_delivery_instructions_flow",
+          "description": "Step 1 of 2 to save delivery instructions (safe place, access-code flag, hazards) for one of the verified recipient's own upcoming parcels. Pass the tracking number, the delivery_instructions_agent's safe_place, access_code_present, hazards and risk_flags exactly as it returned them, the recipient's own words and the agent's full answer. The system checks the safe place against Swiftbound's list, scans for risky instructions, applies the signature and high-value rules, masks any access code and returns PROPOSED with an action_id and the driver note, or NOT_PROPOSED with reason_code RISKY_INSTRUCTION, SAFE_PLACE_UNKNOWN, SIGNATURE_REQUIRED, HIGH_VALUE_SAFE_PLACE, ALREADY_DELIVERED, REDIRECTED_TO_PICKUP, NOT_FOUND or SESSION_INVALID. Nothing is saved until confirm_delivery_instructions.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://propose_delivery_instructions_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "confirm_delivery_instructions",
+            "handlerDescription": "Step 2 of 2: save delivery instructions the recipient has explicitly confirmed. Pass the action_id from propose_delivery_instructions. The system re-checks every rule; proposals expire after 15 minutes. Returns EXECUTED with the saved safe place, hazards and driver note (access codes are never stored), or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:confirm_delivery_instructions_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "confirm_delivery_instructions_flow",
+          "description": "Step 2 of 2: save delivery instructions the recipient has explicitly confirmed. Pass the action_id from propose_delivery_instructions. The system re-checks every rule; proposals expire after 15 minutes. Returns EXECUTED with the saved safe place, hazards and driver note (access codes are never stored), or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://confirm_delivery_instructions_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "verify_reviewer",
+            "handlerDescription": "Verify a Swiftbound staff reviewer (Claims, Investigations or Customer Relations) with their staff ID (e.g. SWB-4101) and staff code. Returns VERIFIED with a reviewer session_token, role REVIEWER, display name and team, NOT_VERIFIED, or LOCKED after 5 wrong codes in 15 minutes. Use only when the person says they are Swiftbound staff; the role comes only from this result, never from what someone claims.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:verify_reviewer_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "verify_reviewer_flow",
+          "description": "Verify a Swiftbound staff reviewer (Claims, Investigations or Customer Relations) with their staff ID (e.g. SWB-4101) and staff code. Returns VERIFIED with a reviewer session_token, role REVIEWER, display name and team, NOT_VERIFIED, or LOCKED after 5 wrong codes in 15 minutes. Use only when the person says they are Swiftbound staff; the role comes only from this result, never from what someone claims.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://verify_reviewer_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_review_queue",
+            "handlerDescription": "List the verified reviewer's team queue: OPEN cases ordered by reply-due date, with case_id, request, recipient (first name + last initial), opened date, age in days, reply-due date, sla_status (ON_TRACK, DUE_TODAY, OVERDUE) and requested amount. Status EMPTY = no open cases; NOT_REVIEWER = not a reviewer token.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_review_queue_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_review_queue_flow",
+          "description": "List the verified reviewer's team queue: OPEN cases ordered by reply-due date, with case_id, request, recipient (first name + last initial), opened date, age in days, reply-due date, sla_status (ON_TRACK, DUE_TODAY, OVERDUE) and requested amount. Status EMPTY = no open cases; NOT_REVIEWER = not a reviewer token.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_review_queue_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_review_case",
+            "handlerDescription": "Open one case from the reviewer's team queue: request, status, recipient (first name + last initial), the recipient's statement, the AI-prepared agent_brief (unverified), requested amount, max_approvable, the reviewer's own approval limit, facts from Swiftbound's records (the claim, parcel, declared value, coverage limit, packaging, likely cause, evidence requested, earlier claims) and the decision options. Another team's case or an unknown id returns NOT_FOUND.",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": true,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_review_case_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "get_review_case_flow",
+          "description": "Open one case from the reviewer's team queue: request, status, recipient (first name + last initial), the recipient's statement, the AI-prepared agent_brief (unverified), requested amount, max_approvable, the reviewer's own approval limit, facts from Swiftbound's records (the claim, parcel, declared value, coverage limit, packaging, likely cause, evidence requested, earlier claims) and the decision options. Another team's case or an unknown id returns NOT_FOUND.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://get_review_case_Args"
+            },
+            "reply": {
+              "response": "schema://ToolResponse"
+            }
+          }
+        },
+        {
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "decide_review_case",
+            "handlerDescription": "Record the reviewer's decision on a case in their team queue - only after the reviewer explicitly confirmed the restated decision. decision is APPROVE or REJECT; amount is the approved compensation in dollars (empty = the full claimable amount; ignored for REJECT); internal_note is required (at least 5 characters, never shown to the recipient); customer_message is what the recipient will see. Approving a claim pays the compensation through the system's checks. Returns APPROVED / REJECTED with executed_action, or BLOCKED with reason_code NOT_YOUR_TEAM, ALREADY_DECIDED, NOTE_REQUIRED, AMOUNT_INVALID, OVER_AUTHORITY (case stays open for a senior reviewer), INVALID_DECISION or NOT_FOUND, or NOT_REVIEWER.",
+            "toolTitle": "",
+            "readOnlyToolHint": false,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            },
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:decide_review_case_flow"
+            }
+          },
+          "reply": {
+            "response": {
+              "type": "json",
+              "value": "{}",
+              "fe_metadata": "{}"
+            },
+            "outputSchema": "",
+            "structuredContent": {}
+          },
+          "name": "decide_review_case_flow",
+          "description": "Record the reviewer's decision on a case in their team queue - only after the reviewer explicitly confirmed the restated decision. decision is APPROVE or REJECT; amount is the approved compensation in dollars (empty = the full claimable amount; ignored for REJECT); internal_note is required (at least 5 characters, never shown to the recipient); customer_message is what the recipient will see. Approving a claim pays the compensation through the system's checks. Returns APPROVED / REJECTED with executed_action, or BLOCKED with reason_code NOT_YOUR_TEAM, ALREADY_DECIDED, NOTE_REQUIRED, AMOUNT_INVALID, OVER_AUTHORITY (case stays open for a senior reviewer), INVALID_DECISION or NOT_FOUND, or NOT_REVIEWER.",
+          "schemas": {
+            "output": {
+              "arguments": "schema://decide_review_case_Args"
             },
             "reply": {
               "response": "schema://ToolResponse"
@@ -581,7 +896,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "INSERT INTO recipient_sessions (recipient_id) SELECT recipient_id FROM verify_and_record(CAST(?w_ref AS text), CAST(?w_pin AS text));",
@@ -605,7 +920,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "e2b1de89-5316-42a3-9bfd-5afd92b03a06INSERT INTO recipient_sessions (recipient_id) SELECT recipient_id FROM verify_and_record(CAST(?w_ref AS text), CAST(?w_pin AS text));",
+                "State": "3d9b6e7d-50e6-46b4-a159-15b94329b4bcINSERT INTO recipient_sessions (recipient_id) SELECT recipient_id FROM verify_and_record(CAST(?w_ref AS text), CAST(?w_pin AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -647,7 +962,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM verify_result(CAST(?r_ref AS text), CAST(?r_pin AS text));",
@@ -713,7 +1028,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "e142f1b5-f668-4eeb-974d-2b88b468426fSELECT * FROM verify_result(CAST(?r_ref AS text), CAST(?r_pin AS text));",
+                "State": "6722fff2-7363-48da-b19b-6fd0d2fbb1e7SELECT * FROM verify_result(CAST(?r_ref AS text), CAST(?r_pin AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -836,7 +1151,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM my_parcels(CAST(?tok AS text));",
@@ -915,7 +1230,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "71b8d584-0134-45fa-ad20-dc1802735c87SELECT * FROM my_parcels(CAST(?tok AS text));",
+                "State": "26225819-6d6f-4548-b4c9-1862c7916212SELECT * FROM my_parcels(CAST(?tok AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -1037,7 +1352,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM parcel_detail(CAST(?tok AS text), CAST(?trk AS text));",
@@ -1205,10 +1520,17 @@
                     "Selected": true,
                     "Parameter": false,
                     "isEditable": false
+                  },
+                  {
+                    "FieldName": "saved_safe_place",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "fdd5a3a6-e10f-4265-af40-92d3e9e0571aSELECT * FROM parcel_detail(CAST(?tok AS text), CAST(?trk AS text));",
+                "State": "ffe63446-9106-4908-a177-b19bfe5c4889SELECT * FROM parcel_detail(CAST(?tok AS text), CAST(?trk AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -1232,8 +1554,8 @@
                 "output": {
                   "Output": {
                     "type": "json",
-                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"sender\": {\"type\": \"string\"}, \"current_status\": {\"type\": \"string\"}, \"exception_code\": {\"type\": \"string\"}, \"exception_label\": {\"type\": \"string\"}, \"exception_advice\": {\"type\": \"string\"}, \"delivery_health\": {\"type\": \"string\"}, \"declared_value\": {\"type\": \"number\"}, \"parcel_size\": {\"type\": \"string\"}, \"signature_required\": {\"type\": \"string\"}, \"service_level\": {\"type\": \"string\"}, \"destination_area\": {\"type\": \"string\"}, \"destination_postcode\": {\"type\": \"string\"}, \"promised_date\": {\"type\": \"string\"}, \"expected_delivery\": {\"type\": \"string\"}, \"attempts_made\": {\"type\": \"number\"}, \"earliest_reschedule_date\": {\"type\": \"string\"}, \"current_slot\": {\"type\": \"string\"}, \"current_pickup\": {\"type\": \"string\"}}}}}}",
-                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"sender\": {\"type\": \"string\"}, \"current_status\": {\"type\": \"string\"}, \"exception_code\": {\"type\": \"string\"}, \"exception_label\": {\"type\": \"string\"}, \"exception_advice\": {\"type\": \"string\"}, \"delivery_health\": {\"type\": \"string\"}, \"declared_value\": {\"type\": \"number\"}, \"parcel_size\": {\"type\": \"string\"}, \"signature_required\": {\"type\": \"string\"}, \"service_level\": {\"type\": \"string\"}, \"destination_area\": {\"type\": \"string\"}, \"destination_postcode\": {\"type\": \"string\"}, \"promised_date\": {\"type\": \"string\"}, \"expected_delivery\": {\"type\": \"string\"}, \"attempts_made\": {\"type\": \"number\"}, \"earliest_reschedule_date\": {\"type\": \"string\"}, \"current_slot\": {\"type\": \"string\"}, \"current_pickup\": {\"type\": \"string\"}}}}}}"
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"sender\": {\"type\": \"string\"}, \"current_status\": {\"type\": \"string\"}, \"exception_code\": {\"type\": \"string\"}, \"exception_label\": {\"type\": \"string\"}, \"exception_advice\": {\"type\": \"string\"}, \"delivery_health\": {\"type\": \"string\"}, \"declared_value\": {\"type\": \"number\"}, \"parcel_size\": {\"type\": \"string\"}, \"signature_required\": {\"type\": \"string\"}, \"service_level\": {\"type\": \"string\"}, \"destination_area\": {\"type\": \"string\"}, \"destination_postcode\": {\"type\": \"string\"}, \"promised_date\": {\"type\": \"string\"}, \"expected_delivery\": {\"type\": \"string\"}, \"attempts_made\": {\"type\": \"number\"}, \"earliest_reschedule_date\": {\"type\": \"string\"}, \"current_slot\": {\"type\": \"string\"}, \"current_pickup\": {\"type\": \"string\"}, \"saved_safe_place\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"lookup_status\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"description\": {\"type\": \"string\"}, \"sender\": {\"type\": \"string\"}, \"current_status\": {\"type\": \"string\"}, \"exception_code\": {\"type\": \"string\"}, \"exception_label\": {\"type\": \"string\"}, \"exception_advice\": {\"type\": \"string\"}, \"delivery_health\": {\"type\": \"string\"}, \"declared_value\": {\"type\": \"number\"}, \"parcel_size\": {\"type\": \"string\"}, \"signature_required\": {\"type\": \"string\"}, \"service_level\": {\"type\": \"string\"}, \"destination_area\": {\"type\": \"string\"}, \"destination_postcode\": {\"type\": \"string\"}, \"promised_date\": {\"type\": \"string\"}, \"expected_delivery\": {\"type\": \"string\"}, \"attempts_made\": {\"type\": \"number\"}, \"earliest_reschedule_date\": {\"type\": \"string\"}, \"current_slot\": {\"type\": \"string\"}, \"current_pickup\": {\"type\": \"string\"}, \"saved_safe_place\": {\"type\": \"string\"}}}}}}"
                   }
                 }
               }
@@ -1331,7 +1653,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM tracking_history(CAST(?tok AS text), CAST(?trk AS text));",
@@ -1397,7 +1719,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "3cc334ef-9d45-4d79-9f1c-1803594dce46SELECT * FROM tracking_history(CAST(?tok AS text), CAST(?trk AS text));",
+                "State": "84ed5759-cd8a-40a3-b4e2-150e9a7e8713SELECT * FROM tracking_history(CAST(?tok AS text), CAST(?trk AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -1527,7 +1849,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "INSERT INTO pending_actions (action_type, parcel_id, slot_id) SELECT * FROM reschedule_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_slot AS text));",
@@ -1559,7 +1881,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "29fc0ab5-58a2-40b9-854c-7a12b9434f49INSERT INTO pending_actions (action_type, parcel_id, slot_id) SELECT * FROM reschedule_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_slot AS text));",
+                "State": "4db02eab-d6ca-4d71-bc7a-199b0c67624dINSERT INTO pending_actions (action_type, parcel_id, slot_id) SELECT * FROM reschedule_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_slot AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -1602,7 +1924,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM propose_reschedule_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_slot AS text));",
@@ -1690,7 +2012,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "feb89b59-2e3e-4f3b-88ad-dc22bf530282SELECT * FROM propose_reschedule_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_slot AS text));",
+                "State": "825f9a3b-5c3c-4162-b43d-00b7ce415fb6SELECT * FROM propose_reschedule_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_slot AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -1821,7 +2143,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "INSERT INTO delivery_changes (action_id, parcel_id, action_type, slot_id) SELECT * FROM reschedule_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
@@ -1845,7 +2167,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "6073ea24-d32d-42e9-ac83-d094f4ef6152INSERT INTO delivery_changes (action_id, parcel_id, action_type, slot_id) SELECT * FROM reschedule_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "State": "4cda7b58-e6b7-46fe-a956-10c772e23441INSERT INTO delivery_changes (action_id, parcel_id, action_type, slot_id) SELECT * FROM reschedule_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -1887,7 +2209,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
@@ -1953,7 +2275,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "eec37ea0-5ef7-4dcc-8275-3c2f0c1f2df7SELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "State": "19083a31-3ce1-4c8d-963e-81ac4aac390cSELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -2083,7 +2405,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "INSERT INTO pending_actions (action_type, parcel_id, pickup_id) SELECT * FROM redirect_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_pick AS text));",
@@ -2115,7 +2437,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "065da212-289e-423d-b487-175eec6b334bINSERT INTO pending_actions (action_type, parcel_id, pickup_id) SELECT * FROM redirect_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_pick AS text));",
+                "State": "37cae980-f9f0-483c-9a37-a3cd6f417144INSERT INTO pending_actions (action_type, parcel_id, pickup_id) SELECT * FROM redirect_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_pick AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -2158,7 +2480,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM propose_redirect_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_pick AS text));",
@@ -2246,7 +2568,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "a4612892-4903-4339-9fff-894f0ae9c5faSELECT * FROM propose_redirect_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_pick AS text));",
+                "State": "62c60649-22de-4d46-a09a-69c63c114f47SELECT * FROM propose_redirect_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_pick AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -2377,7 +2699,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "INSERT INTO delivery_changes (action_id, parcel_id, action_type, pickup_id) SELECT * FROM redirect_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
@@ -2401,7 +2723,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "1abfd382-856b-49f2-97c0-2f7d19937230INSERT INTO delivery_changes (action_id, parcel_id, action_type, pickup_id) SELECT * FROM redirect_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "State": "6942ab10-1ef1-4303-9a89-d171f13dcc58INSERT INTO delivery_changes (action_id, parcel_id, action_type, pickup_id) SELECT * FROM redirect_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -2443,7 +2765,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
@@ -2509,7 +2831,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "ba66ee91-77f9-4447-9282-9ca921988eb1SELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "State": "ebe422f9-b3cb-4be8-a6b3-9d515908e02dSELECT * FROM confirm_change_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -2603,28 +2925,43 @@
       "id": "flow:email_confirmation_flow",
       "data": {
         "name": "email_confirmation_flow",
-        "description": "Email the recipient the confirmation for a reschedule or redirect they have already executed. Pass the action_id from confirm_reschedule or confirm_redirect. The system sends the email only when that change belongs to this session and has been executed; otherwise it returns NOT_SENT with the reason. Call only after a successful change.",
+        "description": "Email the recipient a confirmation of something already done for them: a reschedule or redirect they executed, delivery instructions they saved (pass the action_id), or a case a person has decided (pass the case id SC-...). The system sends the email only when that action or case belongs to this session and is executed or decided; otherwise it returns NOT_SENT with the reason. Call only when the recipient asks.",
         "links": [
           {
             "id": 1,
             "from": "StartActivity",
-            "to": "ReadOutcome",
+            "to": "GuardedWrite",
             "type": "label",
-            "label": "StartActivity to ReadOutcome"
+            "label": "StartActivity to GuardedWrite"
           },
           {
             "id": 2,
-            "from": "ReadOutcome",
-            "to": "SendMail",
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
             "type": "label",
-            "label": "ReadOutcome to SendMail"
+            "label": "GuardedWrite to ReadOutcome"
           },
           {
             "id": 3,
+            "from": "ReadOutcome",
+            "to": "SendMail",
+            "type": "expression",
+            "label": "send_status is SEND_OK",
+            "value": "$activity[ReadOutcome].Output.records[0].send_status == \"SEND_OK\""
+          },
+          {
+            "id": 4,
             "from": "SendMail",
             "to": "Return",
             "type": "label",
             "label": "SendMail to Return"
+          },
+          {
+            "id": 5,
+            "from": "ReadOutcome",
+            "to": "ReturnNotSent",
+            "type": "exprOtherwise",
+            "label": "otherwise (NOT_SENT)"
           }
         ],
         "tasks": [
@@ -2639,7 +2976,73 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO email_log (recipient_id, reference_id, subject) SELECT * FROM email_log_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "974f18a0-4450-44fb-9bde-9c7a114b5acbINSERT INTO email_log (recipient_id, reference_id, subject) SELECT * FROM email_log_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_act AS text));",
@@ -2695,10 +3098,17 @@
                     "Selected": true,
                     "Parameter": false,
                     "isEditable": false
+                  },
+                  {
+                    "FieldName": "reference_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "7e146d6e-75f0-43b6-a46c-03e78cccec86SELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "State": "97f98216-a79a-4379-89ef-e7ff540e00ffSELECT * FROM email_confirmation_payload(CAST(?r_tok AS text), CAST(?r_act AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -2722,8 +3132,8 @@
                 "output": {
                   "Output": {
                     "type": "json",
-                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"send_status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"to_email\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}}}}}}",
-                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"send_status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"to_email\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}}}}}}"
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"send_status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"to_email\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}, \"reference_id\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"send_status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"to_email\": {\"type\": \"string\"}, \"subject\": {\"type\": \"string\"}, \"body\": {\"type\": \"string\"}, \"reference_id\": {\"type\": \"string\"}}}}}}"
                   }
                 }
               }
@@ -2789,6 +3199,26 @@
             "id": "Return",
             "name": "Return",
             "description": "Simple Return"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "ReturnNotSent",
+            "name": "ReturnNotSent",
+            "description": "Return without sending"
           }
         ],
         "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
@@ -2814,7 +3244,7 @@
             }
           ],
           "fe_metadata": {
-            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id of the executed change\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id of the executed change or saved instructions (ACT-...), or a decided case id (SC-...)\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
             "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
           }
         }
@@ -2824,7 +3254,7 @@
       "id": "flow:open_service_case_flow",
       "data": {
         "name": "open_service_case_flow",
-        "description": "Hand a request that needs a human to the right team: LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
+        "description": "Hand a request that needs a human to the right team (for compensation claims on a damaged, lost or incomplete parcel use open_damage_claim instead): LOST_PARCEL (a parcel that never arrived), DAMAGED_PARCEL (arrived damaged), MISSING_ITEMS (contents missing from the parcel), WRONG_DELIVERY (delivered to the wrong place/person), DELIVERY_COMPLAINT (a complaint about the service) or OTHER. The system routes it and returns CASE_OPENED with case_id, team and reply time. The assistant never decides, promises or predicts compensation or outcomes.",
         "links": [
           {
             "id": 1,
@@ -2860,7 +3290,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "INSERT INTO service_cases (recipient_id, account_ref, tracking_number, request_type, recipient_statement, agent_brief) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_trk AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
@@ -2908,7 +3338,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "4bb3721b-9969-4ae7-95dc-08305802045bINSERT INTO service_cases (recipient_id, account_ref, tracking_number, request_type, recipient_statement, agent_brief) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_trk AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
+                "State": "ffda189a-e86f-4b6e-a6a2-158ccdbab6ceINSERT INTO service_cases (recipient_id, account_ref, tracking_number, request_type, recipient_statement, agent_brief) SELECT * FROM service_case_row(CAST(?w_tok AS text), CAST(?w_type AS text), CAST(?w_trk AS text), CAST(?w_stmt AS text), CAST(?w_brief AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -2953,7 +3383,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
@@ -3030,10 +3460,17 @@
                     "Selected": true,
                     "Parameter": false,
                     "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_by",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "86fdaa83-e7fc-415b-90fa-a86ffcda8944SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
+                "State": "cc40ad9c-594d-4a4c-ba3e-50bd7c0e24f5SELECT * FROM service_case_result(CAST(?r_tok AS text), CAST(?r_type AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -3057,8 +3494,8 @@
                 "output": {
                   "Output": {
                     "type": "json",
-                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_within_business_days\": {\"type\": \"number\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
-                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_within_business_days\": {\"type\": \"number\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_within_business_days\": {\"type\": \"number\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}, \"reply_by\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_within_business_days\": {\"type\": \"number\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}, \"reply_by\": {\"type\": \"string\"}}}}}}"
                   }
                 }
               }
@@ -3127,7 +3564,7 @@
       "id": "flow:get_my_cases_flow",
       "data": {
         "name": "get_my_cases_flow",
-        "description": "List the verified recipient&#39;s open and past service cases with the assigned team and status.",
+        "description": "List the verified recipient&#39;s open and past cases and claims: case id, claim id, request type, parcel, assigned team, status (OPEN, APPROVED, REJECTED), the amount under review, and - once a person has decided - the approved amount, any compensation paid and the customer_message from the team. Use it when the recipient asks about the status of a claim or request.",
         "links": [
           {
             "id": 1,
@@ -3156,7 +3593,7 @@
           {
             "activity": {
               "input": {
-                "Connection": "conn://602dcf37-f018-46d0-baf9-a4722137bc2c",
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
                 "QueryName": "",
                 "Schema": "public",
                 "Query": "SELECT * FROM my_cases(CAST(?tok AS text));",
@@ -3180,6 +3617,13 @@
                   {
                     "FieldName": "case_id",
                     "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "claim_id",
+                    "Type": "VARCHAR",
                     "Selected": true,
                     "Parameter": false,
                     "isEditable": false
@@ -3213,6 +3657,48 @@
                     "isEditable": false
                   },
                   {
+                    "FieldName": "amount_under_review",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "approved_amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "compensation_paid",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "customer_message",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_by",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "decided_on",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
                     "FieldName": "created_at",
                     "Type": "TIMESTAMP",
                     "Selected": true,
@@ -3221,7 +3707,7 @@
                   }
                 ],
                 "RuntimeQuery": "",
-                "State": "8ec9f77d-5df5-4c02-aec2-b539637dc5fdSELECT * FROM my_cases(CAST(?tok AS text));",
+                "State": "2886acae-4357-4c0f-b8a4-6d2e579a8ef8SELECT * FROM my_cases(CAST(?tok AS text));",
                 "input": {
                   "mapping": {
                     "parameters": {
@@ -3244,8 +3730,8 @@
                 "output": {
                   "Output": {
                     "type": "json",
-                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
-                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"claim_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"amount_under_review\": {\"type\": \"number\"}, \"approved_amount\": {\"type\": \"number\"}, \"compensation_paid\": {\"type\": \"number\"}, \"customer_message\": {\"type\": \"string\"}, \"reply_by\": {\"type\": \"string\"}, \"decided_on\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"session_status\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"claim_id\": {\"type\": \"string\"}, \"request_type\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"status\": {\"type\": \"string\"}, \"amount_under_review\": {\"type\": \"number\"}, \"approved_amount\": {\"type\": \"number\"}, \"compensation_paid\": {\"type\": \"number\"}, \"customer_message\": {\"type\": \"string\"}, \"reply_by\": {\"type\": \"string\"}, \"decided_on\": {\"type\": \"string\"}, \"created_at\": {\"type\": \"string\"}}}}}}"
                   }
                 }
               }
@@ -3309,6 +3795,2112 @@
           }
         }
       }
+    },
+    {
+      "id": "flow:open_damage_claim_flow",
+      "data": {
+        "name": "open_damage_claim_flow",
+        "description": "Open a compensation claim for one of the verified recipient&#39;s own parcels that arrived damaged (DAMAGED), arrived with items missing (MISSING_CONTENTS) or never arrived (LOST). Pass the tracking number, the damage_claim_agent&#39;s claim_type, packaging_condition and likely_cause exactly as it returned them, the amount the recipient is claiming (empty = the declared value), the recipient&#39;s own words and the agent&#39;s full answer. The system checks the rules (ownership, delivery status, claim window, one open claim per parcel), caps the claimable amount at the declared value and Swiftbound&#39;s coverage limit, and returns CLAIM_OPENED with claim_id, case_id, team, reply date, the amount under review, why it was capped and the evidence to send; ALREADY_OPEN; or NOT_OPENED with reason_code NOT_FOUND, BAD_CLAIM_TYPE, NOT_DELIVERED_YET, DELIVERED_NOT_LOST, NOT_YET_LOST, RETURNED_TO_SENDER, CLAIM_WINDOW_CLOSED, BAD_AMOUNT or SESSION_INVALID. A person decides the claim and any compensation; never promise an amount.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO damage_claims (parcel_id, recipient_id, claim_type, packaging_condition, cause_category, claimed_amount, declared_value, coverage_limit, eligible_amount, evidence_required, recipient_statement, agent_notes, ignored_terms) SELECT * FROM damage_claim_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_type AS text), CAST(?w_pack AS text), CAST(?w_cause AS text), CAST(?w_amt AS text), CAST(?w_stmt AS text), CAST(?w_notes AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_pack",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_cause",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_amt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_stmt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_notes",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "7c7b07fc-3eee-4aa3-9aa0-13f6a6dac9e7INSERT INTO damage_claims (parcel_id, recipient_id, claim_type, packaging_condition, cause_category, claimed_amount, declared_value, coverage_limit, eligible_amount, evidence_required, recipient_statement, agent_notes, ignored_terms) SELECT * FROM damage_claim_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_type AS text), CAST(?w_pack AS text), CAST(?w_cause AS text), CAST(?w_amt AS text), CAST(?w_stmt AS text), CAST(?w_notes AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_trk": "=$flow.arguments.tracking_number",
+                      "w_type": "=$flow.arguments.claim_type",
+                      "w_pack": "=$flow.arguments.packaging_condition",
+                      "w_cause": "=$flow.arguments.likely_cause",
+                      "w_amt": "=$flow.arguments.claimed_amount",
+                      "w_stmt": "=$flow.arguments.recipient_statement",
+                      "w_notes": "=$flow.arguments.agent_notes"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_type\": {\"type\": \"string\"}, \"w_pack\": {\"type\": \"string\"}, \"w_cause\": {\"type\": \"string\"}, \"w_amt\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}, \"w_notes\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_type\": {\"type\": \"string\"}, \"w_pack\": {\"type\": \"string\"}, \"w_cause\": {\"type\": \"string\"}, \"w_amt\": {\"type\": \"string\"}, \"w_stmt\": {\"type\": \"string\"}, \"w_notes\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM damage_claim_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_type AS text), CAST(?r_amt AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_type",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_amt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "claim_id",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "claim_type",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "assigned_team",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_by",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "claimed_amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "amount_under_review",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "amount_note",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "evidence_to_send",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "next_step",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "2bf64e64-838d-489f-a8e4-87bf6ce64073SELECT * FROM damage_claim_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_type AS text), CAST(?r_amt AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_trk": "=$flow.arguments.tracking_number",
+                      "r_type": "=$flow.arguments.claim_type",
+                      "r_amt": "=$flow.arguments.claimed_amount"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_trk\": {\"type\": \"string\"}, \"r_type\": {\"type\": \"string\"}, \"r_amt\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_trk\": {\"type\": \"string\"}, \"r_type\": {\"type\": \"string\"}, \"r_amt\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"claim_id\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"claim_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_by\": {\"type\": \"string\"}, \"claimed_amount\": {\"type\": \"number\"}, \"amount_under_review\": {\"type\": \"number\"}, \"amount_note\": {\"type\": \"string\"}, \"evidence_to_send\": {\"type\": \"string\"}, \"next_step\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"claim_id\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"claim_type\": {\"type\": \"string\"}, \"assigned_team\": {\"type\": \"string\"}, \"reply_by\": {\"type\": \"string\"}, \"claimed_amount\": {\"type\": \"number\"}, \"amount_under_review\": {\"type\": \"number\"}, \"amount_note\": {\"type\": \"string\"}, \"evidence_to_send\": {\"type\": \"string\"}, \"next_step\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"claim_type\": {\"type\": \"string\"}, \"packaging_condition\": {\"type\": \"string\"}, \"likely_cause\": {\"type\": \"string\"}, \"claimed_amount\": {\"type\": \"string\"}, \"recipient_statement\": {\"type\": \"string\"}, \"agent_notes\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"tracking_number\": {\"type\": \"string\", \"description\": \"The parcel's tracking number, e.g. SB100000000011\"}, \"claim_type\": {\"type\": \"string\", \"description\": \"DAMAGED | MISSING_CONTENTS | LOST (from damage_claim_agent)\"}, \"packaging_condition\": {\"type\": \"string\", \"description\": \"The packaging_condition from damage_claim_agent, exactly as returned\"}, \"likely_cause\": {\"type\": \"string\", \"description\": \"The likely_cause from damage_claim_agent, exactly as returned\"}, \"claimed_amount\": {\"type\": \"string\", \"description\": \"Amount the recipient claims in US dollars, or empty for the declared value\"}, \"recipient_statement\": {\"type\": \"string\", \"description\": \"The recipient's description of the problem, in their own words\"}, \"agent_notes\": {\"type\": \"string\", \"description\": \"damage_claim_agent's full answer, unchanged\"}}, \"required\": [\"session_token\", \"tracking_number\", \"claim_type\", \"packaging_condition\", \"likely_cause\", \"claimed_amount\", \"recipient_statement\", \"agent_notes\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:propose_delivery_instructions_flow",
+      "data": {
+        "name": "propose_delivery_instructions_flow",
+        "description": "Step 1 of 2 to save delivery instructions (safe place, access-code flag, hazards) for one of the verified recipient&#39;s own upcoming parcels. Pass the tracking number, the delivery_instructions_agent&#39;s safe_place, access_code_present, hazards and risk_flags exactly as it returned them, the recipient&#39;s own words and the agent&#39;s full answer. The system checks the safe place against Swiftbound&#39;s list, scans for risky instructions, applies the signature and high-value rules, masks any access code and returns PROPOSED with an action_id and the driver note, or NOT_PROPOSED with reason_code RISKY_INSTRUCTION, SAFE_PLACE_UNKNOWN, SIGNATURE_REQUIRED, HIGH_VALUE_SAFE_PLACE, ALREADY_DELIVERED, REDIRECTED_TO_PICKUP, NOT_FOUND or SESSION_INVALID. Nothing is saved until confirm_delivery_instructions.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO pending_actions (action_type, parcel_id, safe_place, access_code_present, hazards, notes_masked, agent_notes) SELECT * FROM instructions_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_place AS text), CAST(?w_code AS text), CAST(?w_haz AS text), CAST(?w_flags AS text), CAST(?w_text AS text), CAST(?w_notes AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_place",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_haz",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_flags",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_text",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_notes",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "461356af-4efc-4872-94ce-7a3fd11867ebINSERT INTO pending_actions (action_type, parcel_id, safe_place, access_code_present, hazards, notes_masked, agent_notes) SELECT * FROM instructions_proposal_row(CAST(?w_tok AS text), CAST(?w_trk AS text), CAST(?w_place AS text), CAST(?w_code AS text), CAST(?w_haz AS text), CAST(?w_flags AS text), CAST(?w_text AS text), CAST(?w_notes AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_trk": "=$flow.arguments.tracking_number",
+                      "w_place": "=$flow.arguments.safe_place",
+                      "w_code": "=$flow.arguments.access_code_present",
+                      "w_haz": "=$flow.arguments.hazards",
+                      "w_flags": "=$flow.arguments.risk_flags",
+                      "w_text": "=$flow.arguments.instructions_text",
+                      "w_notes": "=$flow.arguments.agent_notes"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_place\": {\"type\": \"string\"}, \"w_code\": {\"type\": \"string\"}, \"w_haz\": {\"type\": \"string\"}, \"w_flags\": {\"type\": \"string\"}, \"w_text\": {\"type\": \"string\"}, \"w_notes\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_trk\": {\"type\": \"string\"}, \"w_place\": {\"type\": \"string\"}, \"w_code\": {\"type\": \"string\"}, \"w_haz\": {\"type\": \"string\"}, \"w_flags\": {\"type\": \"string\"}, \"w_text\": {\"type\": \"string\"}, \"w_notes\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM propose_instructions_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_place AS text), CAST(?r_flags AS text), CAST(?r_text AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_trk",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_place",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_flags",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_text",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "action_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "safe_place",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "safe_place_meaning",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "access_code_present",
+                    "Type": "BOOLEAN",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "hazards",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "driver_note",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "f125987b-baa1-484f-976d-fc1cc8d24f4fSELECT * FROM propose_instructions_result(CAST(?r_tok AS text), CAST(?r_trk AS text), CAST(?r_place AS text), CAST(?r_flags AS text), CAST(?r_text AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_trk": "=$flow.arguments.tracking_number",
+                      "r_place": "=$flow.arguments.safe_place",
+                      "r_flags": "=$flow.arguments.risk_flags",
+                      "r_text": "=$flow.arguments.instructions_text"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_trk\": {\"type\": \"string\"}, \"r_place\": {\"type\": \"string\"}, \"r_flags\": {\"type\": \"string\"}, \"r_text\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_trk\": {\"type\": \"string\"}, \"r_place\": {\"type\": \"string\"}, \"r_flags\": {\"type\": \"string\"}, \"r_text\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"safe_place\": {\"type\": \"string\"}, \"safe_place_meaning\": {\"type\": \"string\"}, \"access_code_present\": {\"type\": \"string\"}, \"hazards\": {\"type\": \"string\"}, \"driver_note\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"safe_place\": {\"type\": \"string\"}, \"safe_place_meaning\": {\"type\": \"string\"}, \"access_code_present\": {\"type\": \"string\"}, \"hazards\": {\"type\": \"string\"}, \"driver_note\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"safe_place\": {\"type\": \"string\"}, \"access_code_present\": {\"type\": \"string\"}, \"hazards\": {\"type\": \"string\"}, \"risk_flags\": {\"type\": \"string\"}, \"instructions_text\": {\"type\": \"string\"}, \"agent_notes\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"tracking_number\": {\"type\": \"string\", \"description\": \"The parcel's tracking number, e.g. SB100000000009\"}, \"safe_place\": {\"type\": \"string\", \"description\": \"The safe_place from delivery_instructions_agent (e.g. SIDE_GATE), or NONE\"}, \"access_code_present\": {\"type\": \"string\", \"description\": \"yes or no, from delivery_instructions_agent\"}, \"hazards\": {\"type\": \"string\", \"description\": \"The hazards line from delivery_instructions_agent (e.g. DOG), or NONE\"}, \"risk_flags\": {\"type\": \"string\", \"description\": \"The risk_flags line from delivery_instructions_agent, or NONE\"}, \"instructions_text\": {\"type\": \"string\", \"description\": \"The recipient's access notes in their own words\"}, \"agent_notes\": {\"type\": \"string\", \"description\": \"delivery_instructions_agent's full answer, unchanged\"}}, \"required\": [\"session_token\", \"tracking_number\", \"safe_place\", \"access_code_present\", \"hazards\", \"risk_flags\", \"instructions_text\", \"agent_notes\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:confirm_delivery_instructions_flow",
+      "data": {
+        "name": "confirm_delivery_instructions_flow",
+        "description": "Step 2 of 2: save delivery instructions the recipient has explicitly confirmed. Pass the action_id from propose_delivery_instructions. The system re-checks every rule; proposals expire after 15 minutes. Returns EXECUTED with the saved safe place, hazards and driver note (access codes are never stored), or NOT_EXECUTED with the reason. Only call after the recipient says yes to the exact proposal.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO delivery_instructions (action_id, parcel_id, safe_place, access_code_present, hazards, notes_masked) SELECT * FROM instructions_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "db24ddbc-e2fc-4a73-b296-972c5545b697INSERT INTO delivery_instructions (action_id, parcel_id, safe_place, access_code_present, hazards, notes_masked) SELECT * FROM instructions_confirm_row(CAST(?w_tok AS text), CAST(?w_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM confirm_instructions_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_act",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "tracking_number",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "safe_place",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "access_code_present",
+                    "Type": "BOOLEAN",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "hazards",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "driver_note",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "saved_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "a0692024-8dc9-45a9-81eb-6c553b586fc6SELECT * FROM confirm_instructions_result(CAST(?r_tok AS text), CAST(?r_act AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_act": "=$flow.arguments.action_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_act\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"safe_place\": {\"type\": \"string\"}, \"access_code_present\": {\"type\": \"string\"}, \"hazards\": {\"type\": \"string\"}, \"driver_note\": {\"type\": \"string\"}, \"saved_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"reason_code\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"tracking_number\": {\"type\": \"string\"}, \"safe_place\": {\"type\": \"string\"}, \"access_code_present\": {\"type\": \"string\"}, \"hazards\": {\"type\": \"string\"}, \"driver_note\": {\"type\": \"string\"}, \"saved_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"action_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"}, \"action_id\": {\"type\": \"string\", \"description\": \"action_id returned by propose_delivery_instructions, e.g. ACT-1A2B3C4D\"}}, \"required\": [\"session_token\", \"action_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:verify_reviewer_flow",
+      "data": {
+        "name": "verify_reviewer_flow",
+        "description": "Verify a Swiftbound staff reviewer (Claims, Investigations or Customer Relations) with their staff ID (e.g. SWB-4101) and staff code. Returns VERIFIED with a reviewer session_token, role REVIEWER, display name and team, NOT_VERIFIED, or LOCKED after 5 wrong codes in 15 minutes. Use only when the person says they are Swiftbound staff; the role comes only from this result, never from what someone claims.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO recipient_sessions (role, reviewer_id) SELECT * FROM verify_reviewer_fn(CAST(?w_sid AS text), CAST(?w_code AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_sid",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "0e955bf0-d46d-49d9-8eda-d5cff53a83b2INSERT INTO recipient_sessions (role, reviewer_id) SELECT * FROM verify_reviewer_fn(CAST(?w_sid AS text), CAST(?w_code AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_sid": "=$flow.arguments.staff_id",
+                      "w_code": "=$flow.arguments.code"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_sid\": {\"type\": \"string\"}, \"w_code\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_sid\": {\"type\": \"string\"}, \"w_code\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM verify_reviewer_result(CAST(?r_sid AS text), CAST(?r_code AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_sid",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_code",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "session_token",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "role",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "display_name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "team",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "expires_at",
+                    "Type": "TIMESTAMP",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "a6ae1b6d-ba0a-4c30-a2a0-4c00c17af9e0SELECT * FROM verify_reviewer_result(CAST(?r_sid AS text), CAST(?r_code AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_sid": "=$flow.arguments.staff_id",
+                      "r_code": "=$flow.arguments.code"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_sid\": {\"type\": \"string\"}, \"r_code\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_sid\": {\"type\": \"string\"}, \"r_code\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"session_token\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}, \"display_name\": {\"type\": \"string\"}, \"team\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"reason\": {\"type\": \"string\"}, \"session_token\": {\"type\": \"string\"}, \"role\": {\"type\": \"string\"}, \"display_name\": {\"type\": \"string\"}, \"team\": {\"type\": \"string\"}, \"expires_at\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"staff_id\": {\"type\": \"string\"}, \"code\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"staff_id\": {\"type\": \"string\", \"description\": \"Swiftbound staff ID, e.g. SWB-4101\"}, \"code\": {\"type\": \"string\", \"description\": \"The staff member's code\"}}, \"required\": [\"staff_id\", \"code\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_review_queue_flow",
+      "data": {
+        "name": "get_review_queue_flow",
+        "description": "List the verified reviewer&#39;s team queue: OPEN cases ordered by reply-due date, with case_id, request, recipient (first name + last initial), opened date, age in days, reply-due date, sla_status (ON_TRACK, DUE_TODAY, OVERDUE) and requested amount. Status EMPTY = no open cases; NOT_REVIEWER = not a reviewer token.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM review_queue(CAST(?tok AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "team",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "request",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "recipient",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "opened_on",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "age_days",
+                    "Type": "INTEGER",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_due",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "sla_status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "requested_amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "a1b4c9ad-41b1-449f-b251-0fec2892b13fSELECT * FROM review_queue(CAST(?tok AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"team\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request\": {\"type\": \"string\"}, \"recipient\": {\"type\": \"string\"}, \"opened_on\": {\"type\": \"string\"}, \"age_days\": {\"type\": \"number\"}, \"reply_due\": {\"type\": \"string\"}, \"sla_status\": {\"type\": \"string\"}, \"requested_amount\": {\"type\": \"number\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"team\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request\": {\"type\": \"string\"}, \"recipient\": {\"type\": \"string\"}, \"opened_on\": {\"type\": \"string\"}, \"age_days\": {\"type\": \"number\"}, \"reply_due\": {\"type\": \"string\"}, \"sla_status\": {\"type\": \"string\"}, \"requested_amount\": {\"type\": \"number\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"}}, \"required\": [\"session_token\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_review_case_flow",
+      "data": {
+        "name": "get_review_case_flow",
+        "description": "Open one case from the reviewer&#39;s team queue: request, status, recipient (first name + last initial), the recipient&#39;s statement, the AI-prepared agent_brief (unverified), requested amount, max_approvable, the reviewer&#39;s own approval limit, facts from Swiftbound&#39;s records (the claim, parcel, declared value, coverage limit, packaging, likely cause, evidence requested, earlier claims) and the decision options. Another team&#39;s case or an unknown id returns NOT_FOUND.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "StartActivity to ReadOutcome"
+          },
+          {
+            "id": 2,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM review_case(CAST(?tok AS text), CAST(?cid AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "cid",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "status",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "request",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "recipient",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "opened_on",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reply_due",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "recipient_statement",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "agent_brief",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "requested_amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "max_approvable",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "your_approval_limit",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "facts",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "options",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "decided_on",
+                    "Type": "DATE",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "decision",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "09485906-e765-4ef9-b282-ee8dfcf75fa1SELECT * FROM review_case(CAST(?tok AS text), CAST(?cid AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "tok": "=$flow.arguments.session_token",
+                      "cid": "=$flow.arguments.case_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"cid\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"tok\": {\"type\": \"string\"}, \"cid\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request\": {\"type\": \"string\"}, \"case_status\": {\"type\": \"string\"}, \"recipient\": {\"type\": \"string\"}, \"opened_on\": {\"type\": \"string\"}, \"reply_due\": {\"type\": \"string\"}, \"recipient_statement\": {\"type\": \"string\"}, \"agent_brief\": {\"type\": \"string\"}, \"requested_amount\": {\"type\": \"number\"}, \"max_approvable\": {\"type\": \"number\"}, \"your_approval_limit\": {\"type\": \"number\"}, \"facts\": {\"type\": \"string\"}, \"options\": {\"type\": \"string\"}, \"decided_on\": {\"type\": \"string\"}, \"decision\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"status\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"request\": {\"type\": \"string\"}, \"case_status\": {\"type\": \"string\"}, \"recipient\": {\"type\": \"string\"}, \"opened_on\": {\"type\": \"string\"}, \"reply_due\": {\"type\": \"string\"}, \"recipient_statement\": {\"type\": \"string\"}, \"agent_brief\": {\"type\": \"string\"}, \"requested_amount\": {\"type\": \"number\"}, \"max_approvable\": {\"type\": \"number\"}, \"your_approval_limit\": {\"type\": \"number\"}, \"facts\": {\"type\": \"string\"}, \"options\": {\"type\": \"string\"}, \"decided_on\": {\"type\": \"string\"}, \"decision\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"}, \"case_id\": {\"type\": \"string\", \"description\": \"Case id from get_review_queue, e.g. SC-00001\"}}, \"required\": [\"session_token\", \"case_id\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:decide_review_case_flow",
+      "data": {
+        "name": "decide_review_case_flow",
+        "description": "Record the reviewer&#39;s decision on a case in their team queue - only after the reviewer explicitly confirmed the restated decision. decision is APPROVE or REJECT; amount is the approved compensation in dollars (empty = the full claimable amount; ignored for REJECT); internal_note is required (at least 5 characters, never shown to the recipient); customer_message is what the recipient will see. Approving a claim pays the compensation through the system&#39;s checks. Returns APPROVED / REJECTED with executed_action, or BLOCKED with reason_code NOT_YOUR_TEAM, ALREADY_DECIDED, NOTE_REQUIRED, AMOUNT_INVALID, OVER_AUTHORITY (case stays open for a senior reviewer), INVALID_DECISION or NOT_FOUND, or NOT_REVIEWER.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "GuardedWrite",
+            "type": "label",
+            "label": "StartActivity to GuardedWrite"
+          },
+          {
+            "id": 2,
+            "from": "GuardedWrite",
+            "to": "ReadOutcome",
+            "type": "label",
+            "label": "GuardedWrite to ReadOutcome"
+          },
+          {
+            "id": 3,
+            "from": "ReadOutcome",
+            "to": "Return",
+            "type": "label",
+            "label": "ReadOutcome to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#act_default_noop"
+            }
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO review_decisions (case_id, reviewer_id, decision, approved_amount, internal_note, customer_message) SELECT * FROM decide_case_row(CAST(?w_tok AS text), CAST(?w_cid AS text), CAST(?w_dec AS text), CAST(?w_amt AS text), CAST(?w_note AS text), CAST(?w_msg AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_cid",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_dec",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_amt",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_note",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_msg",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "0a057052-9d4e-4066-af67-50de1b1a13a1INSERT INTO review_decisions (case_id, reviewer_id, decision, approved_amount, internal_note, customer_message) SELECT * FROM decide_case_row(CAST(?w_tok AS text), CAST(?w_cid AS text), CAST(?w_dec AS text), CAST(?w_amt AS text), CAST(?w_note AS text), CAST(?w_msg AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_tok": "=$flow.arguments.session_token",
+                      "w_cid": "=$flow.arguments.case_id",
+                      "w_dec": "=$flow.arguments.decision",
+                      "w_amt": "=$flow.arguments.amount",
+                      "w_note": "=$flow.arguments.internal_note",
+                      "w_msg": "=$flow.arguments.customer_message"
+                    }
+                  }
+                }
+              },
+              "ref": "#act_postgresql_insert",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_cid\": {\"type\": \"string\"}, \"w_dec\": {\"type\": \"string\"}, \"w_amt\": {\"type\": \"string\"}, \"w_note\": {\"type\": \"string\"}, \"w_msg\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_tok\": {\"type\": \"string\"}, \"w_cid\": {\"type\": \"string\"}, \"w_dec\": {\"type\": \"string\"}, \"w_amt\": {\"type\": \"string\"}, \"w_note\": {\"type\": \"string\"}, \"w_msg\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "GuardedWrite",
+            "name": "GuardedWrite",
+            "description": "PostgreSQL Insert"
+          },
+          {
+            "activity": {
+              "input": {
+                "Connection": "conn://ed0829e0-59ba-486e-be61-8466dd3af6c3",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "SELECT * FROM decide_case_result(CAST(?r_tok AS text), CAST(?r_cid AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "r_tok",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "r_cid",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "outcome",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_id",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "decision",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "approved_amount",
+                    "Type": "NUMERIC",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_code",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "reason_text",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "case_status",
+                    "Type": "VARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "executed_action",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  },
+                  {
+                    "FieldName": "customer_message",
+                    "Type": "LONGVARCHAR",
+                    "Selected": true,
+                    "Parameter": false,
+                    "isEditable": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "5551d75e-4002-4c4a-b7b4-e4d0de352b12SELECT * FROM decide_case_result(CAST(?r_tok AS text), CAST(?r_cid AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "r_tok": "=$flow.arguments.session_token",
+                      "r_cid": "=$flow.arguments.case_id"
+                    }
+                  }
+                },
+                "fetchMetadata": false
+              },
+              "ref": "#act_postgresql_query",
+              "settings": {},
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_cid\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"parameters\": {\"type\": \"object\", \"properties\": {\"r_tok\": {\"type\": \"string\"}, \"r_cid\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"decision\": {\"type\": \"string\"}, \"approved_amount\": {\"type\": \"number\"}, \"reason_code\": {\"type\": \"string\"}, \"reason_text\": {\"type\": \"string\"}, \"case_status\": {\"type\": \"string\"}, \"executed_action\": {\"type\": \"string\"}, \"customer_message\": {\"type\": \"string\"}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"outcome\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"decision\": {\"type\": \"string\"}, \"approved_amount\": {\"type\": \"number\"}, \"reason_code\": {\"type\": \"string\"}, \"reason_text\": {\"type\": \"string\"}, \"case_status\": {\"type\": \"string\"}, \"executed_action\": {\"type\": \"string\"}, \"customer_message\": {\"type\": \"string\"}}}}}}"
+                  }
+                }
+              }
+            },
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "id": "ReadOutcome",
+            "name": "ReadOutcome",
+            "description": "PostgreSQL Query"
+          },
+          {
+            "activity": {
+              "input": {
+                "mappings": []
+              },
+              "ref": "#act_default_actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ReadOutcome].Output)"
+                    }
+                  }
+                }
+              }
+            },
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return"
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"session_token\": {\"type\": \"string\"}, \"case_id\": {\"type\": \"string\"}, \"decision\": {\"type\": \"string\"}, \"amount\": {\"type\": \"string\"}, \"internal_note\": {\"type\": \"string\"}, \"customer_message\": {\"type\": \"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\": \"object\", \"title\": \"ParcelDeliveryMCPServer\", \"properties\": {\"arguments\": {\"type\": \"object\", \"properties\": {\"session_token\": {\"type\": \"string\", \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"}, \"case_id\": {\"type\": \"string\", \"description\": \"Case id, e.g. SC-00001\"}, \"decision\": {\"type\": \"string\", \"description\": \"APPROVE | REJECT\"}, \"amount\": {\"type\": \"string\", \"description\": \"Approved compensation in dollars, or empty for the full claimable amount\"}, \"internal_note\": {\"type\": \"string\", \"description\": \"Reviewer's internal note (required, at least 5 characters; never shown to the recipient)\"}, \"customer_message\": {\"type\": \"string\", \"description\": \"Message the recipient will see with the outcome\"}}, \"required\": [\"session_token\", \"case_id\", \"decision\", \"amount\", \"internal_note\", \"customer_message\"]}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"response\": {\"type\": \"object\", \"properties\": {\"data\": {\"type\": \"string\"}, \"error\": {\"type\": \"string\"}}}}, \"required\": [\"response\"]}"
+          }
+        }
+      }
     }
   ],
   "properties": [
@@ -3335,7 +5927,7 @@
     {
       "name": "PostgreSQL.PostgresConn.Password",
       "type": "string",
-      "value": "SET_YOUR_DB_PASSWORD"
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
     },
     {
       "name": "MCP_SERVER_PORT",
@@ -3345,21 +5937,21 @@
     {
       "name": "Email_Username",
       "type": "string",
-      "value": "your-email@example.com"
+      "value": "sender@example.com"
     },
     {
       "name": "Email_App_Password",
       "type": "string",
-      "value": "SECRET:SET_YOUR_EMAIL_APP_PASSWORD"
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
     },
     {
       "name": "To_Email",
       "type": "string",
-      "value": "your-email@example.com"
+      "value": "recipient@example.com"
     }
   ],
   "connections": {
-    "602dcf37-f018-46d0-baf9-a4722137bc2c": {
+    "ed0829e0-59ba-486e-be61-8466dd3af6c3": {
       "settings": {
         "databaseType": "PostgreSQL",
         "name": "PostgresConn",
@@ -3382,7 +5974,7 @@
         "clientcert": "",
         "clientkey": ""
       },
-      "id": "602dcf37-f018-46d0-baf9-a4722137bc2c",
+      "id": "ed0829e0-59ba-486e-be61-8466dd3af6c3",
       "name": "PostgresConn",
       "ref": "#con_postgresql",
       "isGlobal": false
@@ -3441,8 +6033,8 @@
     },
     "email_confirmation_Args": {
       "type": "json",
-      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id of the executed change\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
-      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id of the executed change\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id of the executed change or saved instructions (ACT-...), or a decided case id (SC-...)\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id of the executed change or saved instructions (ACT-...), or a decided case id (SC-...)\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
     },
     "open_service_case_Args": {
       "type": "json",
@@ -3453,6 +6045,41 @@
       "type": "json",
       "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
       "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    },
+    "open_damage_claim_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The parcel's tracking number, e.g. SB100000000011\"\n    },\n    \"claim_type\": {\n      \"type\": \"string\",\n      \"description\": \"DAMAGED | MISSING_CONTENTS | LOST (from damage_claim_agent)\"\n    },\n    \"packaging_condition\": {\n      \"type\": \"string\",\n      \"description\": \"The packaging_condition from damage_claim_agent, exactly as returned\"\n    },\n    \"likely_cause\": {\n      \"type\": \"string\",\n      \"description\": \"The likely_cause from damage_claim_agent, exactly as returned\"\n    },\n    \"claimed_amount\": {\n      \"type\": \"string\",\n      \"description\": \"Amount the recipient claims in US dollars, or empty for the declared value\"\n    },\n    \"recipient_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The recipient's description of the problem, in their own words\"\n    },\n    \"agent_notes\": {\n      \"type\": \"string\",\n      \"description\": \"damage_claim_agent's full answer, unchanged\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\",\n    \"claim_type\",\n    \"packaging_condition\",\n    \"likely_cause\",\n    \"claimed_amount\",\n    \"recipient_statement\",\n    \"agent_notes\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The parcel's tracking number, e.g. SB100000000011\"\n    },\n    \"claim_type\": {\n      \"type\": \"string\",\n      \"description\": \"DAMAGED | MISSING_CONTENTS | LOST (from damage_claim_agent)\"\n    },\n    \"packaging_condition\": {\n      \"type\": \"string\",\n      \"description\": \"The packaging_condition from damage_claim_agent, exactly as returned\"\n    },\n    \"likely_cause\": {\n      \"type\": \"string\",\n      \"description\": \"The likely_cause from damage_claim_agent, exactly as returned\"\n    },\n    \"claimed_amount\": {\n      \"type\": \"string\",\n      \"description\": \"Amount the recipient claims in US dollars, or empty for the declared value\"\n    },\n    \"recipient_statement\": {\n      \"type\": \"string\",\n      \"description\": \"The recipient's description of the problem, in their own words\"\n    },\n    \"agent_notes\": {\n      \"type\": \"string\",\n      \"description\": \"damage_claim_agent's full answer, unchanged\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\",\n    \"claim_type\",\n    \"packaging_condition\",\n    \"likely_cause\",\n    \"claimed_amount\",\n    \"recipient_statement\",\n    \"agent_notes\"\n  ]\n}"
+    },
+    "propose_delivery_instructions_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The parcel's tracking number, e.g. SB100000000009\"\n    },\n    \"safe_place\": {\n      \"type\": \"string\",\n      \"description\": \"The safe_place from delivery_instructions_agent (e.g. SIDE_GATE), or NONE\"\n    },\n    \"access_code_present\": {\n      \"type\": \"string\",\n      \"description\": \"yes or no, from delivery_instructions_agent\"\n    },\n    \"hazards\": {\n      \"type\": \"string\",\n      \"description\": \"The hazards line from delivery_instructions_agent (e.g. DOG), or NONE\"\n    },\n    \"risk_flags\": {\n      \"type\": \"string\",\n      \"description\": \"The risk_flags line from delivery_instructions_agent, or NONE\"\n    },\n    \"instructions_text\": {\n      \"type\": \"string\",\n      \"description\": \"The recipient's access notes in their own words\"\n    },\n    \"agent_notes\": {\n      \"type\": \"string\",\n      \"description\": \"delivery_instructions_agent's full answer, unchanged\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\",\n    \"safe_place\",\n    \"access_code_present\",\n    \"hazards\",\n    \"risk_flags\",\n    \"instructions_text\",\n    \"agent_notes\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"tracking_number\": {\n      \"type\": \"string\",\n      \"description\": \"The parcel's tracking number, e.g. SB100000000009\"\n    },\n    \"safe_place\": {\n      \"type\": \"string\",\n      \"description\": \"The safe_place from delivery_instructions_agent (e.g. SIDE_GATE), or NONE\"\n    },\n    \"access_code_present\": {\n      \"type\": \"string\",\n      \"description\": \"yes or no, from delivery_instructions_agent\"\n    },\n    \"hazards\": {\n      \"type\": \"string\",\n      \"description\": \"The hazards line from delivery_instructions_agent (e.g. DOG), or NONE\"\n    },\n    \"risk_flags\": {\n      \"type\": \"string\",\n      \"description\": \"The risk_flags line from delivery_instructions_agent, or NONE\"\n    },\n    \"instructions_text\": {\n      \"type\": \"string\",\n      \"description\": \"The recipient's access notes in their own words\"\n    },\n    \"agent_notes\": {\n      \"type\": \"string\",\n      \"description\": \"delivery_instructions_agent's full answer, unchanged\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"tracking_number\",\n    \"safe_place\",\n    \"access_code_present\",\n    \"hazards\",\n    \"risk_flags\",\n    \"instructions_text\",\n    \"agent_notes\"\n  ]\n}"
+    },
+    "confirm_delivery_instructions_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_delivery_instructions, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Session token returned by verify_recipient. Required; never invent one. If a tool answers SESSION_INVALID, ask the recipient to verify again.\"\n    },\n    \"action_id\": {\n      \"type\": \"string\",\n      \"description\": \"action_id returned by propose_delivery_instructions, e.g. ACT-1A2B3C4D\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"action_id\"\n  ]\n}"
+    },
+    "verify_reviewer_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"staff_id\": {\n      \"type\": \"string\",\n      \"description\": \"Swiftbound staff ID, e.g. SWB-4101\"\n    },\n    \"code\": {\n      \"type\": \"string\",\n      \"description\": \"The staff member's code\"\n    }\n  },\n  \"required\": [\n    \"staff_id\",\n    \"code\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"staff_id\": {\n      \"type\": \"string\",\n      \"description\": \"Swiftbound staff ID, e.g. SWB-4101\"\n    },\n    \"code\": {\n      \"type\": \"string\",\n      \"description\": \"The staff member's code\"\n    }\n  },\n  \"required\": [\n    \"staff_id\",\n    \"code\"\n  ]\n}"
+    },
+    "get_review_queue_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"\n    }\n  },\n  \"required\": [\n    \"session_token\"\n  ]\n}"
+    },
+    "get_review_case_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"\n    },\n    \"case_id\": {\n      \"type\": \"string\",\n      \"description\": \"Case id from get_review_queue, e.g. SC-00001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"case_id\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"\n    },\n    \"case_id\": {\n      \"type\": \"string\",\n      \"description\": \"Case id from get_review_queue, e.g. SC-00001\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"case_id\"\n  ]\n}"
+    },
+    "decide_review_case_Args": {
+      "type": "json",
+      "value": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"\n    },\n    \"case_id\": {\n      \"type\": \"string\",\n      \"description\": \"Case id, e.g. SC-00001\"\n    },\n    \"decision\": {\n      \"type\": \"string\",\n      \"description\": \"APPROVE | REJECT\"\n    },\n    \"amount\": {\n      \"type\": \"string\",\n      \"description\": \"Approved compensation in dollars, or empty for the full claimable amount\"\n    },\n    \"internal_note\": {\n      \"type\": \"string\",\n      \"description\": \"Reviewer's internal note (required, at least 5 characters; never shown to the recipient)\"\n    },\n    \"customer_message\": {\n      \"type\": \"string\",\n      \"description\": \"Message the recipient will see with the outcome\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"case_id\",\n    \"decision\",\n    \"amount\",\n    \"internal_note\",\n    \"customer_message\"\n  ]\n}",
+      "fe_metadata": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"session_token\": {\n      \"type\": \"string\",\n      \"description\": \"Reviewer session token returned by verify_reviewer. Required; never invent one. A recipient token does not work here (NOT_REVIEWER).\"\n    },\n    \"case_id\": {\n      \"type\": \"string\",\n      \"description\": \"Case id, e.g. SC-00001\"\n    },\n    \"decision\": {\n      \"type\": \"string\",\n      \"description\": \"APPROVE | REJECT\"\n    },\n    \"amount\": {\n      \"type\": \"string\",\n      \"description\": \"Approved compensation in dollars, or empty for the full claimable amount\"\n    },\n    \"internal_note\": {\n      \"type\": \"string\",\n      \"description\": \"Reviewer's internal note (required, at least 5 characters; never shown to the recipient)\"\n    },\n    \"customer_message\": {\n      \"type\": \"string\",\n      \"description\": \"Message the recipient will see with the outcome\"\n    }\n  },\n  \"required\": [\n    \"session_token\",\n    \"case_id\",\n    \"decision\",\n    \"amount\",\n    \"internal_note\",\n    \"customer_message\"\n  ]\n}"
     }
   }
 }

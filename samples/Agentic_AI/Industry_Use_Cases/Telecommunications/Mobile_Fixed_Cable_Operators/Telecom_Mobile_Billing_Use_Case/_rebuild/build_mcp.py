@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build MobileBillingMCPServer.flogo with fda only (governed: scoped reads + guarded writes).
-Tidewell Mobile billing & roaming assistant ("Nova") - 13 PostgreSQL-backed MCP tools from tool_spec.py.
+Tidewell Mobile billing & roaming assistant ("Nova") - 18 PostgreSQL-backed MCP tools from tool_spec.py (14 customer
+tools + 4 reviewer tools for the human-in-the-loop decision; one server, the role is checked in SQL on every call).
 
 Every tool flow is   [GuardedWrite (#insert ... SELECT * FROM rule_fn)] -> ReadOutcome (#query) -> Return,
 and Return hands ALL readback rows to the MCP caller as {"records":[...]}.
@@ -12,12 +13,20 @@ conditional branch sends the email ONLY when the SQL says send_status == "SEND_O
 Both returns hand back the same readback row. The recipient is the EMAIL_TO app property (demo inbox); the SQL
 decides the content and the reported outcome, so an unauthorised call sends nothing and carries no account data.
 
-Re-run:  python _rebuild/build_mcp.py      (needs the mobile_billing DB; OUT_DIR=<empty dir> to replay).
-On a mid-run failure, delete ONLY MobileBillingMCPServer.flogo and re-run; never touch the other apps."""
-import base64, glob, json, os, subprocess
+Re-run:  python _rebuild/build_mcp.py      (needs the mobile_billing DB; OUT_DIR=<empty dir> to replay; refuses to overwrite).
+Chunked build (keeps each run short): BUILD_TO=<n> builds the project + the first n tools; RESUME_FROM=<n> continues on
+the existing file from tool n (0-based). On a mid-run failure, delete ONLY MobileBillingMCPServer.flogo and re-run."""
+import json, os, subprocess
+os.environ.setdefault("PG_DB", "mobile_billing")
 from fda_common import App, CFG, FDA, USE_CASE_DIR, jtmp, result_columns, setting
 from tool_spec import TOOLS
 
+RESUME_FROM = int(os.environ.get("RESUME_FROM", "0"))
+BUILD_TO = int(os.environ.get("BUILD_TO", str(len(TOOLS))))
+if RESUME_FROM:
+    import fda_common
+    fda_common.App.__init__ = lambda self, filename, out_dir=None: setattr(
+        self, "file", os.path.join(out_dir or USE_CASE_DIR, filename))
 app = App("MobileBillingMCPServer.flogo", os.environ.get("OUT_DIR"))
 f = app.fda
 TRIG, PORT, ENDPOINT, SERVER_NAME = "MobileBillingMCPServer", "9902", "/mobilebillingmcpserver", "MobileBillingMCPServer"
@@ -27,56 +36,37 @@ EMAIL_USER = setting("EMAIL_USERNAME", "Username")
 EMAIL_TO   = os.environ.get("EMAIL_TO") or os.environ.get("TO_EMAIL") or EMAIL_USER
 SMTP_HOST  = os.environ.get("SMTP_HOST") or CFG.get("Server") or "smtp.gmail.com"
 SMTP_PORT  = os.environ.get("SMTP_PORT") or CFG.get("Port") or "465"
-# The #sendmail Password field is password-typed: the designer derives that from a SECRET: prefix, so a plain
-# string property fails validation (wrongTypeProp). fda cannot SECRET-encrypt, so: use a SECRET: value from env/
-# config if there is one, else reuse a live SECRET: blob for the same mailbox from a sibling sample (same plaintext
-# length), else a portable dummy blob (re-enter the password in the designer's App Properties).
+# The #sendmail Password field is password-typed: the designer derives that from a SECRET: prefix, so a plain string
+# property fails validation (wrongTypeProp). fda cannot SECRET-encrypt, so: use a SECRET: value from env if there is
+# one, else a portable dummy blob (re-enter the app password in the designer's App Properties for live sending).
 DUMMY_SECRET = "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
-
-def _secret_len(v):
-    try: return len(base64.b64decode(v[7:])) - 16
-    except Exception: return -1
-
-def email_password():
-    v = os.environ.get("EMAIL_PASSWORD") or CFG.get("Password", "")
-    if v.startswith("SECRET:"): return v, "SECRET: value from env/config"
-    want = len(v)
-    root = USE_CASE_DIR                                   # search every sample under samples/Agentic_AI
-    while os.path.basename(root) != "Agentic_AI" and os.path.dirname(root) != root:
-        root = os.path.dirname(root)
-    if os.path.basename(root) != "Agentic_AI": root = os.path.dirname(USE_CASE_DIR)
-    for fl in sorted(glob.glob(os.path.join(root, "**", "*.flogo"), recursive=True)):
-        try: props = json.load(open(fl, encoding="utf-8")).get("properties", [])
-        except Exception: continue
-        for p in props:
-            pv = str(p.get("value", ""))
-            if p.get("name") == "Email_App_Password" and pv.startswith("SECRET:") and want and _secret_len(pv) == want:
-                return pv, "live SECRET: blob reused from " + os.path.basename(fl)
-    return DUMMY_SECRET, "portable dummy SECRET: blob - re-enter the app password in App Properties"
-
-EMAIL_PASS, EMAIL_PASS_SRC = email_password()
+_pw = os.environ.get("EMAIL_PASSWORD") or ""
+EMAIL_PASS, EMAIL_PASS_SRC = ((_pw, "SECRET: value from env EMAIL_PASSWORD") if _pw.startswith("SECRET:")
+                              else (DUMMY_SECRET, "portable dummy SECRET: blob - re-enter the app password in App Properties"))
 
 print("fda:", FDA)
 print(subprocess.run([FDA, "version"], capture_output=True, text=True).stdout.strip())
 print("email password source:", EMAIL_PASS_SRC)          # never the value itself
 
-print("== project + PostgreSQL ==")
-f("cp", TRIG, "Tidewell Mobile billing MCP Server - scoped reads and guarded writes for verified customers")
-app.postgres_connection()
-f("cap", "MCP_SERVER_PORT", "string", PORT)
-# email properties (used only by email_action_confirmation; scrub before publishing)
-f("cap", "Email_Username", "string", EMAIL_USER)
-f("cap", "Email_App_Password", "string", EMAIL_PASS)
-f("cap", "EMAIL_TO", "string", EMAIL_TO)
+if not RESUME_FROM:
+    print("== project + PostgreSQL ==")
+    f("cp", TRIG, "Tidewell Mobile billing MCP Server - scoped reads, guarded writes and the reviewer loop for verified "
+                  "customers and staff reviewers")
+    app.postgres_connection()
+    f("cap", "MCP_SERVER_PORT", "string", PORT)
+    # email properties (used only by email_action_confirmation; scrub before publishing)
+    f("cap", "Email_Username", "string", EMAIL_USER)
+    f("cap", "Email_App_Password", "string", EMAIL_PASS)
+    f("cap", "EMAIL_TO", "string", EMAIL_TO)
 
-print("== trigger ==")
-f("ct", TRIG, "tr_mcpserver", "Tidewell Mobile governed MCP server")
-f("sa", "trigger", f"{TRIG}.settings.serverType", "HTTP")
-f("sa", "trigger", f"{TRIG}.settings.serverPort", "MCP_SERVER_PORT", "-C", "app-property")
-f("sa", "trigger", f"{TRIG}.settings.serverEndpointPath", ENDPOINT)
-f("sa", "trigger", f"{TRIG}.settings.serverName", SERVER_NAME)
-f("sa", "trigger", f"{TRIG}.settings.serverVersion", "1.0.0")
-f("cs", "ToolResponse", '{"type":"object","properties":{"data":{"type":"string"},"error":{"type":"string"}}}')
+    print("== trigger ==")
+    f("ct", TRIG, "tr_mcpserver", "Tidewell Mobile governed MCP server")
+    f("sa", "trigger", f"{TRIG}.settings.serverType", "HTTP")
+    f("sa", "trigger", f"{TRIG}.settings.serverPort", "MCP_SERVER_PORT", "-C", "app-property")
+    f("sa", "trigger", f"{TRIG}.settings.serverEndpointPath", ENDPOINT)
+    f("sa", "trigger", f"{TRIG}.settings.serverName", SERVER_NAME)
+    f("sa", "trigger", f"{TRIG}.settings.serverVersion", "1.0.0")
+    f("cs", "ToolResponse", '{"type":"object","properties":{"data":{"type":"string"},"error":{"type":"string"}}}')
 
 def sendmail_input():
     return {"Server": SMTP_HOST, "Port": int(SMTP_PORT), "authorizationType": "Basic",
@@ -112,7 +102,7 @@ def branch_email(flow):
     if not any(l["from"] == "SendMail" and l["to"] == "Return" for l in links):
         raise SystemExit(f"FAILED: SendMail -> Return link missing: {links}")
 
-for t in TOOLS:
+for t in TOOLS[RESUME_FROM:BUILD_TO]:
     flow, tool = t["flow"], t["tool"]
     print(f"== tool {tool} ==")
     f("cf", flow, t["desc"])
@@ -163,4 +153,4 @@ for t in TOOLS:
     if t.get("email"):
         f("mm", f"{flow}.ReturnNotSent.input.mappings.response.mapping.data", "=coerce.toString($activity[ReadOutcome].Output)")
 
-print("\nMCP server build complete:", app.file)
+print(f"\nMCP server build {'complete' if BUILD_TO >= len(TOOLS) else 'paused after tool ' + str(BUILD_TO)}:", app.file)

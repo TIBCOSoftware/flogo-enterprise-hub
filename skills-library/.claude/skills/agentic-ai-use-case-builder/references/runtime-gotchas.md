@@ -109,11 +109,42 @@ clear, open the case right away", and the test tolerates either path.
 The AI Agent trigger (`#agent` / `tr_agent`) starts its A2A server, with the port and the agent card,
 **only when the trigger has at least one handler of type `Tool`**. With zero handlers it logs
 `Local Agent [...] started`, never listens on its port, and the orchestrator can't reach it. Design-time
-checks pass. So a "pure reasoning" agent still needs one tool: give every reasoning agent **one harmless,
-identity-free, no-parameter tool** that returns static reference text (a glossary of the columns or codes
-in its input, no database connection, no customer data), and tell its prompt to call it **at most once**,
-only if something in its input is unclear. Give each agent its own port property. The multi-agent
-template is
-`samples/Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/_rebuild/build_agents.py`
-(three agents, one reference tool and one port each). Validator G10 rejects an A2A Server agent trigger
-with no Tool handler, and duplicate agent ports within one app.
+checks pass. So a "pure reasoning" agent still needs one tool.
+
+**The remedy is a PostgreSQL reference tool.** Give every reasoning agent **one identity-free, read-only
+tool** whose flow is `#act_postgresql_query` → `#actreturn`, running
+`SELECT * FROM ref_<topic>(CAST(?lookup AS text))` over a section / term / meaning table that holds **no
+personal data** (no names, people or account ids, emails, phones, tokens, case ids or customer free text).
+The Agents app gets a PostgreSQL connection (same server, database and user as the MCP server) for this
+read only. A static `#noop` → `#actreturn` text is no longer accepted (validator G10 rejects it). The SQL
+shapes and the fda recipe are in [governed-patterns.md](governed-patterns.md), §8 "Agent reference tools
+(PostgreSQL)".
+
+- **The agent still never gets identity or scoped customer data.** It has no session token and no
+  scoped-read tool. Its working data still comes only from the orchestrator's **minimised** A2A message,
+  and the database connection reaches reference tables only. The model can supply just the optional lookup
+  word, never the SQL.
+- **Name the placeholder `?lookup`, not `?term`.** A placeholder named like a result column (`term`) gives
+  duplicate `Fields` entries in the PostgreSQL activity. The tool argument is still called `term`
+  (`lookup = $flow.toolParams.term`).
+- **An agent skips its tool when its prompt already holds the facts.** One sample scored 8/18 in the A2A
+  smoke test for this reason. Make at least one part of each agent's reply depend on text **only the table**
+  holds: a standard sentence copied verbatim, a JSON key or field rule only the guide can fill, the
+  plain-words meaning of codes. Then **remove** those facts from the prompt. Keep the prompt rule "call it
+  at most once, and only when your input needs it", with the need spelled out ("your input normally needs
+  it: …").
+- **Ask for "meaning text, not code".** Write "the meaning text of the guide's X row, not its code". Asking
+  for "the guide's X phrase" makes the model copy the term or code.
+- **UNION existing lists rather than copying them.** If the list already lives in a table (a high-alert flag,
+  the case-routing team and SLA, a catalogue's replacement part), `UNION ALL` it into the `ref_<topic>()`
+  function so there is one source of truth. UNION only the public facts the agent needs, not a large catalogue
+  it must not rank from.
+- **Keep each guide to about 20–35 rows.** Agents send `term=""` (the whole guide) almost every time, so the
+  whole guide is what lands in the context.
+
+Give each agent its own port property. The multi-agent template is
+`samples/Agentic_AI/Industry_Use_Cases/Healthcare_Life_Sciences/Providers_Health_Systems/Hospital_Post_Discharge_Care_Use_Case/`
+(`database.sql` `ref_match` + `ref_*`, `_rebuild/tool_spec.py` `AGENT_REF_TOOLS`, `_rebuild/build_agents.py`:
+three agents, one PostgreSQL reference tool and one port each). Validator G10 rejects an A2A Server agent
+trigger with no Tool handler, a tool flow with no PostgreSQL `SELECT` (static text), an agent tool that writes
+or reads identity, and duplicate agent ports within one app.

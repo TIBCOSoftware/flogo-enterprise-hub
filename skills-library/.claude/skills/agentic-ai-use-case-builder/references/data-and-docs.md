@@ -27,6 +27,9 @@ relative to the including file, so run `psql` from any folder.)
 - Lookup tables for each MCP read tool (profile, transactions/invoices, line items, usage, catalog,
   history, …) and **write-target tables** for each A2A agent (e.g. a `disputes`/`tickets`/`orders`
   table the agent inserts into; a log table).
+- **Agent reference tables:** one section / term / meaning table plus a `ref_<topic>()` function per A2A
+  reasoning agent, with no personal data, read by the agent's one tool ([governed-patterns.md](governed-patterns.md) §8).
+  Seed them in `seed_data.sql` and add them to the DROP list and the reset TRUNCATE.
 - Money → `NUMERIC(10,2)`; measures → `NUMERIC(6,2)`; use `CHECK` constraints for enums; add indexes
   on the identifier + foreign keys.
 - **Engineer the demo data around the scenarios.** For each capability create at least:

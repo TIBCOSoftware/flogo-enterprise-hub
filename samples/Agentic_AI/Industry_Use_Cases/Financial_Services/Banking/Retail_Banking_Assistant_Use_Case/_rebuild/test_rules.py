@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Step 1: run the EXACT tool SQL from tool_spec.py against the banking_governed DB and assert the business rules.
-No Flogo needed. Re-loads reset_data.sql first and again at the end.
+"""Step 1: run the EXACT tool SQL from tool_spec.py against the banking_governed DB and assert the business rules -
+identity, scoping, two-step card blocks / disputes / payments, the scam bands, the routed cases, the full reviewer loop
+(every reason code, parked actions executed on approval), minimum-necessary outputs, and the A2A agents' read-only
+reference tools. No Flogo needed. Re-loads reset_data.sql first and again at the end.
 
   PG_PWD=<password> PG_DB=banking_governed python _rebuild/test_rules.py     (PSQL env var overrides the psql path)
 """
-import os, re, subprocess, sys, csv, io
+import os, re, subprocess, sys, csv, io, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tool_spec import TOOLS, LOOKUP_MERCHANT
+from tool_spec import (TOOLS, LOOKUP_MERCHANT, AGENT_REF_TOOLS, GUIDE_TOOLS, REF_COLUMNS, HIDDEN_COLUMNS,
+                       HIDDEN_FROM_REVIEWER, REVIEWER_TOOLS, PUBLIC_TOOLS)
 
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # psql + password lookup (cross-platform): env PSQL > config.md PSQL_PATH > psql on PATH;
@@ -38,7 +41,8 @@ BASE = [PSQL, "-h", os.environ.get("PG_HOST", "localhost"), "-p", os.environ.get
         "-U", os.environ.get("PG_USER", "postgres"),
         "-d", os.environ.get("PG_DB", "banking_governed"), "-v", "ON_ERROR_STOP=1", "-q"]
 T = {t["tool"]: t for t in TOOLS}
-fails = 0
+fails = passes = 0
+OUTPUTS = []          # (tool, rows) for the hidden-column scans
 
 def lit(v):
     return "'" + str(v).replace("'", "''") + "'"
@@ -63,17 +67,20 @@ def call(tool, **args):
     t = T[tool]
     if "write" in t:
         psql(sub(*t["write"], args))
-    return psql(sub(*t["read"], args))
+    rows = psql(sub(*t["read"], args))
+    OUTPUTS.append((tool, rows))
+    return rows
 
 def check(label, cond, detail=""):
-    global fails
-    print(("PASS " if cond else "FAIL ") + label + ("" if cond else f"  -> {detail}"))
+    global fails, passes
+    print((("PASS " if cond else "FAIL ") + label + ("" if cond else f"  -> {detail}")).encode("ascii", "replace").decode())
     fails += 0 if cond else 1
+    passes += 1 if cond else 0
 
 subprocess.run(BASE + ["-f", os.path.join(DIR, "reset_data.sql")], check=True, env=ENV, capture_output=True)
 
 # ---- static contract of tool_spec (governance shape) ----
-check("13 MCP tools", len(TOOLS) == 13, [t["tool"] for t in TOOLS])
+check("20 MCP tools (16 customer + 4 reviewer)", len(TOOLS) == 20 and len(REVIEWER_TOOLS & set(T)) == 4, [t["tool"] for t in TOOLS])
 for t in TOOLS:
     for part in ("write", "read"):
         if part not in t:
@@ -87,8 +94,8 @@ for t in TOOLS:
             ok = ok and re.match(r"INSERT INTO \w+ \([^)]*\) SELECT (\*|customer_id) FROM \w+\(", sql) is not None
         check(f"{t['tool']}.{part}: CAST-wrapped unique placeholders, no VALUES, no audit", ok, sql)
 check("find_branch takes no session_token", [a for a, _ in T["find_branch"]["args"]] == ["city"])
-check("every other tool except verify takes session_token",
-      all(t["args"][0][0] == "session_token" for t in TOOLS if t["tool"] not in ("verify_customer", "find_branch")))
+check("every other tool except the two verify tools takes session_token",
+      all(t["args"][0][0] == "session_token" for t in TOOLS if t["tool"] not in PUBLIC_TOOLS))
 
 # ---- identity ----
 r = call("verify_customer", customer_id="CUST-2026-00101", passcode="000000")
@@ -103,7 +110,7 @@ sophia = call("verify_customer", customer_id="CUST-2026-00104", passcode="559371
 benjamin = call("verify_customer", customer_id="CUST-2026-00105", passcode="204867")[0]["session_token"]
 emma = call("verify_customer", customer_id="CUST-2026-00106", passcode="918342")[0]["session_token"]
 michael = call("verify_customer", customer_id="CUST-2026-00107", passcode="377150")[0]["session_token"]
-check("all 7 seeded passcodes verify", all([james, olivia, william, sophia, benjamin, emma, michael]))
+check("all 7 original seeded passcodes verify", all([james, olivia, william, sophia, benjamin, emma, michael]))
 r = call("verify_customer", customer_id="CUST-2026-99999", passcode="482913")
 check("unknown customer id -> NOT_VERIFIED", r[0]["status"] == "NOT_VERIFIED" and not r[0]["session_token"], r)
 check("unknown id is not tracked in verify_attempts",
@@ -113,7 +120,7 @@ check("James's passcode does not open Sophia", r[0]["status"] == "NOT_VERIFIED",
 
 # ---- SESSION_INVALID on every scoped tool ----
 for t in TOOLS:
-    if t["tool"] in ("verify_customer", "find_branch"):
+    if t["tool"] in PUBLIC_TOOLS or t["tool"] in REVIEWER_TOOLS:
         continue
     args = {a: "x" for a, _ in t["args"]}
     args["session_token"] = "not-a-token"
@@ -345,7 +352,8 @@ check("James does not see Sophia's dispute", "DSP-2026-0001" not in refs, refs.k
 r = call("get_my_cases", session_token=sophia)
 check("Sophia sees seeded DSP-2026-0001 OPEN", any(x["reference_id"] == "DSP-2026-0001" and x["status"] == "OPEN" for x in r), r)
 r = call("get_my_cases", session_token=michael)
-check("Michael has no cases (OK, empty)", r[0]["session_status"] == "OK" and not r[0]["reference_id"], r)
+check("Michael sees only his own seeded fee-refund case (CASE-00004, OPEN)",
+      [(x["reference_id"], x["status"]) for x in r] == [("CASE-00004", "OPEN")] and r[0]["session_status"] == "OK", r)
 
 # ---- email confirmation (guarded) ----
 def mail(tok, ref):
@@ -364,6 +372,296 @@ check("email NOT_SENT for James's block from Sophia", e["send_status"] == "NOT_S
 e = mail(james, "ACT-00000000")
 check("email NOT_SENT for a non-reference", e["send_status"] == "NOT_SENT" and e["reason_code"] == "NO_SUCH_REFERENCE", e)
 check("email SEND for Sophia's seeded dispute", mail(sophia, "DSP-2026-0001")["send_status"] == "SEND")
+check("email_log: exactly the 3 SEND requests were logged (guarded write)", one("SELECT count(*) FROM email_log") == "3")
+N_EMAIL_SENT = int(one("SELECT count(*) FROM email_log"))
+
+# ---- payees + payments to saved payees (scam protection: agent signals validated + banded in SQL) ----
+patricia = call("verify_customer", customer_id="CUST-2026-00108", passcode="641205")[0]["session_token"]
+check("Patricia (CUST-2026-00108) verifies", bool(patricia))
+r = call("get_my_payees", session_token=patricia)
+check("Patricia sees only her 2 payees; the 'secure holding' payee is new, the landlord is not",
+      {x["payee_id"]: x["is_new_payee"] for x in r} == {"PYE-0101": "f", "PYE-0102": "t"} and r[0]["session_status"] == "OK", r)
+r = call("get_my_payees", session_token=james)
+check("James has no saved payees (OK, empty)", r[0]["session_status"] == "OK" and not r[0]["payee_id"], r)
+
+def pay(tok, acct, payee, amt, story="", ind="NONE", score="0", notes=""):
+    return call("propose_payment", session_token=tok, from_account=acct, payee=payee, amount=amt, customer_story=story,
+                scam_indicators=ind, narrative_score=score, agent_notes=notes)[0]
+def cpay(tok, pid, ack="NO"):
+    return call("confirm_payment", session_token=tok, payment_id=pid, acknowledge_warning=ack)[0]
+def bal(acct): return one(f"SELECT available_balance FROM accounts WHERE account_id = {lit(acct)}")
+
+n_req = one("SELECT count(*) FROM payment_requests")
+check("another customer's payee -> PAYEE_NOT_FOUND", pay(james, "ACC-1001", "PYE-0102", "100")["reason_code"] == "PAYEE_NOT_FOUND")
+check("another customer's account -> ACCOUNT_NOT_FOUND", pay(patricia, "ACC-1001", "PYE-0101", "100")["reason_code"] == "ACCOUNT_NOT_FOUND")
+check("a credit account cannot pay a payee -> ACCOUNT_NOT_FOUND", pay(olivia, "ACC-1004", "PYE-0101", "10")["reason_code"] == "ACCOUNT_NOT_FOUND")
+check("negative amount -> BAD_AMOUNT", pay(patricia, "ACC-1013", "PYE-0101", "-5")["reason_code"] == "BAD_AMOUNT")
+check("text amount -> BAD_AMOUNT", pay(patricia, "ACC-1013", "PYE-0101", "lots")["reason_code"] == "BAD_AMOUNT")
+check("more than the available balance -> INSUFFICIENT_FUNDS", pay(patricia, "ACC-1013", "PYE-0101", "5000")["reason_code"] == "INSUFFICIENT_FUNDS")
+check("'savings' resolves the account; $12,000 -> OVER_DAILY_LIMIT", pay(patricia, "savings", "PYE-0101", "12000")["reason_code"] == "OVER_DAILY_LIMIT")
+check("no payment request written by any refused proposal", one("SELECT count(*) FROM payment_requests") == n_req)
+
+# deterministic floor + validation, straight from the SQL (no request written)
+fl = psql("SELECT * FROM scam_assessment('CUST-2026-00108', 'ACC-1014', 'PYE-0102', 9500, '', '0')")[0]
+check("floor: with NO agent indicators and score 0, the safe-account payment is still MEDIUM (new payee, first PERSON payee, unusual amount)",
+      fl["risk_band"] == "MEDIUM" and fl["signals"] == "NEW_PAYEE, FIRST_PAYEE_TYPE, AMOUNT_UNUSUAL", fl)
+va = psql("SELECT * FROM scam_assessment('CUST-2026-00106', 'ACC-1009', 'PYE-0201', 100, 'TOTALLY_SAFE, safe_account; none', '250')")[0]
+check("indicator names are validated against the guide (unknown recorded + ignored) and the score is clamped to 100",
+      va["narrative_indicators"] == "SAFE_ACCOUNT" and va["ignored_indicators"] == "TOTALLY_SAFE" and va["narrative_score"] == "100", va)
+check("a non-numeric narrative score counts as 0",
+      psql("SELECT * FROM scam_assessment('CUST-2026-00106', 'ACC-1009', 'PYE-0201', 100, 'NONE', 'very high')")[0]["narrative_score"] == "0")
+
+# MEDIUM: Emma, new crypto-exchange payee + an investment promise -> a warning she must acknowledge
+m = pay(emma, "ACC-1009", "PYE-0202", "1500", "A friend showed me a crypto investment that returns 20 percent a month, so I want to put in 1,500.",
+        "INVESTMENT_PROMISE", "55", "indicators: INVESTMENT_PROMISE")
+check("new crypto payee + investment promise -> PROPOSED_WITH_WARNING with the SQL warning text",
+      m["outcome"] == "PROPOSED_WITH_WARNING" and m["payment_id"] and "never ask you to move money" in (m["warning_text"] or ""), m)
+row = psql(f"SELECT risk_band, risk_points, warning_required, status FROM payment_requests WHERE payment_id = {lit(m['payment_id'])}")[0]
+check("DB: MEDIUM band (6 points), warning required, PROPOSED", row == {"risk_band": "MEDIUM", "risk_points": "6",
+      "warning_required": "t", "status": "PROPOSED"}, row)
+r = cpay(emma, m["payment_id"], "NO")
+check("confirm without acknowledging the warning -> WARNING_NOT_ACKNOWLEDGED, nothing sent",
+      r["outcome"] == "NOT_SENT" and r["reason_code"] == "WARNING_NOT_ACKNOWLEDGED"
+      and one(f"SELECT count(*) FROM payment_sends WHERE payment_id = {lit(m['payment_id'])}") == "0", r)
+r = cpay(emma, m["payment_id"], "yes")
+check("confirm after acknowledging -> SENT", r["outcome"] == "SENT" and r["reason_code"] == "SENT", r)
+check("DB: 1,500 debit posted to ACC-1009 (5,600 -> 4,100) and the payee's last-paid date set",
+      bal("ACC-1009") == "4100.00" and one("SELECT count(*) FROM transactions WHERE account_id='ACC-1009' AND descriptor='PAYMENT TO APEX COIN EXCHANGE' "
+                                           "AND txn_type='DEBIT' AND status='POSTED' AND amount=1500") == "1"
+      and one("SELECT last_paid_at IS NOT NULL FROM payees WHERE payee_id='PYE-0202'") == "t")
+
+# LOW: Emma's monthly rent to her known landlord -> plain two-step
+e1 = pay(emma, "ACC-1009", "PYE-0201", "1850.00", "Paying my monthly rent to my landlord as usual.", "NONE", "5", "indicators: NONE")
+check("rent to a known landlord -> PROPOSED (LOW), no warning", e1["outcome"] == "PROPOSED" and e1["payment_id"] and not e1["warning_text"], e1)
+check("DB: LOW band, no deterministic signals", psql(f"SELECT risk_band, signals FROM payment_requests WHERE payment_id = {lit(e1['payment_id'])}")[0]
+      == {"risk_band": "LOW", "signals": ""})
+check("re-propose idempotent (same payment_id)", pay(emma, "ACC-1009", "PYE-0201", "1850")["payment_id"] == e1["payment_id"])
+check("nothing sent before the confirm", one(f"SELECT count(*) FROM payment_sends WHERE payment_id = {lit(e1['payment_id'])}") == "0"
+      and bal("ACC-1009") == "4100.00")
+check("confirm by another customer -> NO_SUCH_PAYMENT", cpay(james, e1["payment_id"])["reason_code"] == "NO_SUCH_PAYMENT")
+check("confirm a bogus id -> NO_SUCH_PAYMENT", cpay(emma, "PAY-99999")["reason_code"] == "NO_SUCH_PAYMENT")
+c1 = cpay(emma, e1["payment_id"].lower())
+check("confirm -> SENT, balance after 2,250.00", c1["outcome"] == "SENT" and c1["available_balance_after"] == "2250.00", c1)
+c2 = cpay(emma, e1["payment_id"])
+check("re-confirm -> ALREADY_SENT, one send row", c2["reason_code"] == "ALREADY_SENT"
+      and one(f"SELECT count(*) FROM payment_sends WHERE payment_id = {lit(e1['payment_id'])}") == "1", c2)
+e3 = pay(emma, "ACC-1009", "PYE-0201", "100", "Topping up the deposit.", "NONE", "0")
+psql(f"UPDATE payment_requests SET expires_at = now() - interval '1 minute' WHERE payment_id = {lit(e3['payment_id'])}")
+check("expired payment proposal -> EXPIRED, nothing sent", cpay(emma, e3["payment_id"])["reason_code"] == "EXPIRED"
+      and bal("ACC-1009") == "2250.00")
+
+# HIGH: Patricia's 'safe account' story -> HELD + a Fraud Operations case (the customer never sees the score)
+STORY = ("Someone from Kestrel's fraud team called and said my account is compromised. He said to move my savings to a "
+         "safe account they set up for me, and not to tell anyone at the branch because staff might be involved.")
+NOTES = ("indicators: SAFE_ACCOUNT, IMPERSONATION, SECRECY, URGENCY\nnarrative_score: 90\nreviewer_steps: Call the customer "
+         "back on the phone number on file, explain that no bank uses safe accounts, and ask whether anyone told them to move the money.")
+h = pay(patricia, "ACC-1014", "PYE-0102", "9500", STORY, "SAFE_ACCOUNT, IMPERSONATION, SECRECY, URGENCY", "90", NOTES)
+check("safe-account story -> HELD_FOR_REVIEW with case id, Fraud Operations and a reply date",
+      h["outcome"] == "HELD_FOR_REVIEW" and re.fullmatch(r"CASE-\d{5}", h["case_id"] or "") and h["team"] == "Fraud Operations"
+      and h["reply_by"], h)
+check("the customer-facing hold message never mentions a score, band, points or indicators",
+      not re.search(r"score|band|points|indicator", (h["reason"] or "").lower()) and "never ask you to move money" in h["reason"], h["reason"])
+hr = psql(f"SELECT status, risk_band, risk_points, signals, narrative_indicators, case_id FROM payment_requests WHERE payment_id = {lit(h['payment_id'])}")[0]
+check("DB: request HELD, HIGH (21 points), linked to the case", hr["status"] == "HELD" and hr["risk_band"] == "HIGH"
+      and hr["risk_points"] == "21" and hr["case_id"] == h["case_id"], hr)
+hc = psql(f"SELECT request_type, assigned_team, requested_amount, parked_action, agent_brief, status FROM service_cases WHERE case_id = {lit(h['case_id'])}")[0]
+check("DB: PAYMENT_HOLD case -> Fraud Operations, parked RELEASE_PAYMENT, requested 9,500, brief carries indicators + signals + agent notes",
+      hc["request_type"] == "PAYMENT_HOLD" and hc["assigned_team"] == "Fraud Operations" and hc["requested_amount"] == "9500.00"
+      and hc["parked_action"] == "RELEASE_PAYMENT:" + h["payment_id"] and hc["status"] == "OPEN"
+      and "SAFE_ACCOUNT" in hc["agent_brief"] and "NEW_PAYEE" in hc["agent_brief"] and "no bank uses safe accounts" in hc["agent_brief"], hc)
+check("DB: nothing left the savings account (24,000.00), no send row", bal("ACC-1014") == "24000.00"
+      and one(f"SELECT count(*) FROM payment_sends WHERE payment_id = {lit(h['payment_id'])}") == "0")
+check("confirming a held payment -> HELD_FOR_REVIEW", cpay(patricia, h["payment_id"], "YES")["reason_code"] == "HELD_FOR_REVIEW")
+h2 = pay(patricia, "ACC-1014", "PYE-0102", "9500", STORY, "NONE", "0")
+check("re-proposing the held payment (even without indicators) -> the same HELD request, no second case",
+      h2["payment_id"] == h["payment_id"] and h2["outcome"] == "HELD_FOR_REVIEW"
+      and one("SELECT count(*) FROM service_cases WHERE customer_id='CUST-2026-00108'") == "1", h2)
+h3 = pay(patricia, "ACC-1013", "PYE-0102", "200", "Just a small first payment.", "NONE", "0")
+check("any other payment to a payee on hold is HELD too (PAYEE_ON_HOLD)", h3["outcome"] == "HELD_FOR_REVIEW"
+      and "PAYEE_ON_HOLD" in one(f"SELECT signals FROM payment_requests WHERE payment_id = {lit(h3['payment_id'])}"), h3)
+check("audit: PAYMENT_PROPOSED / PAYMENT_HELD / PAYMENT_SENT rows",
+      int(one("SELECT count(*) FROM agent_audit WHERE action='PAYMENT_HELD'")) == 2
+      and int(one("SELECT count(*) FROM agent_audit WHERE action='PAYMENT_SENT'")) == 2
+      and int(one("SELECT count(*) FROM agent_audit WHERE action='PAYMENT_PROPOSED'")) >= 5)
+
+# ---- open_service_case parks the action a person could approve (derived in SQL) ----
+k = psql("SELECT requested_amount, parked_action FROM service_cases WHERE customer_id='CUST-2026-00102' AND request_type='FEE_REFUND'")
+check("Olivia's FEE_REFUND (no reference) parked her latest unrefunded fee: FEE_REFUND:TXN-50010, $35",
+      k == [{"requested_amount": "35.00", "parked_action": "FEE_REFUND:TXN-50010"}], k)
+k = psql("SELECT requested_amount, parked_action FROM service_cases WHERE customer_id='CUST-2026-00105' AND request_type='LOAN_HARDSHIP'")
+check("Benjamin's LOAN_HARDSHIP parked a 3-payment deferral of his only loan: LOAN_DEFERRAL:LOAN-3003, $2,436.99",
+      k == [{"requested_amount": "2436.99", "parked_action": "LOAN_DEFERRAL:LOAN-3003"}], k)
+r = call("open_service_case", session_token=james, request_type="FEE_REFUND", customer_statement="Refund this.",
+         brief="Fee refund request.", reference_id="TXN-50010")[0]
+check("FEE_REFUND with another customer's fee -> NOT_OPENED BAD_REFERENCE", r["outcome"] == "NOT_OPENED" and r["reason_code"] == "BAD_REFERENCE", r)
+r = call("open_service_case", session_token=james, request_type="LOAN_HARDSHIP", customer_statement="I can't pay.",
+         brief="Hardship.", reference_id="LOAN-3003")[0]
+check("LOAN_HARDSHIP with another customer's loan -> BAD_REFERENCE", r["reason_code"] == "BAD_REFERENCE", r)
+r = call("open_service_case", session_token=james, request_type="FEE_REFUND", customer_statement="Refund my groceries.",
+         brief="n/a", reference_id="TXN-50002")[0]
+check("FEE_REFUND on a non-fee transaction -> BAD_REFERENCE", r["reason_code"] == "BAD_REFERENCE", r)
+r = call("open_service_case", session_token=james, request_type="PAYMENT_HOLD", customer_statement="Hold it.", brief="n/a")[0]
+check("PAYMENT_HOLD is not customer-openable -> BAD_TYPE", r["reason_code"] == "BAD_TYPE", r)
+r = call("open_service_case", session_token=olivia, request_type="LOAN_HARDSHIP", customer_statement="Still on leave.",
+         brief="Hardship follow-up.", reference_id="LOAN-3002")[0]
+check("Olivia asks again about her seeded open hardship case -> ALREADY_OPEN (same case, no new one)",
+      r["outcome"] == "ALREADY_OPEN" and r["case_id"] == "CASE-00003"
+      and one("SELECT count(*) FROM service_cases WHERE customer_id='CUST-2026-00102' AND request_type='LOAN_HARDSHIP'") == "1", r)
+check("every case has a reply-due time from the routing table", one("SELECT count(*) FROM service_cases WHERE sla_due_at IS NULL") == "0")
+
+# ---- reviewer identity (same token mechanism, role checked everywhere) ----
+def vrev(staff, code): return call("verify_reviewer", staff_id=staff, code=code)[0]
+r = vrev("KST-7001", "000000")
+check("reviewer wrong code -> NOT_VERIFIED, no token", r["status"] == "NOT_VERIFIED" and not r["session_token"], r)
+r = vrev("KST-7001", "482913")
+check("a customer passcode is not a staff code -> NOT_VERIFIED", r["status"] == "NOT_VERIFIED", r)
+r = vrev("CUST-2026-00101", "482913")
+check("a customer id cannot verify as staff -> NOT_VERIFIED", r["status"] == "NOT_VERIFIED" and not r["session_token"], r)
+r = vrev("kst 7001", "246810")
+check("Maya (staff id typed loosely) -> VERIFIED, role REVIEWER, Customer Care", r["status"] == "VERIFIED" and r["role"] == "REVIEWER"
+      and r["team"] == "Customer Care" and r["display_name"] == "Maya Chen" and r["session_token"], r)
+maya = r["session_token"]
+daniel = vrev("KST-7002", "135790")["session_token"]
+priya = vrev("7003", "864209")["session_token"]
+check("Daniel and Priya verify", bool(daniel) and bool(priya))
+check("a reviewer token is not a customer token (get_my_accounts -> SESSION_INVALID)",
+      call("get_my_accounts", session_token=maya)[0]["session_status"] == "SESSION_INVALID")
+check("a customer token is not a reviewer token (queue -> NOT_REVIEWER)", call("get_review_queue", session_token=james)[0]["status"] == "NOT_REVIEWER")
+check("bogus token on get_review_case -> NOT_REVIEWER", call("get_review_case", session_token="x", case_id="CASE-00004")[0]["status"] == "NOT_REVIEWER")
+
+# ---- queues are scoped to the reviewer's team, ordered by reply-due time ----
+def queue(tok): return call("get_review_queue", session_token=tok)
+TEAM = {x["request_type"]: x["team"] for x in psql("SELECT request_type, team FROM service_teams")}
+for who, tok, team in (("Maya", maya, "Customer Care"), ("Daniel", daniel, "Financial Support"), ("Priya", priya, "Fraud Operations")):
+    qq = queue(tok)
+    ids = [x["case_id"] for x in qq]
+    db = [x["case_id"] for x in psql("SELECT s.case_id FROM service_cases s JOIN service_teams t USING (request_type) "
+                                     f"WHERE t.team = {lit(team)} AND s.status = 'OPEN' ORDER BY s.sla_due_at, s.case_id")]
+    check(f"{who}'s queue = exactly {team}'s OPEN cases, ordered by reply-due ({len(ids)})", ids == db and len(ids) >= 2 and qq[0]["status"] == "OK", (ids, db))
+qm = {x["case_id"]: x for x in queue(maya)}
+check("queue row: first name + last initial only, SLA status, requested amount",
+      qm["CASE-00004"]["customer"] == "Michael B." and qm["CASE-00004"]["requested_amount"] == "29.00"
+      and qm["CASE-00004"]["sla_status"] in ("ON_TRACK", "DUE_TODAY", "OVERDUE"), qm.get("CASE-00004"))
+check("cross-team case is invisible: Maya opens a Financial Support case -> NOT_FOUND",
+      call("get_review_case", session_token=maya, case_id="CASE-00003")[0]["status"] == "NOT_FOUND")
+rc = call("get_review_case", session_token=maya, case_id="case-00004")[0]
+check("get_review_case: statement, brief, max approvable $29, Maya's $25 limit, fee facts, options mention the senior reviewer",
+      rc["status"] == "OK" and rc["max_approvable"] == "29.00" and rc["your_approval_limit"] == "25.00"
+      and "TXN-50024" in rc["facts"] and "LATE PAYMENT FEE" in rc["facts"] and "senior reviewer" in rc["options"], rc)
+rp = call("get_review_case", session_token=priya, case_id=h["case_id"])[0]
+check("Fraud reviewer sees the held payment's indicators, signals and band (the customer never does)",
+      "SAFE_ACCOUNT" in rp["facts"] and "NEW_PAYEE" in rp["facts"] and "risk band HIGH" in rp["facts"]
+      and "in full" in rp["options"], rp)
+
+# ---- decide: every reason code, then the parked actions ----
+def decide(tok, case, dec="APPROVE", amt="", note="Checked the account history.", msg="Your request was reviewed."):
+    return call("decide_review_case", session_token=tok, case_id=case, decision=dec, amount=amt, internal_note=note, customer_message=msg)[0]
+n_dec = one("SELECT count(*) FROM review_decisions")
+r = decide(michael, "CASE-00004")
+check("a customer token cannot decide -> NOT_REVIEWER", r["outcome"] == "NOT_REVIEWER", r)
+r = decide(maya, "CASE-00003")
+check("another team's case -> BLOCKED NOT_YOUR_TEAM", r["outcome"] == "BLOCKED" and r["reason_code"] == "NOT_YOUR_TEAM" and not r["case_id"], r)
+r = decide(maya, "CASE-99999")
+check("unknown case -> NOT_FOUND", r["reason_code"] == "NOT_FOUND", r)
+r = decide(maya, "CASE-00004", note="ok")
+check("note under 5 characters -> NOTE_REQUIRED", r["reason_code"] == "NOTE_REQUIRED", r)
+r = decide(maya, "CASE-00004", dec="MAYBE")
+check("decision not APPROVE/REJECT -> INVALID_DECISION", r["reason_code"] == "INVALID_DECISION", r)
+r = decide(maya, "CASE-00004", amt="40")
+check("more than the $29 fee -> AMOUNT_INVALID", r["reason_code"] == "AMOUNT_INVALID", r)
+r = decide(maya, "CASE-00004", amt="-5")
+check("negative amount -> AMOUNT_INVALID", r["reason_code"] == "AMOUNT_INVALID", r)
+r = decide(maya, "CASE-00004")
+check("full $29 above Maya's $25 limit -> OVER_AUTHORITY, case stays OPEN", r["reason_code"] == "OVER_AUTHORITY"
+      and r["case_status"] == "OPEN" and "senior reviewer" in r["reason_text"], r)
+check("DB: no decision row and no refund after the blocked attempts", one("SELECT count(*) FROM review_decisions") == n_dec
+      and one("SELECT count(*) FROM transactions WHERE descriptor = 'FEE REFUND TXN-50024'") == "0")
+m_bal = one("SELECT balance FROM accounts WHERE account_id = 'ACC-1012'")
+r = decide(maya, "CASE-00004", amt="$20", note="Holiday delay confirmed; goodwill refund within my limit.",
+           msg="We have refunded $20.00 of the late fee as a goodwill gesture.")
+check("approve $20 (within the limit) -> APPROVED, fee refunded", r["outcome"] == "APPROVED" and r["approved_amount"] == "20.00"
+      and "refunded" in (r["executed_action"] or ""), r)
+check("DB: refund credit posted ('FEE REFUND TXN-50024', $20) and balance -210.00 -> -190.00",
+      one("SELECT count(*) FROM transactions WHERE descriptor = 'FEE REFUND TXN-50024' AND txn_type='CREDIT' AND amount=20 AND status='POSTED'") == "1"
+      and m_bal == "-210.00" and one("SELECT balance FROM accounts WHERE account_id = 'ACC-1012'") == "-190.00")
+check("DB: CASE_DECIDED audit row by KST-7001 for Michael's case",
+      one("SELECT count(*) FROM agent_audit WHERE action='CASE_DECIDED' AND ref='CASE-00004' AND actor='KST-7001' AND customer_id='CUST-2026-00107'") == "1")
+r = decide(maya, "CASE-00004", dec="REJECT")
+check("a second decision -> ALREADY_DECIDED", r["reason_code"] == "ALREADY_DECIDED" and one("SELECT count(*) FROM review_decisions WHERE case_id='CASE-00004'") == "1", r)
+oc = one("SELECT case_id FROM service_cases WHERE customer_id='CUST-2026-00102' AND request_type='FEE_REFUND'")
+r = decide(maya, oc, dec="REJECT", note="Second overdraft this quarter; policy allows one goodwill refund.",
+           msg="We are not able to refund this overdraft fee.")
+check("reject Olivia's fee refund -> REJECTED, nothing executed", r["outcome"] == "REJECTED" and "nothing was executed" in r["executed_action"]
+      and one("SELECT count(*) FROM transactions WHERE descriptor = 'FEE REFUND TXN-50010'") == "0", r)
+
+bc = one("SELECT case_id FROM service_cases WHERE customer_id='CUST-2026-00105' AND request_type='LOAN_HARDSHIP'")
+r = decide(daniel, bc, amt="100")
+check("deferral below one monthly payment -> AMOUNT_INVALID", r["reason_code"] == "AMOUNT_INVALID", r)
+due0 = one("SELECT next_due_date FROM loans WHERE loan_id='LOAN-3003'")
+r = decide(daniel, bc, note="Job loss confirmed by layoff letter; standard 3-payment deferral.",
+           msg="Your next 3 auto loan payments are deferred.")
+check("approve Benjamin's hardship (full) -> APPROVED, 3 payments ($2,436.99) deferred",
+      r["outcome"] == "APPROVED" and r["approved_amount"] == "2436.99" and "3 monthly payment(s)" in (r["executed_action"] or ""), r)
+check("DB: loan_deferrals row + LOAN-3003 next due date moved 3 months + LOAN_DEFERRED audit",
+      one(f"SELECT count(*) FROM loan_deferrals WHERE case_id = {lit(bc)} AND payments_deferred = 3 AND deferred_amount = 2436.99") == "1"
+      and one("SELECT next_due_date FROM loans WHERE loan_id='LOAN-3003'") == one(f"SELECT ({lit(due0)}::date + interval '3 months')::date")
+      and one("SELECT count(*) FROM agent_audit WHERE action='LOAN_DEFERRED'") == "1")
+r = decide(daniel, "CASE-00003", amt="1000", note="Medical leave letter received; two payments cover the leave.",
+           msg="Your next 2 personal loan payments are deferred.")
+check("partial deferral: $1,000 on a $490 loan -> 2 whole payments, approved $980.00",
+      r["outcome"] == "APPROVED" and r["approved_amount"] == "980.00"
+      and one("SELECT payments_deferred FROM loan_deferrals WHERE case_id='CASE-00003'") == "2", r)
+
+r = decide(priya, "CASE-00002", amt="6000")
+check("a held payment is released in full or not at all -> AMOUNT_INVALID", r["reason_code"] == "AMOUNT_INVALID", r)
+r = decide(priya, h["case_id"], dec="REJECT", note="Customer confirmed a caller told her to move the money; textbook safe-account scam.",
+           msg="We stopped this payment to protect you. Your savings are safe and no money left your account.")
+check("reject Patricia's held payment -> REJECTED, payment CANCELLED, no money moved",
+      r["outcome"] == "REJECTED" and "cancelled" in r["executed_action"]
+      and one(f"SELECT status FROM payment_requests WHERE payment_id = {lit(h['payment_id'])}") == "CANCELLED"
+      and bal("ACC-1014") == "24000.00", r)
+check("Patricia's cancelled payment cannot be confirmed afterwards", cpay(patricia, h["payment_id"], "YES")["reason_code"] == "CANCELLED")
+w_bal = bal("ACC-1005")
+r = decide(priya, "CASE-00002", note="Customer met the payee in person and confirmed the investment independently.",
+           msg="Your payment has been released.")
+check("approve William's held payment (full) -> APPROVED, payment RELEASED and sent",
+      r["outcome"] == "APPROVED" and r["approved_amount"] == "6200.00" and "released" in r["executed_action"], r)
+check("DB: release posted the $6,200 debit (6,420 -> 220) via REVIEWER, request RELEASED",
+      w_bal == "6420.00" and bal("ACC-1005") == "220.00"
+      and one("SELECT via FROM payment_sends WHERE payment_id='PAY-00001'") == "REVIEWER"
+      and one("SELECT status FROM payment_requests WHERE payment_id='PAY-00001'") == "RELEASED")
+
+# ---- the customer sees the outcome (status + customer_message), never the internals ----
+r = {x["reference_id"]: x for x in call("get_my_cases", session_token=michael)}
+check("Michael sees CASE-00004 APPROVED, $20.00 and the team's message",
+      r["CASE-00004"]["status"] == "APPROVED" and r["CASE-00004"]["approved_amount"] == "20.00"
+      and "goodwill" in r["CASE-00004"]["customer_message"], r.get("CASE-00004"))
+r = {x["reference_id"]: x for x in call("get_my_cases", session_token=patricia)}
+check("Patricia sees her payment-check case REJECTED with the customer message (no note, score or reviewer)",
+      r[h["case_id"]]["status"] == "REJECTED" and "no money left your account" in r[h["case_id"]]["customer_message"]
+      and "textbook" not in json.dumps(r) and "Priya" not in json.dumps(r), r.get(h["case_id"]))
+e = call("email_my_confirmation", session_token=michael, reference_id="CASE-00004")[0]
+check("email a decided case -> SEND with the decision", e["send_status"] == "SEND" and "approved" in e["body"] and "goodwill" in e["body"], e)
+e = call("email_my_confirmation", session_token=patricia, reference_id=one("SELECT case_id FROM service_cases WHERE customer_id='CUST-2026-00108' AND status='OPEN'"))[0]
+check("email an undecided case -> NOT_SENT", e["send_status"] == "NOT_SENT", e)
+e = call("email_my_confirmation", session_token=emma, reference_id=e1["payment_id"])[0]
+check("email a sent payment -> SEND", e["send_status"] == "SEND" and "Harbor Property Management" in e["body"], e)
+check("email_log holds exactly the SEND requests", one("SELECT count(*) FROM email_log") == str(N_EMAIL_SENT + 2))
+
+# minimum necessary: hidden columns never reach customers; reviewers see no email/phone/full last name
+cust_cols = {k for t, rows in OUTPUTS if t not in REVIEWER_TOOLS for row in rows for k in row}
+check("customer tool outputs carry none of the hidden columns", not (cust_cols & HIDDEN_COLUMNS), cust_cols & HIDDEN_COLUMNS)
+rev_rows = [row for t, rows in OUTPUTS if t in REVIEWER_TOOLS for row in rows]
+rev_cols = {k for row in rev_rows for k in row}
+rblob = json.dumps(rev_rows)
+check("reviewer tool outputs: no email, phone, passcode or full last name", not (rev_cols & HIDDEN_FROM_REVIEWER)
+      and not re.search(r"@example\.com|555-01|Miller|Davis|Garcia|Martinez|Johnson|Wilson\b", rblob), (rev_cols & HIDDEN_FROM_REVIEWER))
+cblob = json.dumps([row for t, rows in OUTPUTS if t not in REVIEWER_TOOLS for row in rows])
+secrets = [x["v"] for x in psql("SELECT internal_note AS v FROM review_decisions UNION ALL SELECT display_name FROM reviewers")]
+check("customer outputs never contain internal notes or reviewer names", not any(s in cblob for s in secrets),
+      [s for s in secrets if s in cblob][:3])
+check("every MCP tool was exercised", {t for t, _ in OUTPUTS} == set(T), set(T) - {t for t, _ in OUTPUTS})
+
 
 # ---- session expiry ----
 psql(f"UPDATE customer_sessions SET expires_at = now() - interval '1 minute' WHERE session_token = {lit(james)}")
@@ -395,8 +693,160 @@ check("audit logged card-block proposals + blocks", na("CARD_BLOCK_PROPOSED") >=
 check("audit logged dispute proposals + filings", na("DISPUTE_PROPOSED") >= 1 and na("DISPUTE_FILED") == 4,
       (na("DISPUTE_PROPOSED"), na("DISPUTE_FILED")))
 check("audit logged service cases (incl. trigger fraud cases)", na("SERVICE_CASE_OPENED") >= 13, na("SERVICE_CASE_OPENED"))
-check("audit rows carry the customer id", one("SELECT count(*) FROM agent_audit WHERE customer_id IS NULL") == "0")
+check("audit rows carry the customer id (reviewer sign-ins carry the reviewer id instead)",
+      one("SELECT count(*) FROM agent_audit WHERE customer_id IS NULL AND action <> 'REVIEWER_VERIFY'") == "0")
+# ---- audit of the reviewer loop ----
+check("audit: CASE_DECIDED rows carry the reviewer as actor and the customer as subject",
+      one("SELECT count(*) FROM agent_audit WHERE action='CASE_DECIDED' AND (actor IS NULL OR customer_id IS NULL)") == "0"
+      and int(one("SELECT count(*) FROM agent_audit WHERE action='CASE_DECIDED'")) == int(one("SELECT count(*) FROM review_decisions")))
+check("audit: REVIEWER_VERIFY rows carry the reviewer id", int(one("SELECT count(*) FROM agent_audit WHERE action='REVIEWER_VERIFY' "
+                                                                  "AND actor LIKE 'KST-%'")) >= 3)
+
+# ---------------------------------------------------------------- A2A agent reference tools
+# dispute_triage_agent keeps lookup_merchant (checked above); the two new agents read section / term / meaning guides.
+def ref_call(t, term):
+    return psql(sub(*t["read"], {"term": term}))
+
+def ref_blob(rows):
+    return "\n".join(f"{r['section']}|{r['term']}|{r['meaning']}" for r in rows).lower()
+
+check("3 agent reference tools, one per A2A agent",
+      [t["agent"] for t in AGENT_REF_TOOLS] == ["dispute_triage_agent", "scam_signal_agent", "hardship_intake_agent"])
+lm = AGENT_REF_TOOLS[0]
+check("dispute_triage_agent keeps lookup_merchant: SELECT * FROM lookup_merchant(CAST(?dsc AS text)); one arg (descriptor)",
+      lm["read"] == ("SELECT * FROM lookup_merchant(CAST(?dsc AS text));", [("dsc", "descriptor")]) and [a for a, _ in lm["args"]] == ["descriptor"])
+ID_VALUES = [r["v"] for r in psql(
+    "SELECT customer_id AS v FROM customers UNION SELECT first_name || ' ' || last_name FROM customers "
+    "UNION SELECT last_name FROM customers UNION SELECT email FROM customers UNION SELECT phone FROM customers "
+    "UNION SELECT account_id FROM accounts UNION SELECT account_number_masked FROM accounts UNION SELECT card_id FROM cards "
+    "UNION SELECT card_number_masked FROM cards UNION SELECT loan_id FROM loans UNION SELECT payee_id FROM payees "
+    "UNION SELECT payee_name FROM payees UNION SELECT account_masked FROM payees UNION SELECT reviewer_id FROM reviewers "
+    "UNION SELECT display_name FROM reviewers UNION SELECT one_time_code FROM reviewers UNION SELECT case_id FROM service_cases "
+    "UNION SELECT payment_id FROM payment_requests UNION SELECT dispute_id FROM disputes UNION SELECT transaction_id FROM transactions "
+    "UNION SELECT session_token FROM customer_sessions")]
+ID_VALUES = [v for v in ID_VALUES if v and len(v) >= 4]
+check("identity value list for the leak scan is non-trivial", len(ID_VALUES) > 60, len(ID_VALUES))
+LOOKUPS = {   # tool -> (single word, expected term, section-name lookup, rows in that section)
+    "get_scam_signal_guide": ("screen-sharing", "REMOTE_ACCESS", "review step", 6),
+    "get_hardship_guide": ("laid off", "JOB_LOSS", "support line", 1),
+}
+for t in GUIDE_TOOLS:
+    tool, fn = t["tool"], t["fn"]
+    check(f"{tool}: SQL is exactly SELECT * FROM {fn}(CAST(?lookup AS text)); with one model-supplied arg (term)",
+          t["read"][0] == f"SELECT * FROM {fn}(CAST(?lookup AS text));" and t["read"][1] == [("lookup", "term")]
+          and [a for a, _ in t["args"]] == ["term"])
+    full = ref_call(t, "")
+    check(f"{tool}: whole guide returns rows ({len(full)}, about 20-35)", 15 <= len(full) <= 35, len(full))
+    check(f"{tool}: returns only the reference columns {REF_COLUMNS}", bool(full) and list(full[0]) == REF_COLUMNS,
+          list(full[0]) if full else None)
+    check(f"{tool}: every section is present, in order",
+          list(dict.fromkeys(r["section"] for r in full)) == t["sections"], list(dict.fromkeys(r["section"] for r in full)))
+    check(f"{tool}: whitespace / separators only = whole guide", len(ref_call(t, " , ")) == len(full))
+    word, expect, sec_word, sec_n = LOOKUPS[tool]
+    hit = ref_call(t, word)
+    check(f"{tool}: lookup '{word}' narrows the guide and finds '{expect}'",
+          0 < len(hit) < len(full) and any(r["term"] == expect for r in hit)
+          and all(word in f"{r['term']} {r['meaning']}".lower() for r in hit), [r["term"] for r in hit])
+    check(f"{tool}: lookup is case-insensitive", len(ref_call(t, word.upper())) == len(hit))
+    sec = ref_call(t, sec_word)
+    check(f"{tool}: section lookup '{sec_word}' returns that section ({sec_n} rows)",
+          len(sec) == sec_n and {r["section"] for r in sec} == {sec_word.upper().replace(" ", "_")}, [r["term"] for r in sec])
+    check(f"{tool}: unknown term -> 0 rows, no error", ref_call(t, "zzqx-unknown-term") == [])
+    check(f"{tool}: '%' and '_' are literal (the guide has no '%', so 0 rows; never a wildcard)",
+          ref_call(t, "%") == [] and ref_call(t, "_%_") == [] and not any("%" in f"{r['term']} {r['meaning']}" for r in full))
+    check(f"{tool}: SQL-looking input is just a string -> 0 rows, table intact",
+          ref_call(t, "x'); DELETE FROM " + t["table"] + "; --") == [] and int(one(f"SELECT count(*) FROM {t['table']}")) > 0)
+    blob = ref_blob(full)
+    leaked = [v for v in ID_VALUES if v.lower() in blob]
+    check(f"{tool}: no customer / account / card / loan / payee / reviewer / case / payment / session value in the rows",
+          not leaked, leaked[:5])
+    check(f"{tool}: no id, email or token pattern",
+          not re.search(r"cust-\d|\bacc-\d|card-\d|txn-\d|case-\d|kst-\d|pye-\d|pay-\d|loan-\d|dsp-\d|@|[0-9a-f]{8}-[0-9a-f]{4}-", blob), blob[:200])
+
+scam = next(t for t in GUIDE_TOOLS if t["fn"] == "ref_scam_signals")
+g = ref_call(scam, "")
+hi = {r["term"] for r in g if r["section"] == "HIGH_RISK"}
+ca = {r["term"] for r in g if r["section"] == "CAUTION"}
+check("ref_scam_signals: several words in one call ('safe account, gift cards') -> both indicators",
+      {"SAFE_ACCOUNT", "CRYPTO_OR_GIFT_CARDS"} <= {r["term"] for r in ref_call(scam, "safe, gift cards")})
+acc = psql("SELECT * FROM scam_assessment('CUST-2026-00106', 'ACC-1009', 'PYE-0201', 100, "
+           + lit(", ".join(sorted(hi | ca))) + ", '0')")[0]
+check("ref_scam_signals: every HIGH_RISK / CAUTION term is an indicator scam_assessment() accepts (and nothing else is)",
+      acc["narrative_indicators"] == ", ".join(sorted(hi | ca)) and not acc["ignored_indicators"] and len(hi) == 5 and len(ca) == 6, acc)
+check("ref_scam_signals: every REVIEW_STEP is for a named indicator",
+      {r["term"] for r in g if r["section"] == "REVIEW_STEP"} <= hi | ca)
+pt = psql("SELECT pg_get_constraintdef(oid) AS v FROM pg_constraint WHERE conname = 'payees_payee_type_check'")[0]["v"]
+check("ref_scam_signals: every payee type the payees table allows is explained (PAYEE_TYPE)",
+      {r["term"] for r in g if r["section"] == "PAYEE_TYPE"} == set(re.findall(r"'([A-Z_]+)'", pt)), pt)
+wd = ref_call(scam, "who decides")
+check("ref_scam_signals: WHO_DECIDES comes from service_teams (PAYMENT_HOLD -> Fraud Operations)",
+      len(wd) == 1 and "Fraud Operations" in wd[0]["meaning"] and wd[0]["term"] == one("SELECT label FROM service_teams WHERE request_type='PAYMENT_HOLD'"), wd)
+psql("UPDATE service_teams SET label = label || ' (test)' WHERE request_type = 'PAYMENT_HOLD'")
+check("ref_scam_signals: a service_teams edit shows up in WHO_DECIDES (no copy)", ref_call(scam, "who decides")[0]["term"].endswith("(test)"))
+psql("UPDATE service_teams SET label = replace(label, ' (test)', '') WHERE request_type = 'PAYMENT_HOLD'")
+check("ref_scam_signals: the standard reviewer step sentence lives in the table",
+      any(r["meaning"].startswith("Call the customer back on the phone number on file, explain that no bank uses safe accounts")
+          for r in ref_call(scam, "review step")))
+
+hard = next(t for t in GUIDE_TOOLS if t["fn"] == "ref_hardship_guide")
+g = ref_call(hard, "")
+prod = {r["term"] for r in g if r["section"] == "PRODUCT"}
+codes = {r["v"] for r in psql("SELECT DISTINCT loan_type AS v FROM loans UNION SELECT DISTINCT account_type FROM accounts")}
+check("ref_hardship_guide: every loan and account type the agent can be sent is explained (PRODUCT)", codes <= prod, codes - prod)
+check("ref_hardship_guide: every CAUSE has its own DOCUMENT row",
+      {r["term"] for r in g if r["section"] == "CAUSE"} == {r["term"] for r in g if r["section"] == "DOCUMENT"})
+check("ref_hardship_guide: the 3-payment deferral program matches deferral_max_payments()",
+      any(r["term"] == "PAYMENT_DEFERRAL_3M" and "up to 3 monthly payments" in r["meaning"] for r in g)
+      and one("SELECT deferral_max_payments()") == "3")
+check("ref_hardship_guide: several words in one call ('divorce, flood') -> both causes",
+      {"SEPARATION_DIVORCE", "NATURAL_DISASTER"} <= {r["term"] for r in ref_call(hard, "divorce, flood")})
+wd = ref_call(hard, "who decides")
+check("ref_hardship_guide: WHO_DECIDES comes from service_teams (LOAN_HARDSHIP -> Financial Support)",
+      len(wd) == 1 and "Financial Support" in wd[0]["meaning"], wd)
+check("ref_hardship_guide: the standard support line lives in the table",
+      [r["meaning"] for r in ref_call(hard, "support line")] ==
+      ["You do not have to work this out alone: Kestrel's Financial Support team can also arrange a free, confidential talk "
+       "with an independent credit counselor."])
+
+# nothing from the design brief is lost: the facts each agent must work from are in its table
+KEEP = {"get_scam_signal_guide": [
+            "the bank, the police, a government agency", "spoofed", "\"safe\", \"secure\" or \"holding\" account",
+            "screen-sharing", "keep the payment secret", "cover story", "one-time passcodes", "pay immediately",
+            "guaranteed, very high or very fast returns", "never met in person", "new bank details", "unusually low price",
+            "gift cards", "crypto exchange", "between 70 and 100", "between 30 and 69", "between 0 and 29",
+            "quote the customer's own words", "no bank uses safe accounts", "registered with the financial regulator"],
+        "get_hardship_guide": [
+            "lost their job", "earns less", "surgery", "divorce", "death of a partner", "flood", "up to 3 months",
+            "3 to 6 months", "does not know yet", "mortgage", "auto loan", "personal loan", "credit card", "defers up to 3 monthly payments",
+            "interest keeps accruing", "lowers the monthly payment", "waives overdraft and late-payment fees",
+            "independent non-profit credit counselor", "layoff letter", "death certificate", "fema", "no diagnosis details",
+            "never guess a diagnosis", "a financial support specialist decides", "care note"]}
+for t in GUIDE_TOOLS:
+    blob = ref_blob(ref_call(t, ""))
+    miss = [k for k in KEEP[t["tool"]] if k.lower() not in blob]
+    check(f"{t['tool']}: every fact the agent needs is in the table", not miss, miss)
+
+fns = psql("SELECT p.proname, l.lanname, p.provolatile, p.prosecdef, pg_get_function_identity_arguments(p.oid) AS args, "
+           "p.prosrc FROM pg_proc p JOIN pg_language l ON l.oid = p.prolang JOIN pg_namespace ns ON ns.oid = p.pronamespace "
+           "WHERE ns.nspname = 'public' AND (p.proname LIKE 'ref\\_%' OR p.proname = 'lookup_merchant')")
+names = {f["proname"] for f in fns}
+check("agent read functions: ref_match + one ref_* per guide agent + lookup_merchant",
+      names == {"ref_match", "lookup_merchant"} | {t["fn"] for t in GUIDE_TOOLS}, names)
+for f in fns:
+    check(f"{f['proname']}: LANGUAGE sql, STABLE/IMMUTABLE, not SECURITY DEFINER, SELECT-only body",
+          f["lanname"] == "sql" and f["provolatile"] in ("s", "i") and f["prosecdef"] == "f"
+          and not re.search(r"\b(insert|update|delete|truncate|drop|alter|create|grant|copy|execute|perform)\b", f["prosrc"], re.I),
+          {k: f[k] for k in ("lanname", "provolatile", "prosecdef")})
+    if f["proname"] not in ("ref_match",):
+        check(f"{f['proname']}: one optional, non-identity argument", f["args"] in ("p_term text", "p_descriptor text"), f["args"])
 
 subprocess.run(BASE + ["-f", os.path.join(DIR, "reset_data.sql")], check=True, env=ENV, capture_output=True)
-print(f"\n{'ALL RULES PASS' if not fails else str(fails) + ' FAILURE(S)'}  (DB reset)")
+check("reset_data.sql reloads the agent reference tables, reviewers, payees and the seeded open cases",
+      all(int(one(f"SELECT count(*) FROM {t['table']}")) > 0 for t in AGENT_REF_TOOLS)
+      and one("SELECT count(*) FROM reviewers") == "3" and one("SELECT count(*) FROM payees") == "5"
+      and one("SELECT count(*) FROM service_cases WHERE status='OPEN'") == "4"
+      and one("SELECT count(*) FROM agent_audit") == "0")
+
+subprocess.run(BASE + ["-f", os.path.join(DIR, "reset_data.sql")], check=True, env=ENV, capture_output=True)
+print(f"\n{'ALL RULES PASS' if not fails else str(fails) + ' FAILURE(S)'}  ({passes}/{passes + fails} checks, DB reset)")
 sys.exit(1 if fails else 0)

@@ -13,14 +13,17 @@ This folder holds the Python scripts that generated the three `.flogo` apps with
 
 | File | What it does |
 |---|---|
-| `tool_spec.py` | **Single source of truth.** Every MCP tool's name, description, arguments and SQL (a guarded write and/or a read), plus the A2A agent's tool (`search_delivery_options`). The build scripts and `test_rules.py` both import it, so the SQL that is tested is the SQL that ships. |
+| `tool_spec.py` | **Single source of truth.** Every MCP tool's name, description, arguments and SQL (a guarded write and/or a read) - 14 recipient tools + 4 reviewer tools - plus the three agents' PostgreSQL reference tools (`AGENT_REF_TOOLS`: `search_delivery_options`, `get_claim_guide`, `get_delivery_instructions_guide`). The build scripts and the tests import it, so the SQL that is tested is the SQL that ships. |
 | `fda_common.py` | Shared helpers. Finds `config.md` and the `fda` binary, reads settings (environment variables first, then `config.md`) and wraps `fda` calls, the PostgreSQL and LLM connections, and PostgreSQL activities. Not run on its own. |
-| `build_mcp.py` | Generates `ParcelDeliveryMCPServer.flogo`: the MCP trigger, one flow per tool in `tool_spec.py`, and the email step for `email_confirmation`. The email goes to the `To_Email` inbox; the SQL decides its subject, body and reported outcome, so an unauthorised call carries no parcel details. |
-| `build_agents.py` | Generates `ParcelDeliveryAgents.flogo`: the A2A agent `delivery_options_agent` and its one read-only tool. |
-| `build_orchestrator.py` | Generates `ParcelDeliveryAIOrchestrator.flogo`: WebSocket trigger → AI Agent (MCP tools + the A2A agent) → WebSocket reply, with one conversation per browser connection. |
-| `test_rules.py` | Test step 1. Runs the exact SQL from `tool_spec.py` against PostgreSQL and checks every business rule. No Flogo needed. |
-| `mcp_smoke.py` | Test step 3. Calls the running MCP server's tools directly (no LLM) to check the rules hold in the Flogo runtime. |
-| `chat_e2e.py` | Test step 4. Holds scripted chats with the running orchestrator and checks the results in the database. Writes `chat_e2e_transcript.md` to the folder you run it from. |
+| `build_mcp.py` | Generates `ParcelDeliveryMCPServer.flogo`: the MCP trigger, one flow per tool in `tool_spec.py`, and the guarded email branch for `email_confirmation` (the request is logged in `email_log` and the email is sent only when the SQL says `SEND_OK`; it goes to the `To_Email` inbox). Chunked: `BUILD_TO=<n>` / `RESUME_FROM=<n>`. |
+| `build_agents.py` | Generates `ParcelDeliveryAgents.flogo`: the three A2A agents (`delivery_options_agent` 9893, `damage_claim_agent` 9894, `delivery_instructions_agent` 9896), each with one read-only PostgreSQL reference tool, plus a self-check. |
+| `build_orchestrator.py` | Generates `ParcelDeliveryAIOrchestrator.flogo`: WebSocket trigger → AI Agent (18 MCP tools + the three A2A agents) → WebSocket reply, with one conversation per browser connection. The system prompt is `orchestrator_prompt.txt`. |
+| `orchestrator_prompt.txt` | The orchestrator's system prompt (two personas: recipients and staff reviewers). |
+| `test_rules.py` | Test step 1. Runs the exact SQL from `tool_spec.py` against PostgreSQL and checks every business rule: identity, scoping, the two-step changes, claims, delivery instructions, every reviewer reason code and the reference tools. No Flogo needed. |
+| `mcp_smoke.py` | Test step 3. Calls the running MCP server's tools directly (no LLM) to check the rules hold in the Flogo runtime, including the reviewer tools (happy path + one blocked call each). Resets the data before and after. |
+| `a2a_smoke.py` | Test step 3b. Sends each A2A agent one identity-free request and proves from the Agents DEBUG log that its reference tool queried PostgreSQL and that the answer carries text only its table holds. |
+| `chat_e2e.py` | Test step 4. Holds scripted chats with the running orchestrator - including the reviewer loop across separate connections and prompt-injection turns - and checks the results in the database. Writes `chat_e2e_transcript.md` to the use-case folder. `--only` runs a subset. |
+| `SPEC.md` | The use-case spec: decisions, identity, tools, agents, the reviewer loop and the data. |
 
 Related files in the use-case folder:
 
@@ -28,7 +31,7 @@ Related files in the use-case folder:
 |---|---|
 | `database.sql` | Schema, **rule functions** (where identity, scoping and business rules are enforced) and demo data. |
 | `seed_data.sql` | Demo data, included by `database.sql` and `reset_data.sql`. Don't load it on its own. |
-| `reset_data.sql` | Clears everything the assistant wrote and reloads the demo data. |
+| `reset_data.sql` | Clears everything the assistant and the reviewers wrote and reloads the demo data. |
 | `prompts.md` | Demo prompts, including ones that show the rules holding. |
 | `chat_e2e_transcript.md` | The transcript from the last `chat_e2e.py` run. |
 
@@ -90,16 +93,18 @@ Run the steps in order; each one is cheaper than the next, so most problems show
 |---|---|---|---|
 | 1 | `python _rebuild/test_rules.py` | Every SQL rule, using the exact tool SQL. Reloads `reset_data.sql` before and after. | Database only |
 | 2 | `python ../../../../../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/validate_governed_apps.py *.flogo` | Static checks on the `.flogo` files: wiring, scoped reads, guarded writes, prompts, connections, secrets. Add `--local` for a build that still holds real credentials. | Nothing running |
-| 3 | `python _rebuild/mcp_smoke.py` | The rules hold at the MCP edge in the Flogo runtime, without an LLM. Load `reset_data.sql` before and after; this step leaves one executed reschedule and one service case behind, and sends one real email to the `To_Email` inbox. | MCP server running |
-| 4 | `python _rebuild/chat_e2e.py` | The whole system through real chats, with checks on the database. Resets the data before and after. | All three apps running, LLM key |
+| 3 | `python _rebuild/mcp_smoke.py` | The rules hold at the MCP edge in the Flogo runtime, without an LLM, including the reviewer tools. Resets the data before and after; attempts one real email to the `To_Email` inbox (the `email_log` guard row is asserted, SMTP delivery is not). | MCP server running |
+| 3b | `A2A_LOG=<agents log> python _rebuild/a2a_smoke.py` | Each agent answers, calls its reference tool, the PostgreSQL query runs, and the answer carries table-only text. | Agents app running with `FLOGO_LOG_LEVEL=DEBUG`, LLM key |
+| 4 | `A2A_LOG=<agents log> python -u _rebuild/chat_e2e.py` | The whole system through real chats (about 12 minutes), with checks on the database, agent-input minimisation and the reference-tool evidence. Resets the data before and after. | All three apps running, LLM key |
 
 Start the apps for steps 3 and 4 as in the main README, step 3 (MCP Server → Agents → Orchestrator).
 
 Optional overrides:
 
 - `MCP_URL` for step 3.
-- `WS_URL` and `REPLY_TIMEOUT` (seconds, default 150) for step 4.
-- `A2A_LOG=<file the Agents app logs to>` for step 4, which also confirms `delivery_options_agent` ran.
+- `WS_URL` and `REPLY_TIMEOUT` (seconds, default 180) for step 4.
+- `A2A_LOG=<file the Agents app logs to>` for steps 3b and 4: start the Agents exe with `FLOGO_LOG_LEVEL=DEBUG` and its
+  output in a file.
 
 ## This sample's values
 
@@ -107,11 +112,12 @@ Optional overrides:
 |---|---|
 | Database | `parcel_delivery` |
 | Orchestrator | WebSocket `9890`, path `/parceldelivery` |
-| MCP server | `9892`, path `/parcel-delivery-mcp`, 11 tools: `verify_recipient`, `get_my_parcels`, `get_parcel_detail`, `get_tracking_history`, `propose_reschedule`, `confirm_reschedule`, `propose_redirect`, `confirm_redirect`, `email_confirmation`, `open_service_case`, `get_my_cases` |
-| A2A agent | `delivery_options_agent` on `9893` |
+| MCP server | `9892`, path `/parcel-delivery-mcp`, 18 tools: `verify_recipient`, `get_my_parcels`, `get_parcel_detail`, `get_tracking_history`, `propose_reschedule`, `confirm_reschedule`, `propose_redirect`, `confirm_redirect`, `email_confirmation`, `open_service_case`, `get_my_cases`, `open_damage_claim`, `propose_delivery_instructions`, `confirm_delivery_instructions`, `verify_reviewer`, `get_review_queue`, `get_review_case`, `decide_review_case` |
+| A2A agents | `delivery_options_agent` on `9893` (`search_delivery_options`), `damage_claim_agent` on `9894` (`ref_claim_guide`), `delivery_instructions_agent` on `9896` (`ref_delivery_instructions`). 9895 is skipped: another sample uses it. |
+| Reference tables (agents) | `delivery_slots` + `pickup_points` (options), `claim_guide` (+ the claim teams from `service_teams`), `safe_places` + `instruction_risk_flags` + `instruction_guide` |
 
 The ports and URLs are set in the build scripts (`PORT`, `ENDPOINT`, `WS_PORT`, `WS_PATH`, `MCP_URL`,
-`A2A_URL`). To change them, edit the scripts and the matching values in `mcp_smoke.py` / `chat_e2e.py`,
+`AGENTS`). To change them, edit the scripts and the matching values in `mcp_smoke.py` / `chat_e2e.py`,
 or set the app properties and orchestrator connection URLs as described in the main README.
 
 ## Changing the use case

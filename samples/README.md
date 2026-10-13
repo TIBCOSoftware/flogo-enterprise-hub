@@ -45,9 +45,17 @@ End-to-end, PostgreSQL-backed chat assistants that apply the same governed **thr
 | [Banking — Retail Banking Assistant](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) | Financial Services → Banking |
 | [Banking — Corporate Payments Investigation Assistant](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Corporate_Payments_Investigation_Use_Case/) | Financial Services → Banking |
 | [Telecom — Mobile Billing & Spend Control Assistant](./Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) | Telecommunications → Mobile, Fixed & Cable Operators |
+| [Utilities — Electric Outage & Billing Assistant](./Agentic_AI/Industry_Use_Cases/Energy_Utilities/Electric_Gas_Utilities_Grid/Electric_Utility_Outage_Billing_Use_Case/) | Energy & Utilities → Electric, Gas & Utilities Grid |
+| [Energy & Utilities — Oilfield Asset Health Monitoring Assistant](./Agentic_AI/Industry_Use_Cases/Energy_Utilities/Oil_Gas/Oilfield_Asset_Health_Monitoring_Use_Case/) | Energy & Utilities → Oil & Gas |
+| [Healthcare — Hospital Post-Discharge Care Assistant](./Agentic_AI/Industry_Use_Cases/Healthcare_Life_Sciences/Providers_Health_Systems/Hospital_Post_Discharge_Care_Use_Case/) | Healthcare & Life Sciences → Providers & Health Systems |
 | [Airline — Passenger Services Assistant](./Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) | Transportation & Logistics → Airlines & Aviation |
 | [Logistics — Parcel Delivery Assistant](./Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) | Transportation & Logistics → Parcel & Postal Logistics |
+| [High Tech — Semiconductor Orders & RMA Assistant](./Agentic_AI/Industry_Use_Cases/High_Tech_Software/Semiconductors_Electronics/Semiconductor_Orders_RMA_Use_Case/) | High Tech & Software → Semiconductors & Electronics |
+| [Insurance — Auto Policy & Claims Assistant (RAG)](./Agentic_AI/Industry_Use_Cases/Insurance/PC_Multi_Line/Auto_Insurance_Policy_Claims_RAG_Use_Case/) | Insurance → Property & Casualty / Multi-Line |
+| [Insurance — Life & Retirement Member Services Assistant](./Agentic_AI/Industry_Use_Cases/Insurance/Life_Pensions_Wealth/Life_Pensions_Member_Services_Use_Case/) | Insurance → Life, Pensions & Wealth |
 | [Publishing — Author Services Assistant](./Agentic_AI/Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/) | Media & Travel → Media & Publishing |
+| [Aerospace & Defense — MRO AOG Operations Assistant](./Agentic_AI/Industry_Use_Cases/Aerospace_Defense/Defense_Space/Aerospace_MRO_AOG_Operations_Use_Case/) | Aerospace & Defense → Defense & Space |
+| [Real Estate — Lead Engagement Assistant](./Agentic_AI/Industry_Use_Cases/Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case/) | Real Estate → Residential Brokerage |
 
 #### Legacy (`_old` — reference, being migrated)
 
@@ -55,18 +63,18 @@ Earlier demos on the legacy pattern (the prompt filters the data and guards the 
 
 | Use Case | Industry | Superseded by |
 |---|---|---|
-| [Aerospace MRO & AOG Operations](./Agentic_AI/Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case/) | Aerospace & Defense | — |
+| [Aerospace MRO & AOG Operations](./Agentic_AI/Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case/) | Aerospace & Defense | [Aerospace & Defense — MRO AOG Operations Assistant](./Agentic_AI/Industry_Use_Cases/Aerospace_Defense/Defense_Space/Aerospace_MRO_AOG_Operations_Use_Case/) |
 | [Retail Banking Assistant](./Agentic_AI/Industry_Use_Cases_old/Retail_Banking_Assistant_Use_Case/) | Financial Services | [Banking — Retail Banking Assistant](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) |
-| [Life & Pensions Member Assistant](./Agentic_AI/Industry_Use_Cases_old/Life_And_Pensions_Use_Case/) | Insurance | — |
-| [Auto Insurance Policyholder Assistant](./Agentic_AI/Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) *(RAG)* | Insurance | — |
-| [Hospital Post-Discharge Assistant](./Agentic_AI/Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case/) | Healthcare & Life Sciences | — |
+| [Life & Pensions Member Assistant](./Agentic_AI/Industry_Use_Cases_old/Life_And_Pensions_Use_Case/) | Insurance | [Insurance — Life & Retirement Member Services Assistant](./Agentic_AI/Industry_Use_Cases/Insurance/Life_Pensions_Wealth/Life_Pensions_Member_Services_Use_Case/) |
+| [Auto Insurance Policyholder Assistant](./Agentic_AI/Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) *(RAG)* | Insurance | [Insurance — Auto Policy & Claims Assistant (RAG)](./Agentic_AI/Industry_Use_Cases/Insurance/PC_Multi_Line/Auto_Insurance_Policy_Claims_RAG_Use_Case/) |
+| [Hospital Post-Discharge Assistant](./Agentic_AI/Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case/) | Healthcare & Life Sciences | [Healthcare — Hospital Post-Discharge Care Assistant](./Agentic_AI/Industry_Use_Cases/Healthcare_Life_Sciences/Providers_Health_Systems/Hospital_Post_Discharge_Care_Use_Case/) |
 | [Telecom Invoice Chatbot](./Agentic_AI/Industry_Use_Cases_old/Telecom_Invoice_Chatbot_Use_Case/) | Telecommunications | [Telecom — Mobile Billing & Spend Control Assistant](./Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) |
-| [Electric Power Distribution](./Agentic_AI/Industry_Use_Cases_old/Power_Distribution_Use_Case/) | Energy & Utilities | — |
-| [Semiconductor Customer & Order Assistant](./Agentic_AI/Industry_Use_Cases_old/Semiconductor_Customer_Use_Case/) | High Tech & Software | — |
-| [Predictive Maintenance & Asset Monitoring](./Agentic_AI/Industry_Use_Cases_old/Predictive_Maintenance_Use_Case/) | Manufacturing & Industrial | — |
+| [Electric Power Distribution](./Agentic_AI/Industry_Use_Cases_old/Power_Distribution_Use_Case/) | Energy & Utilities | [Utilities — Electric Outage & Billing Assistant](./Agentic_AI/Industry_Use_Cases/Energy_Utilities/Electric_Gas_Utilities_Grid/Electric_Utility_Outage_Billing_Use_Case/) |
+| [Semiconductor Customer & Order Assistant](./Agentic_AI/Industry_Use_Cases_old/Semiconductor_Customer_Use_Case/) | High Tech & Software | [High Tech — Semiconductor Orders & RMA Assistant](./Agentic_AI/Industry_Use_Cases/High_Tech_Software/Semiconductors_Electronics/Semiconductor_Orders_RMA_Use_Case/) |
+| [Predictive Maintenance & Asset Monitoring](./Agentic_AI/Industry_Use_Cases_old/Predictive_Maintenance_Use_Case/) | Manufacturing & Industrial | [Energy & Utilities — Oilfield Asset Health Monitoring Assistant](./Agentic_AI/Industry_Use_Cases/Energy_Utilities/Oil_Gas/Oilfield_Asset_Health_Monitoring_Use_Case/) |
 | [Airline Passenger Services](./Agentic_AI/Industry_Use_Cases_old/Airline_Passenger_Services_Use_Case/) | Transportation & Logistics | [Airline — Passenger Services Assistant](./Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) |
 | [Logistics / Transport Shipper Assistant](./Agentic_AI/Industry_Use_Cases_old/Logistics_Transport_Use_Case/) | Transportation & Logistics | [Logistics — Parcel Delivery Assistant](./Agentic_AI/Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) |
-| [Real Estate Lead Engagement Assistant](./Agentic_AI/Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) | Real Estate | — |
+| [Real Estate Lead Engagement Assistant](./Agentic_AI/Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) | Real Estate | [Real Estate — Lead Engagement Assistant](./Agentic_AI/Industry_Use_Cases/Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case/) |
 
 #### BW6 + Flogo samples
 
