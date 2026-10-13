@@ -68,6 +68,7 @@ Then, in the same round if there's room or else at the start of round 3:
 |---|---|---|---|
 | 10 | **The genuinely fuzzy step(s)** (the A2A reasoning agent: usually one; up to 3 distinct semantic steps, one A2A agent (and port) each — see the Telecom sample `Telecom_Mobile_Billing_Use_Case`) | recommend/rank against free-text needs, classify a free-text description, summarise/explain a document, triage | the A2A agent, its minimised input |
 | 11 | **What a person must decide** (multiSelect) | disputes/credits/waivers, identity or fraud-sensitive changes, cancellations/contract breaks, hardship/exceptions, complaints | `open_service_case` request types → teams + SLAs |
+| 11b | **Who decides it, and what an approval does.** Propose defaults: the reviewer teams (one per group of request types), each team's approval limit, and what an approval executes per request type (e.g. refund that fee, defer up to 3 payments, release the held payment, or nothing: the team completes it) | 2–3 teams with US-style limits (e.g. Customer Care $25, Financial Support $5,000, Fraud Operations $20,000); "approval runs <action>" per type | `reviewers` + routing table teams, `approval_limit`, `case_parking()` parked actions, the reviewer tools |
 
 If the user can't name a fuzzy step, check the "Why an agent here?" test in
 [decision-framework-gate.md](decision-framework-gate.md) before going on. The use case may not need an
@@ -79,8 +80,8 @@ agent.
 |---|---|---|
 | 12 | **The rules for each action.** What makes it allowed or blocked (eligibility, limits, prices/fees, time windows, account state)? Propose a default rule set per action with numbers, and ask the user to correct it. | rule functions, reason codes, one seed row per code |
 | 13 | **Multi-step requests** to show in one prompt (e.g. "explain my bill, dispute the charge and suggest a cheaper plan") | orchestrator prompt, e2e scenarios |
-| 14 | **The demo storyline.** The 3–5-minute happy path, the "wow" moment, and how many demo logins (typically 3: happy path, a blocked case, an exception). | seed personas, `prompts.md`, README demo script |
-| 15 | **What the user must never see** (fraud flags, credit scores, internal notes), and **what the assistant must decline** (legal/medical/financial advice, other topics) | which columns stay inside rule functions; out-of-scope wording |
+| 14 | **The demo storyline.** The 3–5-minute happy path, the "wow" moment, and how many demo logins (typically 3: happy path, a blocked case, an exception), plus the **staff logins** for the reviewer loop (one per team). Propose the reviewer beat: the customer opens a case, a reviewer decides it in a new tab, the customer sees the outcome. Seed one reviewer whose limit is just below a seeded case's amount, for the `OVER_AUTHORITY` demo. | seed personas and reviewers, `prompts.md`, README demo script and its "Reviewer (human-in-the-loop)" section |
+| 15 | **What the user must never see** (fraud flags, credit scores, the reviewer's internal note and name), and **what the assistant must decline** (legal/medical/financial advice, other topics) | which columns stay inside rule functions; `HIDDEN_COLUMNS` / `HIDDEN_FROM_REVIEWER`; out-of-scope wording |
 | 16 | **The rule that would hurt most if broken.** This becomes the prompt-injection target. | adversarial e2e turn |
 | 17 | **Email confirmation** of executed actions: yes/no (SMTP from config.md) | optional guarded email tool |
 | 18 | **Runtime LLM.** Recommend `gpt-5.5` (OpenAI). Alternatives: Azure OpenAI or a gateway (needs a base URL), or a Claude/Gemini-class model. Warn that nano-class models drop tool calls. | the model baked into all three apps |
@@ -92,12 +93,14 @@ Ask about ports, folder or naming only if there's a conflict or the user raised 
 
 If the user wants to go quickly ("just build it", or a spec that already covers most of this), ask
 **one** `AskUserQuestion` round with your proposed defaults for the must-haves: persona (3/6),
-actions (9), the fuzzy step (10), the human-owned requests (11) and the runtime model (18). Put
+actions (9), the fuzzy step (10), the human-owned requests with their reviewer teams, limits and parked
+actions (11, 11b) and the runtime model (18). Put
 everything else under **Assumptions** in the plan.
 
 ## After discovery: the plan opens with a readback
 
 Phase 3 starts with **"What I heard"** (one line per answer, including the fictional org replacing any
 named customer) and **"Assumptions"** (every "you decide" and every default the user didn't confirm).
-Then come the classification table, tools, agent, rules, demo logins, ports and the test scope. The
+Then come the classification table, tools, agent, rules, the reviewer teams with their limits and parked
+actions, demo logins (customers and staff), ports and the test scope. The
 user approves or corrects in one reply.

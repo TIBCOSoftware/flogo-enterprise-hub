@@ -10,8 +10,6 @@ limit, shut-ins, sensor threshold changes and alert closures go to Production En
 odor, H2S, a spill, fire, an injury) goes to HSE. Those people decide **in the same chatbot**; the assistant never decides
 them and never says an asset is safe.
 
-*The original non-governed version is kept under [Industry_Use_Cases_old/Predictive_Maintenance_Use_Case](../../../../Industry_Use_Cases_old/Predictive_Maintenance_Use_Case/) for reference.*
-
 **Agentic in the middle, deterministic at the edges:** an asset's health is **not** an AI opinion. A database function
 classifies every asset from its latest sensor reading against a threshold table — the worst sensor wins, the confidence
 comes from how many sensors are out of range, and the days-to-failure range and the likely failure mode come from rule
@@ -29,7 +27,7 @@ goes. People decide shut-ins, safety and anything above the operator's authority
 
 | Part | Owner | Why |
 |---|---|---|
-| Asset health: thresholds per sensor, worst sensor wins, confidence lookup, days-to-failure band, failure mode and repair estimate | **Deterministic (SQL)** | This is a lookup, not a judgment. The legacy demo asked the LLM to apply the thresholds; here `classify_asset` does it, the same way every time, and a threshold change is a decision for Production Engineering. |
+| Asset health: thresholds per sensor, worst sensor wins, confidence lookup, days-to-failure band, failure mode and repair estimate | **Deterministic (SQL)** | This is a lookup, not a judgment, so the LLM never applies the thresholds: `classify_asset` does it, the same way every time, and a threshold change is a decision for Production Engineering. |
 | The fuzzy steps: a technician's note → failure mode, urgency, likely parts and **safety language** (`field_note_triage_agent`); a new symptom → matching past failures with the fix that worked (`similar_failure_agent`); the region's open items → a shift handover (`shift_handover_agent`) | **AI agents** | Reads "grease slinging off the saddle bearing" as rod-pump bearing wear; hears "rotten-egg smell and my monitor chirped" as possible H2S; sees that "high-pitched squeal from the saddle bearing" in another basin last spring is the same failure; turns a snapshot of health, work orders, alerts and cases into a handover. |
 | The conversation, chaining triage → similar failures → work order in a few messages | **AI agent** (orchestrator) | Understanding the request, asking for a yes before creating anything, and handing each agent only the equipment facts it needs. |
 | Region scope, reconciling the triage with the sensors, the safety backstop, work-order rules (not in maintenance, no open work order, health WARNING or worse), estimates, the $25,000 limit, the one-alert-per-day rule, case routing, the reviewer's team and authority | **Deterministic (SQL)** | Every read and write is scoped by a session token, and every rule is a database function. A note with safety words opens the HSE case in SQL even if the agent missed it, and a model cannot talk its way into a work order for a healthy asset or a budget nobody approved. |

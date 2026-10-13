@@ -45,7 +45,7 @@ Chat UI ──WebSocket :9840 /authorservices──► AuthorServicesAIOrchestra
 |---|---|---|
 | `AuthorServicesAIOrchestrator.flogo` | WebSocket `9840` `/authorservices` | The assistant authors and staff reviewers chat with. Each browser connection is its own conversation. |
 | `AuthorServicesMCPServer.flogo` | MCP `9842` `/author-services-mcp` | 14 governed tools: verify the author, list and show manuscripts, reviewer comments, check fees, record a submission check, propose and confirm a transfer, open and list review cases, and the reviewer tools (verify reviewer, review queue, review case, decide case). |
-| `AuthorServicesAgents.flogo` | A2A `9843`, `9844`, `9845` | Three read-only agents: `journal_match_agent` (journals that fit an abstract), `review_summary_agent` (revision checklist) and `submission_check_agent` (statements vs. journal policy). Each reads **reference tables only** in PostgreSQL (the journal catalogue, the peer-review guide, the journal statement policies), never sees who the author is and never changes anything. |
+| `AuthorServicesAgents.flogo` | A2A `9843`, `9844`, `9845` | Three read-only agents: `journal_match_agent` (journals that fit an abstract), `review_summary_agent` (revision checklist) and `submission_check_agent` (statements vs. journal policy). Each reads **reference tables only** in PostgreSQL (the journal catalog, the peer-review guide, the journal statement policies), never sees who the author is and never changes anything. |
 
 ## Security & governance
 

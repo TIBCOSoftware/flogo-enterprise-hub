@@ -1,11 +1,11 @@
 ---
 name: agentic-ai-use-case-builder
-description: Build ANY Agentic AI use case, demo, or chatbot on TIBCO Flogo Enterprise — a real-time WebSocket chatbot backed by three apps: an MCP Server (read tools), an A2A Agents app (reasoning/action agents), and a WebSocket AI Orchestrator, all PostgreSQL-backed. This is THE canonical builder for any vertical (telecom, airline, hospital, banking, retail, insurance, logistics, utilities, scholarly publishing, …). Governed by default: it first asks the user discovery questions (business goal, audience/region, persona, identity, reads, actions and their rules, the fuzzy step, human-owned requests, demo storyline, runtime model) for anything not already provided, then runs the Agentic AI decision framework (human-owned vs. agent vs. deterministic), then enforces identity, scoping, prices and state changes in PostgreSQL — not in prompts — with scoped reads (FROM rule_fn(token)), guarded writes (INSERT … SELECT rule_fn → 0 rows when blocked), two-step propose/confirm for state changes, routed human-review cases, session-token identity, per-connection conversation memory, minimised read-only A2A agents, and a four-step test ladder (SQL rules → static validator → MCP smoke → chat e2e with prompt injection). TWO build methods, and the skill ASKS which: the Flogo Design CLI (`fda`) built from scratch (the RECOMMENDED DEFAULT), or cloning a governed reference `.flogo` and swapping fields. Use when the user asks to build/create/scaffold an agentic AI use case, demo, chatbot, or "MCP + A2A + orchestrator" solution for any domain, or when an agent must act on a user's own records, money or state.
+description: Build ANY Agentic AI use case, demo, or chatbot on TIBCO Flogo Enterprise — a real-time WebSocket chatbot backed by three apps: an MCP Server (read tools), an A2A Agents app (reasoning/action agents), and a WebSocket AI Orchestrator, all PostgreSQL-backed. This is THE canonical builder for any vertical (telecom, airline, hospital, banking, retail, insurance, logistics, utilities, scholarly publishing, …). Governed by default: it first asks the user discovery questions (business goal, audience/region, persona, identity, reads, actions and their rules, the fuzzy step, human-owned requests, demo storyline, runtime model) for anything not already provided, then runs the Agentic AI decision framework (human-owned vs. agent vs. deterministic), then enforces identity, scoping, prices and state changes in PostgreSQL — not in prompts — with scoped reads (FROM rule_fn(token)), guarded writes (INSERT … SELECT rule_fn → 0 rows when blocked), two-step propose/confirm for state changes, routed human-review cases that a staff reviewer decides in the same chatbot (team scope and approval limit enforced in SQL), session-token identity, per-connection conversation memory, minimised read-only A2A agents, and a four-step test ladder (SQL rules → static validator → MCP smoke → chat e2e with prompt injection). TWO build methods, and the skill ASKS which: the Flogo Design CLI (`fda`) built from scratch (the RECOMMENDED DEFAULT), or cloning a governed reference `.flogo` and swapping fields. Use when the user asks to build/create/scaffold an agentic AI use case, demo, chatbot, or "MCP + A2A + orchestrator" solution for any domain, or when an agent must act on a user's own records, money or state.
 user-invocable: true
 metadata:
   author: Flogo Skills Author <author@example.com>
-  version: "1.1.0"
-  last-updated-date: "2026-10-13"
+  version: "1.2.0"
+  last-updated-date: "2026-10-14"
 ---
 
 # Agentic AI Use Case Builder (governed by default)
@@ -28,19 +28,23 @@ plain, ungoverned demo:
 | Reads | one tool per table | **scoped** by a session token through a rule function |
 | Writes | A2A agents write with LLM-chosen values | **guarded** MCP tools: `INSERT … SELECT rule_fn()`, plus readback of outcome and reason |
 | State changes | one call | **two-step** propose → user yes → confirm (15-minute expiry, rules rechecked) |
-| Exceptions | the model decides | **human-owned** `open_review_case`, routed by a table |
+| Exceptions | the model decides | **human-owned** `open_review_case`, routed by a table, then **decided by a staff reviewer** in the same chat (team scope + approval limit in SQL) |
 | A2A agents | action agents | reasoning agents with **minimised, read-only** input |
 | Identity | none / trust the chat | `verify_*` → session token; per-connection `conversationId` |
 | Done means | design-time validation | **4-step test ladder**, including prompt injection |
 
 **Worked example:** `samples/Agentic_AI/Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/`. Read its
-`database.sql`, `_rebuild/tool_spec.py` and `README.md` before building a new one.
+`database.sql`, `_rebuild/tool_spec.py` and `README.md` before building a new one. For the reviewer loop, read
+the "THE REVIEWER LOOP" block of `Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/database.sql` and
+[governed-patterns.md §9](references/governed-patterns.md#9-human-in-the-loop-reviewer-loop).
 
 ## What gets built
 
 Three Flogo apps plus a PostgreSQL database, wired into one chat system. A person chats in natural
 language with a web client; the orchestrator runs the conversation, calls the MCP tools for everything
-the database decides, and hands the one fuzzy judgment to a reasoning agent.
+the database decides, and hands the one fuzzy judgment to a reasoning agent. Staff reviewers use the **same
+chatbot** to decide the human-owned cases: they verify with a staff code, work their team's queue, and their
+approval runs the parked action through the same SQL checks.
 
 ```
 Chat UI --WebSocket--> <Prefix>AIOrchestrator --MCP(HTTP streamable)--> <Prefix>MCPServer --\
@@ -51,7 +55,7 @@ Chat UI --WebSocket--> <Prefix>AIOrchestrator --MCP(HTTP streamable)--> <Prefix>
 | App | Trigger | Port / path | What it holds |
 |---|---|---|---|
 | `<Prefix>AIOrchestrator` | `#wsserver` (WebSocket) | block port `X0` (e.g. `9930`), path `/<usecase>` | the chat brain: an AI Agent that routes to MCP tools and the A2A agent, with per-connection memory |
-| `<Prefix>MCPServer` | `#mcpserver` (HTTP streamable) | `X2` (e.g. `9932`), path `/<usecase>mcpserver` | the governed tools — scoped reads, guarded writes, two-step actions, human-review routing |
+| `<Prefix>MCPServer` | `#mcpserver` (HTTP streamable) | `X2` (e.g. `9932`), path `/<usecase>mcpserver` | the governed tools — scoped reads, guarded writes, two-step actions, human-review routing, and the 4 reviewer tools (staff verify, team queue, case view, guarded decision) |
 | `<Prefix>Agents` | `#agent` / `tr_agent` (A2A, HTTP) | `X3`+ (e.g. `9933`), one port + `agentUrl` per agent | usually one reasoning agent (up to 3), read-only, given minimised input (no identity); a PostgreSQL connection used **only** to read reference tables (`ref_<topic>()`), one reference tool per agent |
 
 **Where the apps live** is named by `<Prefix>` after the persona/vertical (`PassengerServices*`,
@@ -68,9 +72,18 @@ are illustrative, not fixed):
   outcome into a `pending_actions` row with a 15-minute expiry; `confirm_*` re-checks every rule and writes
   the event row only when still eligible.
 - **Human-owned routing (MCP):** `open_service_case` / `open_review_case` — files the request, a table routes
-  it to a team with an SLA, and the model never decides the outcome.
+  it to a team with an SLA, SQL derives the **parked action** an approval would run (`<KIND>:<id>`), and the
+  model never decides the outcome.
+- **Customer outcome view (MCP):** `get_my_cases(token)` — the customer's own cases with status and the
+  reviewer's `customer_message` once decided; never the internal note, scores or the reviewer's name.
+- **Reviewer loop (MCP, staff persona):** `verify_reviewer(staff_id, code)` → a REVIEWER session token (role and
+  team from SQL); `get_review_queue(token)` → the team's OPEN cases by SLA; `get_review_case(token, case_id)` →
+  statement, AI brief, SQL facts, max approvable, the reviewer's limit (another team's case = `NOT_FOUND`);
+  `decide_review_case(token, case_id, decision, amount, internal_note, customer_message)` → guarded
+  `INSERT INTO review_decisions … SELECT * FROM decide_case_row(…)` + readback. An insert trigger executes the
+  parked action through the same guarded row functions and audits it (governed-patterns.md §9).
 - **Email (MCP, optional):** `email_<confirmation>` — a guarded tool that only emails an action already
-  executed for the verified session.
+  executed (or a case already decided) for the verified session.
 - **Reasoning agent (A2A):** usually one; up to 3 distinct semantic steps, one A2A agent (and port) each —
   see the Hospital sample (`Hospital_Post_Discharge_Care_Use_Case`: discharge instructions, medication
   reconciliation, follow-up slot ranking). E.g. rank options against the user's free-text preferences. Each
@@ -96,8 +109,9 @@ empty OpenAI base URL. On top of that:
    SQL. Prompts may *explain* outcomes. They never *produce* them.
 3. **Every write is guarded.** Use `INSERT … SELECT * FROM <rule_fn>(…)`, never `VALUES`. Use an event
    row plus a trigger rather than an UPDATE. Always read back the outcome.
-4. **The model never decides human-owned requests.** Open a case, give the case id and team, and say
-   a person will decide.
+4. **The model never decides human-owned requests.** It opens a case and gives the customer the case id and
+   team. A staff reviewer decides it in the same chatbot (`decide_review_case`), and SQL enforces the
+   reviewer's role, team scope and approval limit. An approval runs only the parked action SQL derived.
 5. **Honest AI.** The assistant says it is an AI when asked. Never write a prompt that hides it.
 6. **Tests assert on DB state.** Text checks stay loose, because the wording varies (temperature 0 =
    provider default).
@@ -117,11 +131,11 @@ empty OpenAI base URL. On top of that:
 | [references/port-registry.md](references/port-registry.md) | Phase 0: pick the next free port block (X0 WS, X2 MCP, X3+ A2A); update the registry in the same change |
 | [references/migration-playbook.md](references/migration-playbook.md) | Phases 0–1, **only when the input is a legacy sample** from `Industry_Use_Cases_old/`: discovery from its files, feature mapping, mapping table for all 13, retire steps |
 | [references/decision-framework-gate.md](references/decision-framework-gate.md) | Phase 1: classify operations, write "Why an agent here?" |
-| [references/governed-patterns.md](references/governed-patterns.md) | Phases 2–4: SQL shapes, the agent reference tools (`ref_<topic>()`), and the fda recipes that differ |
+| [references/governed-patterns.md](references/governed-patterns.md) | Phases 2–4: SQL shapes, the agent reference tools (`ref_<topic>()`), the human-in-the-loop reviewer loop (§9), and the fda recipes that differ |
 | [references/runtime-gotchas.md](references/runtime-gotchas.md) | Phases 4–5: wsserver headers, temperature, guardrails, LLM timeout, flogobuild context and `-f`, A2A agent needs a PostgreSQL reference tool |
 | [references/testing-ladder.md](references/testing-ladder.md) | Phase 5: the four steps and how to run the apps |
 | [references/spec-and-readme-template.md](references/spec-and-readme-template.md) | Phases 2 and 6: spec additions, README template |
-| [references/validate_governed_apps.py](references/validate_governed_apps.py) | Phase 5: runs the base validator, then G1–G10 |
+| [references/validate_governed_apps.py](references/validate_governed_apps.py) | Phase 5: runs the base validator, then G1–G11 |
 | [templates/_rebuild/fda_common.py](templates/_rebuild/fda_common.py) | Phase 4: `App` helper (`bake_pg`, `conn_ref`, `cap_empty`, connections) |
 | Local build references (self-contained): [fda-build-recipes](references/fda-build-recipes.md), [postgres-activity-patterns](references/postgres-activity-patterns.md), [fda-limitations](references/fda-limitations.md), [manual-config-gap](references/manual-config-gap.md), [connector-prereqs](references/connector-prereqs.md) | Phase 4A: the FDA recipes, PostgreSQL activity contract, Tech-Preview limits, manual-config gap, connector prerequisites |
 | [references/flogo-app-templates.md](references/flogo-app-templates.md) | Phase 4B: exact JSON shape of all 3 apps — the clone-and-adapt reference |
@@ -199,8 +213,9 @@ POC files or prospect/customer names from the legacy input into the new sample.
 spec file or earlier turns already answer, and ask the rest in at most three batched rounds:
 - **Round 1, context (open text):** the business problem and success criteria, the audience and region,
   who chats, domain vocabulary, and the brand.
-- **Round 2, who and what (`AskUserQuestion`):** persona, identity proof, reads, actions, the fuzzy step
-  and the human-owned requests.
+- **Round 2, who and what (`AskUserQuestion`):** persona, identity proof, reads, actions, the fuzzy step,
+  the human-owned requests and who decides them (the reviewer teams, their approval limits, and what an
+  approval executes).
 - **Round 3, rules, demo and runtime:** rule thresholds, multi-step requests, the demo storyline and
   logins, hidden data, the injection target, email, the runtime model, and how far to verify.
 
@@ -216,12 +231,15 @@ human? Q2 semantic?). Check that the catalogue doesn't already cover the vertica
 
 ### Phase 2: spec
 Fill in the spec with the governed additions: identity and scope, the classification, rules with
-reason codes and a seed row per code, two-step actions, request types → teams, adversarial acceptance.
+reason codes and a seed row per code, two-step actions, request types → teams, the reviewer loop (reviewer
+teams with staff logins and approval limits, and the parked action an approval executes per request type),
+adversarial acceptance.
 
 ### Phase 3: plan, then gate on approval ⛔
 Open with **"What I heard"** (one line per discovery answer, naming the fictional org) and
 **"Assumptions"** (every "you decide" and every unconfirmed default). Then present the classification
-table, tools, agent, rules with reason codes, human-owned routing, demo logins and script, ports and the
+table, tools, agent, rules with reason codes, human-owned routing, the reviewer teams with their approval
+limits and the parked actions an approval runs, demo logins (customers and staff) and script, ports and the
 test scope. Build nothing until the user approves.
 
 ### Phase 4: build (only after approval)
@@ -305,7 +323,9 @@ runtime model, a wrong assertion, or a non-ASCII console crash each force a full
 5. Write the README from the template. It is for customers and partners who want to **run** the demo:
    "Why an agent here?", architecture, prerequisites, numbered steps to run (database, the ⚠️ app
    properties per app — the Agents app's table includes its `PostgreSQL.PostgresConn.*` connection next to
-   the LLM ones — start order, chat client, demo logins and script, reset), troubleshooting.
+   the LLM ones — start order, chat client, demo logins and script, a **"Reviewer (human-in-the-loop)"**
+   section with the staff logins (staff ID, code, team, approval limit) and the reviewer script, reset),
+   troubleshooting.
    Keep test results, negative tests, limitations and file lists **out** of the README; they go in the
    report (step 7). End it with the one-line "Rebuild from code" pointer, and write the developer guide
    `_rebuild/README.md` (file inventory, settings, regenerate, test-ladder commands) from the same
@@ -343,5 +363,10 @@ runtime model, a wrong assertion, or a non-ASCII console crash each force a full
 - **Every A2A agent needs one PostgreSQL reference tool**, `SELECT * FROM ref_<topic>(CAST(?lookup AS text))`.
   With zero Tool handlers it runs as a Local Agent with no port; a static `#noop` → `#actreturn` text fails G10.
   Name the placeholder `?lookup`, never `?term` (duplicate `Fields`).
+- **The orchestrator must always submit the confirmed reviewer decision.** It restates the decision (case,
+  APPROVE/REJECT, amount, internal note, customer message), requires an explicit "confirm", then calls
+  `decide_review_case` with exactly that decision, even when the amount looks above the reviewer's limit. SQL,
+  not the model, answers `OVER_AUTHORITY` (the case stays OPEN). A prompt that lets the model refuse or lower
+  the amount itself hides the rule from the audit trail.
 - **An agent skips its tool when its prompt already holds the facts.** Make one part of each reply depend on
   text only the table holds, remove those facts from the prompt, and assert it in `a2a_smoke.py` (`TABLE_ONLY`).

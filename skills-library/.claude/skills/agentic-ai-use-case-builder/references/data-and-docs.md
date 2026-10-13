@@ -39,6 +39,11 @@ relative to the including file, so run `psql` from any folder.)
   Pre-seed a couple of rows in write-target tables so read tools have something to show (e.g. an
   existing ticket with a status), and leave pure activation/log tables **empty** (the agent fills them).
 - Give ~6–10 personas with realistic, locale-appropriate names/currency (default USA/USD) so the demo feels real.
+- **Reviewer loop seeds** ([governed-patterns.md](governed-patterns.md) §9): two or more staff reviewers in different
+  teams (`team` = the routing table's team), 1–2 already-OPEN cases per reviewer team with a parked action, so the
+  queue is never empty, and one reviewer whose `approval_limit` sits just below a seeded case's amount (the
+  `OVER_AUTHORITY` demo). Human-owned requests are not just filed: a reviewer decides them in the chatbot and an
+  approval runs the parked action.
 - Keep table/column names **exactly** what the `.flogo` queries use.
 
 ## reset_data.sql
@@ -68,6 +73,9 @@ Group demo prompts by scenario, each in a fenced block, matching the seeded data
 - Write scenarios (multi-turn: ask → agent explains → user confirms → agent acts), naming the exact
   persona/record that triggers the exception (so it demonstrably fires the A2A agent).
 - Status/history lookups of things a write-agent created (uses a pre-seeded row).
+- The reviewer loop: the staff sign-in, "Show me my queue.", "Open case …", an approve/reject with an internal
+  note and a customer message, "Confirm.", one above-limit approval (`OVER_AUTHORITY`), and the customer asking
+  for the status afterwards; plus a customer who claims to be a reviewer (refused).
 - A full end-to-end flow (read → write → optional email confirmation).
 - Edge cases + out-of-scope prompts (to show the orchestrator declining politely).
 
@@ -99,7 +107,9 @@ Sections, in order:
    `https://api.openai.com/v1` and run ingestion first. Governed samples map the orchestrator's `conversationId` from the
    WebSocket key, so every connection has its own memory and must verify again (a new tab = a new
    conversation — say so in Troubleshooting).
-8. **Demo scenarios** — the headline chat walkthroughs.
+8. **Demo scenarios** — the headline chat walkthroughs, then a **"Reviewer (human-in-the-loop)"** section with the
+   staff logins (staff ID, code, team, approval limit) and the reviewer script
+   ([spec-and-readme-template.md](spec-and-readme-template.md)).
 9. **Ports table** and **Troubleshooting** table.
 10. Optional **security/production notes** (TLS, bearer auth, on-prem LLM, swap DB for real backend APIs).
 

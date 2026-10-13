@@ -11,10 +11,8 @@ compliance team. Offers and price questions, list-price changes, contract and cl
 questions go to the right Brightpath team, and Brightpath's staff reviewers decide them **in the same chatbot**. The
 assistant never decides them.
 
-*The original non-governed version is kept under [Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case](../../../../Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) for reference.*
-
 **Agentic in the middle, deterministic at the edges:** the AI handles the conversation, matches free-text wishes to
-listings, reads a lead's message for intent, timeline and financing readiness, and recognises a Fair-Housing-sensitive
+listings, reads a lead's message for intent, timeline and financing readiness, and recognizes a Fair-Housing-sensitive
 question. PostgreSQL decides identity, which listings match the filters, open showing times, double booking, the
 lead's stage, how soon an agent follows up, case routing and every change. People decide the exceptions.
 
@@ -26,7 +24,7 @@ lead's stage, how soon an agent follows up, case routing and every change. Peopl
 
 | Part | Owner | Why |
 |---|---|---|
-| The fuzzy steps: free-text wishes → ranked listings (`listing_match_agent`); a free-text message → intent, timeline, pre-approval, motivation (`lead_intent_agent`); a question → Fair-Housing flag, category and neutral answer (`fair_housing_agent`) | **AI agents** | Reads "walkable, with a real room for a home office" against listing features and ranks the home with a dedicated office four blocks from Main Street above one with a den; reads "relocating for a new job in about two months, already pre-approved" as a ready buyer; recognises that "is it a safe area for kids?" is a steering risk. |
+| The fuzzy steps: free-text wishes → ranked listings (`listing_match_agent`); a free-text message → intent, timeline, pre-approval, motivation (`lead_intent_agent`); a question → Fair-Housing flag, category and neutral answer (`fair_housing_agent`) | **AI agents** | Reads "walkable, with a real room for a home office" against listing features and ranks the home with a dedicated office four blocks from Main Street above one with a den; reads "relocating for a new job in about two months, already pre-approved" as a ready buyer; recognizes that "is it a safe area for kids?" is a steering risk. |
 | The conversation, chaining several requests in one message | **AI agent** (orchestrator) | Understanding the request, asking for a yes before a booking, and handing the right minimized facts to the right agent. |
 | Identity, listing filters, open slots, notice and showing hours, double booking, the lead's stage and the move to Active, follow-up priority and due time, the allowed list-price range, case routing, the reviewer's team and approval limit | **Deterministic (SQL)** | Every read and write is scoped to the verified lead (or the reviewer's team) by a session token, and every rule is a database function. A model must not be able to book a pending home, double-book a slot, see another lead's showings or change a list price. |
 | Offers and price questions, list-price changes, contract and closing updates, Fair-Housing-sensitive questions, legal and mortgage questions | **Human** (Sales Agents · Brokerage Compliance) | Negotiation, pricing a seller's home, confirming a contract and answering a sensitive neighborhood question need a licensed, accountable person. Harper opens a routed case; a staff reviewer decides it in the same chatbot, and an approval changes the list price or the lead's status through the same database checks. |

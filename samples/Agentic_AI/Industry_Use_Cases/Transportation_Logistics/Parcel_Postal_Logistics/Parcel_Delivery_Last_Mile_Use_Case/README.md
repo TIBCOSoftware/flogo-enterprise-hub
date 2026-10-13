@@ -14,8 +14,7 @@ PostgreSQL decides identity, delivery status, eligibility, the claimable amount,
 every change. People decide the claims.
 
 > Swiftbound and all recipients, staff, parcels, slots and pickup points in this sample are fictional.
-> The app uses its own database (`parcel_delivery`). An earlier, ungoverned shipper-focused logistics demo
-> is kept under [`Industry_Use_Cases_old/Logistics_Transport_Use_Case/`](../../../../Industry_Use_Cases_old/Logistics_Transport_Use_Case/).
+> The app uses its own database (`parcel_delivery`).
 
 ## Why an agent here?
 

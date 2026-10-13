@@ -15,8 +15,7 @@ PostgreSQL decides identity, dispute eligibility, provisional credit, payment ru
 card status and every change. People decide the exceptions.
 
 > Kestrel Bank and all customers, staff, accounts, payees, cards and merchants in this sample are fictional.
-> The app uses its own database (`banking_governed`); an earlier, simpler version of this demo is
-> kept under [`Industry_Use_Cases_old/`](../../../../Industry_Use_Cases_old/Retail_Banking_Assistant_Use_Case/).
+> The app uses its own database (`banking_governed`).
 
 ## Why an agent here?
 

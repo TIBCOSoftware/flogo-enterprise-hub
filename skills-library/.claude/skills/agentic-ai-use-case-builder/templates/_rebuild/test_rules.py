@@ -10,6 +10,7 @@
 #   - the tool_spec.py entries  (tools, args, SQL: scoped reads + guarded writes)
 #   - ports / endpoint paths    (9850 / 9852 / 9853, /passenger-services-gov-mcp, ...)
 #   - the test assertions       below (PNRs/PINs, expected outcomes) for your own data
+#   - the reviewer block        (REVIEW placeholders: staff logins, seeded cases, the parked action's rows)
 #   - the reference-tool block  at the end (ID_SQL / LOOKUPS / KEEP / ID_PATTERN placeholders, codes explained)
 #
 # References (relative to this file):
@@ -26,11 +27,14 @@ No Flogo needed. Re-loads reset_data.sql first and again at the end.
   PG_DB=<database> PG_PWD=<password> python _rebuild/test_rules.py   (PSQL env var overrides the psql path;
   PG_PWD may also come from env PG_PASSWORD or config.md PG_PASSWORD)
 """
-import os, re, subprocess, sys, csv, io
+import os, re, subprocess, sys, csv, io, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tool_spec import TOOLS, AGENT_REF_TOOLS, REF_COLUMNS, ref_tools_filled
+from tool_spec import (TOOLS, AGENT_REF_TOOLS, REF_COLUMNS, ref_tools_filled, REVIEWER_TOOLS, PUBLIC_TOOLS,
+                       HIDDEN_COLUMNS, HIDDEN_FROM_REVIEWER, reviewer_tools_filled)
 if not ref_tools_filled():
     sys.exit("fill in tool_spec.AGENT_REF_TOOLS and the reference-tool block (LOOKUPS / KEEP / ID query) first")
+if not reviewer_tools_filled():
+    sys.exit("fill in tool_spec.REVIEWER_TOOL_SPECS / HIDDEN_COLUMNS and the REVIEW block below first")
 
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # psql + password lookup (cross-platform): env PSQL > config.md PSQL_PATH > psql on PATH;
@@ -63,6 +67,7 @@ BASE = [PSQL, "-h", os.environ.get("PG_HOST", "localhost"), "-U", os.environ.get
         "-d", PG_DB, "-v", "ON_ERROR_STOP=1", "-q"]
 T = {t["tool"]: t for t in TOOLS}
 fails = 0
+OUTPUTS = []      # (tool, rows) of every call: the minimum-necessary checks scan them
 
 def lit(v):
     return "'" + str(v).replace("'", "''") + "'"
@@ -84,7 +89,9 @@ def call(tool, **args):
     t = T[tool]
     if "write" in t:
         psql(sub(*t["write"], args))
-    return psql(sub(*t["read"], args))
+    rows = psql(sub(*t["read"], args))
+    OUTPUTS.append((tool, rows))
+    return rows
 
 def check(label, cond, detail=""):
     global fails
@@ -201,6 +208,126 @@ check("audit logged verify sessions", na("VERIFY_SESSION_ISSUED") >= 6, na("VERI
 check("audit logged a rebook proposal + execution", na("REBOOK_PROPOSED") >= 1 and na("REBOOK_EXECUTED") >= 1)
 check("audit logged a service case", na("SERVICE_CASE_OPENED") >= 1)
 
+# ---------------------------------------------------------------- reviewer loop (human in the loop)
+# GENERIC BLOCK (from the Retail Banking / Life & Pensions samples; testing-ladder.md step 1 "Reviewer block",
+# governed-patterns.md section 9). Fill REVIEW from seed_data.sql. Seeds it needs: two reviewers in different teams,
+# the LOW reviewer's approval limit just below LOW_CASE's eligible max (OVER_AUTHORITY), and an OPEN case per team.
+REVIEW = {
+    "cases": "<service_cases>", "routing": "<service_teams>", "audit": "agent_audit",
+    "customer_read": "get_my_itinerary",                       # any customer-token read tool (SESSION_INVALID check)
+    "customer_login": ("ABCDE1", "4821"),                      # a customer's identifier + code: must NOT verify as staff
+    "low": ("<STAFF-0001>", "<code>", "<Team A>"),             # limit just below LOW_CASE's eligible max
+    "other": ("<STAFF-0002>", "<code>", "<Team B>"),
+    "low_case": "<CASE-0000A>",                                # Team A's seeded OPEN case with a parked action
+    "low_case_customer": lambda: call("verify_traveller", pnr="<PNR>", pin="<PIN>")[0]["session_token"],
+    "low_ok_amount": "<an amount within the LOW reviewer's limit>",
+    "other_case": "<CASE-0000B>",                              # Team B's seeded OPEN case (to reject)
+    "executed_sql": "SELECT count(*) FROM <target_table> WHERE case_id = {case}",   # rows the parked action writes
+}
+if any("<" in str(v) for v in REVIEW.values() if not callable(v)):
+    sys.exit("fill in the REVIEW block (reviewer loop placeholders) in test_rules.py first")
+C, RT = REVIEW["cases"], REVIEW["routing"]
+def one(sql): return list(psql(sql)[0].values())[0]
+def vrev(staff, code): return call("verify_reviewer", staff_id=staff, code=code)[0]
+def decide(tok, case, dec="APPROVE", amt="", note="Checked the record history.", msg="Your request was reviewed."):
+    return call("decide_review_case", session_token=tok, case_id=case, decision=dec, amount=amt,
+                internal_note=note, customer_message=msg)[0]
+LOW_ID, LOW_CODE, LOW_TEAM = REVIEW["low"]
+OTH_ID, OTH_CODE, OTH_TEAM = REVIEW["other"]
+LCASE, OCASE = REVIEW["low_case"], REVIEW["other_case"]
+
+# identity: same token mechanism, role checked everywhere
+r = vrev(LOW_ID, "000000")
+check("reviewer wrong code -> NOT_VERIFIED, no token", r["status"] == "NOT_VERIFIED" and not r["session_token"], r)
+r = vrev(*REVIEW["customer_login"])
+check("a customer identifier + code cannot verify as staff", r["status"] == "NOT_VERIFIED" and not r["session_token"], r)
+r = vrev(" " + LOW_ID.lower() + " ", LOW_CODE)
+check("reviewer (id typed loosely) -> VERIFIED, role REVIEWER, own team", r["status"] == "VERIFIED"
+      and r["role"] == "REVIEWER" and r["team"] == LOW_TEAM and r["session_token"], r)
+low = r["session_token"]
+oth = vrev(OTH_ID, OTH_CODE)["session_token"]
+cust = REVIEW["low_case_customer"]()
+check("a reviewer token is not a customer token -> SESSION_INVALID",
+      call(REVIEW["customer_read"], session_token=low)[0]["session_status"] == "SESSION_INVALID")
+for tool in sorted(REVIEWER_TOOLS - PUBLIC_TOOLS):
+    row = call(tool, session_token=cust, case_id=LCASE, decision="APPROVE", amount="", internal_note="customer try",
+               customer_message="x")[0]
+    check(f"a customer token on {tool} -> NOT_REVIEWER", (row.get("status") or row.get("outcome")) == "NOT_REVIEWER", row)
+
+# team scope: the queue is exactly the team's OPEN cases by reply-due time; another team's case is invisible
+for tok, team in ((low, LOW_TEAM), (oth, OTH_TEAM)):
+    ids = [x["case_id"] for x in call("get_review_queue", session_token=tok) if x["case_id"]]
+    db = [x["case_id"] for x in psql(f"SELECT s.case_id FROM {C} s JOIN {RT} t USING (request_type) "
+                                     f"WHERE t.team = {lit(team)} AND s.status = 'OPEN' ORDER BY s.sla_due_at, s.case_id")]
+    check(f"{team} queue = exactly its OPEN cases, ordered by reply-due ({len(ids)})", ids == db and len(ids) >= 1, (ids, db))
+check("cross-team case is absent from the queue", OCASE not in [x["case_id"] for x in call("get_review_queue", session_token=low)])
+check("cross-team case -> NOT_FOUND in get_review_case",
+      call("get_review_case", session_token=low, case_id=OCASE)[0]["status"] == "NOT_FOUND")
+rc = call("get_review_case", session_token=low, case_id=LCASE.lower())[0]
+check("get_review_case: OK, max approvable above this reviewer's limit, options name the senior reviewer",
+      rc["status"] == "OK" and float(rc["max_approvable"]) > float(rc["your_approval_limit"])
+      and "senior" in (rc["options"] or "").lower(), rc)
+check("every case has a reply-due time from the routing table", one(f"SELECT count(*) FROM {C} WHERE sla_due_at IS NULL") == "0")
+
+# every reason code of decide_case_row; blocked calls write no decision and execute nothing
+n_dec = one("SELECT count(*) FROM review_decisions")
+exe = lambda case: int(one(REVIEW["executed_sql"].format(case=lit(case))))
+r = decide(cust, LCASE)
+check("a customer token cannot decide -> NOT_REVIEWER", r["outcome"] == "NOT_REVIEWER", r)
+r = decide(low, OCASE)
+check("another team's case -> BLOCKED NOT_YOUR_TEAM (no case id echoed)",
+      r["outcome"] == "BLOCKED" and r["reason_code"] == "NOT_YOUR_TEAM" and not r["case_id"], r)
+check("unknown case -> NOT_FOUND", decide(low, "NO-SUCH-CASE-0")["reason_code"] == "NOT_FOUND")
+check("note under 5 characters -> NOTE_REQUIRED", decide(low, LCASE, note="ok")["reason_code"] == "NOTE_REQUIRED")
+check("decision not APPROVE/REJECT -> INVALID_DECISION", decide(low, LCASE, dec="MAYBE")["reason_code"] == "INVALID_DECISION")
+check("negative amount -> AMOUNT_INVALID", decide(low, LCASE, amt="-5")["reason_code"] == "AMOUNT_INVALID")
+check("above the eligible max -> AMOUNT_INVALID",
+      decide(low, LCASE, amt=str(float(rc["max_approvable"]) + 1))["reason_code"] == "AMOUNT_INVALID")
+r = decide(low, LCASE)                                           # empty amount = the full eligible amount
+check("full amount above the reviewer's limit -> OVER_AUTHORITY, case stays OPEN",
+      r["reason_code"] == "OVER_AUTHORITY" and r["case_status"] == "OPEN" and "senior" in r["reason_text"].lower(), r)
+check("DB: no decision row and nothing executed after the blocked calls",
+      one("SELECT count(*) FROM review_decisions") == n_dec and exe(LCASE) == 0)
+
+# approve executes the parked action; a second decision is blocked; reject executes nothing
+NOTE, MSG = "Record checked; goodwill within my limit.", "Your request was approved."
+r = decide(low, LCASE, amt=REVIEW["low_ok_amount"], note=NOTE, msg=MSG)
+check("approve within the limit -> APPROVED with executed_action", r["outcome"] == "APPROVED" and r["executed_action"], r)
+check("DB: the parked action ran once, the case is APPROVED with the customer message",
+      exe(LCASE) == 1 and one(f"SELECT status FROM {C} WHERE case_id = {lit(LCASE)}") == "APPROVED"
+      and one(f"SELECT customer_message FROM {C} WHERE case_id = {lit(LCASE)}") == MSG)
+check("DB: CASE_DECIDED audit row with the reviewer as actor",
+      one(f"SELECT count(*) FROM {REVIEW['audit']} WHERE action = 'CASE_DECIDED' AND ref = {lit(LCASE)} "
+          f"AND actor = {lit(LOW_ID)}") == "1")
+r = decide(low, LCASE, dec="REJECT")
+check("a second decision -> ALREADY_DECIDED, still one decision row", r["reason_code"] == "ALREADY_DECIDED"
+      and one(f"SELECT count(*) FROM review_decisions WHERE case_id = {lit(LCASE)}") == "1", r)
+r = decide(oth, OCASE, dec="REJECT", note="Policy does not allow this request.", msg="We are not able to approve this.")
+check("reject -> REJECTED, nothing executed", r["outcome"] == "REJECTED" and exe(OCASE) == 0, r)
+
+# the customer sees the outcome (status + customer_message), never the internals
+mine = [x for x in call("get_my_cases", session_token=cust) if LCASE in x.values()]
+check("the customer sees APPROVED and the customer message", bool(mine) and "APPROVED" in mine[0].values()
+      and MSG in mine[0].values(), mine)
+cust_cols = {k for t, rows in OUTPUTS if t not in REVIEWER_TOOLS for row in rows for k in row}
+check("customer tool outputs carry none of HIDDEN_COLUMNS", not (cust_cols & HIDDEN_COLUMNS), cust_cols & HIDDEN_COLUMNS)
+rev_cols = {k for t, rows in OUTPUTS if t in REVIEWER_TOOLS for row in rows for k in row}
+check("reviewer tool outputs carry none of HIDDEN_FROM_REVIEWER", not (rev_cols & HIDDEN_FROM_REVIEWER),
+      rev_cols & HIDDEN_FROM_REVIEWER)
+cblob = json.dumps([row for t, rows in OUTPUTS if t not in REVIEWER_TOOLS for row in rows])
+secrets = [x["v"] for x in psql("SELECT internal_note AS v FROM review_decisions UNION ALL SELECT display_name FROM reviewers")]
+check("customer outputs never contain an internal note or a reviewer name", not any(s in cblob for s in secrets),
+      [s for s in secrets if s in cblob][:3])
+check("audit: one CASE_DECIDED row per decision, each with the reviewer as actor",
+      one(f"SELECT count(*) FROM {REVIEW['audit']} WHERE action = 'CASE_DECIDED'") == one("SELECT count(*) FROM review_decisions")
+      and one(f"SELECT count(*) FROM {REVIEW['audit']} WHERE action = 'CASE_DECIDED' AND actor IS NULL") == "0")
+
+# staff code brute-force lockout (same rule as the customer verify)
+for _ in range(5):
+    vrev(OTH_ID, "000000")
+r = vrev(OTH_ID, OTH_CODE)
+check("5 wrong staff codes -> LOCKED even with the right code, no token", r["status"] == "LOCKED" and not r["session_token"], r)
+
 # ---------------------------------------------------------------- A2A agent reference tools (ref_* functions)
 # GENERIC BLOCK (from the Hospital / Semiconductor samples; testing-ladder.md step 1). Each A2A agent's one tool runs
 #   SELECT * FROM ref_<topic>(CAST(?lookup AS text))   - reference data only, no identity.
@@ -217,6 +344,7 @@ def ref_blob(rows):
 # every identity value in the database (names, people / account ids, emails, one-time codes, case ids, tokens)
 ID_SQL = ("SELECT <name_col> AS v FROM <people_table> UNION SELECT <id_col> FROM <people_table> "
           "UNION SELECT email FROM <people_table> UNION SELECT case_id FROM <case_table> "
+          "UNION SELECT reviewer_id FROM reviewers UNION SELECT display_name FROM reviewers "
           "UNION SELECT session_token::text FROM <session_table>")
 ID_VALUES = [v for v in (r["v"] for r in psql(ID_SQL)) if v and len(v) >= 4]
 check("identity value list for the leak scan is non-trivial", len(ID_VALUES) > 10, len(ID_VALUES))

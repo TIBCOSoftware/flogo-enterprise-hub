@@ -14,15 +14,14 @@ identity, connection risk, eligibility, seats, which codes are valid and every c
 the exceptions.
 
 > Meridian and all travelers, staff, bookings and flights in this sample are fictional.
-> The app uses its own database (`airline_governed`); an earlier, simpler version of this demo is
-> kept under [`Industry_Use_Cases_old/`](../../../../Industry_Use_Cases_old/Airline_Passenger_Services_Use_Case/).
+> The app uses its own database (`airline_governed`).
 
 ## Why an agent here?
 
 | Part | Who owns it | Why |
 |---|---|---|
 | Ranking replacement flights against free-text preferences ("land before 8pm, window seat, no red-eye") | **AI agent** (`rebooking_options_agent`) | Free-text preferences weighed against a structured list of valid flights, with trade-offs. A fixed sort can't read "I have a morning meeting". |
-| Turning "blue soft-sided suitcase, broken wheel, laptop charger inside" into a claim type, bag-type and colour codes, content categories and the report fields still missing | **AI agent** (`baggage_claim_agent`) | A description in the traveler's words mapped onto Meridian's bag-type chart and claim rules. SQL then validates every code and records the claim. |
+| Turning "blue soft-sided suitcase, broken wheel, laptop charger inside" into a claim type, bag-type and color codes, content categories and the report fields still missing | **AI agent** (`baggage_claim_agent`) | A description in the traveler's words mapped onto Meridian's bag-type chart and claim rules. SQL then validates every code and records the claim. |
 | Turning "she can't manage the stairs but can walk to her seat" into the standard IATA assistance code (WCHS, not WCHR or WCHC) | **AI agent** (`special_assistance_agent`) | Reading what a person can and cannot do and matching it to the code definitions. SQL keeps only valid, requestable codes. |
 | Understanding the request, explaining outcomes, chaining the steps | **AI agent** (orchestrator) | Conversation, ambiguity, multi-step planning across tools. |
 | Who the traveler is and which booking they can see | **Deterministic** (`session_booking`) | A model must not be able to talk its way into someone else's booking. |
@@ -190,7 +189,7 @@ A delayed bag, as Linda:
 2. *"My checked bag never came off the belt after my flight from Boston yesterday. It's a blue fabric suitcase that
    stands upright on wheels. Inside are a suit, some shirts, my laptop charger and toiletries. I had to buy a suit and
    toiletries for a meeting - about $300. Can you file a claim?"* → the baggage agent maps it to a **DELAYED** claim,
-   bag type `22`, colour `BU`; the claim is recorded, the assistant asks for the bag tag number and other missing
+   bag type `22`, color `BU`; the claim is recorded, the assistant asks for the bag tag number and other missing
    details, and Baggage Services gets a case for the $300 of interim expenses.
 
 Special assistance, as Rosa:

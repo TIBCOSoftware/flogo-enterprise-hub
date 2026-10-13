@@ -11,8 +11,6 @@ followed by an emailed confirmation. RMA dispositions, special pricing and price
 expedites and large last-time-buys go to the right Arcwell team, and Arcwell's staff reviewers decide them **in the
 same chatbot**. The assistant never decides them.
 
-*The original non-governed version is kept under [Industry_Use_Cases_old/Semiconductor_Customer_Use_Case](../../../../Industry_Use_Cases_old/Semiconductor_Customer_Use_Case/) for reference.*
-
 **Agentic in the middle, deterministic at the edges:** the AI handles the conversation, matches an abbreviated BOM
 line to catalog parts, turns a failure story into a defect type and a safety flag, and translates change-notice
 jargon into what it means for the buyer's open lines. PostgreSQL decides identity, prices, MOQ, stock, ship dates,

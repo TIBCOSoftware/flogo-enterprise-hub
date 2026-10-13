@@ -9,8 +9,6 @@ controller's $25,000 limit goes to a maintenance manager, and return-to-service 
 grounding changes and reliability reviews go to Quality & Airworthiness. Those people decide **in the same chatbot**; the
 assistant never decides them and never gives an airworthiness opinion.
 
-*The original non-governed version is kept under [Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case](../../../../Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case/) for reference.*
-
 **Agentic in the middle, deterministic at the edges:** the AI handles the conversation, triages a free-text write-up
 ("HYD 2 press fluctuating, fluid weeping at the pump case drain") to an ATA chapter, likely parts and the certification
 needed, spots that differently worded past write-ups are the same failure, and condenses a base's open work into a
@@ -54,7 +52,7 @@ Chat UI ──WebSocket :9810 /aerospacemro──► AerospaceMROAIOrchestrator 
 
 The three A2A agents read **reference tables only**. Each agent has one read-only PostgreSQL tool:
 `fault_triage_agent` reads the ATA chapter guide (chapters, the certification each job needs, Northvale's triage
-notes, symptom hints, write-up shorthand and the catalogue part families), `repeat_defect_agent` reads the
+notes, symptom hints, write-up shorthand and the catalog part families), `repeat_defect_agent` reads the
 repeat-defect criteria (flag levels and their standard notes, the window, same vs different system), and
 `shift_handover_agent` reads the handover guide (sections, status codes in plain words, standard lines). These tables
 hold no staff, technician, case or aircraft records, and the agents cannot write. The same-chapter 30-day count

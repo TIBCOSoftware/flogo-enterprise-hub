@@ -266,7 +266,7 @@ def check_chat():
 
 # ---------------------------------------------------------------- --need deploy
 def check_tibcop():
-    hint = ("install the TIBCO Platform CLI (tibcop) and put it on PATH or set TIBCOP_PATH; then " + ADD_PROFILE +
+    hint = ("install the TIBCO Platform CLI (tibcop, https://www.tibco.com/downloads/12464) and put it on PATH or set TIBCOP_PATH; then " + ADD_PROFILE +
             " [--software-statement <software_statement>]")
     path = resolve_tool("TIBCOP", "TIBCOP_PATH", ["tibcop"])
     if not check(bool(path), True, "tibcop", path or "not found", hint): return

@@ -33,6 +33,16 @@ integrity, password fields, A2A toolParams) and then the governance checks this 
                      identity-free PostgreSQL reference tool, SELECT * FROM ref_<topic>(CAST(?lookup AS text))
                      (governed-patterns.md "Agent reference tools (PostgreSQL)"; template: the Hospital sample's
                      _rebuild/build_agents.py).
+  G11 REVIEWER LOOP  human-owned cases are decided by a staff reviewer in the same chatbot (governed-patterns.md
+                     section 9). If the MCP app has a decide_review_case tool, its flow must write
+                     INSERT ... SELECT ... FROM decide_case_row(...) (guarded, never VALUES) and then read the
+                     outcome back with a PostgreSQL query; verify_reviewer, get_review_queue and get_review_case must
+                     exist next to it, and the two reviewer reads must pass the session token. decide_review_case's
+                     destructive/idempotent hints should be false. WARNINGS (not errors, so legacy samples still
+                     validate): an app that routes human-owned cases (open_*case tool, or an INSERT into a *cases
+                     table) but has no reviewer tools; a partial reviewer tool set without decide_review_case; no
+                     get_my_cases outcome view for the customer; an orchestrator prompt that mentions
+                     decide_review_case but never asks for an explicit "confirm".
 
 Usage:  python validate_governed_apps.py [--local] A.flogo [B.flogo ...]      exit 1 on any error
 """
@@ -45,7 +55,7 @@ BAD_PROMPT = [
     (r"only (show|return|mention) (the )?(rows|records|results) (for|belonging|where)", "model-side row filtering"),
     (r"(never|do not|don't) (say|reveal|admit|mention) (that )?(you are|you're) (an? )?(ai|bot|assistant)",
      "hides that it is an AI"),
-    (r"(?<!never )(?<!not )(?<!n't )(pretend|claim) (to be|you are) (a )?(human|person)", "impersonates a person"),
+    (r"(?<!never )(?<!not )(?<!n't )\b(pretend|claim) (to be|you are) (a )?(human|person)", "impersonates a person"),
     (r"calculate (the )?(fee|price|amount|refund|apc|total)", "model does arithmetic SQL should own"),
 ]
 
@@ -158,6 +168,8 @@ def check(path, local):
             errs.append(f"G10 {tr['id']}: agent port {port} is also used by {seen_ports[port]} - one port per A2A agent")
         elif port: seen_ports[port] = tr["id"]
 
+    check_reviewer_loop(d, kinds, errs, warns)
+
     sec = warns if local else errs
     for p in d.get("properties", []):
         v = str(p.get("value", ""))
@@ -203,6 +215,82 @@ def check_ref_tool(agent, h, d, kinds, errs):
         idp += [v for v in params.values() if re.search(r"tok|session", str(v), re.I)]
         if idp:
             errs.append(f"G10 {where}.{tid}: identity parameter(s) {idp} - an A2A agent never gets a session token")
+
+REVIEWER_READS = ("verify_reviewer", "get_review_queue", "get_review_case")
+REVIEWER_TOOLS = REVIEWER_READS + ("decide_review_case",)
+
+def check_reviewer_loop(d, kinds, errs, warns):
+    """G11: the human-in-the-loop reviewer loop on the MCP app (and the confirm step in an orchestrator prompt)."""
+    # orchestrator side: a prompt that drives decide_review_case must restate + ask for an explicit confirm
+    prompts = [str((t.get("activity", {}).get("settings") or {}).get("systemPrompt", "")) for _, t in tasks(d)]
+    for pr in prompts:
+        if "decide_review_case" in pr and not re.search(r"\bconfirm", pr, re.I):
+            warns.append("G11 orchestrator prompt calls decide_review_case but never asks the reviewer for an explicit "
+                         "\"confirm\" - restate the decision, wait for confirm, then always submit it (SQL decides OVER_AUTHORITY)")
+    mcp_aliases = {"#" + (m.group(1) or "mcpserver") for imp in d.get("imports", [])
+                   for m in [re.match(r"(?:(\w+)\s+)?\S*/trigger/mcpserver$", imp)] if m}
+    tools = {}                                                  # MCP tool name -> (flow id, handler settings)
+    for tr in d.get("triggers", []):
+        if tr.get("ref") not in mcp_aliases and not str(tr.get("ref", "")).endswith("mcpserver"): continue
+        for h in tr.get("handlers", []):
+            hs = h.get("settings") or {}
+            name = hs.get("handlerName") or hs.get("name") or hs.get("toolName")
+            if name: tools[name] = (h.get("action", {}).get("settings", {}).get("flowURI", "").split(":")[-1], hs)
+    if not tools: return                                        # not an MCP server app
+    flow_pg = {}                                                # flow id -> [(task id, kind, normalised Query, params)]
+    for flow, t in tasks(d):
+        a = t.get("activity", {}); kind = kinds.get(a.get("ref"))
+        if not kind: continue
+        inp = a.get("input") or {}
+        params = (inp.get("input") or {}).get("mapping", {}).get("parameters", {}) if isinstance(inp.get("input"), dict) else {}
+        flow_pg.setdefault(flow, []).append((t["id"], kind, re.sub(r"\s+", " ", inp.get("Query", "")).strip(), params))
+    present = [n for n in REVIEWER_TOOLS if n in tools]
+    if "decide_review_case" not in tools:
+        if present:
+            warns.append(f"G11 partial reviewer loop {present} without decide_review_case - add the guarded decision tool "
+                         f"(INSERT INTO review_decisions ... SELECT * FROM decide_case_row(...)) or remove the reviewer tools")
+            return
+        routes = [n for n in tools if re.fullmatch(r"open_\w*case", n)]
+        routes += [f"{f}.{tid}" for f, acts in flow_pg.items() for tid, kind, q, _ in acts
+                   if kind == "insert" and re.search(r"\bINSERT\s+INTO\s+\w*cases\b", q, re.I)]
+        if routes:
+            warns.append(f"G11 human-owned cases are routed ({sorted(set(routes))[:3]}) but there is no reviewer loop - "
+                         f"add verify_reviewer, get_review_queue, get_review_case and decide_review_case so a staff "
+                         f"reviewer decides them in the chatbot (governed-patterns.md section 9)")
+        return
+    flow, hs = tools["decide_review_case"]
+    acts = flow_pg.get(flow, [])
+    inserts = [(tid, q) for tid, kind, q, _ in acts if kind == "insert"]
+    others = [(tid, kind) for tid, kind, _, _ in acts if kind not in ("insert", "query")]
+    if not inserts:
+        errs.append(f"G11 decide_review_case ({flow}): no PostgreSQL insert - the decision must be a guarded "
+                    f"INSERT INTO review_decisions ... SELECT * FROM decide_case_row(...)")
+    for tid, q in inserts:
+        if re.search(r"\bVALUES\b", q, re.I) or not re.search(r"\bINSERT\s+INTO\s+[\w.]+.*\bSELECT\b.+\bFROM\s+decide_case_row\s*\(", q, re.I):
+            errs.append(f"G11 decide_review_case ({flow}.{tid}): the write must be INSERT ... SELECT ... FROM decide_case_row(...) "
+                        f"(guarded: 0 rows when blocked), got {q[:90]!r}")
+    for tid, kind in others:
+        errs.append(f"G11 decide_review_case ({flow}.{tid}): PostgreSQL #{kind} - record the decision as an insert-only "
+                    f"event row; the trigger applies it")
+    if not any(kind == "query" for _, kind, _, _ in acts):
+        errs.append(f"G11 decide_review_case ({flow}): no readback query - read the outcome and reason with "
+                    f"SELECT * FROM decide_case_result(...)")
+    for k in ("destructiveToolHint", "idempotentToolHint"):
+        if hs.get(k) is True:
+            warns.append(f"G11 decide_review_case: {k}=true - a decision is neither destructive nor idempotent (set false)")
+    missing = [n for n in REVIEWER_READS if n not in tools]
+    if missing:
+        errs.append(f"G11 decide_review_case without {missing} - the reviewer must verify (role from SQL), see the team "
+                    f"queue and open the case in the same chatbot")
+    for n in ("get_review_queue", "get_review_case"):
+        if n not in tools: continue
+        qs = [(q, params) for _, kind, q, params in flow_pg.get(tools[n][0], []) if kind == "query"]
+        if not any(re.search(r"\?\w*(tok|session)", q, re.I) or any(re.search(r"tok|session", str(k) + str(v), re.I)
+                                                                     for k, v in params.items()) for q, params in qs):
+            errs.append(f"G11 {n} ({tools[n][0]}): no PostgreSQL query that passes the reviewer's session token - "
+                        f"the team scope must come from SQL (FROM review_queue(CAST(?tok AS text)))")
+    if "get_my_cases" not in tools:
+        warns.append("G11 no get_my_cases tool - the customer cannot see the reviewer's outcome (status + customer_message)")
 
 def check_agent(where, s, errs, warns, user_facing=False):
     prompt = str(s.get("systemPrompt", ""))

@@ -11,14 +11,15 @@ gate, the governed SQL, the validator, the 4-step ladder, the README rules — i
    `*.spec.md` (delegate the reading to a subagent; never load its `.flogo` files whole). Take from them:
    persona, identifier, reads, actions, rules (often hidden in prompts), demo personas and storyline.
 2. **Strip what must not carry over.** POC and working notes (`*-poc.md`, `manual-steps.md`,
-   `agents.md`, `api-endpoints.txt`, `swagger.json`, slide builders), internal or third-party API and app
+   `agents.md`, `api-endpoints.txt`, `swagger.json`), internal or third-party API and app
    names (REST-backend apps named after a system or a prospect), and any prospect or customer name. None of
    it goes into the new sample's files, prompts, seed rows, transcript or commit message.
 3. **Play back** what you took, one line per item, under "What I took from the legacy sample".
 4. **Ask ONE `AskUserQuestion` round** (max 4 questions; put the rest under **Assumptions**):
    - **Keep / drop features** (multiSelect over the legacy capabilities; recommend dropping thin ones).
    - **The fuzzy step(s)** — which semantic step(s) stay with an A2A agent (usually one, max 3).
-   - **Human-owned requests** — which legacy write-agent actions a person must decide instead.
+   - **Human-owned requests** — which legacy write-agent actions a person must decide instead, and who decides
+     them: the reviewer teams, their approval limits, and what an approval executes (propose defaults).
    - **Locale, runtime model and verification depth** — default **USD/USA** (convert currency, phone
      numbers, addresses, regulations), **`gpt-5.5`**, full 4-step ladder.
    Also ask Phase 0a's build method in the same call when it isn't preset by the mapping table below.
@@ -34,7 +35,8 @@ gate, the governed SQL, the validator, the 4-step ladder, the README rules — i
 | A2A agents in general | stay **only** for genuinely semantic steps: read-only, minimised input, no identity, one identity-free **PostgreSQL reference tool** each (`SELECT * FROM ref_<topic>(CAST(?lookup AS text))` over a table with no personal data; the legacy prompt's glossary facts move into its rows) — runtime-gotchas.md §10, governed-patterns.md §8 |
 | Unscoped MCP reads (`SELECT … FROM table WHERE id = ?`) | scoped reads `FROM rule_fn(token)` behind `verify_*` → session token |
 | Shared conversation memory (empty `conversationId`) | per-connection memory from `Sec-Websocket-Key` (G7) |
-| Exceptions the model "handles" (waivers, disputes, complaints) | `open_service_case` routed by a table to a team with an SLA |
+| Exceptions the model "handles" (waivers, disputes, complaints) | `open_service_case` routed by a table to a team with an SLA, then **decided by a staff reviewer in the same chatbot**: the reviewer loop (`verify_reviewer`, `get_review_queue`, `get_review_case`, guarded `decide_review_case`; team scope + approval limit in SQL; an approval runs the parked action) — governed-patterns.md §9 |
+| A write agent that "approves" on the user's say-so (refund, credit, re-bill) | the action becomes a **parked action** on the case (`<KIND>:<id>`, derived by `case_parking()`); it runs only when a reviewer approves, through the same guarded row function |
 | **BW6** apps | out of scope — `fda` can't build BusinessWorks |
 | **RAG** (`extensions/openAI` vector activities) | **hybrid clone** — SKILL.md Phase 4B "RAG (hybrid clone)" |
 

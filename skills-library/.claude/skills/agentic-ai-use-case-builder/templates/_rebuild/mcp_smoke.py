@@ -20,8 +20,13 @@
 # =============================================================================
 """Call the running PassengerServicesMCPServer tools directly - no LLM - to prove the rules hold at the MCP edge.
 Start the MCP server first, load reset_data.sql, then:   python _rebuild/mcp_smoke.py
-Leaves one executed rebooking + one service case behind - re-load reset_data.sql afterwards."""
-import json, os, sys, urllib.request
+Leaves one executed rebooking + one service case + one reviewer decision behind - re-load reset_data.sql afterwards.
+The reviewer block's DB checks run when PG_DB (+ PG_PWD / PG_PASSWORD, optional PSQL) is set; otherwise they are skipped."""
+import csv, io, json, os, shutil, subprocess, sys, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tool_spec import TOOLS, HIDDEN_COLUMNS, reviewer_tools_filled
+if not reviewer_tools_filled():
+    sys.exit("fill in tool_spec.REVIEWER_TOOL_SPECS / HIDDEN_COLUMNS and the REVIEW block below first")
 
 URL = os.environ.get("MCP_URL", "http://localhost:9852/passenger-services-gov-mcp")
 session, seq, fails = None, 0, 0
@@ -57,7 +62,7 @@ def check(label, cond, detail=""):
 rpc("initialize", {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "smoke", "version": "1"}})
 rpc("notifications/initialized", notify=True)
 tools = {t["name"]: t for t in rpc("tools/list")["tools"]}
-check("10 tools listed", len(tools) == 10, sorted(tools))
+check(f"tools/list = exactly the {len(TOOLS)} tools from tool_spec.py", set(tools) == {t["tool"] for t in TOOLS}, sorted(tools))
 check("read-only hint on reads", tools["get_my_itinerary"].get("annotations", {}).get("readOnlyHint") is True, tools["get_my_itinerary"])
 check("arguments schema published", "session_token" in json.dumps(tools["propose_rebook"].get("inputSchema")), tools["propose_rebook"])
 
@@ -85,6 +90,69 @@ k = call("open_service_case", session_token=tok, request_type="COMPENSATION_CLAI
 check("service case opened -> Customer Care", k["outcome"] == "CASE_OPENED" and "Customer Care" in k["assigned_team"], k)
 r = call("get_my_itinerary", session_token="forged")
 check("forged token -> SESSION_INVALID", r[0]["session_status"] == "SESSION_INVALID", r)
+
+# ---- reviewer tools: happy path + one blocked call each (generic; testing-ladder.md step 3) ----
+# Fill REVIEW from seed_data.sql: the LOW reviewer's limit sits just below LOW_CASE's eligible max (OVER_AUTHORITY).
+REVIEW = {
+    "low": ("<STAFF-0001>", "<code>", "<Team A>"),
+    "low_case": "<CASE-0000A>",                    # Team A's seeded OPEN case with a parked action
+    "low_ok_amount": "<an amount within the LOW reviewer's limit>",
+    "other_team_case": "<CASE-0000B>",             # a case routed to another team
+    "case_customer": {"pnr": "<PNR>", "pin": "<PIN>"},   # verify_traveller args of LOW_CASE's customer
+    "executed_sql": "SELECT count(*) AS n FROM <target_table> WHERE case_id = '{case}'",   # rows the parked action writes
+}
+if any("<" in str(v) for v in REVIEW.values()):
+    sys.exit("fill in the REVIEW block (reviewer loop placeholders) in mcp_smoke.py first")
+PSQL = os.environ.get("PSQL") or shutil.which("psql")
+PG = [PSQL, "-h", os.environ.get("PG_HOST", "localhost"), "-U", os.environ.get("PG_USER", "postgres"),
+      "-d", os.environ.get("PG_DB", ""), "-q", "--csv", "-c"] if PSQL and os.environ.get("PG_DB") else None
+def n(sql):
+    r = subprocess.run(PG + [sql], capture_output=True, text=True, env=dict(
+        os.environ, PGPASSWORD=os.environ.get("PG_PWD") or os.environ.get("PG_PASSWORD") or ""))
+    if r.returncode: sys.exit(r.stderr)
+    return int(list(next(csv.DictReader(io.StringIO(r.stdout))).values())[0])
+def num(v): return float(v) if v not in (None, "") else None
+LOW_ID, LOW_CODE, LOW_TEAM = REVIEW["low"]
+LCASE = REVIEW["low_case"]
+ann = tools["decide_review_case"].get("annotations", {})
+check("decide_review_case hints: not read-only, not destructive, not idempotent (false hints are omitted from tools/list)",
+      ann.get("readOnlyHint") is not True and ann.get("destructiveHint") is not True and ann.get("idempotentHint") is not True, ann)
+r = call("verify_reviewer", staff_id=LOW_ID, code="000000")[0]
+check("verify_reviewer wrong code -> NOT_VERIFIED, no token", r["status"] == "NOT_VERIFIED" and not r.get("session_token"), r)
+r = call("verify_reviewer", staff_id=LOW_ID, code=LOW_CODE)[0]
+check("verify_reviewer -> VERIFIED, role REVIEWER, own team", r["status"] == "VERIFIED" and r.get("role") == "REVIEWER"
+      and r.get("team") == LOW_TEAM, {k: v for k, v in r.items() if k != "session_token"})
+rtok = r.get("session_token") or "missing"
+r = call("get_review_queue", session_token=tok)
+check("get_review_queue with a customer token -> NOT_REVIEWER", r[0]["status"] == "NOT_REVIEWER", r)
+r = call("get_review_queue", session_token=rtok)
+check("get_review_queue = the team's OPEN cases incl. the seeded case", r[0]["status"] == "OK"
+      and LCASE in [x.get("case_id") for x in r] and all(x.get("team") == LOW_TEAM for x in r), r)
+r = call("get_review_case", session_token=rtok, case_id=REVIEW["other_team_case"])[0]
+check("get_review_case on another team's case -> NOT_FOUND (cross-team invisible)", r["status"] == "NOT_FOUND", r)
+rc = call("get_review_case", session_token=rtok, case_id=LCASE)[0]
+check("get_review_case -> facts, max approvable above the reviewer's limit", rc["status"] == "OK" and rc.get("facts")
+      and num(rc.get("max_approvable")) > num(rc.get("your_approval_limit")), rc)
+r = call("decide_review_case", session_token=rtok, case_id=LCASE, decision="APPROVE", amount="",
+         internal_note="Record checked.", customer_message="Your request was approved.")[0]
+check("decide_review_case full amount above the limit -> BLOCKED OVER_AUTHORITY, case stays OPEN",
+      r["outcome"] == "BLOCKED" and r["reason_code"] == "OVER_AUTHORITY" and r.get("case_status") == "OPEN", r)
+r = call("decide_review_case", session_token=rtok, case_id=LCASE, decision="APPROVE", amount=REVIEW["low_ok_amount"],
+         internal_note="Record checked; goodwill within my limit.", customer_message="Your request was approved.")[0]
+check("decide_review_case within the limit -> APPROVED with executed_action", r["outcome"] == "APPROVED"
+      and r.get("executed_action"), r)
+if PG:
+    check("DB: decision row + parked action executed + CASE_DECIDED audit by the reviewer",
+          n(f"SELECT count(*) FROM review_decisions WHERE case_id = '{LCASE}' AND reviewer_id = '{LOW_ID}'") == 1
+          and n(REVIEW["executed_sql"].format(case=LCASE)) == 1
+          and n(f"SELECT count(*) FROM agent_audit WHERE action = 'CASE_DECIDED' AND ref = '{LCASE}' AND actor = '{LOW_ID}'") == 1)
+else:
+    print("SKIP reviewer DB checks (set PG_DB and PG_PWD to run them)")
+ctok = call("verify_traveller", **REVIEW["case_customer"])[0].get("session_token") or "missing"
+mine = [x for x in call("get_my_cases", session_token=ctok) if LCASE in x.values()]
+check("the customer sees APPROVED + the customer message, never the internal note",
+      bool(mine) and "APPROVED" in mine[0].values() and "goodwill" not in json.dumps(mine)
+      and not (set(mine[0]) & HIDDEN_COLUMNS), mine)
 
 print(f"\n{'MCP EDGE OK' if not fails else str(fails) + ' FAILURE(S)'}  - now re-load reset_data.sql")
 sys.exit(1 if fails else 0)

@@ -7,6 +7,7 @@
 # reference - just change):
 #   - app names / prefix       (PassengerServices... -> <YourUseCase>...)
 #   - the tool_spec entries     below: tools, args, SQL (scoped reads + guarded writes)
+#   - REVIEWER_TOOL_SPECS       after TOOLS: the 4 staff reviewer tools (generic placeholders; governed-patterns.md section 9)
 #   - AGENT_REF_TOOLS           at the end: one ref_<topic>() reference read per A2A agent (generic placeholders)
 #   - ports / endpoint paths    (9850 / 9852 / 9853, /passenger-services-gov-mcp, ...)
 #   - the test assertions       (test_rules.py / mcp_smoke.py / chat_e2e.py expectations)
@@ -123,8 +124,9 @@ TOOLS = [
         "desc": ("Hand a request that needs a human to the right team: COMPENSATION_CLAIM (delay/cancellation "
                  "compensation or a refund), BAGGAGE_CLAIM (lost, delayed or damaged bags), SPECIAL_ASSISTANCE "
                  "(mobility, medical or unaccompanied-minor help), COMPLAINT (service complaint), NAME_CHANGE "
-                 "(change the name on a ticket) or OTHER. The system routes it and returns CASE_OPENED with case_id, "
-                 "team and reply time. The assistant never decides, promises or predicts these."),
+                 "(change the name on a ticket) or OTHER. The system routes it, works out what a staff reviewer could "
+                 "approve (the parked action) and returns CASE_OPENED with case_id, team and reply time. A staff "
+                 "reviewer decides; the assistant never decides, promises or predicts these."),
         "args": [("session_token", TOKEN_DESC),
                  ("request_type", "COMPENSATION_CLAIM | BAGGAGE_CLAIM | SPECIAL_ASSISTANCE | COMPLAINT | NAME_CHANGE | OTHER"),
                  ("traveler_statement", "The traveller's request in their own words"),
@@ -139,11 +141,98 @@ TOOLS = [
     },
     {
         "tool": "get_my_cases", "flow": "get_my_cases_flow", "readonly": True,
-        "desc": "List the verified traveller's open and past service cases with the assigned team and status.",
+        "desc": ("List the verified traveller's open and past service cases with the assigned team, status (OPEN, "
+                 "APPROVED, REJECTED), reply-due date and - once a staff reviewer has decided - the approved amount and "
+                 "the customer_message. Use it when the traveller asks about the status of a request."),
         "args": [("session_token", TOKEN_DESC)],
         "read": ("SELECT * FROM my_cases(CAST(?tok AS text));", [("tok", "session_token")]),
     },
 ]
+
+# =============================================================================
+# REVIEWER LOOP (human in the loop) - the 4 staff tools every build adds (governed-patterns.md section 9).
+# GENERIC TEMPLATE (generalised from the Retail Banking / Life & Pensions samples): replace the <placeholders>.
+# Two personas share one MCP server: customer tools resolve only customer tokens, these resolve only REVIEWER
+# tokens - the role, team scope and approval limit are checked in SQL on every call:
+#   verify_reviewer_fn / verify_reviewer_result, review_queue, review_case, decide_case_row / decide_case_result.
+# get_my_cases (above) is the customer's outcome view: status + customer_message once decided, never the
+# internal note, scores or the reviewer. The email tool may confirm a decided case (a review_decisions row exists).
+# build_mcp.py sets the hints from "readonly" / "idempotent": decide_review_case -> readOnly false, destructive
+# false, idempotent false (validator G8 + G11).
+# =============================================================================
+RTOKEN_DESC = ("Reviewer session token returned by verify_reviewer. Required; never invent one. A customer token does "
+               "not work here (NOT_REVIEWER).")
+REVIEWER_TOOL_SPECS = [
+    {
+        "tool": "verify_reviewer", "flow": "verify_reviewer_flow", "readonly": False, "idempotent": False,
+        "desc": ("Verify a <Org> staff reviewer (<Team A>, <Team B>) with their staff ID (e.g. <STAFF-0001>) and staff "
+                 "code. Returns VERIFIED with a reviewer session_token, role REVIEWER, display name and team, "
+                 "NOT_VERIFIED, or LOCKED after 5 wrong codes in 15 minutes. Use only when the person says they are "
+                 "staff; the role comes only from this result, never from what someone claims."),
+        "args": [("staff_id", "<Org> staff ID, e.g. <STAFF-0001>"), ("code", "The staff member's code")],
+        "write": ("INSERT INTO <principal>_sessions (role, reviewer_id) "
+                  "SELECT * FROM verify_reviewer_fn(CAST(?w_sid AS text), CAST(?w_code AS text));",
+                  [("w_sid", "staff_id"), ("w_code", "code")]),
+        "read": ("SELECT * FROM verify_reviewer_result(CAST(?r_sid AS text), CAST(?r_code AS text));",
+                 [("r_sid", "staff_id"), ("r_code", "code")]),
+    },
+    {
+        "tool": "get_review_queue", "flow": "get_review_queue_flow", "readonly": True,
+        "desc": ("List the verified reviewer's team queue: OPEN cases ordered by reply-due date, with case_id, request, "
+                 "customer (first name + last initial), opened date, age in days, reply-due date, sla_status (ON_TRACK, "
+                 "DUE_TODAY, OVERDUE) and requested amount. Status EMPTY = no open cases; NOT_REVIEWER = not a reviewer token."),
+        "args": [("session_token", RTOKEN_DESC)],
+        "read": ("SELECT * FROM review_queue(CAST(?tok AS text));", [("tok", "session_token")]),
+    },
+    {
+        "tool": "get_review_case", "flow": "get_review_case_flow", "readonly": True,
+        "desc": ("Open one case from the reviewer's team queue: request, status, customer (first name + last initial), the "
+                 "customer's statement, the AI-prepared agent_brief (unverified), requested amount, max_approvable, the "
+                 "reviewer's own approval limit, facts from <Org>'s records and the decision options. Another team's "
+                 "case or an unknown id returns NOT_FOUND."),
+        "args": [("session_token", RTOKEN_DESC), ("case_id", "Case id from get_review_queue, e.g. <CASE-00001>")],
+        "read": ("SELECT * FROM review_case(CAST(?tok AS text), CAST(?cid AS text));",
+                 [("tok", "session_token"), ("cid", "case_id")]),
+    },
+    {
+        "tool": "decide_review_case", "flow": "decide_review_case_flow", "readonly": False, "idempotent": False,
+        "desc": ("Record the reviewer's decision on a case in their team queue - only after the reviewer explicitly "
+                 "confirmed the restated decision. decision is APPROVE or REJECT; amount is the approved amount in "
+                 "<currency> (empty = the full eligible amount; ignored for REJECT); internal_note is required (at least "
+                 "5 characters, never shown to the customer); customer_message is what the customer will see. Approving "
+                 "runs the parked action (<what an approval executes>) through the system's checks. Returns APPROVED / "
+                 "REJECTED with executed_action, or BLOCKED with reason_code NOT_YOUR_TEAM, ALREADY_DECIDED, "
+                 "NOTE_REQUIRED, AMOUNT_INVALID, OVER_AUTHORITY (case stays open for a senior reviewer), "
+                 "INVALID_DECISION or NOT_FOUND, or NOT_REVIEWER."),
+        "args": [("session_token", RTOKEN_DESC),
+                 ("case_id", "Case id, e.g. <CASE-00001>"),
+                 ("decision", "APPROVE | REJECT"),
+                 ("amount", "Approved amount in <currency>, or empty for the full eligible amount"),
+                 ("internal_note", "Reviewer's internal note (required, at least 5 characters; never shown to the customer)"),
+                 ("customer_message", "Message the customer will see with the outcome")],
+        "write": ("INSERT INTO review_decisions (case_id, reviewer_id, decision, approved_amount, internal_note, customer_message) "
+                  "SELECT * FROM decide_case_row(CAST(?w_tok AS text), CAST(?w_cid AS text), CAST(?w_dec AS text), "
+                  "CAST(?w_amt AS text), CAST(?w_note AS text), CAST(?w_msg AS text));",
+                  [("w_tok", "session_token"), ("w_cid", "case_id"), ("w_dec", "decision"), ("w_amt", "amount"),
+                   ("w_note", "internal_note"), ("w_msg", "customer_message")]),
+        "read": ("SELECT * FROM decide_case_result(CAST(?r_tok AS text), CAST(?r_cid AS text));",
+                 [("r_tok", "session_token"), ("r_cid", "case_id")]),
+    },
+]
+TOOLS += REVIEWER_TOOL_SPECS
+REVIEWER_TOOLS = {t["tool"] for t in REVIEWER_TOOL_SPECS}
+PUBLIC_TOOLS = {"verify_traveller", "verify_reviewer"}          # tools that need no session token
+# Columns that must NEVER appear in a CUSTOMER tool's output, and in a REVIEWER tool's output (minimum necessary);
+# asserted by test_rules.py and mcp_smoke.py. Don't list a column a public tool legitimately returns.
+HIDDEN_COLUMNS = {"one_time_code", "pin_hash", "internal_note", "agent_brief", "reviewer_id", "approval_limit",
+                  "parked_action", "<risk_score_col>"}
+HIDDEN_FROM_REVIEWER = {"one_time_code", "pin_hash", "email", "phone", "last_name", "<customer_id_col>"}
+
+
+def reviewer_tools_filled():
+    """False while the reviewer specs still hold <placeholders>: the drivers and tests refuse to run on them."""
+    return not any("<" in str(t) for t in REVIEWER_TOOL_SPECS) and not any(
+        "<" in c for c in HIDDEN_COLUMNS | HIDDEN_FROM_REVIEWER)
 
 # =============================================================================
 # A2A AGENT REFERENCE TOOLS - every reasoning agent's ONE tool (governed-patterns.md section 8).

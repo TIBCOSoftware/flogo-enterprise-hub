@@ -9,8 +9,6 @@ turnovers, dosage and clinical questions, prescription changes and discharge dec
 Bellmont's pharmacists, charge nurse and attending decide them **in the same chatbot**. The assistant never decides
 them and never gives clinical advice.
 
-*The original non-governed version is kept under [Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case](../../../../Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case/) for reference.*
-
 **Agentic in the middle, deterministic at the edges:** the AI handles the conversation, ranks clinic slots against
 free-text constraints ("no mornings, wheelchair transport, after the echo"), compares a family's description of the
 home medicines with the discharge list and flags concerns for the pharmacist, and rewrites prescriber shorthand into

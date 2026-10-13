@@ -23,9 +23,11 @@ The email tool is special: it reads a SQL-validated payload, then sends to the c
 (recipient = To_Email app property, exactly like the original airline sample); the SQL decides the content
 and the reported outcome, so an unauthorised call carries no booking details.
 Re-run:  python _rebuild/build_mcp.py      (needs the airline_governed DB; OUT_DIR=<empty dir> to replay)."""
-import json, os
+import json, os, sys
 from fda_common import App, jtmp, result_columns, setting
-from tool_spec import TOOLS
+from tool_spec import TOOLS, reviewer_tools_filled
+if not reviewer_tools_filled():
+    sys.exit("fill in tool_spec.REVIEWER_TOOL_SPECS / HIDDEN_COLUMNS (the reviewer loop placeholders) first")
 
 app = App("PassengerServicesMCPServer.flogo", os.environ.get("OUT_DIR"))
 f = app.fda

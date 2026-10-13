@@ -7,7 +7,8 @@ questions. The answer decides **who owns it**. It is not a choice of style.
                  ┌──────────────────────────────────────────────┐
   operation ───► │ Q1  Does it need human judgment, accountability │── yes ──► HUMAN-OWNED
                  │     or discretion (money given away, a decision │           open_review_case → routed team
-                 │     reversed, ethics, legal, identity changes)? │           the AI drafts a neutral brief, never decides
+                 │     reversed, ethics, legal, identity changes)? │           the AI drafts a neutral brief, never decides;
+                 │                                                 │           a staff reviewer decides in the chatbot
                  └──────────────────────────────────────────────┘
                                   │ no
                                   ▼
@@ -24,7 +25,9 @@ questions. The answer decides **who owns it**. It is not a choice of style.
 
 **Positioning line:** *agentic in the middle, deterministic at the edges.* The conversation and the
 genuinely fuzzy step are agentic. Identity, eligibility, prices, state changes and routing are
-deterministic. Anything a person must answer for is human-owned.
+deterministic. Anything a person must answer for is human-owned: a **staff reviewer decides it in the same
+chatbot**, SQL enforces the reviewer's team scope and approval limit, and an approval runs only the action SQL
+parked on the case ([governed-patterns.md §9](governed-patterns.md#9-human-in-the-loop-reviewer-loop)).
 
 ## Classification table (fill in; it goes into the spec and the README)
 
@@ -35,7 +38,13 @@ deterministic. Anything a person must answer for is human-owned.
 | Price / eligibility / limits | no | no | Deterministic | rule function; LLM quotes it verbatim |
 | State change the user asked for | no | no | Deterministic, **two-step** | `propose_*` → user yes → `confirm_*` |
 | Match free text to a catalogue, rank options, explain | no | **yes** | Agent | A2A agent, gets topic data only |
-| Waivers, appeals, exceptions, integrity, identity changes | **yes** | – | Human | `open_review_case` → routed by table |
+| Waivers, appeals, exceptions, integrity, identity changes | **yes** | – | Human | `open_review_case` → routed by table → a staff reviewer decides (`decide_review_case`; team + limit in SQL; approval runs the parked action) |
+
+**Every Human row needs three answers** before the spec: the **reviewer team** it routes to (the routing table),
+that team's **approval limit**, and **what an approval executes** (the parked action, e.g. refund that fee, defer
+up to 3 payments, release the held payment; or nothing, when the team completes it outside the system). Seed at
+least one reviewer per team, and one reviewer whose limit sits just below a seeded case's amount, so the demo can
+show `OVER_AUTHORITY` (the case stays open for a senior reviewer).
 
 ## Red flags that mean the gate was skipped
 
@@ -43,7 +52,10 @@ deterministic. Anything a person must answer for is human-owned.
   → that is a Q2 = no operation living in a prompt. Move it to SQL. (`validate_governed_apps.py` G3.)
 - An A2A agent **writes** to the database from its own tool flow with LLM-chosen arguments → give the
   write to a guarded MCP tool, or keep the agent read-only.
-- The assistant "approves", "waives", "grants", "reverses" anything → that is a Q1 = yes. Open a case.
+- The assistant "approves", "waives", "grants", "reverses" anything → that is a Q1 = yes. Open a case for a
+  staff reviewer to decide.
+- A human-owned case has no reviewer who can decide it, or the reviewer's decision changes nothing → add the
+  reviewer loop: a team, an approval limit, and the parked action an approval executes.
 - An agent receives the user's name, email or identifiers it does not need for its reasoning → minimise.
 - A demo has no human-owned path at all → most real domains have one. Find it; it is the credibility beat.
 
@@ -58,7 +70,7 @@ Every governed sample's README carries this section, written from the table abov
 |---|---|---|
 | <the fuzzy step> | **Agent** | <what makes it semantic: free text vs. catalogue, trade-offs, ambiguity> |
 | <identity/rules/prices/state> | **Deterministic (SQL)** | <exact rule; a model must not be able to talk its way past it> |
-| <exceptions> | **Human** | <who is accountable, and why an AI must not decide> |
+| <exceptions> | **Human** | <who is accountable, and why an AI must not decide; a staff reviewer decides it in the chatbot, within their approval limit> |
 
 If you removed the LLM, <deterministic parts> would still work through a form. What you would lose is
 <the semantic step>. That is the part the agent is for.

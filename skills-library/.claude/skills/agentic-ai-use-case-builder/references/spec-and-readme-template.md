@@ -27,13 +27,30 @@ Name every state change the user might regret, and give each one a propose/confi
 and the quote shown to the user.
 
 ### 4e. Human-owned request types → teams
-| request_type | team | reply time | examples |
-|---|---|---|---|
+| request_type | team | reply time | examples | an approval executes (parked action) |
+|---|---|---|---|---|
+| <REQUEST_TYPE_A> | <Team A> | <n business days> | <…> | `<KIND_A>:<record id>`, up to <the eligible max from SQL> |
+| <REQUEST_TYPE_B> | <Team B> | <…> | <…> | nothing: the team completes it |
+
+### 4f. Reviewer loop (human in the loop)
+Staff reviewers decide the human-owned cases in the same chatbot (governed-patterns.md §9).
+
+| Reviewer | Staff ID | Code | Team | Approval limit | Demo beat |
+|---|---|---|---|---|---|
+| <name> | `<STAFF-0001>` | `<code>` | <Team A> | <$ limit, or none> | <approve the seeded case → the parked action runs> |
+| <name> | `<STAFF-0002>` | `<code>` | <Team B> | <just below a seeded case's amount> | `OVER_AUTHORITY`: the case stays open for a senior reviewer |
+
+- Parked actions: each `<KIND>` → the guarded row function that executes it, and what a REJECT does (usually nothing).
+- Amount rules: how `case_eligible_max()` is derived per kind; any rule on the approved amount (whole units, in full only).
+- What the reviewer sees (`case_facts()`, the AI brief marked unverified) and never sees (email, phone, codes, full last name).
+- What the customer sees once decided (status + `customer_message`) and never sees (the internal note, scores, the reviewer).
+- Seeds: 1–2 OPEN cases per team.
 
 ### 7b. Adversarial acceptance
 The chat e2e (testing-ladder.md step 4) must cover: an unverified visitor, a wrong code, another
-user's record, a new connection, a human-owned request, and one prompt-injection attempt aimed at the
-most valuable rule.
+user's record, a new connection, a human-owned request, one prompt-injection attempt aimed at the
+most valuable rule, and the reviewer loop across separate connections (a customer claiming to be a reviewer
+gets nothing; the reviewer decides after an explicit confirm; the customer reconnects and sees the outcome).
 
 ---
 
@@ -54,7 +71,8 @@ US spelling throughout (organization, authorized, center, traveler, color).
 # <Industry> — <What it does> Assistant
 
 **<Assistant name>** is a chat assistant for <who> (fictional **<Org>**). <1–2 more sentences: what they can
-do. Name the human-owned requests and say the assistant never decides them.>
+do. Name the human-owned requests, say the assistant never decides them, and that <Org>'s staff reviewers
+decide them in the same chatbot.>
 
 **Agentic in the middle, deterministic at the edges:** the AI handles the conversation and <the fuzzy
 step>. PostgreSQL decides <identity, eligibility, prices, every change>. People decide the exceptions.
@@ -103,6 +121,24 @@ ws://localhost:<port><path>, **click ↻ next to the URL box**, Connect → "●
 <demo-login table: identifier, code, what each one shows; one sentence on how a real portal would sign
 them in>
 <numbered happy-path turns, ending with the human-owned request>
+
+### 6. Reviewer (human-in-the-loop)
+
+Staff reviewers use the **same chatbot**. Open a new tab (or Disconnect → Connect) and sign in as staff:
+*"I'm a <Org> staff reviewer. My staff ID is <STAFF-0001> and my code is <code>."*
+
+| Reviewer | Staff ID | Code | Team | Approval limit | Try |
+|---|---|---|---|---|---|
+<one row per seeded reviewer, filled from seed_data.sql; the low-limit reviewer's row shows the OVER_AUTHORITY beat>
+
+The flow: *"Show me my queue."* → *"Open case <id>."* → the assistant shows the customer's statement, the facts
+from <Org>'s records and the AI-prepared brief (marked as unverified) → *"Approve it <in full / for $n>. Internal
+note: … Message to the customer: …"* → the assistant restates the decision and asks you to **confirm** →
+*"Confirm."* → the decision is recorded and <the parked action> runs. Then switch back to the customer (new tab,
+verify again) and ask for the status: they see the outcome and your message, never your internal note or name.
+A reviewer only sees their own team's queue, and a customer who claims to be a reviewer gets nothing without the
+staff code.
+
 More prompts are in [prompts.md](prompts.md).
 **Reset between demos:** `psql -U postgres -d <db> -f reset_data.sql`
 

@@ -9,8 +9,6 @@ and fund changes take two confirmed steps, and any completed change can be follo
 decisions and appeals, withdrawals and rollovers, investment advice and complaints go to the right team, and
 Harborline's staff reviewers decide them **in the same chatbot**. The assistant never decides them.
 
-*The original non-governed version is kept under [Industry_Use_Cases_old/Life_And_Pensions_Use_Case](../../../../Industry_Use_Cases_old/Life_And_Pensions_Use_Case/) for reference.*
-
 **Agentic in the middle, deterministic at the edges:** the AI handles the conversation, turns a member's claim
 story into a claim type and document list, turns a life event into a review checklist and turns an appeal letter
 into a neutral brief for the examiner. PostgreSQL decides identity, balances, the employer-match gap, the plan and

@@ -11,7 +11,6 @@ This directory brings together two complementary collections for the **TIBCO Flo
 > |---|---|
 > | **Learn a connector feature**, one building block at a time | [`Feature_Samples/`](./Feature_Samples/) — [Part 1](#part-1--connector-feature-samples) |
 > | **Run an end-to-end demo** | [`Industry_Use_Cases/`](./Industry_Use_Cases/) — the governed, canonical industry use cases ([Part 2](#industry-use-cases-governed--start-here)) |
-> | Look at an earlier demo for reference | [`Industry_Use_Cases_old/`](./Industry_Use_Cases_old/) — **legacy, reference only**: being migrated to the governed style; don't base new work on it |
 > | See BusinessWorks 6 and Flogo working together | [`BW6_Flogo_Samples/`](./BW6_Flogo_Samples/) — BW6 + Flogo "Better Together" samples ([details](#bw6--flogo-samples)) |
 > | Chat with any WebSocket sample or use case | [`Chatbot/`](./Chatbot/) — the shared browser chat client |
 
@@ -23,7 +22,6 @@ Both collections share the **[Prerequisites](#prerequisites)**, the **[Quick Sta
 |---|---|
 | [`Feature_Samples/`](./Feature_Samples/) | Part 1 — connector feature samples, one building block at a time (Flogo 2.x). |
 | [`Industry_Use_Cases/`](./Industry_Use_Cases/) | Part 2 — governed, industry-specific demos: business rules, identity, prices and state changes enforced in PostgreSQL, built with the `agentic-ai-use-case-builder` skill. The canonical industry use cases, organized as `<Industry>/<Sub_Category>/<UseCase>_Use_Case/` (e.g. `Financial_Services/Banking/`). |
-| [`Industry_Use_Cases_old/`](./Industry_Use_Cases_old/) | Legacy demos on the earlier three-app pattern, kept for reference while they are migrated to the governed style above. |
 | [`BW6_Flogo_Samples/`](./BW6_Flogo_Samples/) | TIBCO BusinessWorks 6 + Flogo "Better Together" samples — BW6 apps provide the domain APIs/MCP tools, Flogo does the AI orchestration. Needs a BW6 runtime / Business Studio. |
 | [`Chatbot/`](./Chatbot/) | Shared browser WebSocket chat client for every sample and use case that exposes a WebSocket endpoint. |
 | [`Flogo3x/`](./Flogo3x/) | Flogo 3.x folder-based project versions of nine feature samples. |
@@ -48,7 +46,7 @@ Both collections share the **[Prerequisites](#prerequisites)**, the **[Quick Sta
 - **SMTP** (the use cases that email a confirmation): an SMTP account — e.g. Gmail with an App Password over SSL (port 465).
 - **PostgreSQL / Docker / Claude Desktop** for several Part 1 samples (Mortgage AI, BeautyCo Retail, Morning Briefing, Agent Privilege IDs) — see each sample's README.
 - **Building executables outside VS Code** (`flogobuild`, e.g. the use cases' `_rebuild` test ladders) needs the **Flogo App Build CLI** from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) and the [Go runtime](https://go.dev/dl/); **deploying** to TIBCO Platform needs `tibcop`. See [skills-library/AGENT.md → Prerequisites and preflight](../../skills-library/AGENT.md#prerequisites-and-preflight).
-- 🔍 **RAG:** [Insurance — Auto Policy & Claims Assistant (RAG)](./Industry_Use_Cases/Insurance/PC_Multi_Line/Auto_Insurance_Policy_Claims_RAG_Use_Case/) needs the local [`extensions/openAI`](../../extensions/openAI/) extension, a document set and a vector store (so does the legacy [Auto Insurance](./Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) sample).
+- 🔍 **RAG:** [Insurance — Auto Policy & Claims Assistant (RAG)](./Industry_Use_Cases/Insurance/PC_Multi_Line/Auto_Insurance_Policy_Claims_RAG_Use_Case/) needs the local [`extensions/openAI`](../../extensions/openAI/) extension, a document set and a vector store.
 - **BW6 + Flogo samples:** 🏛️ [Retail — BW & Flogo](./BW6_Flogo_Samples/Retail_AI_BW_Flogo/) needs **TIBCO BusinessWorks 6.12** and Node.js for the MCP proxy.
 
 > **Credentials are not shipped.** Every app property that held a secret is reset to a placeholder (`SECRET:YOURKEY` for connection API keys). Set your own LLM key, PostgreSQL password, and SMTP credentials before running — see each folder's README.
@@ -97,7 +95,7 @@ psql -U postgres -d mobile_billing -f database.sql     # creates the schema + ru
 psql -U postgres -d mobile_billing -f reset_data.sql
 ```
 
-> Legacy use cases under `Industry_Use_Cases_old/` follow their own READMEs; 🏛️ **BW6 + Flogo samples** under `BW6_Flogo_Samples/` start from TIBCO Business Studio.
+> 🏛️ **BW6 + Flogo samples** under `BW6_Flogo_Samples/` start from TIBCO Business Studio.
 
 ### Flogo Chatbot — Browser-Based WebSocket Test Client
 
@@ -316,11 +314,9 @@ Every governed use case ships the same **trio** of Flogo apps plus a PostgreSQL 
                                  │  └──▶ A2A Agents ──▶ LLM          (read-only reasoning on minimized input)
 ```
 
-> **Legacy samples** (`Industry_Use_Cases_old/`) use the earlier shape: the MCP server returns all rows and the prompt does the filtering, and the write tier is a `*A2AServers.flogo` app with one A2A agent per write action, guarded by confirm-before-write instructions in the prompt rather than rules in the database.
-
 ## Use-Case Catalog
 
-Click a use case to open its folder and full README. Ports are the defaults baked into each app (all configurable). "Endpoints" reads *WebSocket · MCP · A2A*.
+Click a use case to open its folder and full README, which lists its ports, database and demo logins.
 
 ### Industry use cases (governed — start here)
 
@@ -328,101 +324,82 @@ Grouped by **Industry → Sub-category**, mirroring the [`Industry_Use_Cases/`](
 
 #### Financial Services → Banking
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Banking — Retail Banking Assistant](./Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) | Verified customers of fictional Kestrel Bank check balances, transactions, cards & loans, get an agent to decode an unrecognized charge into the real merchant, and dispute it (provisional credit computed in SQL) or block a card in two confirmed steps. Payments to saved payees get scam protection: an agent reads the customer's story for scam signs and SQL bands it (warn, or hold the payment for the fraud team); a third agent turns a hardship story into a brief for Financial Support. Fee refunds, hardship deferrals and held payments go to staff reviewers, who decide them in the same chatbot. | WS `:9860` `/retailbanking` · MCP `:9862` · A2A `:9863–9865` | `banking_governed` | ✅ Complete · 🛡️ Governed |
-| [Banking — Corporate Payments Investigation Assistant](./Industry_Use_Cases/Financial_Services/Banking/Corporate_Payments_Investigation_Use_Case/) | Verified corporate treasury, AP and AR users of fictional Aurelia Global Bank check payment status, rail, FX & fees, get an agent to decode cryptic return/reason codes, and raise a trace or request a recall in two confirmed steps. An agent matches a buyer's short-pay note to invoices and deduction reasons (SQL computes the earned discount and the disputed amount); another compares a new payee's typed name with the name on file, and SQL holds the payment on a mismatch. Recalls, held payments, disputed deductions and fee waivers go to staff reviewers, who decide them in the same chatbot. | WS `:9870` `/corporatepayments` · MCP `:9872` · A2A `:9873–9875` | `payments_governed` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Banking — Retail Banking Assistant](./Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) | Verified customers of fictional Kestrel Bank check balances, transactions, cards & loans, get an agent to decode an unrecognized charge into the real merchant, and dispute it (provisional credit computed in SQL) or block a card in two confirmed steps. Payments to saved payees get scam protection: an agent reads the customer's story for scam signs and SQL bands it (warn, or hold the payment for the fraud team); a third agent turns a hardship story into a brief for Financial Support. Fee refunds, hardship deferrals and held payments go to staff reviewers, who decide them in the same chatbot. |
+| [Banking — Corporate Payments Investigation Assistant](./Industry_Use_Cases/Financial_Services/Banking/Corporate_Payments_Investigation_Use_Case/) | Verified corporate treasury, AP and AR users of fictional Aurelia Global Bank check payment status, rail, FX & fees, get an agent to decode cryptic return/reason codes, and raise a trace or request a recall in two confirmed steps. An agent matches a buyer's short-pay note to invoices and deduction reasons (SQL computes the earned discount and the disputed amount); another compares a new payee's typed name with the name on file, and SQL holds the payment on a mismatch. Recalls, held payments, disputed deductions and fee waivers go to staff reviewers, who decide them in the same chatbot. |
 
 #### Telecommunications → Mobile, Fixed & Cable Operators
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Telecom — Mobile Billing & Spend Control Assistant](./Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) | Verified customers of fictional US carrier Tidewell Mobile hear why their bill jumped, usually pay-per-use roaming abroad or a premium content subscription (bill-to-bill deltas computed in SQL, narrated by an agent). An agent classifies charges they don't recognize and another recommends a plan from their real usage and travel. Customers then cancel a subscription, add TravelPass, set a roaming limit or change plan in two confirmed steps and email the confirmation; past-due balances and device installment lock-in are enforced in SQL. Refunds/disputes, port-out and suspected fraud go to staff reviewers, who decide them in the same chatbot. | WS `:9900` `/mobilebilling` · MCP `:9902` · A2A `:9903–9905` | `mobile_billing` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Telecom — Mobile Billing & Spend Control Assistant](./Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) | Verified customers of fictional US carrier Tidewell Mobile hear why their bill jumped, usually pay-per-use roaming abroad or a premium content subscription (bill-to-bill deltas computed in SQL, narrated by an agent). An agent classifies charges they don't recognize and another recommends a plan from their real usage and travel. Customers then cancel a subscription, add TravelPass, set a roaming limit or change plan in two confirmed steps and email the confirmation; past-due balances and device installment lock-in are enforced in SQL. Refunds/disputes, port-out and suspected fraud go to staff reviewers, who decide them in the same chatbot. |
 
 #### Energy & Utilities → Electric, Gas & Utilities Grid
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Utilities — Electric Outage & Billing Assistant](./Industry_Use_Cases/Energy_Utilities/Electric_Gas_Utilities_Grid/Electric_Utility_Outage_Billing_Use_Case/) | Verified residential customers of fictional Texas utility Ridgeline Power & Light hear why their bill went up (bill-to-bill deltas, weather and estimated reads computed in SQL, narrated by an agent), report outages (an agent triages hazards; SQL links the report to a known area outage instead of opening a duplicate), pick a rate plan from SQL cost estimates on their real usage, and book a smart-meter upgrade or a reconnect (blocked in SQL while a past-due balance remains). Estimated-read disputes, payment arrangements, medical-baseline protection and hazards go to people, who decide them in the same chatbot. | WS `:9940` `/powerutility` · MCP `:9942` · A2A `:9943–9945` | `power_distribution_governed` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Utilities — Electric Outage & Billing Assistant](./Industry_Use_Cases/Energy_Utilities/Electric_Gas_Utilities_Grid/Electric_Utility_Outage_Billing_Use_Case/) | Verified residential customers of fictional Texas utility Ridgeline Power & Light hear why their bill went up (bill-to-bill deltas, weather and estimated reads computed in SQL, narrated by an agent), report outages (an agent triages hazards; SQL links the report to a known area outage instead of opening a duplicate), pick a rate plan from SQL cost estimates on their real usage, and book a smart-meter upgrade or a reconnect (blocked in SQL while a past-due balance remains). Estimated-read disputes, payment arrangements, medical-baseline protection and hazards go to people, who decide them in the same chatbot. |
 
 #### Energy & Utilities → Oil & Gas
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Energy & Utilities — Oilfield Asset Health Monitoring Assistant](./Industry_Use_Cases/Energy_Utilities/Oil_Gas/Oilfield_Asset_Health_Monitoring_Use_Case/) | Verified control-room operators of fictional Mesa Ridge Energy watch the health of their region's rod pumps, compressors and wellhead valves, classified deterministically in SQL (threshold table, worst sensor wins). An agent triages a technician's free-text field note (failure mode, parts, safety language — reconciled with the sensors in SQL, safety routed to HSE), another matches past failures and a third drafts the shift handover. Work orders are raised in two confirmed steps (rules enforced in SQL); estimates above $25,000, shut-ins, threshold changes and alert closures go to Production Engineering and safety signals to HSE, who decide them in the same chatbot. | WS `:9950` `/assethealth` · MCP `:9952` · A2A `:9953–9955` | `predictive_maintenance_governed` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Energy & Utilities — Oilfield Asset Health Monitoring Assistant](./Industry_Use_Cases/Energy_Utilities/Oil_Gas/Oilfield_Asset_Health_Monitoring_Use_Case/) | Verified control-room operators of fictional Mesa Ridge Energy watch the health of their region's rod pumps, compressors and wellhead valves, classified deterministically in SQL (threshold table, worst sensor wins). An agent triages a technician's free-text field note (failure mode, parts, safety language — reconciled with the sensors in SQL, safety routed to HSE), another matches past failures and a third drafts the shift handover. Work orders are raised in two confirmed steps (rules enforced in SQL); estimates above $25,000, shut-ins, threshold changes and alert closures go to Production Engineering and safety signals to HSE, who decide them in the same chatbot. |
 
 #### Healthcare & Life Sciences → Providers & Health Systems
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Healthcare — Hospital Post-Discharge Care Assistant](./Industry_Use_Cases/Healthcare_Life_Sciences/Providers_Health_Systems/Hospital_Post_Discharge_Care_Use_Case/) | Verified discharge coordinators of fictional Bellmont Regional Medical Center run each patient's post-discharge checklist for their own ward: an agent ranks clinic slots and the follow-up is booked in two confirmed steps (specialty, window and open slot enforced in SQL); discharge medicines are ordered only from the discharge list and a bed goes to housekeeping only once its patient has left; agents write plain-language instructions and flag home-medicine conflicts for the pharmacist. High-alert medicines, early bed turnovers, prescription changes and discharge decisions go to pharmacists, the charge nurse and the attending, who decide them in the same chatbot. | WS `:9920` `/hospitalcare` · MCP `:9922` · A2A `:9923–9925` | `hospital_governed` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Healthcare — Hospital Post-Discharge Care Assistant](./Industry_Use_Cases/Healthcare_Life_Sciences/Providers_Health_Systems/Hospital_Post_Discharge_Care_Use_Case/) | Verified discharge coordinators of fictional Bellmont Regional Medical Center run each patient's post-discharge checklist for their own ward: an agent ranks clinic slots and the follow-up is booked in two confirmed steps (specialty, window and open slot enforced in SQL); discharge medicines are ordered only from the discharge list and a bed goes to housekeeping only once its patient has left; agents write plain-language instructions and flag home-medicine conflicts for the pharmacist. High-alert medicines, early bed turnovers, prescription changes and discharge decisions go to pharmacists, the charge nurse and the attending, who decide them in the same chatbot. |
 
 #### Transportation & Logistics → Airlines & Aviation
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Airline — Passenger Services Assistant](./Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) | Verified travelers of fictional carrier Meridian check flight status & connection risk (computed in SQL), get agent-ranked rebooking options and rebook in two confirmed steps. An agent turns a delayed, lost or damaged bag description into a claim (type, bag and color codes, missing fields — validated and recorded in SQL), and another turns free-text needs into IATA assistance codes (WCHR / WCHS / WCHC …) added to the traveler's own flight as pending. Compensation, interim baggage expenses, assistance confirmation, complaints and name changes go to staff reviewers, who decide them in the same chatbot. | WS `:9850` `/passengerservices` · MCP `:9852` · A2A `:9853–9855` | `airline_governed` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Airline — Passenger Services Assistant](./Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) | Verified travelers of fictional carrier Meridian check flight status & connection risk (computed in SQL), get agent-ranked rebooking options and rebook in two confirmed steps. An agent turns a delayed, lost or damaged bag description into a claim (type, bag and color codes, missing fields — validated and recorded in SQL), and another turns free-text needs into IATA assistance codes (WCHR / WCHS / WCHC …) added to the traveler's own flight as pending. Compensation, interim baggage expenses, assistance confirmation, complaints and name changes go to staff reviewers, who decide them in the same chatbot. |
 
 #### Transportation & Logistics → Parcel & Postal Logistics
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Logistics — Parcel Delivery Assistant](./Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) | Verified recipients of fictional last-mile carrier Swiftbound track parcels, hear what a cryptic delivery exception means (decoded in SQL), get agent-ranked delivery options and reschedule or redirect in two confirmed steps. An agent structures free-text access notes into delivery instructions (SQL checks the safe place, blocks risky instructions and never stores the access code); another classifies damage, missing-contents or lost claims, capped in SQL at the declared value and coverage limit. Signature-required / high-value parcels can't be left unattended. Claims go to staff reviewers, who decide them in the same chatbot. | WS `:9890` `/parceldelivery` · MCP `:9892` · A2A `:9893`, `:9894`, `:9896` | `parcel_delivery` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Logistics — Parcel Delivery Assistant](./Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) | Verified recipients of fictional last-mile carrier Swiftbound track parcels, hear what a cryptic delivery exception means (decoded in SQL), get agent-ranked delivery options and reschedule or redirect in two confirmed steps. An agent structures free-text access notes into delivery instructions (SQL checks the safe place, blocks risky instructions and never stores the access code); another classifies damage, missing-contents or lost claims, capped in SQL at the declared value and coverage limit. Signature-required / high-value parcels can't be left unattended. Claims go to staff reviewers, who decide them in the same chatbot. |
 
 #### High Tech & Software → Semiconductors & Electronics
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [High Tech — Semiconductor Orders & RMA Assistant](./Industry_Use_Cases/High_Tech_Software/Semiconductors_Electronics/Semiconductor_Orders_RMA_Use_Case/) | Verified buyers at the US customers of fictional distributor Arcwell Components look up parts, prices, stock, lead times and change notices: an agent matches a pasted BOM line to catalog parts; orders are priced from the price-break table and placed in two confirmed steps (MOQ, stock, credit and the end-of-life last-time-buy date enforced in SQL); an agent classifies a failure story for a two-step RMA and another explains what a change notice means for open orders. RMA dispositions, special pricing, credit changes, factory expedites and large last-time-buys go to quality, sales & pricing and credit reviewers, who decide them in the same chatbot. | WS `:9820` `/semiorders` · MCP `:9822` · A2A `:9823–9825` | `semiconductor_governed` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [High Tech — Semiconductor Orders & RMA Assistant](./Industry_Use_Cases/High_Tech_Software/Semiconductors_Electronics/Semiconductor_Orders_RMA_Use_Case/) | Verified buyers at the US customers of fictional distributor Arcwell Components look up parts, prices, stock, lead times and change notices: an agent matches a pasted BOM line to catalog parts; orders are priced from the price-break table and placed in two confirmed steps (MOQ, stock, credit and the end-of-life last-time-buy date enforced in SQL); an agent classifies a failure story for a two-step RMA and another explains what a change notice means for open orders. RMA dispositions, special pricing, credit changes, factory expedites and large last-time-buys go to quality, sales & pricing and credit reviewers, who decide them in the same chatbot. |
 
 #### Insurance → Property & Casualty / Multi-Line
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Insurance — Auto Policy & Claims Assistant (RAG)](./Industry_Use_Cases/Insurance/PC_Multi_Line/Auto_Insurance_Policy_Claims_RAG_Use_Case/) | Verified policyholders of fictional Copperleaf Auto Insurance check their policy, coverages, claims and payments (from PostgreSQL) and ask what the policy wording says (RAG over four policy PDFs through the `extensions/openAI` vector search). They file claims in two confirmed steps: agents structure the accident story, read the retrieved wording for exclusions and score the narrative; SQL adds its own signal points, bands the score and routes the claim to normal handling, an adjuster, or Special Investigations with the payment held. Adjusters and investigators decide cases in the same chatbot. | WS `:9910` `/autoinsurance` · MCP `:9912` · A2A `:9913–9915` · ingestion `:9919` | `auto_insurance_governed` (+ vector store) | ✅ Complete · 🛡️ Governed · 🔍 RAG |
+| Use Case | What it does |
+|---|---|
+| [Insurance — Auto Policy & Claims Assistant (RAG)](./Industry_Use_Cases/Insurance/PC_Multi_Line/Auto_Insurance_Policy_Claims_RAG_Use_Case/) | Verified policyholders of fictional Copperleaf Auto Insurance check their policy, coverages, claims and payments (from PostgreSQL) and ask what the policy wording says (RAG over four policy PDFs through the `extensions/openAI` vector search). They file claims in two confirmed steps: agents structure the accident story, read the retrieved wording for exclusions and score the narrative; SQL adds its own signal points, bands the score and routes the claim to normal handling, an adjuster, or Special Investigations with the payment held. Adjusters and investigators decide cases in the same chatbot. |
 
 #### Insurance → Life, Pensions & Wealth
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Insurance — Life & Retirement Member Services Assistant](./Industry_Use_Cases/Insurance/Life_Pensions_Wealth/Life_Pensions_Member_Services_Use_Case/) | Verified members of fictional Harborline Life & Retirement check policies, beneficiaries, 401(k)/IRA balances, holdings and claims. They raise their 401(k) deferral and switch funds in two confirmed steps (plan maximum, IRS limit and holdings enforced in SQL), and file Critical Illness / Income Protection claims after an agent turns their story into a claim type and document list; other agents build a life-event checklist and write the examiner's appeal brief. Beneficiary changes, claim decisions, appeals, withdrawals/rollovers and advice go to people, who decide them in the same chatbot. | WS `:9930` `/lifepensions` · MCP `:9932` · A2A `:9933–9935` | `life_pensions_governed` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Insurance — Life & Retirement Member Services Assistant](./Industry_Use_Cases/Insurance/Life_Pensions_Wealth/Life_Pensions_Member_Services_Use_Case/) | Verified members of fictional Harborline Life & Retirement check policies, beneficiaries, 401(k)/IRA balances, holdings and claims. They raise their 401(k) deferral and switch funds in two confirmed steps (plan maximum, IRS limit and holdings enforced in SQL), and file Critical Illness / Income Protection claims after an agent turns their story into a claim type and document list; other agents build a life-event checklist and write the examiner's appeal brief. Beneficiary changes, claim decisions, appeals, withdrawals/rollovers and advice go to people, who decide them in the same chatbot. |
 
 #### Media & Travel → Media & Publishing
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Publishing — Author Services Assistant](./Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/) | Verified authors of a fictional scholarly publisher check manuscript status and APC coverage, get an agent's revision checklist from the reviewer comments and journal suggestions for a declined paper, and transfer a manuscript in two confirmed steps after an agent checks their data, ethics, funding and competing-interest statements against the target journal's policy (SQL blocks an incomplete transfer). Fee waivers, appeals, authorship changes, integrity questions and statement exceptions go to staff reviewers, who decide them in the same chatbot. | WS `:9840` `/authorservices` · MCP `:9842` · A2A `:9843–9845` | `author_services` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Publishing — Author Services Assistant](./Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/) | Verified authors of a fictional scholarly publisher check manuscript status and APC coverage, get an agent's revision checklist from the reviewer comments and journal suggestions for a declined paper, and transfer a manuscript in two confirmed steps after an agent checks their data, ethics, funding and competing-interest statements against the target journal's policy (SQL blocks an incomplete transfer). Fee waivers, appeals, authorship changes, integrity questions and statement exceptions go to staff reviewers, who decide them in the same chatbot. |
 
 #### Aerospace & Defense → Defense & Space
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Aerospace & Defense — MRO AOG Operations Assistant](./Industry_Use_Cases/Aerospace_Defense/Defense_Space/Aerospace_MRO_AOG_Operations_Use_Case/) | Verified MRO controllers of fictional Northvale Aero Services run aircraft-on-ground recovery for their own base: agents triage a crew write-up to an ATA chapter and likely parts, flag repeat defects and draft the shift handover. Parts are ordered and technicians dispatched in two confirmed steps (part applicability, lead time, certification + type rating and availability enforced in SQL). Spend above the controller's $25,000 limit goes to a maintenance manager, and return-to-service, AD compliance, MEL deferrals and grounding changes to Quality & Airworthiness, who decide them in the same chatbot. | WS `:9810` `/aerospacemro` · MCP `:9812` · A2A `:9813–9815` | `aerospace_mro_governed` | ✅ Complete · 🛡️ Governed |
+| Use Case | What it does |
+|---|---|
+| [Aerospace & Defense — MRO AOG Operations Assistant](./Industry_Use_Cases/Aerospace_Defense/Defense_Space/Aerospace_MRO_AOG_Operations_Use_Case/) | Verified MRO controllers of fictional Northvale Aero Services run aircraft-on-ground recovery for their own base: agents triage a crew write-up to an ATA chapter and likely parts, flag repeat defects and draft the shift handover. Parts are ordered and technicians dispatched in two confirmed steps (part applicability, lead time, certification + type rating and availability enforced in SQL). Spend above the controller's $25,000 limit goes to a maintenance manager, and return-to-service, AD compliance, MEL deferrals and grounding changes to Quality & Airworthiness, who decide them in the same chatbot. |
 
 #### Real Estate → Residential Brokerage
 
-| Use Case | What it does | Endpoints | Database | Status |
-|---|---|---|---|---|
-| [Real Estate — Lead Engagement Assistant](./Industry_Use_Cases/Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case/) | Verified buyer and seller leads of fictional brokerage Brightpath Realty search listings (filters applied in SQL) and check showings, their agent and market statistics: an agent ranks listings against the buyer's own words; showings are booked in two confirmed steps (slot and double-booking rules enforced in SQL) and move the lead to Active; an agent reads a lead's plans and SQL sets how soon their agent calls; another catches Fair-Housing-sensitive questions so they are answered neutrally. Offers, list-price changes, contract updates and legal or mortgage questions go to sales-agent and compliance reviewers, who decide them in the same chatbot. | WS `:9960` `/realestate` · MCP `:9962` · A2A `:9963–9965` | `realestate_governed` | ✅ Complete · 🛡️ Governed |
-
-### Legacy (`_old` — reference, being migrated)
-
-Earlier demos on the legacy three-app pattern (see the note above), kept under [`Industry_Use_Cases_old/`](./Industry_Use_Cases_old/) for reference only. Where a governed replacement exists, use it instead.
-
-| Use Case | Industry | What it does | Endpoints | Database | Status | Superseded by |
-|---|---|---|---|---|---|---|
-| [Aerospace MRO & AOG Operations](./Industry_Use_Cases_old/Aerospace_Defense_MRO_Use_Case/) | Aerospace & Defense | Maintenance/repair/overhaul + aircraft-on-ground assistant — check work orders & parts, then schedule/dispatch. | WS `:8085` `/mro` · MCP `:9095` · A2A `8091–8094` | `aerospace_mro` | ✅ Complete | [Aerospace & Defense — MRO AOG Operations Assistant](./Industry_Use_Cases/Aerospace_Defense/Defense_Space/Aerospace_MRO_AOG_Operations_Use_Case/) |
-| [Retail Banking Assistant](./Industry_Use_Cases_old/Retail_Banking_Assistant_Use_Case/) | Financial Services | Balances, transactions, cards & payments self-service with guarded write actions. | WS `:8088` `/banking` · MCP `:9096` · A2A `8710–8712` | `banking` | ✅ Complete | [Banking — Retail Banking Assistant](./Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) |
-| [Life & Pensions Member Assistant](./Industry_Use_Cases_old/Life_And_Pensions_Use_Case/) | Insurance | Pension pots, holdings, contributions, beneficiaries, claims & adviser callbacks; email confirmations. | WS `:9600` `/lifepensions` · MCP `:9982` · A2A `9983–9988` | `life_pensions` | ✅ Complete | [Insurance — Life & Retirement Member Services Assistant](./Industry_Use_Cases/Insurance/Life_Pensions_Wealth/Life_Pensions_Member_Services_Use_Case/) |
-| [Auto Insurance Policyholder Assistant](./Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) | Insurance | Policy, coverage & claims assistant, **grounded on policy documents via RAG**. | WS `:9700` `/auto-insurance` · MCP `:9701` · A2A `9711–9714` | `auto_insurance` (+ vector store) | 🔍 RAG | [Insurance — Auto Policy & Claims Assistant (RAG)](./Industry_Use_Cases/Insurance/PC_Multi_Line/Auto_Insurance_Policy_Claims_RAG_Use_Case/) |
-| [Hospital Post-Discharge Assistant](./Industry_Use_Cases_old/Hospital_AI-Agent_Use_Case/) | Healthcare & Life Sciences | Post-discharge coordination — care instructions, appointments, refills, follow-ups. | WS `:8652` `/hospital` · MCP `:9092` · A2A `8070–8073` | `hospital` | 🔌 REST-tier | [Healthcare — Hospital Post-Discharge Care Assistant](./Industry_Use_Cases/Healthcare_Life_Sciences/Providers_Health_Systems/Hospital_Post_Discharge_Care_Use_Case/) |
-| [Telecom Invoice Chatbot](./Industry_Use_Cases_old/Telecom_Invoice_Chatbot_Use_Case/) | Telecommunications | Explain invoices, usage & charges; dispute, adjust and email confirmations. | WS `:9500` `/telecom` · MCP `:9882` · A2A `9883–9885` | `telecom` | ✅ Complete | [Telecom — Mobile Billing & Spend Control Assistant](./Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) |
-| [Electric Power Distribution](./Industry_Use_Cases_old/Power_Distribution_Use_Case/) | Energy & Utilities | Residential self-service — bills, usage, outages; report outage, schedule visit, reconnect (past-due guardrail). | WS `:9680` `/grid` · MCP `:9682` · A2A `9683–9686` | `power_distribution` | ✅ Complete | [Utilities — Electric Outage & Billing Assistant](./Industry_Use_Cases/Energy_Utilities/Electric_Gas_Utilities_Grid/Electric_Utility_Outage_Billing_Use_Case/) |
-| [Semiconductor Customer & Order Assistant](./Industry_Use_Cases_old/Semiconductor_Customer_Use_Case/) | High Tech & Software | Parts catalog, orders, RMAs & lead times for a semiconductor supplier. | WS `:9310` `/semiconductor` · MCP `:9098` · A2A `8730–8735` | `semiconductor` | ✅ Complete | [High Tech — Semiconductor Orders & RMA Assistant](./Industry_Use_Cases/High_Tech_Software/Semiconductors_Electronics/Semiconductor_Orders_RMA_Use_Case/) |
-| [Predictive Maintenance & Asset Monitoring](./Industry_Use_Cases_old/Predictive_Maintenance_Use_Case/) | Manufacturing & Industrial | Asset health, sensor readings & failure prediction with a REST backend and a single chat agent. | WS `:8083` `/ws/chat` · MCP `:9093` · REST api `:9095` | `predictive_maintenance` | 🔌 REST-tier | [Energy & Utilities — Oilfield Asset Health Monitoring Assistant](./Industry_Use_Cases/Energy_Utilities/Oil_Gas/Oilfield_Asset_Health_Monitoring_Use_Case/) |
-| [Airline Passenger Services](./Industry_Use_Cases_old/Airline_Passenger_Services_Use_Case/) | Transportation & Logistics | Flights, bookings, seats & baggage passenger assistant. | WS `:8083` `/airline` · MCP `:9093` · A2A `8074–8076` | `airline` | 🔌 REST-tier | [Airline — Passenger Services Assistant](./Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/) |
-| [Logistics / Transport Shipper Assistant](./Industry_Use_Cases_old/Logistics_Transport_Use_Case/) | Transportation & Logistics | Shipment tracking, quotes & bookings; trio generated by an `fda` CLI build script. | WS `:9690` `/logistics` · MCP `:9790` · A2A `9791–9794` | `logistics` | ✅ Complete | [Logistics — Parcel Delivery Assistant](./Industry_Use_Cases/Transportation_Logistics/Parcel_Postal_Logistics/Parcel_Delivery_Last_Mile_Use_Case/) |
-| [Real Estate Lead Engagement Assistant](./Industry_Use_Cases_old/Real_Estate_Lead_Assistant_Use_Case/) | Real Estate | MLS search & lead engagement; trio generated via `fda` CLI build scripts. | WS `:9590` `/realestate` · MCP `:9592` · A2A `9593–9597` | `realestate` | ✅ Complete | [Real Estate — Lead Engagement Assistant](./Industry_Use_Cases/Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case/) |
+| Use Case | What it does |
+|---|---|
+| [Real Estate — Lead Engagement Assistant](./Industry_Use_Cases/Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case/) | Verified buyer and seller leads of fictional brokerage Brightpath Realty search listings (filters applied in SQL) and check showings, their agent and market statistics: an agent ranks listings against the buyer's own words; showings are booked in two confirmed steps (slot and double-booking rules enforced in SQL) and move the lead to Active; an agent reads a lead's plans and SQL sets how soon their agent calls; another catches Fair-Housing-sensitive questions so they are answered neutrally. Offers, list-price changes, contract updates and legal or mortgage questions go to sales-agent and compliance reviewers, who decide them in the same chatbot. |
 
 ### BW6 + Flogo samples
 
@@ -431,41 +408,6 @@ TIBCO BusinessWorks 6 + Flogo "Better Together" samples, kept under [`BW6_Flogo_
 | Sample | Industry | Description | Ports | Database | Status |
 |---|---|---|---|---|---|
 | [Retail — BW & Flogo, Better Together](./BW6_Flogo_Samples/Retail_AI_BW_Flogo/) | Retail & Consumer Goods | Retail assistant where **BW6 apps expose domain REST/MCP** and a Flogo **REST** orchestrator drives the LLM. | Flogo REST `:18085` `/api/query` · BW6 MCP `:18000` | *(inside BW6 apps)* | 🏛️ BW6 |
-
-### Status Legend
-
-| Badge | Meaning |
-|---|---|
-| ✅ **Complete** | Standard MCP + A2A + Orchestrator trio, ready to run out of the box. |
-| 🛡️ **Governed** | Built with the `agentic-ai-use-case-builder` skill: passes the decision framework (agent vs. deterministic vs. human-owned); identity, scoping, prices and state changes enforced in PostgreSQL; tested end to end, including prompt injection. |
-| 🔍 **RAG** | Adds retrieval-augmented generation (a document ingestion app + vector store) on top of the trio. |
-| 🏛️ **BW6** | Built on **TIBCO BusinessWorks 6** rather than (or alongside) the Flogo trio — different runtime; see its own README. |
-| 🔌 **REST-tier** | Includes legacy REST API / single-agent apps alongside (or instead of) the standard trio. |
-
-> **Port collisions — don't run these at the same time (their default ports overlap):**
-> The governed use cases' own ports don't collide with each other or with the legacy trios, but some
-> defaults are shared across samples. Bring the samples in each group up one at a time, or change the port
-> in the app properties:
->
-> | Port | Used by |
-> |---|---|
-> | `8080` | AI-Powered Incident Triage (triage agent REST) · Smart Supply Chain (agent) · Predictive Maintenance *(legacy, chat agent)* |
-> | `8081` | Mobile Customer Care (agent) · Healthcare Patient Support (agent) |
-> | `8083` | Mobile Customer Care (agent) · Airline Passenger Services *(legacy, WebSocket)* · Predictive Maintenance *(legacy, WebSocket)* |
-> | `8091` | Travel Itinerary Planner (coordinator agent) · BeautyCo Retail (mock APIs) · Aerospace MRO *(legacy, A2A)* |
-> | `9091` | Smart Supply Chain (Inventory MCP) · Mortgage AI (mock APIs) |
-> | `9092` | Smart Supply Chain (Supplier MCP) · Hospital Post-Discharge *(legacy, MCP)* |
-> | `9093` | Airline Passenger Services *(legacy, MCP)* · Predictive Maintenance *(legacy, MCP)* |
-> | `9095` | Morning Briefing · Aerospace MRO *(legacy, MCP)* · Hospital Post-Discharge *(legacy, `endevour-api`)* · Predictive Maintenance *(legacy, REST API)* |
-> | `9870` | Corporate Payments (WebSocket) · Agent Privilege IDs (`BankOpsAgents` WebSocket) |
-> | `9872` | Corporate Payments (MCP) · Agent Privilege IDs *(orchestrated variant, `BankOpsSpecialists` MCP)* |
-> | `9890` | Parcel Delivery (WebSocket) · Agent Privilege IDs *(no-MCP variant, WebSocket)* |
-> | `9898` | Travel Itinerary Planner (A2A) · Agent Privilege IDs *(no-MCP variant, agent)* |
-> | `9998` | Healthcare Patient Support (WebSocket) · Smart Supply Chain (WebSocket) |
->
-> **If you change a port, change it in every place it appears:** the app property / trigger setting of the
-> app that listens, the matching URL property (or `serverUrl`) in the orchestrator's MCP and A2A
-> connections, and the use case's README.
 
 ---
 

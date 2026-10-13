@@ -11,8 +11,6 @@ Billing disputes and re-bills, payment arrangements, medical-baseline protection
 sparking line go to the right team. The assistant never decides them: a Ridgeline reviewer does, in the same chat,
 and the customer sees the outcome.
 
-The original non-governed version is kept under [Industry_Use_Cases_old/Power_Distribution_Use_Case](../../../../Industry_Use_Cases_old/Power_Distribution_Use_Case/) for reference.
-
 **Agentic in the middle, deterministic at the edges:** the AI handles the conversation, explains why a bill
 changed, triages a free-text outage report (hazard or routine outage?) and matches a household to a rate plan.
 PostgreSQL decides identity, amounts, bill-to-bill deltas, cost estimates, eligibility, reconnection and every

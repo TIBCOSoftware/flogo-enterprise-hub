@@ -8,8 +8,6 @@ steps, and a filed claim can be followed by an emailed confirmation. Settlement 
 a lapsed policy, quotes and coverage changes, callbacks and complaints go to the right team, and Copperleaf's
 adjusters and claims specialists decide them **in the same chatbot**. The assistant never decides them.
 
-*The original non-governed version is kept under [`samples/Agentic_AI/Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case`](../../../../Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/) for reference.*
-
 **Facts from the database, wording from the documents.** Every number and status (the deductible, the claims-free
 discount, a claim's status, a payment) comes from PostgreSQL. Every "is this covered?", exclusion, definition and
 condition comes from the policy-wording PDFs through retrieval (RAG over an OpenAI vector store). Riley quotes the
