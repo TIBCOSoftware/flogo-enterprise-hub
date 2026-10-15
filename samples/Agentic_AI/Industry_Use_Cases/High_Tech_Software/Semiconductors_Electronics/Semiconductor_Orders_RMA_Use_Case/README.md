@@ -1,3 +1,11 @@
+> **Disclaimer**
+>
+> This sample is provided for demonstration and educational purposes only, on an
+> "as-is" basis and without warranty of any kind. It is not a supported product and
+> is not intended for production use. All company names, data, and scenarios are
+> fictional; any resemblance to real entities is coincidental. You are responsible
+> for reviewing, securing, and testing it before any use.
+
 # High Tech — Semiconductor Orders & RMA Assistant
 
 **Arc** is a chat assistant for the buyers at the customer companies of a US electronic-components distributor

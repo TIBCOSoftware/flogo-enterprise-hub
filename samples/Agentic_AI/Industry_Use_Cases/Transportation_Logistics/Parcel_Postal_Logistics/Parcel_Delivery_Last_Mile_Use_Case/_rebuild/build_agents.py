@@ -224,7 +224,7 @@ for a in AGENTS:
     f("sa", "handler", f"{NAME}.{FLOW}.settings.agentToolName", TOOL)
     f("sa", "handler", f"{NAME}.{FLOW}.settings.agentToolDescription", T["desc"])
     f("wth", FLOW, f"{NAME}.{FLOW}", "--force", "--input", "toolParams:object", "--output", "response:object")
-    # INLINE schemas (tr_agent reads toolParams only inline - FGAI-155). A guide's one argument is required so the
+    # INLINE schemas (tr_agent reads toolParams only inline). A guide's one argument is required so the
     # model always sends it (an empty string = the whole guide); the kept options tool keeps its own required list.
     props = {arg: {"type": "string", "description": d} for arg, d in T["args"]}
     req = T.get("required") or [arg for arg, _ in T["args"]]

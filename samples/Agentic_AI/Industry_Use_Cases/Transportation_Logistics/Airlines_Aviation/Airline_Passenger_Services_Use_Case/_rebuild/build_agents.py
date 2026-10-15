@@ -230,7 +230,7 @@ for a in AGENTS:
     f("sa", "handler", f"{NAME}.{FLOW}.settings.agentToolName", TOOL)
     f("sa", "handler", f"{NAME}.{FLOW}.settings.agentToolDescription", T["desc"])
     f("wth", FLOW, f"{NAME}.{FLOW}", "--force", "--input", "toolParams:object", "--output", "response:object")
-    # INLINE schemas (tr_agent reads toolParams only inline - FGAI-155). The lookup argument is required so the model
+    # INLINE schemas (tr_agent reads toolParams only inline). The lookup argument is required so the model
     # always sends it (an empty string = the whole guide); the SQL treats ""/NULL the same.
     props = {arg: {"type": "string", "description": d} for arg, d in T["args"]}
     req = T.get("required") or [arg for arg, _ in T["args"]]

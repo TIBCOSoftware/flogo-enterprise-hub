@@ -129,7 +129,6 @@ empty OpenAI base URL. On top of that:
 | [references/discovery-questions.md](references/discovery-questions.md) | Phase 1: the questions to ask the user (three rounds, skip what is answered) before you plan |
 | [references/industry-taxonomy.md](references/industry-taxonomy.md) | Phase 0: the `Industry/Sub_Category` folder for the sample, and the clone-safe path rules |
 | [references/port-registry.md](references/port-registry.md) | Phase 0: pick the next free port block (X0 WS, X2 MCP, X3+ A2A); update the registry in the same change |
-| [references/migration-playbook.md](references/migration-playbook.md) | Phases 0–1, **only when the input is a legacy sample** from `Industry_Use_Cases_old/`: discovery from its files, feature mapping, mapping table for all 13, retire steps |
 | [references/decision-framework-gate.md](references/decision-framework-gate.md) | Phase 1: classify operations, write "Why an agent here?" |
 | [references/governed-patterns.md](references/governed-patterns.md) | Phases 2–4: SQL shapes, the agent reference tools (`ref_<topic>()`), the human-in-the-loop reviewer loop (§9), and the fda recipes that differ |
 | [references/runtime-gotchas.md](references/runtime-gotchas.md) | Phases 4–5: wsserver headers, temperature, guardrails, LLM timeout, flogobuild context and `-f`, A2A agent needs a PostgreSQL reference tool |
@@ -181,10 +180,7 @@ run `flogobuild list-context` and record the real context name; config.md's valu
 for governed use cases. Take the industry and sub-category from
 [industry-taxonomy.md](references/industry-taxonomy.md): use the folder if it exists, create it if it
 doesn't, and follow its clone-safe path rules (only `A-Z a-z 0-9 _`, every repo-relative path ≤ 160
-characters). When migrating an existing non-governed demo, build the governed version here and leave the
-original untouched under `samples/Agentic_AI/Industry_Use_Cases_old/` — **if the input is a legacy sample,
-follow [references/migration-playbook.md](references/migration-playbook.md)** (it replaces most of the
-Phase 1 discovery and fixes the folder, ports and DB name per sample).
+characters).
 
 **Ports:** take the next free block from [references/port-registry.md](references/port-registry.md)
 (`X0` WebSocket, `X2` MCP, `X3`+ one per A2A agent), and add the new block to the registry in the same change.
@@ -192,9 +188,9 @@ Phase 1 discovery and fixes the folder, ports and DB name per sample).
 **Naming — no `Gov` suffix.** Name the apps `<Vertical>MCPServer` / `<Vertical>Agents` /
 `<Vertical>AIOrchestrator` after the persona/vertical (e.g. `AuthorServices*`, `PassengerServices*`). Do
 **not** add a `Gov`/`Governed` suffix to app, trigger, connection, folder or endpoint names — governance
-is the default style of these samples, not a label. Only the **database** name may stay distinct (e.g.
-`<vertical>_governed`) while a same-named non-governed original still exists in `Industry_Use_Cases_old/`,
-to avoid a collision; drop the suffix once that original is retired.
+is the default style of these samples, not a label. The **database** name may still carry a
+`<vertical>_governed` suffix (as the shipped samples do) to avoid colliding with another database on a
+shared PostgreSQL server.
 
 **Decide the runtime model now** (it is baked into the apps — getting it wrong means a rebuild): the
 orchestrator needs a capable tool-calling model that will delegate to the A2A agent. `gpt-5-nano` is
@@ -203,10 +199,6 @@ Pro-class model. Confirm the model in the Phase 1 discovery (question 18). If co
 is a tiny model, override it (env `LLM_MODEL=gpt-5.5` or set it in config.md) before Phase 4.
 
 ### Phase 1: discover, frame and gate ⛔
-**Legacy input?** When migrating a sample from `Industry_Use_Cases_old/`, use its README.md, database.sql,
-prompts.md and any `*.spec.md` as the discovery input, play back what you took, and ask ONE
-`AskUserQuestion` round — see [references/migration-playbook.md](references/migration-playbook.md). Never carry
-POC files or prospect/customer names from the legacy input into the new sample.
 
 **1a. Discover: ask the user.** Before you frame anything, work through
 [references/discovery-questions.md](references/discovery-questions.md). Skip what the user's message,

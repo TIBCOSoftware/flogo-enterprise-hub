@@ -54,5 +54,5 @@ The 16 industries are listed in priority order: the top rows are where a new sam
   If a path is too long, shorten the deepest name you are creating (usually the use case folder), never an
   existing shared folder, and tell the user.
 
-Relative links inside a sample (to `samples/Agentic_AI/Chatbot/` or `Industry_Use_Cases_old/`) are four
+Relative links inside a sample (e.g. to `samples/Agentic_AI/Chatbot/`) are four
 levels up: `../../../../Chatbot/`.

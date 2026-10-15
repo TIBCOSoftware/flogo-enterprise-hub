@@ -2,8 +2,8 @@
 
 Fictional Texas electric utility **Ridgeline Power & Light** (vertically integrated: it generates, delivers and
 bills). Assistant name **Sage** (calm, plain US English, concise). Fictional towns (Oak Hollow, Pine Ridge, Cedar
-Bluff, Willow Creek, Mesa Verde), no ZIP codes, no real streets or companies. Rebuilt from the legacy
-`Industry_Use_Cases_old/Power_Distribution_Use_Case` in the governed style.
+Bluff, Willow Creek, Mesa Verde), no ZIP codes, no real streets or companies. Rebuilt from an earlier
+(pre-governance) power distribution use case in the governed style.
 
 ## 1. Problem, audience, region
 - Deflect the three biggest utility call drivers: "why is my bill so high?", "my power is out", and

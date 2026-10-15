@@ -1,6 +1,6 @@
 # Retail Banking Assistant — governed spec (Kestrel Bank)
 
-Governed rebuild of `Industry_Use_Cases_old/Retail_Banking_Assistant_Use_Case` with the
+Governed rebuild of an earlier (pre-governance) Retail Banking Assistant use case with the
 `agentic-ai-use-case-builder` skill. Reference implementation to mirror file-for-file:
 `Industry_Use_Cases/Transportation_Logistics/Airlines_Aviation/Airline_Passenger_Services_Use_Case/` (database.sql / seed_data.sql / reset_data.sql /
 _rebuild/*.py). Kestrel Bank, its customers, accounts and merchants are fictional.

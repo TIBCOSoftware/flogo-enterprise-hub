@@ -41,15 +41,10 @@ git grep -nE '\b9[89][0-9]{2}\b' -- 'samples/*.flogo' 'samples/*.md' | grep -iE 
 | 9950 | 9950 | 9952 | 9953–9955 | `Energy_Utilities/Oil_Gas/Oilfield_Asset_Health_Monitoring_Use_Case` (3 agents) | `predictive_maintenance_governed` |
 | 9960 | 9960 | 9962 | 9963–9965 | `Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case` (3 agents) | `realestate_governed` |
 
-## Reserved for the legacy migrations ([migration-playbook.md](migration-playbook.md))
-
-All eight legacy migrations have landed (2026-10-13); their blocks are now in the governed table above, and nothing is reserved.
-
 ## Next free blocks
 
-`9800`, `9830`, `9970`. **Avoid** `9880` (Agent-Privilege-IDs `9880` + legacy Telecom Invoice `9882–9885`),
-`9980` (legacy Life & Pensions `9982–9988`) and `9990` (Feature_Samples `9998`, legacy Hospital `9999`)
-while those apps exist.
+`9800`, `9830`, `9970`. **Avoid** `9880` (Feature_Samples `Agent-Privilege-IDs`) and `9990`
+(Feature_Samples `9998`) while those apps exist.
 
 ## Known overlaps (documented, re-port later)
 
@@ -69,29 +64,10 @@ Don't run it at the same time as those samples:
 Other Feature_Samples ports sit outside `98xx`–`99xx` except `9998` (Healthcare-Compliance-Agent and
 Smart-Supply-Chain-Assistant WebSockets).
 
-## Legacy ranges to avoid while `Industry_Use_Cases_old/` exists
-
-| Legacy sample | Ports |
-|---|---|
-| Aerospace_Defense_MRO | WS 8085 · MCP 9095 · A2A 8091–8094 |
-| Airline_Passenger_Services | WS 8083 · MCP 9093 · A2A 8074–8076 · POC apps 8054, 9044, 9111, 3005 |
-| Auto_Insurance_Assistant_RAG | WS 9700 · MCP 9701 · A2A 9711–9714 · ingestion 9720 |
-| Hospital_AI-Agent | WS 8652 · MCP 9092 · A2A 8070–8073 · REST 9095, 9999 |
-| Life_And_Pensions | WS 9600 · MCP 9982 · A2A 9983–9988 |
-| Logistics_Transport | WS 9690 · MCP 9790 · A2A 9791–9794 |
-| Power_Distribution | WS 9680 · MCP 9682 · A2A 9683–9686 |
-| Predictive_Maintenance | 8080, 8083, 9093, 9095, 9898 |
-| Real_Estate_Lead_Assistant | WS 9590 · MCP 9592 · A2A 9593–9597 |
-| Retail_Banking_Assistant | WS 8088 · MCP 9096 · A2A 8710–8712 |
-| Semiconductor_Customer | WS 9310 · MCP 9098 · A2A 8730–8735 |
-| Telecom_Invoice_Chatbot | WS 9500 · MCP 9882 · A2A 9883–9885 |
-
-None of these falls in a governed block. Once `_old` is deleted, these ranges are free.
-
 ## BW6 + Flogo samples (permanent — avoid)
 
 | Sample | Ports | Status |
 |---|---|---|
 | `BW6_Flogo_Samples/Retail_AI_BW_Flogo` | 9500, 18000, 18085 | moved to `samples/Agentic_AI/BW6_Flogo_Samples/`; not migrated (the "Better Together" BW6 + Flogo showcase) |
 
-These ports stay taken after `_old` is deleted.
+These ports stay taken.

@@ -1,3 +1,11 @@
+> **Disclaimer**
+>
+> This sample is provided for demonstration and educational purposes only, on an
+> "as-is" basis and without warranty of any kind. It is not a supported product and
+> is not intended for production use. All company names, data, and scenarios are
+> fictional; any resemblance to real entities is coincidental. You are responsible
+> for reviewing, securing, and testing it before any use.
+
 # `_rebuild/`: regenerate and test the Corporate Payments apps from code
 
 **You don't need this folder to run the demo.** The main [README](../README.md) covers that.

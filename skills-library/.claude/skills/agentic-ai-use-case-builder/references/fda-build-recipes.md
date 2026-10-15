@@ -268,7 +268,7 @@ $FDA wth <Agent>_flow <Agent>.<Agent>_flow --force --input toolParams:object --o
 # toolParams (input) + response (reply) schemas — describe the fields the orchestrator must pass.
 # ⚠️ Set them INLINE (--jsonValue), NOT as a schema:// reference (-C schema). The AI Agent Trigger reads
 #    toolParams only inline: a reference silently gives the LLM a tool with NO parameters, so it calls the tool
-#    with {} or guessed names (FGAI-155). The MCP Server trigger resolves references; tr_agent does not.
+#    with {} or guessed names. The MCP Server trigger resolves references; tr_agent does not.
 TP='{"type":"object","properties":{ "<field>":{"type":"string","description":"<what to pass>"} },"required":["<field>"]}'
 $FDA sa handler <Agent>.<Agent>_flow.schemas.output.toolParams --jsonValue "$(python -c 'import json,sys; v=sys.argv[1]; print(json.dumps({"type":"json","value":v,"fe_metadata":v}))' "$TP")" --force
 RS='{"type":"object","properties":{"response":{"type":"string"}}}'

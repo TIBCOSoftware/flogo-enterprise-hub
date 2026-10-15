@@ -1,6 +1,6 @@
 """Build AutoInsuranceRAGIngestion.flogo (hybrid clone) for the Copperleaf Auto Insurance RAG use case.
 
-Clones the legacy Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/AutoInsuranceRAGIngestion.flogo and
+Clones an earlier (pre-governance) AutoInsuranceRAGIngestion.flogo donor (not included in this repository) and
 swaps fields surgically:
   - app name/description (Copperleaf), INGEST_PORT 9919 (`POST /ingest` kept), endpoint metadata port
   - PostgreSQL Database_Name = auto_insurance_governed, password = plain app property (like fda_common writes it)
@@ -22,8 +22,9 @@ import fda_common as fc  # noqa: E402
 
 USE_CASE_DIR = os.path.dirname(HERE)
 SAMPLES_DIR = os.path.abspath(os.path.join(USE_CASE_DIR, "..", "..", "..", ".."))    # .../Agentic_AI
-LEGACY = os.path.join(SAMPLES_DIR, "Industry_Use_Cases_old", "Auto_Insurance_Assistant_RAG_Use_Case",
-                      "AutoInsuranceRAGIngestion.flogo")
+# The pre-governance ingestion donor is not included in this repository; set LEGACY_INGESTION
+# to a local copy of the original AutoInsuranceRAGIngestion.flogo to rebuild.
+LEGACY = os.environ.get("LEGACY_INGESTION", "")
 TARGET = os.path.join(USE_CASE_DIR, "AutoInsuranceRAGIngestion.flogo")
 
 APP_NAME = "AutoInsuranceRAGIngestion"
@@ -66,6 +67,9 @@ def task(d, tid):
 
 
 def clone(out):
+    if not LEGACY or not os.path.exists(LEGACY):
+        raise SystemExit(f"pre-governance ingestion donor not found: {LEGACY!r}. "
+                         "Set LEGACY_INGESTION to a local copy of the original AutoInsuranceRAGIngestion.flogo.")
     d = json.load(open(LEGACY, encoding="utf-8"))
 
     # fresh connection id, every conn:// reference follows

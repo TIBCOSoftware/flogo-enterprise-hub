@@ -1,3 +1,11 @@
+> **Disclaimer**
+>
+> This sample is provided for demonstration and educational purposes only, on an
+> "as-is" basis and without warranty of any kind. It is not a supported product and
+> is not intended for production use. All company names, data, and scenarios are
+> fictional; any resemblance to real entities is coincidental. You are responsible
+> for reviewing, securing, and testing it before any use.
+
 # `_rebuild/`: regenerate and test the Auto Policy & Claims (RAG) apps from code
 
 **You don't need this folder to run the demo.** The main [README](../README.md) covers that.
@@ -13,8 +21,8 @@ to:
 Design CLI (`fda`). `fda` has no recipe for user-extension activities, so the `extensions/openAI` `vectorSearch`
 task, its import and its `contrib` entry are then **transplanted verbatim** from the original (non-governed) MCP
 app into the `search_policy_wording` flow. The ingestion app is a surgical clone of the original
-`AutoInsuranceRAGIngestion.flogo`. The donors live in
-[`Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case`](../../../../../Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/).
+`AutoInsuranceRAGIngestion.flogo`. The donor is an earlier (pre-governance) Auto Insurance RAG use case,
+which is not included in this repository.
 
 ## What's in this folder
 
@@ -48,8 +56,8 @@ Related files in the use-case folder:
 
 - **Python 3.9+**, the **TIBCO Flogo VS Code extension** (it ships `fda`) and **`psql`** with the
   `auto_insurance_governed` database loaded (see the main README, step 1).
-- The original sample in `samples/Agentic_AI/Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/` (the
-  donor for `build_mcp.py` and `build_ingestion.py`).
+- The donor for `build_mcp.py` and `build_ingestion.py` — an earlier (pre-governance) Auto Insurance RAG
+  use case that is not included in this repository.
 - For `generate_policy_pdfs.py` only: `pip install fpdf2`.
 - For step 4 only: `pip install websocket-client`.
 - Run every command below **from the use-case folder** (the parent of `_rebuild/`).

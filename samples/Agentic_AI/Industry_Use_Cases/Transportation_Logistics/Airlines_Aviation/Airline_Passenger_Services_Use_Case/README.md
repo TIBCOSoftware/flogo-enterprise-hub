@@ -1,3 +1,11 @@
+> **Disclaimer**
+>
+> This sample is provided for demonstration and educational purposes only, on an
+> "as-is" basis and without warranty of any kind. It is not a supported product and
+> is not intended for production use. All company names, data, and scenarios are
+> fictional; any resemblance to real entities is coincidental. You are responsible
+> for reviewing, securing, and testing it before any use.
+
 # Airline — Passenger Services Assistant
 
 The **Meridian Passenger Services Assistant** is a chat assistant for the travelers of a fictional airline,

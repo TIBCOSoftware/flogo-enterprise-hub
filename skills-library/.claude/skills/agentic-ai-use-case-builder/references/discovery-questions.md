@@ -5,10 +5,6 @@ before the decision-framework gate. The goal is the most accurate use case for *
 a plausible one you invented. Every answer below changes a concrete artefact (tables, rules, tools,
 seed data, prompts, the demo script), so a wrong guess shows up in front of the audience.
 
-**Migrating a legacy sample** from `Industry_Use_Cases_old/`? Don't run the three rounds. Take the
-discovery input from its README.md, database.sql, prompts.md and any `*.spec.md`, play it back, and ask
-the single round in [migration-playbook.md](migration-playbook.md).
-
 ## Rules
 
 1. **Skip what is already answered.** Read the user's message, any spec file

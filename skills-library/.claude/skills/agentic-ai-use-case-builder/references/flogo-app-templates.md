@@ -3,9 +3,10 @@
 Domain-agnostic JSON skeletons for the three apps. Placeholders are written as `<LIKE_THIS>`.
 The **most reliable way to clone** is to copy a same-type app from a **governed** use case under
 `samples/Agentic_AI/Industry_Use_Cases/<Industry>/<Sub_Category>/*_Use_Case/` and swap in the domain specifics; these
-skeletons show what to change and what must stay. Never clone from `Industry_Use_Cases_old/` (ungoverned: rules in prompts,
-write agents, shared conversation memory) except to transplant a custom-extension activity (RAG — SKILL.md Phase 4B).
-Always carry `contrib` and `SECRET:` values verbatim from the cloned app. Names follow the no-`Gov` rule (SKILL.md
+skeletons show what to change and what must stay. Clone only from the governed samples, never from an
+ungoverned agentic app (rules in prompts, write agents, shared conversation memory) — except to transplant
+a custom-extension activity (RAG — SKILL.md Phase 4B). Always carry `contrib` and `SECRET:` values verbatim
+from the cloned app. Names follow the no-`Gov` rule (SKILL.md
 Phase 0): no `Gov`/`Governed`/`-gov-` in app, trigger, connection, endpoint or path names.
 
 Common to every app: `"appModel": "1.1.1"`, and `"metadata": { "flogoVersion": "2.26.5", "endpoints": [...] }`.

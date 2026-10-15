@@ -9,8 +9,8 @@
    ReadOutcome -> ReturnNotSent); the recipient is the EMAIL_TO app property.
 2. search_policy_wording (rag=True in tool_spec.py) is built by fda as  ReadOutcome (SELECT * FROM latest_vector_store())
    -> Return, then the `extensions/openAI` vectorSearch task, its import and its contrib entry are TRANSPLANTED VERBATIM
-   from the legacy app (samples/Agentic_AI/Industry_Use_Cases_old/Auto_Insurance_Assistant_RAG_Use_Case/
-   AutoInsuranceMCPServer.flogo) - fda has no recipe for user-extension activities (SKILL.md Phase 4B "RAG (hybrid
+   from an earlier (pre-governance) AutoInsuranceMCPServer.flogo donor (not included in this repository)
+   - fda has no recipe for user-extension activities (SKILL.md Phase 4B "RAG (hybrid
    clone)"). Only vectorStoreID is re-pointed at ReadOutcome (and top 3 results); the flow becomes ReadOutcome -> PolicySearch -> Return.
 
 Building the exe needs the user-extensions flogobuild context (created with `-u <repo>/extensions`).
@@ -25,8 +25,9 @@ app = App("AutoInsuranceMCPServer.flogo", os.environ.get("OUT_DIR"))
 f = app.fda
 TRIG, PORT, ENDPOINT, SERVER_NAME = "AutoInsuranceMCPServer", "9912", "/autoinsurancemcpserver", "AutoInsuranceMCPServer"
 REPO = os.path.abspath(os.path.join(USE_CASE_DIR, *[".."] * 6))
-LEGACY_MCP = os.environ.get("LEGACY_MCP") or os.path.join(
-    REPO, "samples", "Agentic_AI", "Industry_Use_Cases_old", "Auto_Insurance_Assistant_RAG_Use_Case", "AutoInsuranceMCPServer.flogo")
+# The vectorSearch donor (an earlier, pre-governance MCP app) is not included in this repository;
+# set LEGACY_MCP to a local copy of the original AutoInsuranceMCPServer.flogo to rebuild.
+LEGACY_MCP = os.environ.get("LEGACY_MCP", "")
 OPENAI_ENDPOINT = "https://api.openai.com/v1"          # the vector extension rejects an empty endpoint
 
 # ---- email settings (config.md "Email Server, Username and app password" section; env wins) ----
@@ -45,7 +46,7 @@ EMAIL_PASS_SRC = "SECRET: value from env" if _env_pw.startswith("SECRET:") else 
 print("fda:", FDA)
 print(subprocess.run([FDA, "version"], capture_output=True, text=True).stdout.strip())
 print("email password source:", EMAIL_PASS_SRC)          # never the value itself
-if not os.path.exists(LEGACY_MCP): raise SystemExit(f"legacy MCP app (vectorSearch donor) not found: {LEGACY_MCP}")
+if not LEGACY_MCP or not os.path.exists(LEGACY_MCP): raise SystemExit(f"vectorSearch donor not found: {LEGACY_MCP!r}. Set LEGACY_MCP to a local copy of the pre-governance AutoInsuranceMCPServer.flogo.")
 
 print("== project + PostgreSQL ==")
 f("cp", TRIG, "Copperleaf Auto Insurance policy and claims MCP Server - scoped reads, guarded writes, RAG policy wording and the reviewer loop")
