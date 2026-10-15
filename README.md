@@ -145,12 +145,7 @@ flogo-enterprise-hub/
 
 ## **Contributing**
 
-We welcome contributions! To contribute:
-- Fork this repository.
-- Make your changes.
-- Submit a pull request (PR).
-
-Our maintainers will review your PR and may request changes before merging. For any questions, please reach out to [integration-pm@tibco.com](mailto:integration-pm@tibco.com).
+This repository is maintained by TIBCO and is not accepting external pull requests at this time. For questions, suggestions, or to report an issue, please reach out to [integration-pm@tibco.com](mailto:integration-pm@tibco.com).
 
 > **Repo maintainers:** For maximum GitHub search discoverability, add **Topics** to this repository via **Settings → Topics**. Suggested topics: `flogo`, `mcp`, `mcp-server`, `ai-agents`, `agentic-ai`, `low-code`, `no-code`, `ipaas`, `integration`, `tibco`, `golang`, `enterprise-integration`
 

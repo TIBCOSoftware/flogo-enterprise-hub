@@ -25,15 +25,14 @@ platform(s) you tested on, expected vs. actual results, etc. -->
 - [ ] **No real secrets or credentials committed.** All credentials use the
       placeholder convention (e.g. `SECRET:YOURKEY`, `sk-REPLACE-WITH-YOUR-OPENAI-KEY`,
       `SET_YOUR_...`) and I ran a secret self-check on my diff (see
-      [CONTRIBUTING.md](../CONTRIBUTING.md) and [SECURITY.md](../SECURITY.md)).
+      [SECURITY.md](../SECURITY.md)).
 - [ ] **Works cross-platform** (Windows / macOS / Linux). No hardcoded absolute
       paths or machine-specific values; tool/file paths resolve via environment
       variables or relative paths.
 - [ ] **Documentation updated.** Added or updated a `README.md` for any new sample
       or demo, and updated relevant docs.
 - [ ] My branch follows the naming convention (`feature/...`, `fix/...`, `docs/...`).
-- [ ] I have read and agree to the [Code of Conduct](../CODE_OF_CONDUCT.md) and
-      [Contributing guidelines](../CONTRIBUTING.md).
+- [ ] I have read and agree to the [Code of Conduct](../CODE_OF_CONDUCT.md).
 
 ## Additional Notes
 

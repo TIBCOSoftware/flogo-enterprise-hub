@@ -33,7 +33,7 @@ Both collections share the **[Prerequisites](#prerequisites)**, the **[Quick Sta
 **Every sample and use case needs:**
 
 - **TIBCO Flogo® 2.26.7 or later** — the **TIBCO Flogo® Extension for Visual Studio Code**, downloadable from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (also on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tibco.flogo)). That is all you need to open, design and run the apps from VS Code. See the [Agentic AI documentation](https://docs.tibco.com/pub/flogo/latest/doc/html/Default.htm#connectors/agentic-AI/agentic-AI-overview.htm).
-- An **API key** for your chosen LLM provider (OpenAI, Gemini, or Anthropic). Where a base URL is used, point it at a **real endpoint** (e.g. `https://api.openai.com/v1`). The Part 2 industry use cases ship set to model `gpt-5.5`; substitute any capable tool-calling model your account can access.
+- An **API key** for your chosen LLM provider. Where a base URL is used, point it at a **real endpoint** (e.g. `https://api.openai.com/v1`). The Part 2 industry use cases need a capable tool-calling model; set the model your account can access in the app properties.
 - A **WebSocket client** for testing WebSocket samples/use cases: the included [Flogo Chatbot](#flogo-chatbot--browser-based-websocket-test-client) (Node.js 16+) or [websocat](https://github.com/vi/websocat).
 - **Connector prerequisites (design time):** install the driver / client library for each connector a sample uses **before** opening its apps in the designer or fetching metadata — VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…**, then reload VS Code. Most samples here use **PostgreSQL** (PostgreSQL ODBC driver); a few use Oracle, MySQL, TIBCO EMS, FTL, ActiveSpaces or SAP Solutions. Per-connector install steps: [connector-prereqs.md](../../skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md).
 
@@ -129,7 +129,7 @@ A fourth pattern in this folder — **Flogo as an MCP Tool Server** — turns a 
 
 ### Supported LLM Providers
 
-**OpenAI** (GPT-4o, GPT-4.1, o3) · **Gemini** (2.0 Flash, 2.5 Pro) · **Anthropic** (Claude Sonnet, Claude Opus) · **Ollama** (local: Llama 3, Mistral) · **vLLM** (self-hosted OpenAI-compatible endpoint)
+**OpenAI** · **Gemini** · **Anthropic** · **Ollama** (local) · **vLLM** (self-hosted OpenAI-compatible endpoint)
 
 ### Handler Types (Agent Trigger only)
 
@@ -272,7 +272,7 @@ A procurement assistant combining the **list of MCP servers** feature (one Agent
 An incident triage system that watches an integration error stream and cuts ServiceNow ticket noise ~90%. Each error is reasoned over by an **AI Agent Activity** using MCP tools: it decides new incident vs. duplicate (semantic, not string matching) vs. bad data, and for new incidents synthesizes a resolution recommendation from historical tickets. Includes a live browser dashboard with an error simulator; supports Ollama, OpenAI, and Azure OpenAI. Pre-built binaries included.
 
 ### 9. [IT Help Desk Advisor](./Feature_Samples/LLMClient-Dynamic-Config-And-Memory/) — *IT Operations & Service Management*
-A multi-turn help desk advisor showcasing two Flogo 2.26.5 features: the **Memory Conversation Store** (history keyed by `conversationId`) and **dynamic MCP/A2A configuration** (`mcpServerConfigs` / `a2aServerConfigs` as activity inputs, no connection resource). An employee reports a WiFi issue, gets KB-guided steps across turns, and escalates to a ticket in one continuous conversation.
+A multi-turn help desk advisor showcasing two Flogo 2.26.7 features: the **Memory Conversation Store** (history keyed by `conversationId`) and **dynamic MCP/A2A configuration** (`mcpServerConfigs` / `a2aServerConfigs` as activity inputs, no connection resource). An employee reports a WiFi issue, gets KB-guided steps across turns, and escalates to a ticket in one continuous conversation.
 
 ### 10. [Dynamic Semantic Tool Selection at Scale](./Feature_Samples/DynamicSemanticToolSelectionAtScale/) — *IT Operations & Service Management*
 An IT Service Desk orchestrator handling requests across **150 tools** on three MCP servers via a two-step pattern: an **LLM Client** reads a text catalog and returns the relevant tool names, then an **AI Agent Activity** runs only those via `filteredToolNames`. A side-by-side comparison app shows the OpenAI 128-tool limit this pattern solves — scaling to hundreds or thousands of tools.
