@@ -25,8 +25,7 @@ seed data, prompts, the demo script), so a wrong guess shows up in front of the 
    questions per call, 2–4 options each, `header` ≤ 12 chars, `multiSelect` for lists. Tailor every
    option to the round-1 answers; the user can always pick "Other". You may put the Phase 0a
    build-method question in the same call as round 2.
-7. **Don't volunteer cost, time or token estimates.** Answer them only if the user asks
-   ([build-cost-and-time.md](build-cost-and-time.md)).
+7. **Don't volunteer cost, time or token estimates.** Answer them only if the user asks.
 8. **Default to the USA and USD.** Samples are published for everyone, so propose US locale, USD prices,
    US phone numbers (`+1 xxx 555-01xx`) and US regulations unless the user explicitly asks for another
    country or currency. Naming a prospect from another region is not enough: confirm the locale in round 1.

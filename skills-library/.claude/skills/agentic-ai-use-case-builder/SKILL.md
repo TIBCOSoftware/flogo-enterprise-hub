@@ -1,6 +1,6 @@
 ---
 name: agentic-ai-use-case-builder
-description: Build ANY Agentic AI use case, demo, or chatbot on TIBCO Flogo Enterprise — a real-time WebSocket chatbot backed by three apps: an MCP Server (read tools), an A2A Agents app (reasoning/action agents), and a WebSocket AI Orchestrator, all PostgreSQL-backed. This is THE canonical builder for any vertical (telecom, airline, hospital, banking, retail, insurance, logistics, utilities, scholarly publishing, …). Governed by default: it first asks the user discovery questions (business goal, audience/region, persona, identity, reads, actions and their rules, the fuzzy step, human-owned requests, demo storyline, runtime model) for anything not already provided, then runs the Agentic AI decision framework (human-owned vs. agent vs. deterministic), then enforces identity, scoping, prices and state changes in PostgreSQL — not in prompts — with scoped reads (FROM rule_fn(token)), guarded writes (INSERT … SELECT rule_fn → 0 rows when blocked), two-step propose/confirm for state changes, routed human-review cases that a staff reviewer decides in the same chatbot (team scope and approval limit enforced in SQL), session-token identity, per-connection conversation memory, minimised read-only A2A agents, and a four-step test ladder (SQL rules → static validator → MCP smoke → chat e2e with prompt injection). TWO build methods, and the skill ASKS which: the Flogo Design CLI (`fda`) built from scratch (the RECOMMENDED DEFAULT), or cloning a governed reference `.flogo` and swapping fields. Use when the user asks to build/create/scaffold an agentic AI use case, demo, chatbot, or "MCP + A2A + orchestrator" solution for any domain, or when an agent must act on a user's own records, money or state.
+description: "Build ANY Agentic AI use case, demo, or chatbot on TIBCO Flogo Enterprise — a real-time WebSocket chatbot backed by three apps: an MCP Server (read tools), an A2A Agents app (reasoning/action agents), and a WebSocket AI Orchestrator, all PostgreSQL-backed. This is THE canonical builder for any vertical (telecom, airline, hospital, banking, retail, insurance, logistics, utilities, scholarly publishing, …). Governed by default: it first asks the user discovery questions (business goal, audience/region, persona, identity, reads, actions and their rules, the fuzzy step, human-owned requests, demo storyline, runtime model) for anything not already provided, then runs the Agentic AI decision framework (human-owned vs. agent vs. deterministic), then enforces identity, scoping, prices and state changes in PostgreSQL — not in prompts — with scoped reads (FROM rule_fn(token)), guarded writes (INSERT … SELECT rule_fn → 0 rows when blocked), two-step propose/confirm for state changes, routed human-review cases that a staff reviewer decides in the same chatbot (team scope and approval limit enforced in SQL), session-token identity, per-connection conversation memory, minimised read-only A2A agents, and a four-step test ladder (SQL rules → static validator → MCP smoke → chat e2e with prompt injection). TWO build methods, and the skill ASKS which: the Flogo Design CLI (`fda`) built from scratch (the RECOMMENDED DEFAULT), or cloning a governed reference `.flogo` and swapping fields. Use when the user asks to build/create/scaffold an agentic AI use case, demo, chatbot, or \"MCP + A2A + orchestrator\" solution for any domain, or when an agent must act on a user's own records, money or state."
 user-invocable: true
 metadata:
   author: Flogo Skills Author <author@example.com>
@@ -140,7 +140,6 @@ empty OpenAI base URL. On top of that:
 | [references/flogo-app-templates.md](references/flogo-app-templates.md) | Phase 4B: exact JSON shape of all 3 apps — the clone-and-adapt reference |
 | [references/use-case-spec-template.md](references/use-case-spec-template.md) | Phases 1–2: a spec the user may hand you (ask only about its gaps); the base spec the governed additions extend |
 | [references/data-and-docs.md](references/data-and-docs.md) | Phase 4/6: conventions for `database.sql`, `reset_data.sql`, `prompts.md`, README |
-| [references/build-cost-and-time.md](references/build-cost-and-time.md) | **Only when the user asks** about cost, time, tokens or which model to build with. Never volunteer it |
 | [references/chatbot-test.md](references/chatbot-test.md) | Phase 6: bring up the shared chatbot and connect it (the ↻ step people miss) |
 
 ## Workflow
@@ -333,8 +332,8 @@ runtime model, a wrong assertion, or a non-ASCII console crash each force a full
 
 ## Working efficiently
 
-- **Don't volunteer cost, time or token estimates, or advice on which dev model to use per phase.** If
-  the user asks, answer from [references/build-cost-and-time.md](references/build-cost-and-time.md).
+- **Don't volunteer cost, time or token estimates, or advice on which dev model to use per phase.** Answer
+  only if the user asks.
 - **Delegate heavy reads to a subagent** (Explore/fork): have it read and summarise the reference sample
   and templates instead of loading them into the main context.
 - **Keep tool output out of context:** pipe long output through `grep`/`tail`, read only the file

@@ -36,7 +36,7 @@ The apps were generated with the Flogo Design CLI and build to `.exe`, but the f
 
 6. **Chatbot / WebSocket client.**
    - The orchestrator exposes `ws://<host>:<wsPort>/<usecase>`. Test it with the shared web client in `samples/Agentic_AI/Chatbot` (`npm install`, `npm start`, open http://localhost:3000). Enter the URL, **click the ↻ icon next to the URL box** (typing alone doesn't apply it), then **Connect**. Full steps: [chatbot-test.md](chatbot-test.md).
-   - **All chat clients share ONE conversation memory.** The orchestrator's `conversationId` is empty, which the connector turns into a constant, so every client shares one history (up to `memoryMaxSize` messages) until the app restarts: simultaneous users see each other's context, and the growing history is the main runtime-token driver. **Restart the orchestrator between demos.** (Cost figures, on request: `build-cost-and-time.md`.)
+   - **All chat clients share ONE conversation memory.** The orchestrator's `conversationId` is empty, which the connector turns into a constant, so every client shares one history (up to `memoryMaxSize` messages) until the app restarts: simultaneous users see each other's context, and the growing history is the main runtime-token driver. **Restart the orchestrator between demos.**
 
 7. **Deploy-time secret injection** *(if deploying to TIBCO Platform / Control Plane rather than running the local `.exe`).*
    - Provide `API_Key`, DB `Password`, and `Email_App_Password` as platform secrets / app properties at deploy time; do not ship them inside the app.
