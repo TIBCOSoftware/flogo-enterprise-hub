@@ -32,7 +32,7 @@ client table and token and gateway rule functions.
 
 - Everything in the base [`_rebuild/README.md`](../../_rebuild/README.md#before-you-start): Python 3.9+, the Flogo VS
   Code extension, `psql` with `bankops_agents` loaded, and the same settings from
-  [`config.md`](../../../../../../skills-library/.claude/skills/config.md) or environment variables (PostgreSQL,
+  [`config.md`](../../../../../../skills-library/.claude/skills/config.example.md) or environment variables (PostgreSQL,
   `LLM_MODEL`, `LLM_API_KEY`, `FDA`, `PG_DB`, `CONFIG_MD`).
 - Run every command below **from the variant folder** (`no-mcp/`).
 

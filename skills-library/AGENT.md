@@ -155,7 +155,7 @@ function fda {
 
 ## Configurable values for this project
 
-All environment-specific values — build context, platform credentials, dataplane, database, LLM keys, and CLI paths — live in a **single source of truth**: [`.claude/skills/config.md`](.claude/skills/config.md). Read that file first; never duplicate these values across skills or in this document.
+All environment-specific values — build context, platform credentials, dataplane, database, LLM keys, and CLI paths — live in a **single source of truth**: [`.claude/skills/config.md`](.claude/skills/config.example.md). Read that file first; never duplicate these values across skills or in this document.
 
 If `config.md` does not exist yet, copy the template and fill in your values:
 

@@ -9,7 +9,7 @@ user-invocable: true
 
 ## 0. Configuration
 
-> **All environment-specific values are defined in [config.md](../config.md).**
+> **All environment-specific values are defined in [config.md](../config.example.md).**
 > Read that file first for `FLOGO_APPS_DIR`, `FLOGOBUILD_PATH`, `FLOGOBUILD_CONTEXT_NAME`, etc.
 
 This skill creates unit tests for Flogo applications, runs them, and verifies all assertions pass.

@@ -63,7 +63,7 @@ Related files in the use-case folder:
 - Run every command below **from the use-case folder** (the parent of `_rebuild/`).
 
 **Settings.** Nothing secret is stored in these scripts. They read
-[`skills-library/.claude/skills/config.md`](../../../../../../../skills-library/.claude/skills/config.md)
+[`skills-library/.claude/skills/config.md`](../../../../../../../skills-library/.claude/skills/config.example.md)
 (copy `config.example.md` if you don't have one), and any environment variable overrides it:
 
 | Setting | Environment variable | `config.md` key | Default |

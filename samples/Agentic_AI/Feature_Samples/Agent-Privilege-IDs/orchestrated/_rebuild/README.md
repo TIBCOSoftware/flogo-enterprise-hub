@@ -33,7 +33,7 @@ identity and the delegation functions.
 
 - Everything in the base [`_rebuild/README.md`](../../_rebuild/README.md#before-you-start): Python 3.9+, the Flogo VS
   Code extension, `psql` with `bankops_agents` loaded, and the same settings from
-  [`config.md`](../../../../../../skills-library/.claude/skills/config.md) or environment variables (PostgreSQL,
+  [`config.md`](../../../../../../skills-library/.claude/skills/config.example.md) or environment variables (PostgreSQL,
   `LLM_MODEL`, `LLM_API_KEY`, `LLM_PROVIDER`, `LLM_BASE_URL`, `FDA`, `PG_DB`, `CONFIG_MD`).
 - For step 3 only: `pip install websocket-client`.
 - Run every command below **from the variant folder** (`orchestrated/`).

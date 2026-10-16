@@ -1,7 +1,7 @@
 > **About this file** — This is an **auto-generated transcript from the last automated end-to-end
 > chat test** (`_rebuild/chat_e2e.py`, the final test step). It records the scripted conversation the
 > test held with the running orchestrator, kept as evidence the sample passed its end-to-end test. It
-> is **not** the list of prompts to type — for that, see [`prompts.md`](prompts.md). It is regenerated
+> is **not** the list of prompts to type — see the sample's README for prompts to try. It is regenerated
 > on each test run.
 
 # Agent Privilege IDs (orchestrated variant) - chat e2e transcript
