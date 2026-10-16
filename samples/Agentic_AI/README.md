@@ -67,6 +67,8 @@ Both collections share the **[Prerequisites](#prerequisites)**, the **[Quick Sta
 
 The steps are the same for every governed use case; only the database name, ports, WebSocket path and demo logins change (see the [catalog](#use-case-catalog) and the use case's README). This example uses **Telecom — Mobile Billing & Spend Control**:
 
+> **Shared run guide:** the one-time build toolchain and the exact commands to **build and start the three apps** (the same for every sample) are in **[Running the Industry Use-Case samples](./Industry_Use_Cases/RUNNING_THE_SAMPLES.md)**. Each sample README links to it from its "Start the apps" step.
+
 **1. Create and load the database:**
 
 ```bash

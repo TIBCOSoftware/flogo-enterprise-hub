@@ -166,6 +166,12 @@ trigger shows a red ✗ after import, open it and click **Sync**.
 
 ### 3. Start the apps in this order
 
+> **How to build and start these apps** (the same for every sample in this folder): see
+> **[Running the Industry Use-Case samples »](../../../RUNNING_THE_SAMPLES.md#start-the-apps)** — the run
+> prerequisites (Flogo App Build CLI + Go, or deploy to TIBCO Platform) and the exact build/run commands.
+>
+> Then start them in the order below, each in its own terminal:
+
 **MCP Server (9922) → Agents (9923–9925) → Orchestrator (9920).** Wait for each to log a clean start.
 
 ### 4. Open the chat client and connect

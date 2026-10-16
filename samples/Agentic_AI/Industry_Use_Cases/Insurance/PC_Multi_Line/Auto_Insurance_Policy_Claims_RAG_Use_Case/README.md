@@ -264,6 +264,12 @@ always uses the newest one.
 
 ### 5. Start the apps in this order
 
+> **How to build and start these apps** (the same for every sample in this folder): see
+> **[Running the Industry Use-Case samples »](../../../RUNNING_THE_SAMPLES.md#start-the-apps)** — the run
+> prerequisites (Flogo App Build CLI + Go, or deploy to TIBCO Platform) and the exact build/run commands.
+>
+> Then start them in the order below, each in its own terminal:
+
 **MCP Server (9912) → Agents (9913–9915) → Orchestrator (9910).** Wait for each to log a clean start.
 
 ### 6. Open the chat client and connect

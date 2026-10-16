@@ -147,6 +147,12 @@ connections. If a trigger shows a red ✗ after import, open it and click **Sync
 
 ### 3. Start the apps in this order
 
+> **How to build and start these apps** (the same for every sample in this folder): see
+> **[Running the Industry Use-Case samples »](../../../RUNNING_THE_SAMPLES.md#start-the-apps)** — the run
+> prerequisites (Flogo App Build CLI + Go, or deploy to TIBCO Platform) and the exact build/run commands.
+>
+> Then start them in the order below, each in its own terminal:
+
 **MCP Server (9892) → Agents (9893, 9894, 9896) → Orchestrator (9890).** Wait for each to log a clean start.
 Port 9890 is also used by another sample (`Feature_Samples/Agent-Privilege-IDs/no-mcp`), so don't run both at once.
 
