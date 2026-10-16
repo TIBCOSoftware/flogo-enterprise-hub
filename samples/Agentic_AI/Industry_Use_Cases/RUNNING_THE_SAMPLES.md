@@ -118,6 +118,9 @@ cause. Make sure the orchestrator is actually running on its port.
 
 ## Database and reset
 
+- **First run:** loading `database.sql` already seeds the demo data (it `\ir`-includes `seed_data.sql`), so
+  you do **not** need to run `reset_data.sql` before the first run — `reset_data.sql` is only for resetting
+  the data **between** demos.
 - Run `createdb` / `psql` **from the sample folder** — its `database.sql` pulls in `seed_data.sql` by a
   relative path, and `reset_data.sql` expects the same working directory.
 - If `psql` / `createdb` aren't on your `PATH` (common on Windows), use the full path to the PostgreSQL `bin`
