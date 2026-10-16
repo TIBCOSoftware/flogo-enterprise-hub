@@ -1,6 +1,6 @@
 # **TIBCO Flogo® Core & Connector Samples**
 
-Build **enterprise integration flows** visually with **TIBCO Flogo®** — the low-code / no-code iPaaS inside VS Code. These samples cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, Google Cloud Storage, TIBCO FTL, and more; flow design patterns; and unit testing — all without writing boilerplate code.
+Build **enterprise integration flows** visually with **TIBCO Flogo®** — the low-code / no-code integration platform inside VS Code. These samples cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, Google Cloud Storage, TIBCO FTL, and more; flow design patterns; and unit testing — all without writing boilerplate code.
 
 ---
 
@@ -120,6 +120,8 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<!-- SEO Keywords: Integration Flows, REST API, gRPC, GraphQL, Enterprise Connectors, Low-Code Integration, No-Code iPaaS, Visual Flow Designer, Salesforce Connector, SAP S/4HANA, Oracle Database, PostgreSQL, Redis, Kafka, Azure Service Bus, TIBCO EMS, TIBCO FTL, Google Cloud Storage, GCS, API Development, Microservices, Event-Driven Architecture, Unit Testing, VS Code Extension, TIBCO Flogo -->
+<!-- SEO Keywords: Integration Flows, REST API, gRPC, GraphQL, Enterprise Connectors, Low-Code Integration, No-Code integration platform, Visual Flow Designer, Salesforce Connector, SAP S/4HANA, Oracle Database, PostgreSQL, Redis, Kafka, Azure Service Bus, TIBCO EMS, TIBCO FTL, Google Cloud Storage, GCS, API Development, Microservices, Event-Driven Architecture, Unit Testing, VS Code Extension, TIBCO Flogo, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration -->
 
-**Topics:** `REST API` · `gRPC` · `GraphQL` · `Enterprise Connectors` · `Low-Code` · `iPaaS`
+**Topics:** `REST API` · `gRPC` · `GraphQL` · `Enterprise Connectors` · `Low-Code`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

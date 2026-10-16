@@ -113,7 +113,7 @@ Grouped by **Industry → Sub-category**, mirroring the [folders in this directo
 
 ### BW6 + Flogo samples
 
-TIBCO BusinessWorks 6 + Flogo "Better Together" samples, kept under [`BW6_Flogo_Samples/`](../BW6_Flogo_Samples/). They are not on the three-app pattern and are not migrated to the governed style; they need a BW6 runtime / Business Studio.
+TIBCO BusinessWorks 6 + Flogo "Better Together" samples are kept under [`BW6_Flogo_Samples/`](../BW6_Flogo_Samples/) — BW6 apps provide the domain APIs / MCP tools and Flogo does the AI orchestration.
 
 | Sample | Industry | Description | Ports | Database | Status |
 |---|---|---|---|---|---|
@@ -125,6 +125,8 @@ TIBCO BusinessWorks 6 + Flogo "Better Together" samples, kept under [`BW6_Flogo_
 
 Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com) with any queries, feedback, or comments.
 
-<!-- SEO Keywords: TIBCO Flogo, Agentic AI, AI Agents, MCP, MCP Server, Model Context Protocol, A2A, Agent-to-Agent, LLM Orchestration, WebSocket, PostgreSQL, RAG, Retrieval Augmented Generation, BusinessWorks, Industry Use Cases, Banking, Insurance, Healthcare, Telecom, Utilities, Aerospace, Manufacturing, Retail, Real Estate, Scholarly Publishing, Logistics, Airline, Governed AI, Agent Governance, Low-Code, iPaaS, Enterprise AI -->
+<!-- SEO Keywords: TIBCO Flogo, Agentic AI, AI Agents, MCP, MCP Server, Model Context Protocol, A2A, Agent-to-Agent, LLM Orchestration, WebSocket, PostgreSQL, RAG, Retrieval Augmented Generation, BusinessWorks, Industry Use Cases, Banking, Insurance, Healthcare, Telecom, Utilities, Aerospace, Manufacturing, Retail, Real Estate, Scholarly Publishing, Logistics, Airline, Governed AI, Agent Governance, Low-Code, integration platform, Enterprise AI, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration, Low-Code Integration, No-Code Integration -->
 
 **Topics:** `Agentic AI` · `MCP Server` · `A2A` · `LLM Orchestration` · `Industry Demos` · `Low-Code`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

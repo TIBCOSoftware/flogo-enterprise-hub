@@ -306,6 +306,8 @@ Enable **TLS** on the trigger (`enableTLS`, `serverCertificate`, `serverPrivateK
 - [MCP JWT Scope Access Control](../MCP_JWT_Scope_Access_Control/README.md) — the shared-secret counterpart
 - [TIBCO Flogo® MCP Connector Documentation](https://docs.tibco.com)
 
-<!-- SEO Keywords: MCP OAuth 2.0, MCP Server OAuth, Flogo MCP OAuth, JWKS RS256, Keycloak MCP, OAuth2 scopes, RFC 8707, protected resource metadata, MCP authorization, tokenInfo, TIBCO Flogo MCP -->
+<!-- SEO Keywords: MCP OAuth 2.0, MCP Server OAuth, Flogo MCP OAuth, JWKS RS256, Keycloak MCP, OAuth2 scopes, RFC 8707, protected resource metadata, MCP authorization, tokenInfo, TIBCO Flogo MCP, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration, Low-Code Integration, No-Code Integration -->
 
 **Topics:** `MCP OAuth 2.0` · `Keycloak` · `JWKS` · `OAuth Scopes` · `Access Control` · `TIBCO Flogo`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

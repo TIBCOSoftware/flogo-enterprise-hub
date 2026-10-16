@@ -1,6 +1,6 @@
 # Flogo Skill Library
 
-A library of **skills for AI coding agents** (such as **Claude Code**) to design, build, test, and deploy TIBCO Flogo integration applications. Drop these skills into the `.claude/skills/` directory of any project and the agent will use them to drive the Flogo, build, and platform CLIs end-to-end.
+A library of **skills for AI coding agents** to design, build, test, and deploy TIBCO Flogo integration applications. The skills are plain Markdown instruction files, so they work with any agentic coding assistant that supports skills — including **Anthropic Claude / Claude Code**, **GitHub Copilot**, and **AWS Kiro**. Add them to your project (e.g. under `.claude/skills/`) and the assistant uses them to drive the Flogo design, build, and platform CLIs end-to-end.
 
 ---
 
@@ -384,6 +384,8 @@ Key values the skills rely on:
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo, AI Coding Agent, Claude Code, AI Skills, Flogo Design Assistant, FDA CLI, Flogobuild, TIBCO Platform CLI, Low-Code, No-Code, iPaaS, Integration Automation, Excel to Flogo, REST API Scaffolding, Flogo Deployment, AI-Powered Development, Visual Flow Designer, Enterprise Integration, GoLang, VS Code Extension -->
+<!-- SEO Keywords: TIBCO Flogo, AI Coding Agent, Claude Code, AI Skills, Flogo Design Assistant, FDA CLI, Flogobuild, TIBCO Platform CLI, Low-Code, No-Code, integration platform, Integration Automation, Excel to Flogo, REST API Scaffolding, Flogo Deployment, AI-Powered Development, Visual Flow Designer, Enterprise Integration, GoLang, VS Code Extension, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration, Low-Code Integration, No-Code Integration -->
 
-**Topics:** `AI Coding Agent` · `Claude Code` · `Flogo Skills` · `Low-Code` · `iPaaS` · `Enterprise Integration`
+**Topics:** `AI Coding Agent` · `Claude Code` · `Flogo Skills` · `Low-Code` · `Enterprise Integration`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

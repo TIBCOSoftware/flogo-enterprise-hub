@@ -1,6 +1,6 @@
 # **TIBCO Flogo® Samples**
 
-Ready-to-run sample applications for **TIBCO Flogo®** — the low-code / no-code iPaaS for building **AI agents**, **MCP servers**, **enterprise integration flows**, and **event-driven microservices**. Explore everything from Agentic AI orchestration and Model Context Protocol (MCP) servers to REST/gRPC/GraphQL APIs, database connectors, and Docker deployment patterns.
+Ready-to-run sample applications for **TIBCO Flogo®** — the low-code / no-code integration platform for building **AI agents**, **MCP servers**, **enterprise integration flows**, and **event-driven microservices**. Explore everything from Agentic AI orchestration and Model Context Protocol (MCP) servers to REST/gRPC/GraphQL APIs, database connectors, and Docker deployment patterns.
 
 **Jump to:** [Agentic AI Samples](#agentic-ai-samples) · [MCP Samples](#model-context-protocol-mcp-samples) · [More Sample Categories](#more-sample-categories)
 
@@ -125,6 +125,8 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo, MCP Server, Model Context Protocol, AI Agents, Agentic AI, Low-Code, No-Code, iPaaS, Enterprise Integration, Enterprise AI, MCP Server, GoLang, VS Code, Docker, Kubernetes, Integration Flows, Event-Driven Microservices -->
+<!-- SEO Keywords: TIBCO Flogo, MCP Server, Model Context Protocol, AI Agents, Agentic AI, Low-Code, No-Code, integration platform, Enterprise Integration, Enterprise AI, MCP Server, GoLang, VS Code, Docker, Kubernetes, Integration Flows, Event-Driven Microservices, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration, Low-Code Integration, No-Code Integration -->
 
-**Topics:** `MCP Server` · `AI Agents` · `Low-Code` · `iPaaS` · `Enterprise Integration`
+**Topics:** `MCP Server` · `AI Agents` · `Low-Code` · `Enterprise Integration`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

@@ -1,6 +1,6 @@
 # **TIBCO Flogo® Demos**
 
-End-to-end proof-of-concept demonstrations showcasing **TIBCO Flogo®** as a **low-code iPaaS** for **AI-powered services**, **MCP server integration**, **GraphQL APIs**, and **real-time machine learning inference** — ready to clone, run, and explore.
+End-to-end proof-of-concept demonstrations showcasing **TIBCO Flogo®** as a **low-code integration platform** for **AI-powered services**, **MCP server integration**, **GraphQL APIs**, and **real-time machine learning inference** — ready to clone, run, and explore.
 
 ---
 
@@ -43,6 +43,8 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo, AI Agents, MCP, MCP Server, GraphQL, Machine Learning, Anomaly Detection, Low-Code, No-Code, iPaaS, Enterprise AI, Demo, AI-Powered Automation, B2B Integration -->
+<!-- SEO Keywords: TIBCO Flogo, AI Agents, MCP, MCP Server, GraphQL, Machine Learning, Anomaly Detection, Low-Code, No-Code, integration platform, Enterprise AI, Demo, AI-Powered Automation, B2B Integration, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration, Low-Code Integration, No-Code Integration -->
 
-**Topics:** `AI Agents` · `MCP Server` · `GraphQL` · `Machine Learning` · `Low-Code` · `iPaaS`
+**Topics:** `AI Agents` · `MCP Server` · `GraphQL` · `Machine Learning` · `Low-Code`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

@@ -36,6 +36,8 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo, Flogo Extensions, SSH, GCP, OpenPGP, Prompt Engineering, OpenAI, OpenAI API, Embeddings, Vector Store, Low-Code, Custom Activities, iPaaS, GoLang, Enterprise Integration, Custom Connector -->
+<!-- SEO Keywords: TIBCO Flogo, Flogo Extensions, SSH, GCP, OpenPGP, Prompt Engineering, OpenAI, OpenAI API, Embeddings, Vector Store, Low-Code, Custom Activities, integration platform, GoLang, Enterprise Integration, Custom Connector, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration, Low-Code Integration, No-Code Integration -->
 
 **Topics:** `Flogo Extensions` · `SSH` · `Prompt Engineering` · `Low-Code` · `GoLang`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

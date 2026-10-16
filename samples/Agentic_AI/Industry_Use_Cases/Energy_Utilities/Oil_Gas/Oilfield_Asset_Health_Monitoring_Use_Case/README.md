@@ -317,3 +317,10 @@ Then reconnect the chatbot (**Disconnect** → **Connect**) so the next demo sta
 ## Rebuild from code
 
 To regenerate these apps from code or run the automated checks, see [`_rebuild/README.md`](_rebuild/README.md).
+
+
+---
+
+<!-- SEO Keywords: Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration, Low-Code Integration, No-Code Integration, Agentic AI, AI Agents, MCP, MCP Server, Model Context Protocol, TIBCO Flogo, Governed AI, PostgreSQL, WebSocket, Enterprise Integration -->
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

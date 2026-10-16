@@ -1,6 +1,6 @@
 # **TIBCO Flogo® 3 Core & Connector Samples**
 
-Build **enterprise integration flows** visually with **TIBCO Flogo® 3** — the low-code / no-code iPaaS inside VS Code. These samples use the **Flogo 3 folder-based project format** (modular `app.fgmd`, `app.fgprops`, `flows/`, `triggers/`, `connections/`) and cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, FTL, Google Cloud Storage, and more; flow design patterns; and unit testing — all without writing boilerplate code.
+Build **enterprise integration flows** visually with **TIBCO Flogo® 3** — the low-code / no-code integration platform inside VS Code. These samples use the **Flogo 3 folder-based project format** (modular `app.fgmd`, `app.fgprops`, `flows/`, `triggers/`, `connections/`) and cover REST, gRPC, and GraphQL API development; enterprise connectors for Salesforce, SAP, Oracle, PostgreSQL, Redis, Kafka, FTL, Google Cloud Storage, and more; flow design patterns; and unit testing — all without writing boilerplate code.
 
 Each sample mirrors the path of its 2.x counterpart under [`../Flogo2x/`](../Flogo2x/) and has its own `README.md` with prerequisites and step-by-step run instructions (screenshot-free — steps only, so they stay accurate over time).
 
@@ -122,6 +122,8 @@ Please contact us at [integration-pm@tibco.com](mailto:integration-pm@tibco.com)
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo 3, Integration Flows, REST API, gRPC, GraphQL, Enterprise Connectors, Low-Code Integration, No-Code iPaaS, Visual Flow Designer, Salesforce Connector, SAP S/4HANA, Oracle Database, PostgreSQL, Redis, Kafka, TIBCO FTL, Google Cloud Storage, Azure Service Bus, TIBCO EMS, API Development, Microservices, Event-Driven Architecture, Unit Testing, VS Code Extension, Flogo 3 folder-based project -->
+<!-- SEO Keywords: TIBCO Flogo 3, Integration Flows, REST API, gRPC, GraphQL, Enterprise Connectors, Low-Code Integration, No-Code integration platform, Visual Flow Designer, Salesforce Connector, SAP S/4HANA, Oracle Database, PostgreSQL, Redis, Kafka, TIBCO FTL, Google Cloud Storage, Azure Service Bus, TIBCO EMS, API Development, Microservices, Event-Driven Architecture, Unit Testing, VS Code Extension, Flogo 3 folder-based project, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration -->
 
-**Topics:** `REST API` · `gRPC` · `GraphQL` · `Enterprise Connectors` · `Low-Code` · `iPaaS` · `Flogo 3`
+**Topics:** `REST API` · `gRPC` · `GraphQL` · `Enterprise Connectors` · `Low-Code` · `Flogo 3`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

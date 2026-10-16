@@ -18,12 +18,6 @@ The Agentic AI Connector provides three primary building blocks:
 
 An **Invoke AI Agent Trigger Activity** (`callagent`) bridges the two worlds: it lets any Flogo trigger (REST, WebSocket, Kafka, Timer, ...) deterministically dispatch a user prompt to an Agent Trigger and receive its response.
 
-### Supported LLM Providers
-- **OpenAI** (e.g. GPT-4o, GPT-4.1, o3)
-- **Gemini** (e.g. Gemini 2.0 Flash, Gemini 2.5 Pro)
-- **Anthropic** (e.g. Claude Sonnet, Claude Opus)
-- **Ollama** (local models, e.g. Llama 3, Mistral)
-- **vLLM** (self-hosted OpenAI-compatible endpoint)
 
 ### Handler Types (Agent Trigger only)
 
