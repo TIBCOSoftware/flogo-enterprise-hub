@@ -151,9 +151,9 @@ Step-by-step workflows that chain several CLI steps into one outcome.
 - **Template prompt:**
   > *"Build a governed `<vertical>` Agentic AI use case for `<persona>` (MCP Server + A2A Agents + WebSocket orchestrator) backed by PostgreSQL. The agent should `<the semantic step>`; the system must enforce `<rules>`; people decide `<exceptions>`. Ask me whether to use the FDA CLI or the clone method first, then test it end to end."*
 - **Example prompts:**
-  > *"Build a retail banking chat assistant. After a customer signs in, they can see their recent transactions, freeze a lost or stolen card, and dispute a charge they don't recognise. Anything that needs a person — a refund, a complaint, or a hardship request — should go to a staff member to approve. Make sure each customer can only ever see their own account. Then test it end to end."*
+  > *"Build a retail banking agentic AI use case. After a customer signs in, they can see their recent transactions, freeze a lost or stolen card, and dispute a charge they don't recognise. Anything that needs a person — a refund, a complaint, or a hardship request — should go to a staff member to approve. Make sure each customer can only ever see their own account. Then test it end to end."*
   >
-  > *"Build a mobile phone customer-service chatbot. After a customer signs in, they can ask why this month's bill went up, cancel an add-on they didn't want, and set a monthly spending limit. Bigger things — a refund, closing the account, or a suspected-fraud case — should be handed to a support agent to decide. One customer must never be able to see another customer's account. Then test it end to end."*
+  > *"Build a mobile phone customer-service agentic AI use case. After a customer signs in, they can ask why this month's bill went up, cancel an add-on they didn't want, and set a monthly spending limit. Bigger things — a refund, closing the account, or a suspected-fraud case — should be handed to a support agent to decide. One customer must never be able to see another customer's account. Then test it end to end."*
 
 ---
 

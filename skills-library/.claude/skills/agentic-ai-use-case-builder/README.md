@@ -165,9 +165,9 @@ and a staff reviewer who decides what a person must decide:
 
 Plain-language prompts — no technical terms needed:
 
-> *"Build a retail banking chat assistant. After a customer signs in, they can see their recent transactions, freeze a lost or stolen card, and dispute a charge they don't recognise. Anything that needs a person — a refund, a complaint, or a hardship request — should go to a staff member to approve. Make sure each customer can only ever see their own account. Then test it end to end."*
+> *"Build a retail banking agentic AI use case. After a customer signs in, they can see their recent transactions, freeze a lost or stolen card, and dispute a charge they don't recognise. Anything that needs a person — a refund, a complaint, or a hardship request — should go to a staff member to approve. Make sure each customer can only ever see their own account. Then test it end to end."*
 >
-> *"Build a mobile phone customer-service chatbot. After a customer signs in, they can ask why this month's bill went up, cancel an add-on they didn't want, and set a monthly spending limit. Bigger things — a refund, closing the account, or a suspected-fraud case — should be handed to a support agent to decide. One customer must never be able to see another customer's account. Then test it end to end."*
+> *"Build a mobile phone customer-service agentic AI use case. After a customer signs in, they can ask why this month's bill went up, cancel an add-on they didn't want, and set a monthly spending limit. Bigger things — a refund, closing the account, or a suspected-fraud case — should be handed to a support agent to decide. One customer must never be able to see another customer's account. Then test it end to end."*
 
 Or hand it a fuller, more detailed spec in one message:
 
