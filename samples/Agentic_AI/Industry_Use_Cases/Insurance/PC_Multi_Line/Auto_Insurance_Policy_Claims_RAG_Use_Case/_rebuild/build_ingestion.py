@@ -1,3 +1,13 @@
+# ---------------------------------------------------------------------------
+# HOW THIS BUILDS THE APP: this script generates the .flogo application with the
+# TIBCO Flogo Design CLI (fda / flogodesign-cli), driven programmatically through
+# the App wrapper in fda_common.py. It issues fda subcommands (create the app,
+# triggers, flows and activities; set schemas, connections, app properties and
+# mappings) to build the app deterministically -- it does NOT hand-write the .flogo
+# JSON. (The one exception, noted inline where it applies, is the RAG sample, which
+# transplants one openAI vector-search activity from a donor app because fda has no
+# recipe for user-extension activities.)
+# ---------------------------------------------------------------------------
 """Build AutoInsuranceRAGIngestion.flogo (hybrid clone) for the Copperleaf Auto Insurance RAG use case.
 
 Clones an earlier (pre-governance) AutoInsuranceRAGIngestion.flogo donor (not included in this repository) and
