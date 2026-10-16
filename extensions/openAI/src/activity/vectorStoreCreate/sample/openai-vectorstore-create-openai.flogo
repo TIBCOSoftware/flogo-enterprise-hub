@@ -1,0 +1,174 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/sleep",
+    "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/vectorStoreCreate",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook",
+    "github.com/project-flogo/contrib/function/coerce"
+  ],
+  "name": "openai-vectorStore-search-openai",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#startuphook",
+      "name": "tibco-appstartup",
+      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "settings": {},
+      "id": "AppStartupTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Vector_Store_create"
+            }
+          },
+          "name": "Vector_Store_create"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:Vector_Store_create",
+      "data": {
+        "name": "Vector Store create",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "SleepForDebug",
+            "type": "label",
+            "label": "StartActivity to Sleep"
+          },
+          {
+            "id": 2,
+            "from": "SleepForDebug",
+            "to": "CreateVectorStore",
+            "type": "label",
+            "label": "SleepForDebug to CreateVectorStore"
+          },
+          {
+            "id": 3,
+            "from": "CreateVectorStore",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "CreateVectorStore to LogMessage"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage",
+            "to": "Return",
+            "type": "label",
+            "label": "LogMessage to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "SleepForDebug",
+            "name": "SleepForDebug",
+            "description": "Simple sleep Activity",
+            "activity": {
+              "ref": "#sleep",
+              "input": {
+                "IntervalTypeSetting": "Millisecond",
+                "IntervalSetting": 10
+              }
+            }
+          },
+          {
+            "id": "CreateVectorStore",
+            "name": "CreateVectorStore",
+            "description": "This activity creates a new vector store in OpenAI",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectorStoreCreate",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]"
+              },
+              "input": {
+                "name": "vs1",
+                "description": "decription1",
+                "expiresAfterDays": 5,
+                "maxChunkSizeTokens": 300,
+                "chunkOverlapTokens": 20,
+                "timeoutSeconds": 100
+              }
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[CreateVectorStore])",
+                "logLevel": "INFO"
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn"
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjAsInkiOjcyfSwiU2xlZXBGb3JEZWJ1ZyI6eyJ4IjoxMTcsInkiOjYzfSwiQ3JlYXRlVmVjdG9yU3RvcmUiOnsieCI6MzY0LCJ5Ijo2MX0sIkxvZ01lc3NhZ2UiOnsieCI6NjYxLCJ5Ijo2MX0sIlJldHVybiI6eyJ4Ijo5NDcsInkiOjY3fX0=",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {
+            "output": "[{\"attributes\":{\"DocGroup\":{\"OfString\":\"BusinessWorks\",\"OfFloat\":0,\"OfBool\":false},\"DocType\":{\"OfString\":\"Concepts Guide\",\"OfFloat\":0,\"OfBool\":false},\"Download URL\":{\"OfString\":\"https://docs.tibco.com/pub/activematrix_businessworks/6.12.0/doc/pdf/TIB_bwce_6.12.0_installation.pdf?id=15\",\"OfFloat\":0,\"OfBool\":false}},\"content\":[{\"text\":\"When the events that trigger the execution of a process occur concurrently,\\r\\nthe engine runs the same process multiple times, concurrently, once for each event. And\\r\\nfor each execution, the engine creates a process instance that provides an execution\\r\\nscope for the activities that are a part of the process.\\r\\nJob\\r\\nExecution of a component process is called a job. Each job has a unique id referred to\\r\\nas JobId.\\r\\nWhen the business logic is spread across multiple processes, multiple process\\r\\ninstances are created and run with a particular event. Even though these are separate\\r\\nprocess instances that work together and can be run as part of the same job. A job can\\r\\nspawn multiple process instances and can provide the execution context for activities\\r\\nthat are part of multiple processes. The engine always runs a job in one engine thread.\\r\\nAll the process instances that are part of the same job have the same JobId. A\\r\\ncomponent process instance and all of its in-line subprocess instances are also\\r\\nconsidered being a part of the same job. Non in-line subprocesses spawn a new engine\\r\\nthread and are run on a different job.\\r\\nEnabling and Disabling Auditing Events\\r\\nThe auditing is used to build metrics and statistics for an application.\\r\\nConfigure the following BWEngine property in the config.ini file to enable and disable\\r\\nauditing at AppSpace and AppNode level.\\r\\nl bw.engine.disable.auditevent: By default, the value of the property is false.\\r\\nNote: Restart the AppNode after configuring the property.\\r\\nEnabling and Disabling Input and Output Data for Audit Events\\r\\nConfigure the following BWEngine property in the config.ini file to enable and disable input\\r\\nand output data for audit events at an AppSpace and an AppNode level:TIBCO BusinessWorks™ Container Edition Concepts\\r\\n44 | Runtime Concepts\\r\\nl bw.engine.enable.activity.input.output.data.for.audit.events: By default, the value of the\\r\\nproperty is false.\\r\\nNote: Restart the AppNode after configuring these properties.\\r\\nWhen using Statistics collection, the input and output data storage can also be disabled\\r\\nor enabled for audit events using the following BWEngine REST APIs:\\r\\nl To disable:\\r\\nhttp://\\u003chost\\u003e:\\u003cappnode port\\u003e/bwm/monitor.json/disableinputoutputdataforauditevents\\r\\nl To enable:\\r\\nhttp://\\u003chost\\u003e:\\u003cappnode port\\u003e/bwm/monitor.json/enableinputoutputdataforauditeventsTIBCO BusinessWorks™ Container Edition Concepts\\r\\n45 | TIBCO Documentation and Support Services\\r\\nTIBCO Documentation andSupport\\r\\nServices\\r\\nFor information about this product, you can read the documentation, contact TIBCO\\r\\nSupport, and join TIBCO Community.\\r\\nHow to Access TIBCO Documentation\\r\\nDocumentation for TIBCO products is available on the Product Documentation website,\\r\\nmainly in HTML and PDF formats.\\r\\nThe Product Documentation website is updated frequently and is more current than any\\r\\nother documentation included with the product.\\r\\nProduct-Specific Documentation\\r\\nThe following documentation for this product is available on the TIBCO BusinessWorks™\\r\\nContainer Edition page:\\r\\nl TIBCO BusinessWorks™ Container Edition Release Notes\\r\\nl TIBCO BusinessWorks™ Container Edition Installation\\r\\nl TIBCO BusinessWorks™ Container Edition Application Development\\r\\nl TIBCO BusinessWorks™ Container Edition Application Monitoring and\\r\\nTroubleshooting\\r\\nl TIBCO BusinessWorks™ Container Edition Bindings and Palettes Reference\\r\\nl TIBCO BusinessWorks™ Container Edition Concepts\\r\\nl TIBCO BusinessWorks™ Container Edition Error Codes\\r\\nl TIBCO BusinessWorks™ Container Edition Getting Started\\r\\nl TIBCO BusinessWorks™ Container Edition Maven Plug-in\\r\\nl TIBCO BusinessWorks™ Container Edition Migration\\r\\nl TIBCO BusinessWorks™ Container Edition Performance Benchmarking and\\r\\nTuningTIBCO BusinessWorks™ Container Edition Concepts\\r\\n46 | TIBCO Documentation and Support Services\\r\\nl TIBCO BusinessWorks™ Container Edition REST\",\"type\":\"text\"}],\"file_id\":\"file-9G1DQENXabusRV1nQ367e5\",\"filename\":\"TIB-bwce_6.12_concepts.pdf\",\"score\":0.5750257005398239},{\"attributes\":{\"DocGroup\":{\"OfString\":\"BusinessWorks\",\"OfFloat\":0,\"OfBool\":false},\"DocType\":{\"OfString\":\"Concepts Guide\",\"OfFloat\":0,\"OfBool\":false},\"Download URL\":{\"OfString\":\"https://docs.tibco.com/pub/activematrix_businessworks/6.12.0/doc/pdf/TIB_bwce_6.12.0_installation.pdf?id=15\",\"OfFloat\":0,\"OfBool\":false}},\"content\":[{\"text\":\"TIBCO BusinessWorks™ Container Edition Concepts\\r\\n42 | Runtime Concepts\\r\\nAppNode-Level Engine Properties\\r\\nProperty Use case\\r\\nbw.engine.enable.loop.reset=true To enable the reset variables used in the loops.\\r\\nbw.independent.component.startup=true The property allows the application to run even\\r\\nwhen one of the components fails due to an\\r\\nincorrect configuration of the shared resource. The\\r\\nrest of the components can be started after using\\r\\nthis property.\\r\\nbw.process.deserialization.in.parallel=true This property when set to true helps to reduce the\\r\\ndeserialized time of TIBCO BusinessWorks\\r\\nContainer Edition applications. It has a major\\r\\nimpact on applications having a large number of\\r\\nprocesses.\\r\\nbw.frwk.version.format This property enables you to print the\\r\\nmajor.minor.patch application versions in logs.\\r\\nThe version format can be set using a system\\r\\nproperty in the following formats:\\r\\nl bw.frwk.version.format=major.minor\\r\\nl bw.frwk.version.format=major.minor.micro\\r\\nl bw.frwk.version.format=major.minor.micro.qualifier\\r\\nList of properties\\r\\nProcess Instance\\r\\nWhen you run any process, it creates an execution scope for the activities that are a part\\r\\nof the process and this scope is called a process instance. Each process instance has a\\r\\nunique ID, which is referred to as \\\"ProcessInstanceId\\\".\\r\\nThe execution of a process is triggered by various events. For example, events can be\\r\\ngenerated by a Timer that is scheduled to trigger at specific time intervals, or by changes\\r\\nthat occur in the file system, or by messages that are sent by a client over a specific\\r\\nprotocol (for example, HTTP, JMS), or simply by messages sent by other processes.TIBCO BusinessWorks™ Container Edition Concepts\\r\\n43 | Runtime Concepts\\r\\nThe TIBCO BusinessWorks Container Edition engine is a multi-threaded engine capable\\r\\nof triggering the execution of the same process multiple times, concurrently, once for\\r\\neach event. When the events that trigger the execution of a process occur concurrently,\\r\\nthe engine runs the same process multiple times, concurrently, once for each event. And\\r\\nfor each execution, the engine creates a process instance that provides an execution\\r\\nscope for the activities that are a part of the process.\\r\\nJob\\r\\nExecution of a component process is called a job. Each job has a unique id referred to\\r\\nas JobId.\\r\\nWhen the business logic is spread across multiple processes, multiple process\\r\\ninstances are created and run with a particular event. Even though these are separate\\r\\nprocess instances that work together and can be run as part of the same job. A job can\\r\\nspawn multiple process instances and can provide the execution context for activities\\r\\nthat are part of multiple processes. The engine always runs a job in one engine thread.\\r\\nAll the process instances that are part of the same job have the same JobId. A\\r\\ncomponent process instance and all of its in-line subprocess instances are also\\r\\nconsidered being a part of the same job. Non in-line subprocesses spawn a new engine\\r\\nthread and are run on a different job.\\r\\nEnabling and Disabling Auditing Events\\r\\nThe auditing is used to build metrics and statistics for an application.\\r\\nConfigure the following BWEngine property in the config.ini file to enable and disable\\r\\nauditing at AppSpace and AppNode level.\\r\\nl bw.engine.disable.auditevent: By default, the value of the property is false.\\r\\nNote: Restart the AppNode after configuring the property.\\r\\nEnabling and Disabling Input and Output Data for Audit Events\\r\\nConfigure the following BWEngine property in the config.ini file to enable and disable input\\r\\nand output data for audit events at an AppSpace and an AppNode level:TIBCO BusinessWorks™ Container Edition Concepts\\r\\n44 | Runtime Concepts\\r\\nl bw.engine.enable.activity.input.output.data.for.audit.events: By default, the value of the\\r\\nproperty is false.\",\"type\":\"text\"}],\"file_id\":\"file-9G1DQENXabusRV1nQ367e5\",\"filename\":\"TIB-bwce_6.12_concepts.pdf\",\"score\":0.4245025352041853},{\"attributes\":{\"DocGroup\":{\"OfString\":\"BusinessWorks\",\"OfFloat\":0,\"OfBool\":false},\"DocType\":{\"OfString\":\"Concepts Guide\",\"OfFloat\":0,\"OfBool\":false},\"Download URL\":{\"OfString\":\"https://docs.tibco.com/pub/activematrix_businessworks/6.12.0/doc/pdf/TIB_bwce_6.12.0_installation.pdf?id=15\",\"OfFloat\":0,\"OfBool\":false}},\"content\":[{\"text\":\"TIBCO BusinessWorks™ Container Edition Concepts\\r\\n5 | Overview\\r\\nKey Concepts\\r\\nThe following image provides an overview of the key concepts that you encounter when\\r\\nworking with the product.\\r\\nSome of these concepts are applicable exclusively to design perspective or runtime\\r\\nperspective, while some are applicable to both perspectives. TIBCO BusinessWorks\\r\\nContainer Edition consists of a design time where you can develop applications that\\r\\nimplement business logicand the runtime environment where you run the applications.\\r\\nTIBCO BusinessWorks Container Edition is based on the following aspects:\\r\\nl Flexibility\\r\\nl Openness and Extensibility\\r\\nl Modularity\\r\\nl Standards-based\\r\\nFlexibility\\r\\nTIBCO Business Studio for BusinessWorks is designed to make adding, upgrading, and\\r\\nswapping of business components easy.\\r\\nThe flexible architecture is demonstrated by:\\r\\nl A zero coding model with which you can select and drop activities onto the\",\"type\":\"text\"}],\"file_id\":\"file-9G1DQENXabusRV1nQ367e5\",\"filename\":\"TIB-bwce_6.12_concepts.pdf\",\"score\":0.4109029737295135}]"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "OPENAI_API_ENDPOINT_URL",
+      "type": "string",
+      "value": "https://api.openai.com/v1"
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "type": "string",
+      "value": "REPLACE ME"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9USUJDT1NvZnR3YXJlL2Zsb2dvLWVudGVycHJpc2UtaHViL2V4dGVuc2lvbnMvb3BlbkFJIiwiaWQiOiJvcGVuQUkiLCJ2ZXJzaW9uIjoiMS4wLjEiLCJ0YWciOiIxLjAuMCIsIm5hbWUiOiJPcGVuQUkgIiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L29wZW5BSSIsImlzVXNlckV4dGVuc2lvbiI6dHJ1ZX1d",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.0"
+  }
+}

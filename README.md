@@ -2,7 +2,7 @@
 
 Welcome to the **Hub for TIBCO Flogo®** — your community-driven space for sharing FLOGO samples, demos, and custom contributions for TIBCO Flogo®.
 
-TIBCO Flogo® is a **low-code / no-code integration platform (iPaaS)** for building **AI agents**, **MCP servers**, and **enterprise integration flows** — all from a visual flow designer inside Visual Studio Code. Powered by a high-performance **Go (Golang)** engine, Flogo® delivers ultra-light memory footprint, fast startup, and low-latency processing across **edge, cloud, serverless, and on-premises** environments. With native support for **Agentic AI orchestration**, the **Model Context Protocol (MCP)**, and 40+ enterprise connectors, Flogo® transforms business data into intelligent, event-driven, AI-ready workflows — no heavy coding required.
+TIBCO Flogo® is a **low-code / no-code integration platform** for building **AI agents**, **MCP servers**, and **enterprise integration flows** — all from a visual flow designer inside Visual Studio Code. Powered by a high-performance **Go (Golang)** engine, Flogo® delivers ultra-light memory footprint, fast startup, and low-latency processing across **edge, cloud, serverless, and on-premises** environments. With native support for **Agentic AI orchestration**, the **Model Context Protocol (MCP)**, and 40+ enterprise connectors, Flogo® transforms business data into intelligent, event-driven, AI-ready workflows — no heavy coding required.
 
 If you have purchased commercial support for TIBCO Flogo®, please create a Service Request using your TIBCO Support credentials at [https://support.tibco.com/](https://support.tibco.com/).
 
@@ -20,11 +20,38 @@ If you have purchased commercial support for TIBCO Flogo®, please create a Serv
 
 ---
 
+## **Getting Started**
+
+**Prerequisites**
+
+- **Visual Studio Code** with the **TIBCO Flogo® Extension for Visual Studio Code** (2.26.7 or later) — download the latest from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (also on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tibco.flogo)). **This is all you need to design Flogo apps** — the Flogo Design CLI (`fda`) ships inside the extension.
+- **Building apps** (executables, Platform zips, unit tests) additionally needs the **Flogo App Build CLI (`flogobuild`)** from the same [TIBCO downloads page](https://www.tibco.com/downloads/11810) and the **[Go runtime](https://go.dev/dl/)**. **Deploying** to TIBCO Platform needs the TIBCO Platform CLI (`tibcop`, from its [download page](https://www.tibco.com/downloads/12464)) and a profile.
+- **Connector prerequisites:** apps that use a connector with a native driver or client library (database connectors such as PostgreSQL, Oracle, SQL Server, IBM DB2; SAP Solutions; IBM MQ; TIBCO EMS / FTL) need it installed before you open them in the designer or fetch metadata — VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…**. Per-connector details: [connector-prereqs.md](./skills-library/.claude/skills/agentic-ai-use-case-builder/references/connector-prereqs.md).
+- **Agentic AI use cases** (skill library) also need PostgreSQL + `psql`, Python 3.9+ and an LLM API key; Node.js 16+ only for the chat end-to-end test. See the tiered table in [skills-library/AGENT.md → Prerequisites and preflight](./skills-library/AGENT.md#prerequisites-and-preflight), then run the preflight (add `--need db`, `build`, `chat`, `deploy` for the extra tiers):
+  `python skills-library/.claude/skills/agentic-ai-use-case-builder/templates/preflight.py`
+
+**Clone and open**
+
+```bash
+git clone https://github.com/TIBCOSoftware/flogo-enterprise-hub.git
+cd flogo-enterprise-hub
+code .
+```
+
+Then pick a starting point:
+
+- **[Product Samples](./samples/README.md)** — ready-to-run TIBCO Flogo® samples (quick start).
+- **[Flogo Skill Library](./skills-library/README.md)** — skills for AI coding agents such as Claude Code.
+- **[Agentic AI Samples & Industry Use Cases](./samples/Agentic_AI/README.md)** — connector feature samples plus end-to-end, vertical-specific industry demos.
+
+---
+
 ## **AI & Agents**
 
 Build AI-powered agents, expose business data via MCP, and orchestrate intelligent workflows.
 
-- **[Agentic AI Samples](./samples/Agentic_AI/)** — AI agents with custom guardrails, multi-agent handoff, MCP server integration, the "Flogo as an MCP tool server" pattern, A2A (Agent-to-Agent) protocol, LLM Client Activity, memory conversation store, dynamic MCP/A2A server configuration, token-authenticated MCP and A2A backends with credentials injected at runtime, dynamic semantic tool selection at scale (150 tools), scheduled reasoning with automated report generation and email delivery, and incident triage. Supports OpenAI, Gemini, Anthropic, Ollama, and vLLM.
+- **[Agentic AI Feature Samples](./samples/Agentic_AI/README.md#part-1--connector-feature-samples)** — AI agents with custom guardrails, multi-agent handoff, MCP server integration, the "Flogo as an MCP tool server" pattern, A2A (Agent-to-Agent) protocol, LLM Client Activity, memory conversation store, dynamic MCP/A2A server configuration, dynamic semantic tool selection at scale (150 tools), scheduled reasoning with automated report generation and email delivery, and incident triage.
+- **[Agentic AI Industry Use Cases](./samples/Agentic_AI/Industry_Use_Cases/README.md)** — **14 end-to-end, governed industry demos** organized by vertical: banking (retail & corporate payments), insurance (auto RAG, life & pensions), healthcare, telecom, utilities (electric & oilfield), aerospace & defense, high-tech/semiconductor, logistics, real estate, and scholarly publishing. Each uses the same three-app pattern — an MCP Server (scoped reads and guarded two-step writes), a read-only A2A reasoning-agents app, and a WebSocket AI Orchestrator — backed by PostgreSQL, and shares the browser [Chatbot](./samples/Agentic_AI/Chatbot/) test client.
 - **[Model Context Protocol (MCP) Samples](./samples/Model_Context_Protocol(MCP)/)** — MCP servers exposing business data as AI-accessible tools: stateless, stateful, authenticated, annotated, advanced primitives (elicitation, logging, sampling), JWT and OAuth 2.0 access control (external IdP via JWKS), structured content with annotations, and MCP client gateway.
 - **[OpenAI RAG & Vector Search Extension](./extensions/openAI/)** — Flogo activities for the OpenAI platform: file management, vector-store lifecycle, semantic vector search (RAG), and image generation — build retrieval-augmented AI flows with no code.
 - **[AI Alert Agent Demo](./demos/flogo-ai-alert-agent/)** — Autonomous AI Agent (Flogo AI Agent Activity) that investigates TIBCO Platform application alerts using Platform MCP services as tools and reports its root-cause findings automatically.
@@ -64,11 +91,14 @@ A library of **skills for AI coding agents** (such as **Claude Code**) to design
 | Skill | Purpose |
 |---|---|
 | `fda` | Reference for the Flogo Design Assistant CLI — every task to create/modify a `.flogo` file. |
+| `fda-mapping` | Focused reference for building, inspecting, and validating Flogo mappings with `fda`. |
 | `flogobuild` | Reference for building executables and deployment artifacts from `.flogo` files. |
 | `tibcop` | Reference for the TIBCO Platform CLI — manage builds, deployments, scaling. |
 | `flogo-deploy` | End-to-end recipe to deploy a `.flogo` app to a TIBCO Platform dataplane. |
+| `flogo-unit-testing` | Recipe to create and run unit tests for Flogo apps (test cases, assertions, execution). |
 | `mapping-from-excel` | Recipe to build a Flogo flow from an Excel mapping spec (input fields → output fields with rules). |
 | `rest-to-database-app` | Recipe to scaffold a REST API Flogo app that queries a database. |
+| `agentic-ai-use-case-builder` | Build a **governed-by-default** Agentic AI use case for any vertical — MCP Server + A2A Agents + WebSocket orchestrator, backed by PostgreSQL. Every operation first classified by the decision framework (agent / deterministic / human-owned); identity, scoping, prices and state changes enforced in SQL; two build methods (FDA-CLI default or clone-and-adapt); proven with a 4-rung test ladder through a real chat, including prompt injection. |
 
 For full details, see the [Flogo Skill Library README](./skills-library/README.md).
 
@@ -79,7 +109,7 @@ For full details, see the [Flogo Skill Library README](./skills-library/README.m
 | Resource | Link |
 |----------|------|
 | Documentation | [TIBCO Flogo® Product Documentation](https://docs.tibco.com/products/tibco-flogo-latest) |
-| Download | [TIBCO Flogo® Extension for VS Code](https://www.tibco.com/downloads/11810) |
+| Download | [TIBCO Flogo® Extension for VS Code + Flogo App Build CLI](https://www.tibco.com/downloads/11810) |
 | Blogs | [TIBCO Flogo® Blog Posts](https://www.tibco.com/blog/?s=flogo) |
 | Video Tutorials | [TIBCO Flogo® YouTube Playlist](https://www.youtube.com/watch?v=jKYethPuYcg&list=PLnmoGGHHJldiGPd8r3n657cAX3i7V9hMz&index=1) |
 
@@ -101,12 +131,12 @@ Watch the full playlist: [TIBCO Flogo® Short Videos on YouTube](https://www.you
 ```
 flogo-enterprise-hub/
 ├── samples/                  # Ready-to-run product samples
-│   ├── Agentic_AI/           #   AI agent samples
+│   ├── Agentic_AI/           #   AI agent feature samples + industry use-case demos (by vertical)
 │   ├── Model_Context_Protocol(MCP)/  #   MCP server samples
 │   ├── VSCode_Extension/     #   Flogo core samples (APIs, connectors, flows, testing)
 │   ├── Tibco_Control_Plane/  #   Platform deployment samples
 │   └── DockerFiles/          #   Multi-distro Dockerfile examples
-├── demos/                    # Proof-of-concept demonstrations
+├── demos/                    # Proof-of-concept demonstrations (MCP, GraphQL, ML, alerts)
 ├── extensions/               # Custom-built Flogo extensions
 └── skills-library/           # AI coding agent skills
 ```
@@ -115,12 +145,7 @@ flogo-enterprise-hub/
 
 ## **Contributing**
 
-We welcome contributions! To contribute:
-- Fork this repository.
-- Make your changes.
-- Submit a pull request (PR).
-
-Our maintainers will review your PR and may request changes before merging. For any questions, please reach out to [integration-pm@tibco.com](mailto:integration-pm@tibco.com).
+This repository is maintained by TIBCO and is not accepting external pull requests at this time. For questions, suggestions, or to report an issue, please reach out to [integration-pm@tibco.com](mailto:integration-pm@tibco.com).
 
 > **Repo maintainers:** For maximum GitHub search discoverability, add **Topics** to this repository via **Settings → Topics**. Suggested topics: `flogo`, `mcp`, `mcp-server`, `ai-agents`, `agentic-ai`, `low-code`, `no-code`, `ipaas`, `integration`, `tibco`, `golang`, `enterprise-integration`
 
@@ -143,6 +168,8 @@ Thank you for being part of the Flogo® community!
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo, MCP Server, Model Context Protocol, Build MCP Server, AI Agents, Agentic AI, LLM Orchestration, Low-Code Integration, No-Code Integration, iPaaS, Integration Platform as a Service, Enterprise Integration, API Development, REST API, gRPC, GraphQL, Visual Flow Designer, Event-Driven Architecture, Microservices, Edge Computing, Serverless Integration, AI Workflow Automation, Prompt Engineering, RAG, Retrieval Augmented Generation, Vector Store, Vector Search, Semantic Search, Embeddings, Image Generation, OpenAI, Anthropic Claude, Google Gemini, Ollama, Enterprise Connectors, Salesforce Integration, SAP Integration, Kafka, PostgreSQL, Oracle Database, Redis, Azure Service Bus, Docker Deployment, Kubernetes, TIBCO Platform, Go Golang, VS Code Extension, AI Design Assistant, MCP Tools, MCP Resources, MCP Prompts, Custom AI Guardrails, Multi-Agent Systems, AI-Powered Automation, B2B Integration, Machine Learning Integration, Real-Time Processing, Cloud-Native Integration -->
+<!-- SEO Keywords: TIBCO Flogo, MCP Server, Model Context Protocol, Build MCP Server, AI Agents, Agentic AI, LLM Orchestration, Low-Code Integration, No-Code Integration, integration platform, Enterprise Integration, API Development, REST API, gRPC, GraphQL, Visual Flow Designer, Event-Driven Architecture, Microservices, Edge Computing, Serverless Integration, AI Workflow Automation, Prompt Engineering, RAG, Retrieval Augmented Generation, Vector Store, Vector Search, Semantic Search, Embeddings, Image Generation, OpenAI, Anthropic Claude, Google Gemini, Ollama, Enterprise Connectors, Salesforce Integration, SAP Integration, Kafka, PostgreSQL, Oracle Database, Redis, Azure Service Bus, Docker Deployment, Kubernetes, TIBCO Platform, Go Golang, VS Code Extension, AI Design Assistant, MCP Tools, MCP Resources, MCP Prompts, Custom AI Guardrails, Multi-Agent Systems, AI-Powered Automation, B2B Integration, Machine Learning Integration, Real-Time Processing, Cloud-Native Integration, Agentic AI Use Cases, MCP Use Cases, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration -->
 
-**Topics:** `MCP Server` · `AI Agents` · `Agentic AI` · `Low-Code` · `No-Code` · `iPaaS` · `Enterprise Integration` · `LLM Orchestration`
+**Topics:** `MCP Server` · `AI Agents` · `Agentic AI` · `Low-Code` · `No-Code` · `Enterprise Integration` · `LLM Orchestration`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

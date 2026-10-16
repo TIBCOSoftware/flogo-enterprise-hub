@@ -7,7 +7,7 @@ class FlogoChatbot {
     constructor() {
         // WebSocket connection
         this.ws = null;
-        this.wsUrl = 'ws://localhost:8082/ws/chat';
+        this.wsUrl = 'ws://localhost:9600/lifepensions';
         this.isConnected = false;
         
         // Chat sessions management
@@ -28,8 +28,7 @@ class FlogoChatbot {
             messagesContainer: document.getElementById('messagesContainer'),
             messageInput: document.getElementById('messageInput'),
             sendBtn: document.getElementById('sendBtn'),
-            currentChatTitle: document.getElementById('currentChatTitle'),
-            clearChatBtn: document.getElementById('clearChatBtn')
+            currentChatTitle: document.getElementById('currentChatTitle')
         };
         
         // Initialize application
@@ -56,7 +55,6 @@ class FlogoChatbot {
         
         // Chat management
         this.elements.newChatBtn.addEventListener('click', () => this.createNewChat());
-        this.elements.clearChatBtn.addEventListener('click', () => this.clearCurrentChat());
         
         // Message sending
         this.elements.sendBtn.addEventListener('click', () => this.sendMessage());
@@ -109,7 +107,7 @@ class FlogoChatbot {
                 console.log('WebSocket connected');
                 this.isConnected = true;
                 this.updateConnectionStatus(true);
-                this.addSystemMessage('Connected to server', 'success');
+                this.addSystemMessage('Connected to server');
             };
             
             // Message received
@@ -128,13 +126,13 @@ class FlogoChatbot {
                 console.log('WebSocket disconnected');
                 this.isConnected = false;
                 this.updateConnectionStatus(false);
-                this.addSystemMessage('Disconnected from server', 'warning');
+                this.addSystemMessage('Disconnected from server');
             };
             
             // Error handling
             this.ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
-                this.addSystemMessage('Connection error. Please check the WebSocket URL and try again.', 'error');
+                this.addSystemMessage('Connection error. Please check the WebSocket URL and try again.');
                 this.isConnected = false;
                 this.updateConnectionStatus(false);
             };
@@ -229,13 +227,15 @@ class FlogoChatbot {
         // Send to WebSocket server
         try {
             if (this.ws.readyState === WebSocket.OPEN) {
-                this.ws.send(message);
+                // Try to send as JSON, fallback to plain text
+                const payload = JSON.stringify({ message: message });
+                this.ws.send(payload);
             } else {
-                this.addSystemMessage('Connection lost. Please reconnect.', 'error');
+                this.addSystemMessage('Connection lost. Please reconnect.');
             }
         } catch (error) {
             console.error('Error sending message:', error);
-            this.addSystemMessage('Error sending message. Please try again.', 'error');
+            this.addSystemMessage('Error sending message. Please try again.');
         }
         
         // Clear input
@@ -303,53 +303,6 @@ class FlogoChatbot {
     }
     
     /**
-     * Clear messages in the current chat session
-     */
-    clearCurrentChat() {
-        if (!this.currentChatId) return;
-        const chat = this.chats.get(this.currentChatId);
-        if (!chat) return;
-        chat.messages = [];
-        this.displayChat(this.currentChatId);
-        this.saveChatsToStorage();
-    }
-
-    startRename(chatId) {
-        const chat = this.chats.get(chatId);
-        if (!chat) return;
-
-        const sessionDiv = document.querySelector(`.chat-session[data-chat-id="${chatId}"]`);
-        if (!sessionDiv) return;
-        const titleSpan = sessionDiv.querySelector('.chat-session-title');
-        if (!titleSpan) return;
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = chat.title;
-        input.className = 'chat-session-rename';
-
-        const save = () => {
-            const newTitle = input.value.trim() || chat.title;
-            chat.title = newTitle;
-            if (this.currentChatId === chatId) {
-                this.elements.currentChatTitle.textContent = newTitle;
-            }
-            this.saveChatsToStorage();
-            this.updateChatSessionsList();
-        };
-
-        input.addEventListener('blur', save);
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') input.blur();
-            if (e.key === 'Escape') { input.value = chat.title; input.blur(); }
-        });
-
-        titleSpan.replaceWith(input);
-        input.focus();
-        input.select();
-    }
-
-    /**
      * Display a chat session
      */
     displayChat(chatId) {
@@ -390,16 +343,15 @@ class FlogoChatbot {
     /**
      * Add system message
      */
-    addSystemMessage(content, level = 'warning') {
+    addSystemMessage(content) {
         if (!this.currentChatId) return;
-
+        
         const message = {
             type: 'system',
-            level: level,
             content: content,
             timestamp: new Date()
         };
-
+        
         this.addMessageToChat(this.currentChatId, message);
     }
     
@@ -421,20 +373,14 @@ class FlogoChatbot {
         const timeStr = this.formatTimestamp(message.timestamp);
         
         if (message.type === 'system') {
-            const colors = {
-                success: { bg: '#d1fae5', text: '#065f46' },
-                warning: { bg: '#fef3c7', text: '#92400e' },
-                error:   { bg: '#fee2e2', text: '#991b1b' }
-            };
-            const c = colors[message.level] || colors.warning;
             messageDiv.innerHTML = `
-                <div class="message-content" style="margin-left: 0; background-color: ${c.bg}; color: ${c.text}; text-align: center; font-size: 0.875rem;">
+                <div class="message-content" style="margin-left: 0; background-color: #fef3c7; color: #92400e; text-align: center; font-size: 0.875rem;">
                     <i class="fas fa-info-circle"></i> ${message.content}
                 </div>
             `;
         } else {
-            const avatar = message.type === 'user' ? 'U' : 'A';
-            const sender = message.type === 'user' ? 'You' : 'Agent';
+            const avatar = message.type === 'user' ? 'U' : 'B';
+            const sender = message.type === 'user' ? 'You' : 'Bot';
             
             messageDiv.innerHTML = `
                 <div class="message-header">
@@ -473,19 +419,13 @@ class FlogoChatbot {
         this.chats.forEach((chat, chatId) => {
             const sessionDiv = document.createElement('div');
             sessionDiv.className = `chat-session ${chatId === this.currentChatId ? 'active' : ''}`;
-            sessionDiv.dataset.chatId = chatId;
             sessionDiv.innerHTML = `
                 <span class="chat-session-title" title="${chat.title}">${chat.title}</span>
-                <div class="chat-session-actions">
-                    <button class="chat-session-btn" onclick="event.stopPropagation(); chatbot.startRename('${chatId}')" title="Rename chat">
-                        <i class="fas fa-pen"></i>
-                    </button>
-                    <button class="chat-session-btn" onclick="event.stopPropagation(); chatbot.deleteChat('${chatId}')" title="Delete chat">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+                <button class="chat-session-delete" onclick="event.stopPropagation(); chatbot.deleteChat('${chatId}')" title="Delete chat">
+                    <i class="fas fa-trash"></i>
+                </button>
             `;
-
+            
             sessionDiv.addEventListener('click', () => this.switchChat(chatId));
             container.appendChild(sessionDiv);
         });

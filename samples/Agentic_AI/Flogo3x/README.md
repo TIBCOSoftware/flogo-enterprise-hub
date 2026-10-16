@@ -18,12 +18,6 @@ The Agentic AI Connector provides three primary building blocks:
 
 An **Invoke AI Agent Trigger Activity** (`callagent`) bridges the two worlds: it lets any Flogo trigger (REST, WebSocket, Kafka, Timer, ...) deterministically dispatch a user prompt to an Agent Trigger and receive its response.
 
-### Supported LLM Providers
-- **OpenAI** (e.g. GPT-4o, GPT-4.1, o3)
-- **Gemini** (e.g. Gemini 2.0 Flash, Gemini 2.5 Pro)
-- **Anthropic** (e.g. Claude Sonnet, Claude Opus)
-- **Ollama** (local models, e.g. Llama 3, Mistral)
-- **vLLM** (self-hosted OpenAI-compatible endpoint)
 
 ### Handler Types (Agent Trigger only)
 
@@ -141,7 +135,9 @@ A ready-to-use chat UI is included in the 2.x sample directory at [`../Chatbot/`
 cd samples/Agentic_AI/Chatbot
 npm install
 npm start
-# Open http://localhost:3000, update the WebSocket URL if needed, and click Connect
 ```
+
+Open http://localhost:3000, enter the sample's WebSocket URL, **click the ↻ icon next to the URL box** to
+apply it, then click **Connect**.
 
 See each sample's individual `README.md` for detailed configuration and usage instructions.

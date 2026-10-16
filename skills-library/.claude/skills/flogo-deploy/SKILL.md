@@ -4,14 +4,16 @@ description: Deploy a TIBCO Flogo application to the TIBCO Platform. Provide the
 user-invocable: true
 ---
 
+> **Preflight (only needed when deploying):** run `tibcop --version && tibcop list-profiles` first (see AGENT.md → Prerequisites and preflight, or `preflight.py --need deploy`). Every deploy command needs a profile name — use `TIBCOP_PROFILE` from `config.md` (create one with `tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com`, optional `--software-statement <software_statement>`; then `tibcop list-profiles`).
+
 # Deploy a Flogo Application to the TIBCO Platform
 
 This skill deploys a `.flogo` application file to a TIBCO Platform dataplane using the `tibcop` CLI.
-Use the TIBCO Platform CLI profile configured for your environment (e.g. set in your project's `CLAUDE.md` as `<YOUR_PROFILE>`).
+Use the TIBCO Platform CLI profile configured for your environment (set in `config.md`).
 
 ## Required Inputs
 
-- **Flogo app file**: Path to the `.flogo` file (check the Flogo apps folder if not specified, e.g. `./Flogo_Apps/`)
+- **Flogo app file**: Path to the `.flogo` file (check the apps folder named by `FLOGO_APPS_DIR` in `config.md` if not specified — resolved relative to `config.md` at `skills-library/.claude/skills/config.md`; the default `../../Flogo_Apps` points at `skills-library/Flogo_Apps/`, the same folder whether you opened the hub root or `skills-library`)
 - **Dataplane name**: The target dataplane to deploy to
 - **Profile**: The TIBCO Platform CLI profile to authenticate with
 
@@ -21,7 +23,7 @@ Follow these steps in order:
 
 ### Step 1: Locate the Flogo app file
 
-Find the `.flogo` file. If the user provides just an app name, look for it in the configured apps folder (e.g. `./Flogo_Apps/<appName>.flogo`) first, then search the project.
+Find the `.flogo` file. If the user provides just an app name, look for it in the configured apps folder (e.g. `<FLOGO_APPS_DIR>/<appName>.flogo`) first, then search the project.
 
 ### Step 2: List available Flogo versions on the dataplane
 

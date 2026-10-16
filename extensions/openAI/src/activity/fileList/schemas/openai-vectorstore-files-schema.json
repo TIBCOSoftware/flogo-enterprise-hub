@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OpenAI Vector Store Files Response",
+  "description": "Schema for OpenAI Vector Store list files API response",
+  "type": "object",
+  "required": ["files"],
+  "properties": {
+    "files": {
+      "type": "array",
+      "description": "Array of vector store file objects",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "last_error",
+          "object",
+          "status",
+          "usage_bytes",
+          "vector_store_id",
+          "attributes",
+          "chunking_strategy"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the file",
+            "pattern": "^file-[a-zA-Z0-9]+$"
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "Unix timestamp when the file was created",
+            "minimum": 0
+          },
+          "last_error": {
+            "type": "object",
+            "description": "Information about the last error encountered",
+            "required": ["code", "message"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Error message"
+              }
+            }
+          },
+          "object": {
+            "type": "string",
+            "description": "Object type identifier",
+            "enum": ["vector_store.file"]
+          },
+          "status": {
+            "type": "string",
+            "description": "Processing status of the file",
+            "enum": ["completed", "processing", "failed", "cancelled"]
+          },
+          "usage_bytes": {
+            "type": "integer",
+            "description": "Number of bytes used by the file",
+            "minimum": 0
+          },
+          "vector_store_id": {
+            "type": "string",
+            "description": "ID of the vector store containing this file",
+            "pattern": "^vs_[a-zA-Z0-9]+$"
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Custom attributes associated with the file",
+            "additionalProperties": false,
+            "properties": {
+              "DocGroup": {
+                "$ref": "#/definitions/AttributeValue"
+              },
+              "DocType": {
+                "$ref": "#/definitions/AttributeValue"
+              },
+              "Download URL": {
+                "$ref": "#/definitions/AttributeValue"
+              }
+            }
+          },
+          "chunking_strategy": {
+            "type": "object",
+            "description": "Strategy used for chunking the file",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Type of chunking strategy",
+                "enum": ["static", "auto"]
+              },
+              "static": {
+                "type": "object",
+                "description": "Static chunking configuration",
+                "required": ["chunk_overlap_tokens", "max_chunk_size_tokens"],
+                "properties": {
+                  "chunk_overlap_tokens": {
+                    "type": "integer",
+                    "description": "Number of tokens to overlap between chunks",
+                    "minimum": 0
+                  },
+                  "max_chunk_size_tokens": {
+                    "type": "integer",
+                    "description": "Maximum size of each chunk in tokens",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "AttributeValue": {
+      "type": "object",
+      "description": "Custom attribute value with typed fields",
+      "required": ["OfString", "OfFloat", "OfBool"],
+      "properties": {
+        "OfString": {
+          "type": "string",
+          "description": "String value of the attribute"
+        },
+        "OfFloat": {
+          "type": "number",
+          "description": "Float value of the attribute"
+        },
+        "OfBool": {
+          "type": "boolean",
+          "description": "Boolean value of the attribute"
+        }
+      }
+    }
+  }
+}

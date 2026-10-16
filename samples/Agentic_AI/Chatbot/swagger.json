@@ -1,0 +1,952 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Hospital Management API",
+    "version": "1.0.0",
+    "description": "REST API for hospital operations including appointments, pharmacy orders, patient registration, and billing"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/appointments": {
+      "get": {
+        "summary": "Get all appointments",
+        "description": "Retrieves a list of all appointments in the system",
+        "operationId": "getAppointments",
+        "tags": ["Appointments"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Appointment"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "APT-001",
+                    "patientId": "P-2024-001",
+                    "doctorId": "DOC-101",
+                    "dateTime": "2024-01-20T10:00:00Z",
+                    "status": "scheduled"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new appointment",
+        "description": "Creates a new appointment for a patient with a doctor",
+        "operationId": "createAppointment",
+        "tags": ["Appointments"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentRequest"
+              },
+              "example": {
+                "patientId": "P-2024-001",
+                "doctorId": "DOC-101",
+                "dateTime": "2024-01-20T10:00:00Z",
+                "reason": "Routine checkup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Appointment created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "example": {
+                  "id": "APT-001",
+                  "patientId": "P-2024-001",
+                  "doctorId": "DOC-101",
+                  "dateTime": "2024-01-20T10:00:00Z",
+                  "status": "scheduled"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appointments/{id}": {
+      "get": {
+        "summary": "Get appointment by ID",
+        "description": "Retrieves a specific appointment by its unique identifier",
+        "operationId": "getAppointmentById",
+        "tags": ["Appointments"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "APT-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "example": {
+                  "id": "APT-001",
+                  "patientId": "P-2024-001",
+                  "doctorId": "DOC-101",
+                  "dateTime": "2024-01-20T10:00:00Z",
+                  "status": "scheduled"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Appointment not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update appointment",
+        "description": "Updates an existing appointment's details or status",
+        "operationId": "updateAppointment",
+        "tags": ["Appointments"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "APT-001"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentUpdate"
+              },
+              "example": {
+                "dateTime": "2024-01-20T14:00:00Z",
+                "status": "confirmed"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Appointment updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "example": {
+                  "id": "APT-001",
+                  "patientId": "P-2024-001",
+                  "doctorId": "DOC-101",
+                  "dateTime": "2024-01-20T14:00:00Z",
+                  "status": "confirmed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pharmacy/orders": {
+      "get": {
+        "summary": "Get all pharmacy orders",
+        "description": "Retrieves a list of all pharmacy orders",
+        "operationId": "getPharmacyOrders",
+        "tags": ["Pharmacy"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PharmacyOrder"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "PH-001",
+                    "patientId": "P-2024-001",
+                    "medication": "Aspirin",
+                    "quantity": 30,
+                    "status": "processing"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create pharmacy order",
+        "description": "Creates a new pharmacy order for medication",
+        "operationId": "createPharmacyOrder",
+        "tags": ["Pharmacy"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PharmacyOrderRequest"
+              },
+              "example": {
+                "patientId": "P-2024-001",
+                "medication": "Aspirin",
+                "quantity": 30,
+                "dosage": "100mg"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pharmacy order created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PharmacyOrder"
+                },
+                "example": {
+                  "id": "PH-001",
+                  "patientId": "P-2024-001",
+                  "medication": "Aspirin",
+                  "quantity": 30,
+                  "status": "processing"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pharmacy/orders/{id}": {
+      "get": {
+        "summary": "Get pharmacy order by ID",
+        "description": "Retrieves a specific pharmacy order by its unique identifier",
+        "operationId": "getPharmacyOrderById",
+        "tags": ["Pharmacy"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "PH-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PharmacyOrder"
+                },
+                "example": {
+                  "id": "PH-001",
+                  "patientId": "P-2024-001",
+                  "medication": "Aspirin",
+                  "quantity": 30,
+                  "status": "processing"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pharmacy order not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update pharmacy order",
+        "description": "Updates an existing pharmacy order's status or details",
+        "operationId": "updatePharmacyOrder",
+        "tags": ["Pharmacy"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "PH-001"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PharmacyOrderUpdate"
+              },
+              "example": {
+                "status": "ready",
+                "quantity": 30
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pharmacy order updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PharmacyOrder"
+                },
+                "example": {
+                  "id": "PH-001",
+                  "patientId": "P-2024-001",
+                  "medication": "Aspirin",
+                  "quantity": 30,
+                  "status": "ready"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registration": {
+      "get": {
+        "summary": "Get all registered patients",
+        "description": "Retrieves a list of all registered patients in the system",
+        "operationId": "getRegistrations",
+        "tags": ["Registration"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Registration"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "P-2024-001",
+                    "name": "John Doe",
+                    "email": "john.doe@example.com",
+                    "phone": "+1234567890",
+                    "dateOfBirth": "1980-05-15"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Register new patient",
+        "description": "Registers a new patient in the hospital system",
+        "operationId": "createRegistration",
+        "tags": ["Registration"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationRequest"
+              },
+              "example": {
+                "name": "John Doe",
+                "email": "john.doe@example.com",
+                "phone": "+1234567890",
+                "dateOfBirth": "1980-05-15"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Patient registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Registration"
+                },
+                "example": {
+                  "id": "P-2024-001",
+                  "name": "John Doe",
+                  "email": "john.doe@example.com",
+                  "phone": "+1234567890",
+                  "dateOfBirth": "1980-05-15"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registration/{id}": {
+      "get": {
+        "summary": "Get patient registration by ID",
+        "description": "Retrieves a specific patient's registration details by ID",
+        "operationId": "getRegistrationById",
+        "tags": ["Registration"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "P-2024-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Registration"
+                },
+                "example": {
+                  "id": "P-2024-001",
+                  "name": "John Doe",
+                  "email": "john.doe@example.com",
+                  "phone": "+1234567890",
+                  "dateOfBirth": "1980-05-15"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Patient not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update patient registration",
+        "description": "Updates an existing patient's registration information",
+        "operationId": "updateRegistration",
+        "tags": ["Registration"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "P-2024-001"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationUpdate"
+              },
+              "example": {
+                "email": "john.doe.new@example.com",
+                "phone": "+1234567891"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Registration"
+                },
+                "example": {
+                  "id": "P-2024-001",
+                  "name": "John Doe",
+                  "email": "john.doe.new@example.com",
+                  "phone": "+1234567891",
+                  "dateOfBirth": "1980-05-15"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing": {
+      "get": {
+        "summary": "Get all bills",
+        "description": "Retrieves a list of all billing records in the system",
+        "operationId": "getBills",
+        "tags": ["Billing"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Billing"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "BIL-001",
+                    "patientId": "P-2024-001",
+                    "amount": 1500.00,
+                    "status": "pending",
+                    "dueDate": "2024-02-01"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new bill",
+        "description": "Creates a new billing record for a patient",
+        "operationId": "createBill",
+        "tags": ["Billing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingRequest"
+              },
+              "example": {
+                "patientId": "P-2024-001",
+                "amount": 1500.00,
+                "description": "Consultation and tests"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Bill created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing"
+                },
+                "example": {
+                  "id": "BIL-001",
+                  "patientId": "P-2024-001",
+                  "amount": 1500.00,
+                  "status": "pending",
+                  "dueDate": "2024-02-01"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/{id}": {
+      "get": {
+        "summary": "Get bill by ID",
+        "description": "Retrieves a specific billing record by its unique identifier",
+        "operationId": "getBillById",
+        "tags": ["Billing"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "BIL-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing"
+                },
+                "example": {
+                  "id": "BIL-001",
+                  "patientId": "P-2024-001",
+                  "amount": 1500.00,
+                  "status": "pending",
+                  "dueDate": "2024-02-01"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bill not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update bill",
+        "description": "Updates an existing bill's status or amount",
+        "operationId": "updateBill",
+        "tags": ["Billing"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "BIL-001"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingUpdate"
+              },
+              "example": {
+                "status": "paid",
+                "amount": 1500.00
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bill updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing"
+                },
+                "example": {
+                  "id": "BIL-001",
+                  "patientId": "P-2024-001",
+                  "amount": 1500.00,
+                  "status": "paid",
+                  "dueDate": "2024-02-01"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Appointment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "APT-001"
+          },
+          "patientId": {
+            "type": "string",
+            "example": "P-2024-001"
+          },
+          "doctorId": {
+            "type": "string",
+            "example": "DOC-101"
+          },
+          "dateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-20T10:00:00Z"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["scheduled", "confirmed", "completed", "cancelled"],
+            "example": "scheduled"
+          }
+        },
+        "required": ["id", "patientId", "doctorId", "dateTime", "status"]
+      },
+      "AppointmentRequest": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "example": "P-2024-001"
+          },
+          "doctorId": {
+            "type": "string",
+            "example": "DOC-101"
+          },
+          "dateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-20T10:00:00Z"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Routine checkup"
+          }
+        },
+        "required": ["patientId", "doctorId", "dateTime"]
+      },
+      "AppointmentUpdate": {
+        "type": "object",
+        "properties": {
+          "dateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-20T14:00:00Z"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["scheduled", "confirmed", "completed", "cancelled"],
+            "example": "confirmed"
+          }
+        }
+      },
+      "PharmacyOrder": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "PH-001"
+          },
+          "patientId": {
+            "type": "string",
+            "example": "P-2024-001"
+          },
+          "medication": {
+            "type": "string",
+            "example": "Aspirin"
+          },
+          "quantity": {
+            "type": "integer",
+            "example": 30
+          },
+          "status": {
+            "type": "string",
+            "enum": ["processing", "ready", "dispensed", "cancelled"],
+            "example": "processing"
+          }
+        },
+        "required": ["id", "patientId", "medication", "quantity", "status"]
+      },
+      "PharmacyOrderRequest": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "example": "P-2024-001"
+          },
+          "medication": {
+            "type": "string",
+            "example": "Aspirin"
+          },
+          "quantity": {
+            "type": "integer",
+            "example": 30
+          },
+          "dosage": {
+            "type": "string",
+            "example": "100mg"
+          }
+        },
+        "required": ["patientId", "medication", "quantity"]
+      },
+      "PharmacyOrderUpdate": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["processing", "ready", "dispensed", "cancelled"],
+            "example": "ready"
+          },
+          "quantity": {
+            "type": "integer",
+            "example": 30
+          }
+        }
+      },
+      "Registration": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "P-2024-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+1234567890"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date",
+            "example": "1980-05-15"
+          }
+        },
+        "required": ["id", "name", "email", "phone", "dateOfBirth"]
+      },
+      "RegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+1234567890"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date",
+            "example": "1980-05-15"
+          }
+        },
+        "required": ["name", "email", "phone", "dateOfBirth"]
+      },
+      "RegistrationUpdate": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe.new@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+1234567891"
+          }
+        }
+      },
+      "Billing": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "BIL-001"
+          },
+          "patientId": {
+            "type": "string",
+            "example": "P-2024-001"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float",
+            "example": 1500.00
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "paid", "overdue", "cancelled"],
+            "example": "pending"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2024-02-01"
+          }
+        },
+        "required": ["id", "patientId", "amount", "status", "dueDate"]
+      },
+      "BillingRequest": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "example": "P-2024-001"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float",
+            "example": 1500.00
+          },
+          "description": {
+            "type": "string",
+            "example": "Consultation and tests"
+          }
+        },
+        "required": ["patientId", "amount"]
+      },
+      "BillingUpdate": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "paid", "overdue", "cancelled"],
+            "example": "paid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float",
+            "example": 1500.00
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Appointments",
+      "description": "Operations for managing patient appointments"
+    },
+    {
+      "name": "Pharmacy",
+      "description": "Operations for managing pharmacy orders"
+    },
+    {
+      "name": "Registration",
+      "description": "Operations for patient registration"
+    },
+    {
+      "name": "Billing",
+      "description": "Operations for billing and payments"
+    }
+  ]
+}
+

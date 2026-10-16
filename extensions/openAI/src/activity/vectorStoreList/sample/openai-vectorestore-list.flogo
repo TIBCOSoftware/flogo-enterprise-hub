@@ -1,0 +1,187 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/sleep",
+    "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/vectorStoreList",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "openaiVectorStore-List",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#startuphook",
+      "name": "tibco-appstartup",
+      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "settings": {},
+      "id": "AppStartupTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:List_Vectore_stores"
+            }
+          },
+          "name": "List_Vectore_stores"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:List_Vectore_stores",
+      "data": {
+        "name": "List Vectore stores",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "SleepForDebug",
+            "type": "label",
+            "label": "StartActivity to Sleep"
+          },
+          {
+            "id": 2,
+            "from": "SleepForDebug",
+            "to": "ListVectorStores",
+            "type": "label",
+            "label": "Sleep to ListVectorStores"
+          },
+          {
+            "id": 3,
+            "from": "ListVectorStores",
+            "to": "LogOutput",
+            "type": "label",
+            "label": "ListVectorStores to LogOutput"
+          },
+          {
+            "id": 4,
+            "from": "LogOutput",
+            "to": "Return",
+            "type": "label",
+            "label": "LogOutput to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "SleepForDebug",
+            "name": "SleepForDebug",
+            "description": "Simple sleep Activity",
+            "activity": {
+              "ref": "#sleep",
+              "input": {
+                "IntervalTypeSetting": "Millisecond",
+                "IntervalSetting": 10
+              }
+            }
+          },
+          {
+            "id": "ListVectorStores",
+            "name": "ListVectorStores",
+            "description": "This activity lists vector stores from OpenAI",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectorStoreList",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]"
+              },
+              "input": {
+                "order": "",
+                "after": "",
+                "before": ""
+              },
+              "output": {
+                "hasMore": false
+              },
+              "schemas": {
+                "output": {
+                  "vectorStores": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"created_at\":{\"type\":\"number\"},\"file_counts\":{\"type\":\"object\",\"properties\":{\"cancelled\":{\"type\":\"number\"},\"completed\":{\"type\":\"number\"},\"failed\":{\"type\":\"number\"},\"in_progress\":{\"type\":\"number\"},\"total\":{\"type\":\"number\"}}},\"last_active_at\":{\"type\":\"number\"},\"metadata\":{\"type\":\"object\",\"properties\":{}},\"name\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"usage_bytes\":{\"type\":\"number\"},\"expires_after\":{\"type\":\"object\",\"properties\":{\"anchor\":{\"type\":\"string\"},\"days\":{\"type\":\"number\"}}},\"expires_at\":{\"type\":\"number\"}},\"required\":[\"id\",\"created_at\",\"file_counts\",\"last_active_at\",\"metadata\",\"name\",\"object\",\"status\",\"usage_bytes\",\"expires_after\",\"expires_at\"]}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"created_at\":{\"type\":\"number\"},\"file_counts\":{\"type\":\"object\",\"properties\":{\"cancelled\":{\"type\":\"number\"},\"completed\":{\"type\":\"number\"},\"failed\":{\"type\":\"number\"},\"in_progress\":{\"type\":\"number\"},\"total\":{\"type\":\"number\"}}},\"last_active_at\":{\"type\":\"number\"},\"metadata\":{\"type\":\"object\",\"properties\":{}},\"name\":{\"type\":\"string\"},\"object\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"},\"usage_bytes\":{\"type\":\"number\"},\"expires_after\":{\"type\":\"object\",\"properties\":{\"anchor\":{\"type\":\"string\"},\"days\":{\"type\":\"number\"}}},\"expires_at\":{\"type\":\"number\"}},\"required\":[\"id\",\"created_at\",\"file_counts\",\"last_active_at\",\"metadata\",\"name\",\"object\",\"status\",\"usage_bytes\",\"expires_after\",\"expires_at\"]}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogOutput",
+            "name": "LogOutput",
+            "description": "Simple Log Message Activity",
+            "type": "iterator",
+            "settings": {
+              "iterate": "=$activity[ListVectorStores].vectorStores",
+              "accumulate": false
+            },
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Vector store Name: \",$iteration[value].name, \" Id: \", $iteration[value].id)",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn"
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUsInkiOjkzfSwiU2xlZXBGb3JEZWJ1ZyI6eyJ4IjoxMTcsInkiOjkxfSwiTGlzdFZlY3RvclN0b3JlcyI6eyJ4IjozNDIsInkiOjgwfSwiTG9nT3V0cHV0Ijp7IngiOjUzMSwieSI6Nzh9LCJSZXR1cm4iOnsieCI6Nzc1LCJ5Ijo3OH19",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "OPENAI_API_ENDPOINT_URL",
+      "type": "string",
+      "value": "https://api.openai.com/v1"
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "type": "string",
+      "value": "REPLACE ME"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9USUJDT1NvZnR3YXJlL2Zsb2dvLWVudGVycHJpc2UtaHViL2V4dGVuc2lvbnMvb3BlbkFJIiwiaWQiOiJvcGVuQUkiLCJ2ZXJzaW9uIjoiMS4wLjEiLCJ0YWciOiIxLjAuMCIsIm5hbWUiOiJPcGVuQUkgIiwiczNsb2NhdGlvbiI6IntVU0VSSUR9L29wZW5BSSIsImlzVXNlckV4dGVuc2lvbiI6dHJ1ZX1d",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.0"
+  }
+}

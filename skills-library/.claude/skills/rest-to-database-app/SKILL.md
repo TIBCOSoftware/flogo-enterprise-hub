@@ -4,9 +4,11 @@ description: Step-by-step guide to create a Flogo REST API application that quer
 user-invocable: true
 ---
 
+> **Preflight:** run `fda version` first (see AGENT.md → Prerequisites and preflight). If it fails, install/update the TIBCO Flogo VS Code extension (2.26.6+).
+
 ## Key Facts (verified)
 
-- Always run `fda` commands from your Flogo apps directory (e.g. `./Flogo_Apps/`)
+- Always run `fda` commands from your Flogo apps directory — the folder named by `FLOGO_APPS_DIR` in `config.md` (resolved relative to `config.md` at `skills-library/.claude/skills/config.md`; the default `../../Flogo_Apps` points at `skills-library/Flogo_Apps/`, the same folder whether you opened the hub root or `skills-library`)
 - **Always use the `-f <filename>.flogo` flag** on every `fda` command to target the correct file — if omitted, fda defaults to `flogo-project.flogo` and will error if that file already exists or is not the intended target
 - REST trigger type: `tr_rest` — exposes HTTP endpoints (default port 9999)
 - Log activity type: `act_general_log`
@@ -171,7 +173,7 @@ fda -f <filename>.flogo create-app-property "MySQL.<ConnectionName>.Password"   
 ## Complete example: Bookstore GET /books/{bookId}
 
 ```bash
-cd ./Flogo_Apps
+cd <FLOGO_APPS_DIR>
 
 fda -f bookstore.flogo create-project BookstoreAPI "Bookstore REST API"
 fda -f bookstore.flogo create-connection MySQLConnection MySQL

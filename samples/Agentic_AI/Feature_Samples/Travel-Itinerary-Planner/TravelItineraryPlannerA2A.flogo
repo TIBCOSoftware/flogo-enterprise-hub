@@ -1,0 +1,661 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider"
+  ],
+  "name": "TravelItineraryPlannerA2A",
+  "description": "A2A Server agent for planning travel itineraries - searches flights, hotels, and weather forecasts.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "Travel Itinerary Planner A2A Server agent on port 9898.",
+      "settings": {
+        "llmProviderConnection": "conn://fa11aaaa-bbbb-cccc-dddd-eeee00000001",
+        "agentName": "=$property[\"Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"Trigger_Settings.AgentDescription\"]",
+        "agentType": "A2A Server",
+        "agentPort": "=$property[\"A2A.port\"]",
+        "agentUrl": "=$property[\"A2A.AgentUrl\"]",
+        "agentAuthMode": "=$property[\"A2A.AuthMode\"]",
+        "agentToken": "=$property[\"A2A.AuthToken\"]",
+        "model": "=$property[\"Trigger_Settings.LLM_Model\"]",
+        "reasoning": "",
+        "temperature": "=$property[\"Trigger_Settings.LLM_temperature\"]",
+        "enableGuardrails": true,
+        "rateLimit": "=$property[\"Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": "=$property[\"Trigger_Settings.Redact_Sensitive_Data\"]",
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 20,
+        "systemPrompt": "You are a specialized travel itinerary planning assistant exposed as an A2A-compatible agent.\n\nYou are called by orchestrator agents, travel applications, and virtual assistants that need expert travel planning capabilities. Your role is to help plan complete, enjoyable, and realistic trips.\n\n## Your Tools\n\n- **SearchFlights**: Search for available flights between airports by date, passenger count, and cabin class. Always use IATA codes for airports. If the user specifies city names, infer the most likely IATA code (e.g. Paris → CDG).\n- **SearchHotels**: Find available hotels in a destination city for the requested dates, guest count, and star-rating preference.\n- **GetWeatherForecast**: Retrieve a multi-day weather forecast for the destination so travelers can pack and plan activities appropriately.\n- **BuildItinerary**: Once the user has selected a flight and hotel, compile the complete trip plan, assign an itinerary ID, and confirm all details.\n\n## Behavior Guidelines\n\n- Always confirm required parameters before calling a tool (origin, destination, travel dates, passenger count)\n- Present flight and hotel results in clear markdown tables with key fields (airline, price, duration, stops; hotel name, stars, price/night)\n- After searching flights or hotels, proactively offer the weather forecast for the destination\n- Before calling BuildItinerary, summarize the chosen flights and hotel and ask for explicit confirmation\n- All prices are in USD unless the user requests otherwise\n- If a search returns no results, suggest alternatives (nearby airports, ±3 day date shifts, relaxed star-rating)\n- Keep responses concise — the caller is typically another agent, not a human reading a long narrative"
+      },
+      "id": "TravelPlannerA2AServer",
+      "handlers": [
+        {
+          "description": "Searches for available flights and returns matching options.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "SearchFlights",
+            "agentToolDescription": "Search for available flights between two airports for a given departure date, number of passengers, and cabin class preference. Returns a list of matching flight options with airline, flight number, departure/arrival times, duration, stops, cabin class, price in USD, and available seats.",
+            "agentSkillTags": "SearchFlights,flights,travel,booking,air_travel",
+            "agentSkillExamples": "Find me direct flights from JFK to CDG next Tuesday.|Search economy class flights from London to Tokyo for 2 passengers on July 13th.|What flights are available from SFO to LHR next month?|Look up business class options from NYC to Paris departing July 13.|Show available round-trip flights from Chicago to Amsterdam departing July 13 returning July 17.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:search_flights_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureDate\":{\"type\":\"string\"},\"returnDate\":{\"type\":\"string\"},\"passengers\":{\"type\":\"number\"},\"cabinClass\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"origin\":\"JFK\",\"destination\":\"CDG\",\"departureDate\":\"2026-07-13\",\"returnDate\":\"2026-07-17\",\"passengers\":1,\"cabinClass\":\"economy\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "search_flights_flow"
+        },
+        {
+          "description": "Searches for available hotels in a destination city.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "SearchHotels",
+            "agentToolDescription": "Search for available hotels in a destination city for the requested check-in and check-out dates, number of guests, and optional minimum star-rating preference. Returns a list of matching hotels with name, star rating, distance from city centre, room type, price per night, total price, and amenities.",
+            "agentSkillTags": "SearchHotels,hotels,accommodation,lodging,travel",
+            "agentSkillExamples": "Find 4-star hotels in Paris for July 13-17 for 2 guests.|Search luxury hotels in Tokyo near the city centre.|What hotels are available in Barcelona for next weekend?|Look up 3-star or better accommodation in Rome for a family of 4.|Find budget hotels in London between July 10 and July 17 for 1 guest.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:search_hotels_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"checkInDate\":{\"type\":\"string\"},\"checkOutDate\":{\"type\":\"string\"},\"guests\":{\"type\":\"number\"},\"minStarRating\":{\"type\":\"number\"}}}",
+                "fe_metadata": "{\"city\":\"Paris\",\"checkInDate\":\"2026-07-13\",\"checkOutDate\":\"2026-07-17\",\"guests\":2,\"minStarRating\":3}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "search_hotels_flow"
+        },
+        {
+          "description": "Retrieves weather forecast for a travel destination.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "GetWeatherForecast",
+            "agentToolDescription": "Retrieve a multi-day weather forecast for a travel destination, starting from a specified date. Returns daily conditions (sunny, cloudy, rain), high and low temperatures in Celsius, precipitation in mm, UV index, and an overall travel-readiness summary.",
+            "agentSkillTags": "GetWeatherForecast,weather,forecast,climate,travel",
+            "agentSkillExamples": "What's the weather forecast for Paris from July 13 for 5 days?|Will it rain in Tokyo next week?|Show me the 5-day weather forecast for Barcelona starting July 10.|Is Bali a good time to visit in July weather-wise?|What should I pack for a trip to London from July 13 based on the forecast?",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_weather_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"destination\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"durationDays\":{\"type\":\"number\"}}}",
+                "fe_metadata": "{\"destination\":\"Paris\",\"startDate\":\"2026-07-13\",\"durationDays\":5}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "get_weather_flow"
+        },
+        {
+          "description": "Builds and confirms the final travel itinerary.",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "BuildItinerary",
+            "agentToolDescription": "Compile the final travel itinerary from the user's selected flights and hotel. Generates a unique itinerary reference ID, calculates the total estimated cost, and returns a complete trip plan the caller can display to the end user. Always call this only after the user explicitly confirms their selections.",
+            "agentSkillTags": "BuildItinerary,itinerary,trip,booking,confirmation,travel_plan",
+            "agentSkillExamples": "Build a complete itinerary for my Paris trip from July 13 to July 17.|Create a travel plan for Jane Doe's European vacation with flight FL-001 and hotel HTL-003.|Confirm my trip with the nonstop United flight and the 4-star Boutique Marais hotel.|Finalize and summarize the travel plan I've selected.|Save my travel plan and give me a reference number.",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:build_itinerary_flow"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"tripName\":{\"type\":\"string\"},\"travelerName\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"endDate\":{\"type\":\"string\"},\"selectedFlightIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"selectedHotelId\":{\"type\":\"string\"},\"notes\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"tripName\": \"Paris Summer Getaway\", \"travelerName\": \"Jane Doe\", \"startDate\": \"2026-07-13\", \"endDate\": \"2026-07-17\", \"selectedFlightIds\": [\"FL-001\"], \"selectedHotelId\": \"HTL-003\", \"notes\": \"Window seat preferred\"}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "build_itinerary_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:search_flights_flow",
+      "data": {
+        "name": "search_flights_flow",
+        "description": "Searches for available flights and returns matching options.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns flight search results.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"flights\":[{\"id\":\"FL-001\",\"airline\":\"United Airlines\",\"flightNo\":\"UA 456\",\"origin\":\"JFK\",\"destination\":\"CDG\",\"departure\":\"2026-07-13 08:30\",\"arrival\":\"2026-07-13 22:15\",\"duration\":\"7h45m\",\"stops\":0,\"cabinClass\":\"economy\",\"priceUSD\":598,\"seatsAvailable\":12},{\"id\":\"FL-002\",\"airline\":\"Air France\",\"flightNo\":\"AF 006\",\"origin\":\"JFK\",\"destination\":\"CDG\",\"departure\":\"2026-07-13 23:55\",\"arrival\":\"2026-07-14 13:25\",\"duration\":\"7h30m\",\"stops\":0,\"cabinClass\":\"economy\",\"priceUSD\":645,\"seatsAvailable\":8},{\"id\":\"FL-003\",\"airline\":\"Delta\",\"flightNo\":\"DL 402\",\"origin\":\"JFK\",\"destination\":\"CDG\",\"departure\":\"2026-07-13 11:00\",\"arrival\":\"2026-07-14 01:20\",\"duration\":\"8h20m\",\"stops\":1,\"stopCity\":\"BOS\",\"cabinClass\":\"economy\",\"priceUSD\":512,\"seatsAvailable\":18}],\"currency\":\"USD\",\"searchTimestamp\":\"2026-06-09T10:00:00Z\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureDate\":{\"type\":\"string\"},\"returnDate\":{\"type\":\"string\"},\"passengers\":{\"type\":\"number\"},\"cabinClass\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"TravelPlannerA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"origin\":{\"type\":\"string\"},\"destination\":{\"type\":\"string\"},\"departureDate\":{\"type\":\"string\"},\"returnDate\":{\"type\":\"string\"},\"passengers\":{\"type\":\"number\"},\"cabinClass\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:search_hotels_flow",
+      "data": {
+        "name": "search_hotels_flow",
+        "description": "Searches for available hotels in a destination city.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns hotel search results.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"hotels\":[{\"id\":\"HTL-001\",\"name\":\"Le Grand Paris Hotel\",\"stars\":5,\"distanceKm\":0.8,\"neighborhood\":\"1st Arrondissement\",\"checkIn\":\"2026-07-13\",\"checkOut\":\"2026-07-17\",\"roomType\":\"Standard Double\",\"pricePerNightUSD\":320,\"totalUSD\":1280,\"amenities\":[\"Free WiFi\",\"Breakfast Included\",\"Gym\",\"Spa\",\"Rooftop Bar\"],\"cancellationPolicy\":\"Free cancellation until 48h before check-in\"},{\"id\":\"HTL-002\",\"name\":\"Paris City Inn\",\"stars\":3,\"distanceKm\":1.2,\"neighborhood\":\"2nd Arrondissement\",\"checkIn\":\"2026-07-13\",\"checkOut\":\"2026-07-17\",\"roomType\":\"Standard Double\",\"pricePerNightUSD\":145,\"totalUSD\":580,\"amenities\":[\"Free WiFi\",\"24h Reception\",\"Luggage Storage\"],\"cancellationPolicy\":\"Free cancellation until 24h before check-in\"},{\"id\":\"HTL-003\",\"name\":\"Boutique Marais\",\"stars\":4,\"distanceKm\":0.5,\"neighborhood\":\"Marais District\",\"checkIn\":\"2026-07-13\",\"checkOut\":\"2026-07-17\",\"roomType\":\"Deluxe Room\",\"pricePerNightUSD\":215,\"totalUSD\":860,\"amenities\":[\"Free WiFi\",\"Breakfast Available\",\"Concierge\",\"Courtyard Garden\"],\"cancellationPolicy\":\"Free cancellation until 72h before check-in\"}],\"currency\":\"USD\",\"searchTimestamp\":\"2026-06-09T10:01:00Z\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"city\":{\"type\":\"string\"},\"checkInDate\":{\"type\":\"string\"},\"checkOutDate\":{\"type\":\"string\"},\"guests\":{\"type\":\"number\"},\"minStarRating\":{\"type\":\"number\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"TravelPlannerA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"},\"checkInDate\":{\"type\":\"string\"},\"checkOutDate\":{\"type\":\"string\"},\"guests\":{\"type\":\"number\"},\"minStarRating\":{\"type\":\"number\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_weather_flow",
+      "data": {
+        "name": "get_weather_flow",
+        "description": "Retrieves weather forecast for a travel destination.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock weather forecast. Replace with InvokeRestService to a real weather API in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"destination\":\"Paris, France\",\"startDate\":\"2026-07-13\",\"durationDays\":5,\"forecast\":[{\"date\":\"2026-07-13\",\"condition\":\"Sunny\",\"highC\":29,\"lowC\":19,\"precipMm\":0,\"uvIndex\":7,\"windKmh\":10},{\"date\":\"2026-07-14\",\"condition\":\"Mostly Sunny\",\"highC\":31,\"lowC\":20,\"precipMm\":0,\"uvIndex\":8,\"windKmh\":8},{\"date\":\"2026-07-15\",\"condition\":\"Partly Cloudy\",\"highC\":28,\"lowC\":19,\"precipMm\":1,\"uvIndex\":6,\"windKmh\":12},{\"date\":\"2026-07-16\",\"condition\":\"Scattered Showers\",\"highC\":25,\"lowC\":18,\"precipMm\":6,\"uvIndex\":4,\"windKmh\":16},{\"date\":\"2026-07-17\",\"condition\":\"Sunny\",\"highC\":30,\"lowC\":20,\"precipMm\":0,\"uvIndex\":7,\"windKmh\":9}],\"summary\":\"Warm mid-July weather typical for Paris. Expect highs around 28-31C with one rainy day on July 16 — bring a compact umbrella for that afternoon. UV is high; sunscreen essential for outdoor conference activities.\",\"packingTips\":[\"Light summer clothes\",\"Compact umbrella or rain jacket\",\"Sunscreen SPF 30+\",\"Comfortable walking shoes\",\"Refillable water bottle — stay hydrated\"]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"destination\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"durationDays\":{\"type\":\"integer\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"TravelPlannerA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"destination\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"durationDays\":{\"type\":\"integer\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:build_itinerary_flow",
+      "data": {
+        "name": "build_itinerary_flow",
+        "description": "Builds and confirms the final travel itinerary.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Return",
+            "type": "label",
+            "label": "StartActivity to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Returns mock itinerary confirmation. Replace with booking API calls in production.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"itineraryId\":\"ITIN-2026-88210\",\"status\":\"Confirmed\",\"tripName\":\"Paris Summer Getaway\",\"travelerName\":\"Jane Doe\",\"startDate\":\"2026-07-13\",\"endDate\":\"2026-07-17\",\"flights\":[{\"flightId\":\"FL-001\",\"label\":\"Outbound: UA 456 JFK→CDG\",\"departure\":\"2026-07-13 08:30\",\"arrival\":\"2026-07-13 22:15\",\"priceUSD\":598}],\"hotel\":{\"hotelId\":\"HTL-003\",\"name\":\"Boutique Marais\",\"checkIn\":\"2026-07-13\",\"checkOut\":\"2026-07-17\",\"totalUSD\":860},\"totalEstimatedCostUSD\":1458,\"currency\":\"USD\",\"message\":\"Your itinerary has been built and confirmed. Reference ID: ITIN-2026-88210. Keep this for check-in and any modifications.\",\"nextSteps\":[\"E-ticket for UA 456 will arrive at your registered email within 24h\",\"Hotel voucher will be sent to your registered email within 24h\",\"Free cancellation on hotel until 72h before check-in\"]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiUmV0dXJuIjp7IngiOjMwMCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"tripName\":{\"type\":\"string\"},\"travelerName\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"endDate\":{\"type\":\"string\"},\"selectedFlightIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"selectedHotelId\":{\"type\":\"string\"},\"notes\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"TravelPlannerA2AServer\",\"properties\":{\"toolParams\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"tripName\":{\"type\":\"string\"},\"travelerName\":{\"type\":\"string\"},\"startDate\":{\"type\":\"string\"},\"endDate\":{\"type\":\"string\"},\"selectedFlightIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"selectedHotelId\":{\"type\":\"string\"},\"notes\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.openai.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.openai.API_Key",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "AgenticAI.openai.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "TravelPlannerAgent"
+    },
+    {
+      "name": "Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "A travel itinerary planning agent via A2A protocol. Searches flights, hotels, and weather, then builds complete itineraries."
+    },
+    {
+      "name": "Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 10000
+    },
+    {
+      "name": "Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 25
+    },
+    {
+      "name": "Trigger_Settings.Redact_Sensitive_Data",
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "name": "Trigger_Settings.LLM_temperature",
+      "type": "float64",
+      "value": 0.7
+    },
+    {
+      "name": "A2A.AgentUrl",
+      "type": "string",
+      "value": "http://localhost:9898"
+    },
+    {
+      "name": "A2A.AuthToken",
+      "type": "string",
+      "value": "SET_YOUR_AUTH_TOKEN"
+    },
+    {
+      "name": "A2A.port",
+      "type": "string",
+      "value": "9898"
+    },
+    {
+      "name": "A2A.AuthMode",
+      "type": "string",
+      "value": "Static Token"
+    }
+  ],
+  "connections": {
+    "fa11aaaa-bbbb-cccc-dddd-eeee00000001": {
+      "id": "fa11aaaa-bbbb-cccc-dddd-eeee00000001",
+      "name": "openai",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "openai",
+        "description": "OpenAI LLM provider connection",
+        "llmProvider": "=$property[\"AgenticAI.openai.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.openai.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.openai.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40IiwidGFnIjoiMC45LjQtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9898",
+        "title": "TravelPlannerA2AServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

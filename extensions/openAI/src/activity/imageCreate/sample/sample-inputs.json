@@ -1,0 +1,106 @@
+{
+  "_comment": "Sample input payloads for the openai-image-create activity. Each top-level key is a scenario you can copy into a Flogo flow's input mapper or use with a test harness.",
+
+  "dalle2_minimal": {
+    "_description": "DALL\u00b7E 2, smallest valid request. Returns 1 URL.",
+    "prompt": "A cute baby sea otter floating on its back",
+    "model": "dall-e-2",
+    "numberOfImages": 1,
+    "size": "256x256",
+    "responseFormat": "url"
+  },
+
+  "dalle3_hd_vivid": {
+    "_description": "DALL\u00b7E 3 with HD quality and vivid style. Note n must be 1.",
+    "prompt": "An ultra-detailed cinematic photo of a snow leopard on a Himalayan ridge at sunrise",
+    "model": "dall-e-3",
+    "numberOfImages": 1,
+    "size": "1792x1024",
+    "quality": "hd",
+    "style": "vivid",
+    "responseFormat": "b64_json"
+  },
+
+  "gpt_image_transparent_png": {
+    "_description": "GPT image model producing a transparent PNG. Background=transparent requires outputFormat png or webp.",
+    "prompt": "A flat-design app icon of a paper airplane, centered, no shadow",
+    "model": "gpt-image-1",
+    "numberOfImages": 1,
+    "size": "1024x1024",
+    "quality": "high",
+    "outputFormat": "png",
+    "background": "transparent",
+    "moderation": "auto"
+  },
+
+  "gpt_image_compressed_webp": {
+    "_description": "GPT image model with WebP output and 80% compression. outputCompression only applies to webp/jpeg.",
+    "prompt": "A pastel watercolor of a coastal village at dusk",
+    "model": "gpt-image-1.5",
+    "numberOfImages": 1,
+    "size": "1536x1024",
+    "quality": "medium",
+    "outputFormat": "webp",
+    "outputCompression": 80,
+    "background": "auto"
+  },
+
+  "gpt_image_2_arbitrary_size": {
+    "_description": "gpt-image-2 supports arbitrary WxH (multiples of 16, AR 1:3-3:1, max 3840x2160).",
+    "prompt": "A wide cinematic landscape of glowing mushrooms in an enchanted forest",
+    "model": "gpt-image-2",
+    "numberOfImages": 1,
+    "size": "1536x864",
+    "quality": "high",
+    "outputFormat": "jpeg",
+    "outputCompression": 90
+  },
+
+  "user_tagged": {
+    "_description": "Same as dalle2_minimal but with an end-user identifier for abuse monitoring.",
+    "prompt": "A simple line drawing of a coffee cup",
+    "model": "dall-e-2",
+    "numberOfImages": 1,
+    "size": "512x512",
+    "responseFormat": "url",
+    "user": "end-user-12345"
+  },
+
+  "_invalid_examples": {
+    "_description": "These payloads are intentionally INVALID and will be rejected by validateInput. Useful for negative tests.",
+
+    "dalle3_n_too_large": {
+      "_why": "dall-e-3 requires n=1",
+      "prompt": "anything",
+      "model": "dall-e-3",
+      "numberOfImages": 2
+    },
+    "transparent_with_jpeg": {
+      "_why": "background=transparent requires outputFormat png or webp",
+      "prompt": "anything",
+      "model": "gpt-image-1",
+      "background": "transparent",
+      "outputFormat": "jpeg"
+    },
+    "response_and_output_format": {
+      "_why": "responseFormat and outputFormat are mutually exclusive",
+      "prompt": "anything",
+      "model": "dall-e-3",
+      "responseFormat": "url",
+      "outputFormat": "png"
+    },
+    "compression_with_png": {
+      "_why": "outputCompression only applies when outputFormat=webp|jpeg",
+      "prompt": "anything",
+      "model": "gpt-image-1",
+      "outputFormat": "png",
+      "outputCompression": 50
+    },
+    "gpt_image_2_bad_dimensions": {
+      "_why": "1500x864 is not divisible by 16",
+      "prompt": "anything",
+      "model": "gpt-image-2",
+      "size": "1500x864"
+    }
+  }
+}

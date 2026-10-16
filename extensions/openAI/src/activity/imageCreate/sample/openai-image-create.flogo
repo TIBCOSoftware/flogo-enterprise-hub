@@ -1,0 +1,244 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/sleep",
+    "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/imageCreate",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/tibco/flogo-general/src/app/General/trigger/startuphook",
+    "github.com/project-flogo/contrib/function/coerce",
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "openai-image-create",
+  "description": "",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#startuphook",
+      "name": "tibco-appstartup",
+      "description": "This trigger allows you to execute flows before other triggers in the application are started. This is useful in initializing application specific tasks.",
+      "settings": {},
+      "id": "AppStartupTrigger",
+      "handlers": [
+        {
+          "description": "",
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:Image_create"
+            }
+          },
+          "name": "Image_create"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:Image_create",
+      "data": {
+        "name": "Image create",
+        "description": "",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "Sleep",
+            "type": "label",
+            "label": "StartActivity to Sleep"
+          },
+          {
+            "id": 2,
+            "from": "Sleep",
+            "to": "ImageCreate",
+            "type": "label",
+            "label": "Sleep to ImageCreate"
+          },
+          {
+            "id": 3,
+            "from": "ImageCreate",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "ImageCreate to LogMessage"
+          },
+          {
+            "id": 4,
+            "from": "LogMessage",
+            "to": "WriteFile",
+            "type": "label",
+            "label": "LogMessage to WriteFile"
+          },
+          {
+            "id": 5,
+            "from": "WriteFile",
+            "to": "LogMessage1",
+            "type": "label",
+            "label": "WriteFile to LogMessage1"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "Sleep",
+            "name": "Sleep",
+            "description": "Simple sleep Activity",
+            "activity": {
+              "ref": "#sleep",
+              "input": {
+                "IntervalTypeSetting": "Millisecond",
+                "IntervalSetting": 10
+              }
+            }
+          },
+          {
+            "id": "ImageCreate",
+            "name": "ImageCreate",
+            "description": "Generates one or more images from a text prompt using OpenAI's image generation API (DALL·E 2, DALL·E 3, or GPT image models). Note: streaming and partial images are not supported by this activity.",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#imageCreate",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]",
+                "model": "dall-e-2",
+                "numberOfImages": 1,
+                "size": "512x512",
+                "quality": "",
+                "style": "",
+                "responseFormat": "b64_json",
+                "outputFormat": "",
+                "background": "",
+                "moderation": "",
+                "user": ""
+              },
+              "input": {
+                "prompt": "create me a picture of an alien in the mountains"
+              },
+              "schemas": {
+                "output": {
+                  "data": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"b64_json\":{\"type\":\"string\"},\"url\":{\"type\":\"string\"},\"revised_prompt\":{\"type\":\"string\"}}}}",
+                    "fe_metadata": "[{\"b64_json\":\"\",\"url\":\"\",\"revised_prompt\":\"\"}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "type": "iterator",
+            "settings": {
+              "iterate": "=$activity[ImageCreate].data",
+              "accumulate": false
+            },
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=coerce.toString($activity[ImageCreate])",
+                "logLevel": ""
+              }
+            }
+          },
+          {
+            "id": "WriteFile",
+            "name": "WriteFile",
+            "description": "This activity writes the content to a file",
+            "activity": {
+              "ref": "#write",
+              "input": {
+                "writeAs": "Binary",
+                "createNonExistingDir": true,
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "fileName": "output/picture.jpg",
+                    "overwrite": "=boolean.true()",
+                    "binaryContent": "=$activity[ImageCreate].data[0].b64_json"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"binaryContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"binaryContent\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"binaryContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"binaryContent\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage1",
+            "name": "LogMessage1",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Image stored as: \" ,$activity[WriteFile].output.fileMetadata.fullPath,\"/\" , $activity[WriteFile].output.fileMetadata.name)",
+                "logLevel": ""
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiU2xlZXAiOnsieCI6MTE3LCJ5IjoyMjR9LCJJbWFnZUNyZWF0ZSI6eyJ4IjoyNjcsInkiOjgzfSwiTG9nTWVzc2FnZSI6eyJ4Ijo0MzgsInkiOjE5OH0sIldyaXRlRmlsZSI6eyJ4Ijo2MTMsInkiOjg2fSwiTG9nTWVzc2FnZTEiOnsieCI6Nzk2LCJ5IjoyMDN9fQ==",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "OPENAI_API_ENDPOINT_URL",
+      "type": "string",
+      "value": "https://api.openai.com/v1"
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "type": "string",
+      "value": "REPLACE ME"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTEiLCJ0YWciOiIxLjYuMTEtYjAyIiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9USUJDT1NvZnR3YXJlL2Zsb2dvLWVudGVycHJpc2UtaHViL2V4dGVuc2lvbnMvb3BlbkFJIiwiaWQiOiJvcGVuQUkiLCJ2ZXJzaW9uIjoiMS4xLjAiLCJ0YWciOiIxLjEuMCIsIm5hbWUiOiJPcGVuQUkiLCJzM2xvY2F0aW9uIjoie1VTRVJJRH0vb3BlbkFJIiwiaXNVc2VyRXh0ZW5zaW9uIjp0cnVlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tZmlsZXMvc3JjL2FwcC9GaWxlIiwiaWQiOiJGaWxlIiwidmVyc2lvbiI6IjEuMC4wIiwidGFnIjoiMS4wLjAtYjE0IiwibmFtZSI6IkZpbGUiLCJzM2xvY2F0aW9uIjoiVGliY28vRmlsZSIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [],
+    "flogoVersion": "2.26.0"
+  }
+}

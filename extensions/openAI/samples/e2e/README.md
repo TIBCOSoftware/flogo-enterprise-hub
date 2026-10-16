@@ -226,4 +226,4 @@ To avoid lingering OpenAI resources / billing, use the helper scripts under [`bi
 
 ---
 
-For more information on the activities used in this sample, see [`../../readme.md`](../../readme.md).
+For more information on the activities used in this sample, see [`../../README.md`](../../README.md).

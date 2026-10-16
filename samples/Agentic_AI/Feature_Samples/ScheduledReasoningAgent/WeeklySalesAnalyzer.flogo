@@ -1,0 +1,994 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/llmclientactivity",
+    "github.com/tibco/flogo-files/src/app/File/activity/write",
+    "github.com/tibco/flogo-general/src/app/General/activity/sendmail",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/timer",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
+  ],
+  "name": "WeeklySalesAnalyzer",
+  "description": "Timer-triggered LLMClient orchestrator that fetches sales data from MCP server and generates weekly analysis reports.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#timer",
+      "name": "tibco-wi-timer",
+      "description": "Scheduled trigger — runs the sales analysis every Monday at 8am.",
+      "settings": {},
+      "id": "WeeklySchedule",
+      "handlers": [
+        {
+          "description": "Timer-triggered flow that fetches sales data via MCP and generates analysis report.",
+          "settings": {
+            "Scheduler Options": "Cron",
+            "Start Time": "",
+            "Repeating": true,
+            "Delayed Start": false,
+            "Time Interval": 1,
+            "Interval Unit": "Week",
+            "Cron Expression": "0 0 8 ? * MON"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:scheduled_analysis_flow"
+            }
+          },
+          "name": "scheduled_analysis_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "REST trigger for manually triggering the sales analysis.",
+      "settings": {
+        "port": 9196,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ManualTrigger",
+      "handlers": [
+        {
+          "description": "Manually triggered flow that fetches sales data via MCP and returns analysis report.",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/run-analysis",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:manual_analysis_flow"
+            },
+            "input": {
+              "body": "=$.body",
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"report\":{\"type\":\"string\"},\"html_report\":{\"type\":\"string\"},\"report_file\":{\"type\":\"string\"},\"triggered_by\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"report\":\"\",\"html_report\":\"\",\"report_file\":\"\",\"triggered_by\":\"\"}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "manual_analysis_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:scheduled_analysis_flow",
+      "data": {
+        "name": "scheduled_analysis_flow",
+        "description": "Timer-triggered flow that fetches sales data via MCP and generates analysis report.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "FetchSalesData",
+            "type": "label",
+            "label": "StartActivity to FetchSalesData"
+          },
+          {
+            "id": 2,
+            "from": "FetchSalesData",
+            "to": "AnalyzeAndReport",
+            "type": "label",
+            "label": "FetchSalesData to AnalyzeAndReport"
+          },
+          {
+            "id": 3,
+            "from": "AnalyzeAndReport",
+            "to": "FormatHTMLReport",
+            "type": "label",
+            "label": "AnalyzeAndReport to FormatHTMLReport"
+          },
+          {
+            "id": 4,
+            "from": "FormatHTMLReport",
+            "to": "SaveReport",
+            "type": "label",
+            "label": "FormatHTMLReport to SaveReport"
+          },
+          {
+            "id": 5,
+            "from": "SaveReport",
+            "to": "EmailReport",
+            "type": "label",
+            "label": "SaveReport to EmailReport"
+          },
+          {
+            "id": 6,
+            "from": "EmailReport",
+            "to": "LogReport",
+            "type": "label",
+            "label": "EmailReport to LogReport"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "FetchSalesData",
+            "name": "FetchSalesData",
+            "description": "LLMClient with MCP to fetch all sales data.",
+            "activity": {
+              "ref": "#llmclientactivity",
+              "settings": {
+                "responseType": "Text",
+                "remoteAgents": [],
+                "mcpServers": [
+                  "conn://a1b2c3d4-5678-9abc-def0-112233445566"
+                ],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10
+              },
+              "input": {
+                "systemPrompt": "=$property[\"LLMClient.dataFetchPrompt\"]",
+                "userPrompt": "Retrieve all available sales data for this week's performance analysis. Call all four data tools: get_weekly_sales_summary, get_team_performance, get_product_revenue, and get_regional_breakdown. Return the combined data.",
+                "conversationId": "",
+                "llmConfiguration": {
+                  "mapping": {
+                    "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                    "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                    "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                    "providerBaseUrl": "",
+                    "temperature": 0.2
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "llmConfiguration": {
+                    "type": "json",
+                    "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                    "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+                  },
+                  "mcpServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }"
+                  },
+                  "a2aServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "AnalyzeAndReport",
+            "name": "AnalyzeAndReport",
+            "description": "LLMClient to analyze sales data and generate report.",
+            "activity": {
+              "ref": "#llmclientactivity",
+              "settings": {
+                "responseType": "Text",
+                "remoteAgents": [],
+                "mcpServers": [],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10
+              },
+              "input": {
+                "systemPrompt": "=$property[\"LLMClient.analysisPrompt\"]",
+                "userPrompt": "=string.concat(\"Here is the latest weekly sales data. Generate the Weekly Sales Performance Report.\\n\\nData:\\n\", coerce.toString($activity[FetchSalesData].response))",
+                "conversationId": "",
+                "llmConfiguration": {
+                  "mapping": {
+                    "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                    "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                    "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                    "providerBaseUrl": "",
+                    "temperature": 0.5
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "llmConfiguration": {
+                    "type": "json",
+                    "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                    "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+                  },
+                  "mcpServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }"
+                  },
+                  "a2aServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "FormatHTMLReport",
+            "name": "FormatHTMLReport",
+            "description": "LLMClient to convert markdown report into styled HTML document.",
+            "activity": {
+              "ref": "#llmclientactivity",
+              "settings": {
+                "responseType": "Text",
+                "remoteAgents": [],
+                "mcpServers": [],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10
+              },
+              "input": {
+                "systemPrompt": "=$property[\"LLMClient.htmlFormatPrompt\"]",
+                "userPrompt": "=string.concat(\"Convert the following sales analysis report into a professional HTML document:\\n\\n\", coerce.toString($activity[AnalyzeAndReport].response))",
+                "conversationId": "",
+                "llmConfiguration": {
+                  "mapping": {
+                    "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                    "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                    "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                    "providerBaseUrl": "",
+                    "temperature": 0.3
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "llmConfiguration": {
+                    "type": "json",
+                    "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                    "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+                  },
+                  "mcpServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }"
+                  },
+                  "a2aServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "SaveReport",
+            "name": "SaveReport",
+            "description": "Write HTML report to file system.",
+            "activity": {
+              "ref": "#write",
+              "input": {
+                "writeAs": "Text",
+                "createNonExistingDir": true,
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "overwrite": true,
+                    "fileName": "=string.concat($property[\"Report.outputDir\"], \"/weekly-sales-report.html\")",
+                    "textContent": "=$activity[FormatHTMLReport].response"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "EmailReport",
+            "name": "EmailReport",
+            "description": "Send HTML report via email to stakeholders.",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sendmail",
+              "input": {
+                "Server": "=$property[\"Email.SMTP.Server\"]",
+                "Port": "=$property[\"Email.SMTP.Port\"]",
+                "authorizationType": "Basic",
+                "Username": "=$property[\"Email.SMTP.Username\"]",
+                "Password": "=$property[\"Email.SMTP.Password\"]",
+                "authorizationConn": "",
+                "Connection Security": "TLS",
+                "serverCertificate": "",
+                "message_content_type": "text/html",
+                "sender": "=$property[\"Email.sender\"]",
+                "recipients": "=$property[\"Email.recipients\"]",
+                "cc_recipients": "",
+                "bcc_recipients": "",
+                "reply_to": "",
+                "subject": "Weekly Sales Performance Report",
+                "message": "=$activity[FormatHTMLReport].response",
+                "attachments": {
+                  "mapping": [
+                    {
+                      "file": "=$activity[FormatHTMLReport].response",
+                      "filename": "weekly-sales-report.html",
+                      "base64EncodedContents": false
+                    }
+                  ]
+                }
+              },
+              "schemas": {
+                "input": {
+                  "attachments": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogReport",
+            "name": "LogReport",
+            "description": "Log the generated report.",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"[WeeklySalesAnalyzer] Report generated, saved, and emailed. File: \", coerce.toString($activity[SaveReport].output.fileMetadata.fullPath))",
+                "logLevel": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMwLCJ5IjoxMDh9LCJGZXRjaFNhbGVzRGF0YSI6eyJ4IjoxODAsInkiOjEwMH0sIkFuYWx5emVBbmRSZXBvcnQiOnsieCI6MzgwLCJ5IjoxMDB9LCJGb3JtYXRIVE1MUmVwb3J0Ijp7IngiOjU4MCwieSI6MTAwfSwiU2F2ZVJlcG9ydCI6eyJ4Ijo3ODAsInkiOjk5fSwiRW1haWxSZXBvcnQiOnsieCI6OTgwLCJ5IjoxMDB9LCJMb2dSZXBvcnQiOnsieCI6MTE4MCwieSI6MTAwfX0=",
+        "metadata": {
+          "input": [],
+          "output": [],
+          "fe_metadata": {}
+        }
+      }
+    },
+    {
+      "id": "flow:manual_analysis_flow",
+      "data": {
+        "name": "manual_analysis_flow",
+        "description": "Manually triggered flow that fetches sales data via MCP and returns analysis report.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "FetchSalesData",
+            "type": "label",
+            "label": "StartActivity to FetchSalesData"
+          },
+          {
+            "id": 2,
+            "from": "FetchSalesData",
+            "to": "AnalyzeAndReport",
+            "type": "label",
+            "label": "FetchSalesData to AnalyzeAndReport"
+          },
+          {
+            "id": 3,
+            "from": "AnalyzeAndReport",
+            "to": "FormatHTMLReport",
+            "type": "label",
+            "label": "AnalyzeAndReport to FormatHTMLReport"
+          },
+          {
+            "id": 4,
+            "from": "FormatHTMLReport",
+            "to": "SaveReport",
+            "type": "label",
+            "label": "FormatHTMLReport to SaveReport"
+          },
+          {
+            "id": 5,
+            "from": "SaveReport",
+            "to": "EmailReport",
+            "type": "label",
+            "label": "SaveReport to EmailReport"
+          },
+          {
+            "id": 6,
+            "from": "EmailReport",
+            "to": "ReturnReport",
+            "type": "label",
+            "label": "EmailReport to ReturnReport"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "FetchSalesData",
+            "name": "FetchSalesData",
+            "description": "LLMClient with MCP to fetch all sales data.",
+            "activity": {
+              "ref": "#llmclientactivity",
+              "settings": {
+                "responseType": "Text",
+                "remoteAgents": [],
+                "mcpServers": [
+                  "conn://a1b2c3d4-5678-9abc-def0-112233445566"
+                ],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10
+              },
+              "input": {
+                "systemPrompt": "=$property[\"LLMClient.dataFetchPrompt\"]",
+                "userPrompt": "Retrieve all available sales data for this week's performance analysis. Call all four data tools: get_weekly_sales_summary, get_team_performance, get_product_revenue, and get_regional_breakdown. Return the combined data.",
+                "conversationId": "",
+                "llmConfiguration": {
+                  "mapping": {
+                    "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                    "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                    "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                    "providerBaseUrl": "",
+                    "temperature": 0.2
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "llmConfiguration": {
+                    "type": "json",
+                    "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                    "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+                  },
+                  "mcpServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }"
+                  },
+                  "a2aServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "AnalyzeAndReport",
+            "name": "AnalyzeAndReport",
+            "description": "LLMClient to analyze sales data and generate report.",
+            "activity": {
+              "ref": "#llmclientactivity",
+              "settings": {
+                "responseType": "Text",
+                "remoteAgents": [],
+                "mcpServers": [],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10
+              },
+              "input": {
+                "systemPrompt": "=$property[\"LLMClient.analysisPrompt\"]",
+                "userPrompt": "=string.concat(\"Here is the latest weekly sales data. Generate the Weekly Sales Performance Report.\\n\\nData:\\n\", coerce.toString($activity[FetchSalesData].response))",
+                "conversationId": "",
+                "llmConfiguration": {
+                  "mapping": {
+                    "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                    "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                    "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                    "providerBaseUrl": "",
+                    "temperature": 0.5
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "llmConfiguration": {
+                    "type": "json",
+                    "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                    "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+                  },
+                  "mcpServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }"
+                  },
+                  "a2aServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "FormatHTMLReport",
+            "name": "FormatHTMLReport",
+            "description": "LLMClient to convert markdown report into styled HTML document.",
+            "activity": {
+              "ref": "#llmclientactivity",
+              "settings": {
+                "responseType": "Text",
+                "remoteAgents": [],
+                "mcpServers": [],
+                "conversationStoreType": "None",
+                "memoryMaxSize": 10
+              },
+              "input": {
+                "systemPrompt": "=$property[\"LLMClient.htmlFormatPrompt\"]",
+                "userPrompt": "=string.concat(\"Convert the following sales analysis report into a professional HTML document:\\n\\n\", coerce.toString($activity[AnalyzeAndReport].response))",
+                "conversationId": "",
+                "llmConfiguration": {
+                  "mapping": {
+                    "provider": "=$property[\"LLMClient.openai.LLM_Provider\"]",
+                    "apiKey": "=$property[\"LLMClient.APIKey\"]",
+                    "model": "=$property[\"LLMClient.openai.LLM_Model\"]",
+                    "providerBaseUrl": "",
+                    "temperature": 0.3
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "llmConfiguration": {
+                    "type": "json",
+                    "value": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }",
+                    "fe_metadata": "{\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n                \"provider\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"OpenAI\", \"Gemini\", \"Anthropic\", \"Ollama\", \"vLLM\", \"AzureOpenAI\"]\n                },\n                \"anthropicProviderType\": {\n                    \"type\": \"string\",\n                    \"enum\": [\"Default\", \"Amazon Bedrock\"]\n                },\n                \"apiKey\": {\n                    \"type\": \"string\"\n                },\n                \"model\": {\n                    \"type\": \"string\"\n                },\n                \"providerBaseUrl\": {\n                    \"type\": \"string\"\n                },\n                \"temperature\": {\n                    \"type\": \"number\",\n                   \"enum\": [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0]\n                },\n                \"reasoningEffort\": {\n                    \"type\": \"string\"\n                },\n                \"azureDeployment\": {\n                    \"type\": \"string\"\n                },\n                \"azureApiVersion\": {\n                    \"type\": \"string\"\n                },\n                \"azureRegion\": {\n                    \"type\": \"string\"\n                },\n                \"azureResourceName\": {\n                    \"type\": \"string\"\n                }\n            },\n            \"required\": [\n                \"model\",\n                \"provider\"\n            ],\n            \"title\": \"LLM Config Schema\"\n        }"
+                  },
+                  "mcpServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"http\"]\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"httpTransportType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"streamable\", \"sse\"]\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"MCP Server Config Schema\"\r\n        }"
+                  },
+                  "a2aServerConfigs": {
+                    "type": "json",
+                    "value": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }",
+                    "fe_metadata": "{\r\n            \"type\": \"array\",\r\n            \"items\": {\r\n                \"type\": \"object\",\r\n                \"properties\": {\r\n                    \"name\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"serverUrl\": {\r\n                        \"type\": \"string\"\r\n                    },\r\n                    \"authType\": {\r\n                        \"type\": \"string\",\r\n                        \"enum\": [\"None\", \"Static Token\"]\r\n                    },\r\n                    \"authToken\": {\r\n                        \"type\": \"string\"\r\n                    }\r\n                },\r\n                \"required\": [\r\n                    \"name\",\r\n                    \"serverUrl\"\r\n                ]\r\n            },\r\n            \"title\": \"A2A Server Config Schema\"\r\n        }"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "SaveReport",
+            "name": "SaveReport",
+            "description": "Write HTML report to file system.",
+            "activity": {
+              "ref": "#write",
+              "input": {
+                "writeAs": "Text",
+                "createNonExistingDir": true,
+                "compress": "None",
+                "input": {
+                  "mapping": {
+                    "overwrite": true,
+                    "fileName": "=string.concat($property[\"Report.outputDir\"], \"/weekly-sales-report.html\")",
+                    "textContent": "=$activity[FormatHTMLReport].response"
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileName\":{\"type\":\"string\"},\"overwrite\":{\"type\":\"boolean\"},\"textContent\":{\"type\":\"string\"}},\"required\":[\"fileName\",\"overwrite\",\"textContent\"],\"type\":\"object\"}"
+                  }
+                },
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}",
+                    "fe_metadata": "{\"properties\":{\"fileMetadata\":{\"properties\":{\"fullPath\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"size\":{\"type\":\"number\"},\"mode\":{\"type\":\"string\"},\"modTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"isDir\":{\"type\":\"boolean\"}},\"type\":\"object\"}},\"type\":\"object\"}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "EmailReport",
+            "name": "EmailReport",
+            "description": "Send HTML report via email to stakeholders.",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#sendmail",
+              "input": {
+                "Server": "=$property[\"Email.SMTP.Server\"]",
+                "Port": "=$property[\"Email.SMTP.Port\"]",
+                "authorizationType": "Basic",
+                "Username": "=$property[\"Email.SMTP.Username\"]",
+                "Password": "=$property[\"Email.SMTP.Password\"]",
+                "authorizationConn": "",
+                "Connection Security": "TLS",
+                "serverCertificate": "",
+                "message_content_type": "text/html",
+                "sender": "=$property[\"Email.sender\"]",
+                "recipients": "=$property[\"Email.recipients\"]",
+                "cc_recipients": "",
+                "bcc_recipients": "",
+                "reply_to": "",
+                "subject": "Weekly Sales Performance Report",
+                "message": "=$activity[FormatHTMLReport].response",
+                "attachments": {
+                  "mapping": [
+                    {
+                      "file": "=$activity[FormatHTMLReport].response",
+                      "filename": "weekly-sales-report.html",
+                      "base64EncodedContents": false
+                    }
+                  ]
+                }
+              },
+              "schemas": {
+                "input": {
+                  "attachments": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"items\":{\"properties\":{\"file\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"base64EncodedContents\":{\"type\":\"boolean\"}},\"required\":[\"file\"],\"type\":\"object\"},\"type\":\"array\"}"
+                  },
+                  "headers": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReturnReport",
+            "name": "ReturnReport",
+            "description": "Returns the analysis report as HTTP 200 JSON.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "report": "=$activity[AnalyzeAndReport].response",
+                      "html_report": "=$activity[FormatHTMLReport].response",
+                      "report_file": "=$activity[SaveReport].output.fileMetadata.fullPath",
+                      "triggered_by": "manual"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMwLCJ5IjoxMDh9LCJGZXRjaFNhbGVzRGF0YSI6eyJ4IjoxODAsInkiOjEwMH0sIkFuYWx5emVBbmRSZXBvcnQiOnsieCI6MzgwLCJ5IjoxMDB9LCJGb3JtYXRIVE1MUmVwb3J0Ijp7IngiOjU4MCwieSI6MTAwfSwiU2F2ZVJlcG9ydCI6eyJ4Ijo3ODAsInkiOjEwMH0sIkVtYWlsUmVwb3J0Ijp7IngiOjk4MCwieSI6MTAwfSwiUmV0dXJuUmVwb3J0Ijp7IngiOjExODAsInkiOjEwMH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object"
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"report\":{\"type\":\"string\"},\"html_report\":{\"type\":\"string\"},\"report_file\":{\"type\":\"string\"},\"triggered_by\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ManualTrigger\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\": \"object\", \"title\": \"Inputs\", \"properties\": {\"code\": {\"type\": \"integer\"}, \"data\": {\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"properties\": {\"report\": {\"type\": \"string\"}, \"html_report\": {\"type\": \"string\"}, \"report_file\": {\"type\": \"string\"}, \"triggered_by\": {\"type\": \"string\"}}}}, \"required\": []}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "LLMClient.dataFetchPrompt",
+      "type": "string",
+      "value": "You are a data retrieval assistant. Your job is to gather comprehensive sales data for weekly analysis.\n\nUse the available MCP tools to retrieve:\n1. The weekly sales summary (total revenue, total orders, average order value)\n2. Team performance data (sales per team member)\n3. Product revenue breakdown (revenue per product category)\n4. Regional sales breakdown (performance by region)\n\nCall ALL FOUR tools to get complete data. Combine the results into a single, well-structured JSON summary. Do not analyze or interpret the data — just collect and organize it."
+    },
+    {
+      "name": "LLMClient.analysisPrompt",
+      "type": "string",
+      "value": "You are a senior sales performance analyst. You have received the latest weekly sales data. Produce a comprehensive Weekly Sales Performance Report with the following sections:\n\n1. **Executive Summary** (2-3 sentences highlighting the most important takeaway)\n2. **Key Metrics** — present as a markdown table: Total Revenue, Total Orders, Average Order Value, Top Region, Top Product Category\n3. **Team Performance Analysis** — Rank by revenue, highlight top performer and underperformers\n4. **Product Revenue Insights** — Revenue by category with percentage of total, identify growth and declining categories\n5. **Regional Analysis** — Revenue by region with quarter-over-quarter trend, flag regions above or below target\n6. **Actionable Recommendations** (3-5 bullet points)\n7. **Risk Flags** — Any concerning patterns\n\nFormat the entire report in clean markdown. Use tables where appropriate. Be specific — cite actual numbers from the data."
+    },
+    {
+      "name": "LLMClient.openai.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "LLMClient.openai.LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "LLMClient.APIKey",
+      "type": "string",
+      "value": "sk-REPLACE-WITH-YOUR-OPENAI-KEY"
+    },
+    {
+      "name": "LLMClient.htmlFormatPrompt",
+      "type": "string",
+      "value": "You are an HTML report formatter. Convert the provided sales analysis report into a professional, visually appealing HTML document.\n\nRequirements:\n1. Create a complete HTML5 document with all styles inline (no external CSS)\n2. Use a clean, professional color scheme: navy headers (#1a365d), light gray background (#f7fafc), white content cards\n3. Convert all markdown tables into styled HTML tables with alternating row colors\n4. Add a header banner with the report title and generation date\n5. Use appropriate icons or color indicators for metrics:\n   - Green (#38a169) for positive trends/growth\n   - Red (#e53e3e) for negative trends/risks\n   - Blue (#3182ce) for neutral metrics\n6. Format numbers with proper separators and currency symbols\n7. Add a professional footer with \"Generated by TIBCO Flogo Scheduled Reasoning Agent\"\n8. Make the document print-friendly (suitable for Save as PDF)\n9. Use responsive design that looks good at any width\n10. Wrap each report section in a card-style container with subtle shadows\n\nOutput ONLY the complete HTML document, starting with <!DOCTYPE html> and ending with </html>. No markdown, no explanation."
+    },
+    {
+      "name": "Report.outputDir",
+      "type": "string",
+      "value": "./reports"
+    },
+    {
+      "name": "Email.SMTP.Server",
+      "type": "string",
+      "value": "smtp.gmail.com"
+    },
+    {
+      "name": "Email.SMTP.Port",
+      "type": "float64",
+      "value": 587
+    },
+    {
+      "name": "Email.SMTP.Username",
+      "type": "string",
+      "value": "sender@example.com"
+    },
+    {
+      "name": "Email.sender",
+      "type": "string",
+      "value": "sender@example.com"
+    },
+    {
+      "name": "Email.recipients",
+      "type": "string",
+      "value": "recipient@example.com"
+    },
+    {
+      "name": "Email.SMTP.Password",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    }
+  ],
+  "connections": {
+    "a1b2c3d4-5678-9abc-def0-112233445566": {
+      "id": "a1b2c3d4-5678-9abc-def0-112233445566",
+      "name": "SalesDataMCPServer",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "SalesDataMCPServer",
+        "description": "Sales Data MCP Server",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9620/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTYiLCJ0YWciOiIxLjYuMTYtYjA1IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40IiwidGFnIjoiMC45LjQtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3RpYmNvL2Zsb2dvLWZpbGVzL3NyYy9hcHAvRmlsZSIsImlkIjoiRmlsZSIsInZlcnNpb24iOiIxLjAuMCIsInRhZyI6IjEuMC4wLWIxNCIsIm5hbWUiOiJGaWxlIiwiczNsb2NhdGlvbiI6IlRpYmNvL0ZpbGUiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfV0=",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9196",
+        "spec": {
+          "name": "WeeklySalesAnalyzer",
+          "version": "1.0.0"
+        },
+        "title": "ManualTrigger",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "WeeklySalesAnalyzer",
+            "version": "1.0.0",
+            "description": "REST trigger for manually triggering the sales analysis."
+          },
+          "paths": {
+            "/run-analysis": {
+              "post": {
+                "summary": "manual_analysis_flow",
+                "operationId": "post_run-analysis",
+                "parameters": [
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema2"
+                    }
+                  }
+                },
+                "description": "Manually triggered flow that fetches sales data via MCP and returns analysis report.",
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {}
+            },
+            "schema2": {
+              "type": "object",
+              "properties": {
+                "report": {
+                  "type": "string"
+                },
+                "html_report": {
+                  "type": "string"
+                },
+                "report_file": {
+                  "type": "string"
+                },
+                "triggered_by": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

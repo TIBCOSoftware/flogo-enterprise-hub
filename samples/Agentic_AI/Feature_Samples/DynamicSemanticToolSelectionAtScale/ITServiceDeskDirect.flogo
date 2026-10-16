@@ -1,0 +1,412 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/agentactivity",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/mcpserverconfig"
+  ],
+  "name": "ITServiceDeskDirect",
+  "description": "IT Service Desk agent with 150 tools — no tool filtering. For comparison with ITServiceDeskOrchestrator.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "REST trigger for IT service desk requests (direct, no filtering).",
+      "settings": {
+        "port": 9197,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "Process service request directly via AI Agent with all 150 tools.",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/service-request",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:service_request_flow"
+            },
+            "input": {
+              "body": "=$.body",
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"object\",\"properties\":{}}}}",
+                "fe_metadata": "{\"result\":{}}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"request\":\"\",\"employee_id\":\"\"}"
+              }
+            }
+          },
+          "name": "service_request_flow"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:service_request_flow",
+      "data": {
+        "name": "service_request_flow",
+        "description": "Process service request directly via AI Agent with all 150 tools.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ProcessAIAgent",
+            "type": "label",
+            "label": "StartActivity to ProcessAIAgent"
+          },
+          {
+            "id": 2,
+            "from": "ProcessAIAgent",
+            "to": "ReturnResult",
+            "type": "label",
+            "label": "ProcessAIAgent to ReturnResult"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ProcessAIAgent",
+            "name": "ProcessAIAgent",
+            "description": "AI Agent with all 150 tools — no pre-filtering.",
+            "activity": {
+              "ref": "#agentactivity",
+              "settings": {
+                "llmProviderConnection": "conn://baf26914-e8b1-4c3c-9f34-d9f703eefeef",
+                "model": "=$property[\"AgenticAI.OpenAI.LLM_Model\"]",
+                "reasoning": "",
+                "temperature": 0.7,
+                "enableGuardrails": false,
+                "rateLimit": 25,
+                "tokenLimit": 2048,
+                "redactSensitiveData": false,
+                "responseType": "Text",
+                "agentHandoffs": "",
+                "remoteAgents": [],
+                "mcpServers": [
+                  "conn://d1e2f3a4-b5c6-7890-d1e2-f3a4b5c67890",
+                  "conn://e2f3a4b5-c6d7-8901-e2f3-a4b5c6d78901",
+                  "conn://f3a4b5c6-d7e8-9012-f3a4-b5c6d7e89012"
+                ],
+                "conversationStoreType": "Memory",
+                "memoryMaxSize": 10,
+                "systemPrompt": "=$property[\"AgenticAI.systemPrompt\"]"
+              },
+              "input": {
+                "userPrompt": "=string.concat(\"Employee ID: \", coerce.toString($flow.body.employee_id), \"\\nRequest: \", coerce.toString($flow.body.request))",
+                "conversationId": "=$flow.body.employee_id"
+              },
+              "schemas": {
+                "input": {
+                  "filteredToolNames": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReturnResult",
+            "name": "ReturnResult",
+            "description": "Returns the LLM response as HTTP 200 JSON.",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "result": "=$activity[ProcessAIAgent].response"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjMwLCJ5IjoxMDh9LCJQcm9jZXNzQUlBZ2VudCI6eyJ4IjoyMDksInkiOjEwMH0sIlJldHVyblJlc3VsdCI6eyJ4Ijo0MjQsInkiOjEwNH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"result\":{\"type\":\"object\",\"properties\":{}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"request\":{\"type\":\"string\"},\"employee_id\":{\"type\":\"string\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"object\",\"properties\":{}}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "AgenticAI.OpenAI.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAI.API_Key",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "AgenticAI.OpenAI.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "AgenticAI.systemPrompt",
+      "type": "string",
+      "value": "You are an Enterprise IT Service Desk assistant. Use the available tools to fulfill the user's request.\n\nBehavior Rules:\n- Call the appropriate tools to resolve the request. You may call multiple tools if needed.\n- Always include required parameters like employee_id when calling tools.\n- Present results clearly using markdown formatting with tables where appropriate.\n- If a request is ambiguous, ask for clarification before calling a tool.\n- After resolving a request, briefly suggest related actions the user might want to take."
+    },
+    {
+      "name": "AgenticAI.OpenAI.LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    }
+  ],
+  "connections": {
+    "baf26914-e8b1-4c3c-9f34-d9f703eefeef": {
+      "id": "baf26914-e8b1-4c3c-9f34-d9f703eefeef",
+      "name": "OpenAI",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "OpenAI",
+        "description": "OpenAI",
+        "llmProvider": "=$property[\"AgenticAI.OpenAI.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAI.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAI.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    },
+    "d1e2f3a4-b5c6-7890-d1e2-f3a4b5c67890": {
+      "id": "d1e2f3a4-b5c6-7890-d1e2-f3a4b5c67890",
+      "name": "IdentityAccessMCPServer",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "IdentityAccessMCPServer",
+        "description": "Identity & Access Management MCP Server",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9610/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": ""
+      }
+    },
+    "e2f3a4b5-c6d7-8901-e2f3-a4b5c6d78901": {
+      "id": "e2f3a4b5-c6d7-8901-e2f3-a4b5c6d78901",
+      "name": "InfraMonitoringMCPServer",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "InfraMonitoringMCPServer",
+        "description": "Infrastructure Monitoring MCP Server",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9611/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": ""
+      }
+    },
+    "f3a4b5c6-d7e8-9012-f3a4-b5c6d7e89012": {
+      "id": "f3a4b5c6-d7e8-9012-f3a4-b5c6d7e89012",
+      "name": "TicketingMCPServer",
+      "ref": "#mcpserverconfig",
+      "isGlobal": false,
+      "settings": {
+        "name": "TicketingMCPServer",
+        "description": "IT Ticketing MCP Server",
+        "serverType": "http",
+        "serverUrl": "http://localhost:9612/mcp",
+        "httpTransportType": "streamable",
+        "authType": "None",
+        "authToken": "",
+        "selectedTools": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTYiLCJ0YWciOiIxLjYuMTYtYjA1IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1haS1hZ2VudC9zcmMvYXBwL0FnZW50aWNBSSIsImlkIjoiQWdlbnRpY0FJIiwidmVyc2lvbiI6IjAuOS40IiwidGFnIjoiMC45LjQtYjAyIiwibmFtZSI6IkFnZW50aWMgQUkgKFRlY2ggUHJldmlldykiLCJzM2xvY2F0aW9uIjoiVGliY28vQWdlbnRpY0FJIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX1d",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9197",
+        "spec": {
+          "name": "ITServiceDeskDirect",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "swagger": "2.0",
+          "info": {
+            "title": "ITServiceDeskDirect",
+            "version": "1.0.0",
+            "description": "REST trigger for IT service desk requests (direct, no filtering)."
+          },
+          "paths": {
+            "/service-request": {
+              "post": {
+                "summary": "service_request_flow",
+                "operationId": "post_service-request",
+                "parameters": [
+                  {
+                    "name": "body",
+                    "in": "body",
+                    "description": "request body parameter",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/schema1"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Rest Response",
+                    "schema": {
+                      "$ref": "#/definitions/schema2"
+                    }
+                  }
+                },
+                "description": "Process service request directly via AI Agent with all 150 tools.",
+                "consumes": [
+                  "application/json"
+                ]
+              }
+            }
+          },
+          "definitions": {
+            "schema1": {
+              "type": "object",
+              "properties": {
+                "request": {
+                  "type": "string"
+                },
+                "employee_id": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema2": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

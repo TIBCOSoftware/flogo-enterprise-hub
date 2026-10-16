@@ -1,0 +1,188 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Bookstore API",
+    "description": "API for managing books in the bookstore",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/books/{isbn}": {
+      "get": {
+        "summary": "Get a book by ISBN",
+        "description": "Returns a single book matching the given ISBN",
+        "operationId": "getBookByIsbn",
+        "parameters": [
+          {
+            "name": "isbn",
+            "in": "path",
+            "required": true,
+            "description": "The ISBN of the book to retrieve",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Book found successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                },
+                "example": {
+                  "isbn": "1451648537",
+                  "name": "Steve Jobs",
+                  "description": "Biography of Apple Co-Founder Steve Jobs",
+                  "authorName": "Walter Isaacson",
+                  "releaseDate": "2012-10-24",
+                  "vintage": "false",
+                  "signed": "false",
+                  "price": "21.00"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Book not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/books": {
+      "post": {
+        "summary": "Add a new book",
+        "description": "Creates a new book entry in the bookstore",
+        "operationId": "addBook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Book"
+              },
+              "example": {
+                "isbn": "0385537859",
+                "name": "Inferno",
+                "description": "Robert Langdon returns in Dan Brown latest fast paced action thriller",
+                "authorName": "Dan Brown",
+                "releaseDate": "2013-05-14",
+                "vintage": "false",
+                "signed": "true",
+                "price": "14.09"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Book created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookCreatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Book": {
+        "type": "object",
+        "required": ["isbn", "name", "authorName", "price"],
+        "properties": {
+          "isbn": {
+            "type": "string",
+            "description": "International Standard Book Number",
+            "example": "1451648537"
+          },
+          "name": {
+            "type": "string",
+            "description": "Title of the book",
+            "example": "Steve Jobs"
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of the book",
+            "example": "Biography of Apple Co-Founder Steve Jobs"
+          },
+          "authorName": {
+            "type": "string",
+            "description": "Full name of the author",
+            "example": "Walter Isaacson"
+          },
+          "releaseDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Original release date of the book (YYYY-MM-DD)",
+            "example": "2012-10-24"
+          },
+          "vintage": {
+            "type": "string",
+            "enum": ["true", "false"],
+            "description": "Whether the book is a vintage edition",
+            "example": "false"
+          },
+          "signed": {
+            "type": "string",
+            "enum": ["true", "false"],
+            "description": "Whether the book is signed by the author",
+            "example": "false"
+          },
+          "price": {
+            "type": "string",
+            "description": "Price of the book in USD",
+            "example": "21.00"
+          }
+        }
+      },
+      "BookCreatedResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Book added successfully"
+          },
+          "isbn": {
+            "type": "string",
+            "example": "0385537859"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Book not found"
+          },
+          "code": {
+            "type": "integer",
+            "example": 404
+          }
+        }
+      }
+    }
+  }
+}

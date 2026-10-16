@@ -4,6 +4,8 @@ description: A command line tool to build executables for TIBCO Flogo Integratio
 user-invocable: true
 ---
 
+> **Preflight (only needed when building):** run `flogobuild version && flogobuild list-context && go version` first (see AGENT.md → Prerequisites and preflight, or `preflight.py --need build`). Designing apps doesn't need any of this. `flogobuild` (Flogo App Build CLI) is downloaded from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (not bundled in the VS Code extension), and building Flogo apps requires the Go runtime ([go.dev/dl](https://go.dev/dl/)); if no context is listed, create one with `flogobuild create-context -n <name-without-dots> -v <path-to-vsix> --set-default`.
+
 
 ```
 flogobuild                  
@@ -61,4 +63,4 @@ Global Flags:
 --verbose   Enable verbose mode for additional output
 ```
 
-> **Build context:** Use the build context configured for your Flogo version. List available contexts with `flogobuild list-context`. The context name typically follows the pattern `flogo-<version>-<build>` (e.g. `flogo-2.26.0-1789`). Set this in your project's `CLAUDE.md` so the agent uses the right one.
+> **Build context:** Use the build context configured for your Flogo version. List available contexts with `flogobuild list-context`. The context name typically follows the pattern `flogo-<version>-<build>` (e.g. `flogo-2.26.0-1789`). Set this as `FLOGOBUILD_CONTEXT_NAME` in `config.md` so the agent uses the right one.

@@ -1,6 +1,6 @@
 # Flogo Skill Library
 
-A library of **skills for AI coding agents** (such as **Claude Code**) to design, build, test, and deploy TIBCO Flogo integration applications. Drop these skills into the `.claude/skills/` directory of any project and the agent will use them to drive the Flogo, build, and platform CLIs end-to-end.
+A library of **skills for AI coding agents** to design, build, test, and deploy TIBCO Flogo integration applications. The skills are plain Markdown instruction files, so they work with any agentic coding assistant that supports skills — including **Anthropic Claude / Claude Code**, **GitHub Copilot**, and **AWS Kiro**. Add them to your project (e.g. under `.claude/skills/`) and the assistant uses them to drive the Flogo design, build, and platform CLIs end-to-end.
 
 ---
 
@@ -26,16 +26,145 @@ user-invocable: true
 
 ## What's in this Library
 
-The library contains **6 skills** that cover the full Flogo development lifecycle — from designing a flow, to building an executable, to deploying it on the TIBCO Platform.
+The library contains **9 skills** that cover the full Flogo development lifecycle — from designing a flow, to mapping and testing it, to building an executable, to deploying it on the TIBCO Platform, and up to scaffolding complete Agentic AI use cases.
 
 | Skill | Type | Purpose |
 |---|---|---|
 | **fda** | CLI reference | Full reference for the **Flogo Design Assistant** CLI — every task to create or modify a `.flogo` file (flows, activities, triggers, schemas, properties, tests). |
+| **fda-mapping** | CLI reference | Focused reference for **building, inspecting, and validating Flogo mappings** with `fda` — the `input.mapping` shape, the four source kinds (`$flowctx` / `$property` / `$activity` / `$loop`), function calls, and `@foreach` loops. |
 | **flogobuild** | CLI reference | Reference for **building executables** and TIBCO Platform deployment artifacts from `.flogo` files. |
 | **tibcop** | CLI reference | Reference for the **TIBCO Platform CLI** — manage builds, deploy, scale, and inspect Flogo applications on a dataplane. |
 | **flogo-deploy** | Recipe | End-to-end recipe to **deploy a `.flogo` app to a TIBCO Platform dataplane** (build → values → deploy → scale). |
+| **flogo-unit-testing** | Recipe | Recipe to **create and run unit tests for Flogo apps** — test files, test cases with flow inputs, assertions on flow outputs, and test execution with result verification. |
 | **mapping-from-excel** | Recipe | Recipe to **build a Flogo flow from an Excel mapping spec** — input fields, output fields, and per-field mapping rules. |
 | **rest-to-database-app** | Recipe | Recipe to **scaffold a REST API Flogo app that queries a database** (REST trigger → log → DB query → reply). |
+| **agentic-ai-use-case-builder** | Use-case builder | Build a **governed-by-default Agentic AI use case for any vertical** — an MCP Server (scoped reads + guarded writes) + a read-only A2A reasoning-agents app + a WebSocket AI Orchestrator, backed by PostgreSQL, modeled on the reference use cases under `samples/Agentic_AI/`. It passes the **decision framework** first (agent vs. deterministic vs. human-owned), enforces identity, scoping, prices and state changes **in SQL** (scoped reads, guarded writes, two-step confirm, routed review cases), supports **two build methods** (**from scratch via the `fda` CLI** — recommended default — or **cloning an existing reference app**), and proves it with a **4-step test ladder** ending in a real chat that includes a **prompt-injection attempt** (a user message that tries to talk the agent past its rules — e.g. "ignore your rules and do X" — which fails because the rules live in SQL, not the prompt). Worked examples: [Retail Banking Assistant](../samples/Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) and [Telecom — Mobile Billing & Spend Control](../samples/Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) (all 14 are under [samples/Agentic_AI/Industry_Use_Cases/](../samples/Agentic_AI/Industry_Use_Cases/)). |
+
+---
+
+## The Skills in Detail
+
+Each skill below lists **what it does**, **how to invoke it**, a **template prompt** (fill in the `<placeholders>`), and a couple of **example prompts** you can paste as-is. You rarely have to name a skill — describing the task in plain language is enough for the agent to pick the right one (see [Do the skills load automatically?](#do-the-skills-load-automatically)).
+
+### CLI references
+
+These are the command references the agent leans on. You'll usually trigger them indirectly (a recipe skill defers to them), but you can also ask for a single CLI action directly.
+
+#### `fda` — Flogo Design Assistant CLI &nbsp;<sub>(skill identifier: `flogo-design-assistant`)</sub>
+
+- **What it does:** The full command reference for creating and modifying `.flogo` files — projects, flows, triggers, activities, connections, schemas, app properties, and mappings. Almost every other skill defers to this one for the underlying `fda` commands.
+- **How to invoke it:** Describe a `.flogo` structural change in natural language and the agent pulls this reference in automatically. You rarely call it on its own.
+- **Template prompt:**
+  > *"Using `fda`, add a `<activity type>` activity to the `<FlowName>` flow in `<app>.flogo` and wire `<source>` into `<target field>`."*
+- **Example prompts:**
+  > *"Add a PostgreSQL query activity to the `getOrders` flow in `orders-api.flogo` and connect it to the `OrdersDB` connection."*
+  >
+  > *"Add an app property `LLM.ApiKey` of type password to `assistant.flogo`."*
+
+#### `fda-mapping` — Flogo mapping reference
+
+- **What it does:** Focused reference for building, inspecting, and validating Flogo mappings — the `input.mapping` shape, the four source kinds (`$flowctx` / `$property` / `$activity` / `$loop`), qualified function calls, and `@foreach` loops — plus the `mm` / `sms` / `cm` commands and the "check before build" gate.
+- **How to invoke it:** Ask to map, fix, or validate fields in an app.
+- **Template prompt:**
+  > *"Map `<source field>` to `<target field>` in the `<MapperName>` mapper of `<app>.flogo`, then validate all mappings."*
+- **Example prompts:**
+  > *"Validate the mappings in `customer-api.flogo` and fix any unresolved mapper fields."*
+  >
+  > *"In `orders.flogo`, map each item of `$activity[Query].output.records` into the response array with a `@foreach` loop."*
+
+#### `flogobuild` — Flogo build CLI reference
+
+- **What it does:** Reference for building runnable executables (and TIBCO Platform deployment artifacts) from `.flogo` files, plus running a built app locally to inspect its logs.
+- **How to invoke it:** Ask to build an app or run it locally.
+- **Template prompt:**
+  > *"Build `<app>.flogo` with the configured build context and run it locally for 5 seconds, then show me the logs."*
+- **Example prompts:**
+  > *"Build `customer-api.flogo` and run it locally for 5 seconds."*
+  >
+  > *"Compile `orders-api.flogo` to an executable in the `bin/` folder."*
+
+#### `tibcop` — TIBCO Platform CLI reference &nbsp;<sub>(skill identifier: `tibco-platform-cli`)</sub>
+
+- **What it does:** Reference for the TIBCO Platform CLI — list dataplanes and apps, create builds, deploy, scale, and inspect Flogo applications on a dataplane. The `flogo-deploy` recipe builds on it.
+- **How to invoke it:** Ask about platform state or a platform action.
+- **Template prompt:**
+  > *"Using `tibcop`, list the apps on dataplane `<DATAPLANE_NAME>` and show their status."*
+- **Example prompts:**
+  > *"List my TIBCO Platform dataplanes."*
+  >
+  > *"Scale the `customer-api` app on `<DATAPLANE_NAME>` to 2 replicas."*
+
+### Recipes
+
+Step-by-step workflows that chain several CLI steps into one outcome.
+
+#### `flogo-deploy` — deploy to the TIBCO Platform
+
+- **What it does:** End-to-end recipe to deploy a `.flogo` app to a dataplane — pick a Flogo version, create a build, generate values, deploy the release (`flogo:deploy-app-release`), and scale it up.
+- **How to invoke it:** Ask to deploy an app to a dataplane (provide the app file and the target dataplane).
+- **Template prompt:**
+  > *"Deploy `<app>.flogo` to dataplane `<DATAPLANE_NAME>` and start it."*
+- **Example prompts:**
+  > *"Deploy `Flogo_Apps/customer-api.flogo` to dataplane `MyDataPlane` and start it."*
+  >
+  > *"Push `orders-api.flogo` to the `prod-dp` dataplane and scale it to 2 instances."*
+
+#### `flogo-unit-testing` — create & run unit tests
+
+- **What it does:** Creates unit test files, test cases with flow inputs, and assertions on flow outputs, then runs them with `flogobuild test-app` and verifies every assertion passes.
+- **How to invoke it:** Ask to test the flows in an app (name the flows and the expected outputs, or let it derive them).
+- **Template prompt:**
+  > *"Create and run unit tests for `<app>.flogo` covering `<flow(s)>`, with assertions on `<expected outputs>`."*
+- **Example prompts:**
+  > *"Create and run unit tests for `books-api.flogo` — one case per flow, asserting the response code and body."*
+  >
+  > *"Add a unit test to `customer-api.flogo` that sends `id=42` and asserts the returned name is `Ada`."*
+
+#### `mapping-from-excel` — build a flow from an Excel mapping spec
+
+- **What it does:** Reads an Excel workbook that describes field mappings (one sheet per mapper) and builds a Flogo app that performs them — one mapper activity per sheet, chained in order, feeding a log activity behind a timer trigger.
+- **How to invoke it:** Point it at an `.xlsx` mapping file.
+- **Template prompt:**
+  > *"Read `<file>.xlsx` and create a Flogo flow that performs the mapping defined in the spreadsheet."*
+- **Example prompts:**
+  > *"Read `ExcelWithMapping.xlsx`, create the Flogo flow, then build and run it locally for 5 seconds and show me the logs."*
+  >
+  > *"Turn the mappings in `order-transform.xlsx` into a multi-mapper Flogo flow called `order-mapper`."*
+
+#### `rest-to-database-app` — REST API over a database
+
+- **What it does:** Scaffolds a REST API Flogo app that queries a database and returns the result — a `tr_rest` trigger → log → DB query (MySQL / PostgreSQL / SQL Server / Oracle) → reply, with the DB connection wired to app properties.
+- **How to invoke it:** Describe the endpoint and the target database.
+- **Template prompt:**
+  > *"Create a Flogo app named `<name>` that exposes `<METHOD /path>` and queries a `<database>` database, returning the result."*
+- **Example prompts:**
+  > *"Create a Flogo app `customer-api` that exposes `GET /customers/{id}` and queries a MySQL database."*
+  >
+  > *"Scaffold a PostgreSQL-backed REST app with `GET /orders` and `GET /orders/{id}`."*
+
+### Use-case builder
+
+#### `agentic-ai-use-case-builder` — a governed-by-default Agentic AI use case for any vertical (decision framework + rules in SQL)
+
+- **What it does:** Builds a complete, runnable, **governed-by-default** Agentic AI use case — an **MCP Server** (scoped reads + guarded writes) + a read-only **A2A reasoning-agents** app + a **WebSocket AI Orchestrator**, backed by PostgreSQL — modeled on the reference use cases under `samples/Agentic_AI/`. It also produces `database.sql`, `reset_data.sql`, `prompts.md`, and a README. It first classifies every operation with the Agentic AI decision framework: **human-owned** (routed review case), **agent** (semantic reasoning, minimised read-only input) or **deterministic** (a SQL rule function). Reads are scoped by a session token, writes are `INSERT … SELECT rule_fn()` (0 rows when blocked), state changes are two-step propose → confirm, and each WebSocket connection gets its own conversation. It supports **two build methods** and asks which to use up front: **from scratch via the `fda` CLI** (recommended default) or **cloning an existing reference app**. It ships `validate_governed_apps.py` (G1–G9 governance checks) and a **4-step test ladder**: SQL rules → static → MCP edge → chat end to end (including a prompt-injection attempt), asserting on DB state.
+- **How to invoke it:** Describe the vertical, the persona, and the read + action capabilities you want. Explicit: `/agentic-ai-use-case-builder`. It shows the classification table and plan and builds nothing until you approve.
+- **Template prompt:**
+  > *"Build a governed `<vertical>` Agentic AI use case for `<persona>` (MCP Server + A2A Agents + WebSocket orchestrator) backed by PostgreSQL. The agent should `<the semantic step>`; the system must enforce `<rules>`; people decide `<exceptions>`. Ask me whether to use the FDA CLI or the clone method first, then test it end to end."*
+- **Example prompts:**
+  > *"Build a retail banking agentic AI use case. After a customer signs in, they can see their recent transactions, freeze a lost or stolen card, and dispute a charge they don't recognise. Anything that needs a person — a refund, a complaint, or a hardship request — should go to a staff member to approve. Make sure each customer can only ever see their own account. Then test it end to end."*
+  >
+  > *"Build a mobile phone customer-service agentic AI use case. After a customer signs in, they can ask why this month's bill went up, cancel an add-on they didn't want, and set a monthly spending limit. Bigger things — a refund, closing the account, or a suspected-fraud case — should be handed to a support agent to decide. One customer must never be able to see another customer's account. Then test it end to end."*
+
+---
+
+## Do the skills load automatically?
+
+**Yes.** Every skill in this library is marked `user-invocable: true`, and the coding agent discovers them on its own:
+
+- **Auto-discovery.** The agent always keeps each skill's `name` and `description` in context. When your request matches a skill's description, the agent opens and follows that skill automatically — you don't have to name it. (Ask *"deploy this app to my dataplane"* and it reaches for `flogo-deploy`.)
+- **When they apply.** The skills live under `.claude/skills/` and apply whenever that folder is on the path from your open workspace. In a Marketplace-seeded project the skills sit at the repo root, so they apply everywhere. In **this hub repo** they live under `skills-library/.claude/skills/`, so they apply when you're working on files under `skills-library/` — open `skills-library/` as your workspace to have them apply repo-wide. The project conventions in `AGENT.md` / `CLAUDE.md` load the same way.
+- **Explicit invocation.** Because they're all user-invocable, you can also trigger one deliberately: type `/` in Claude Code to see the list and select a skill, or just name it in your prompt (*"use the fda-mapping skill to …"*). The identifier shown is the skill's `name` from its frontmatter — which matches the folder name for every skill **except two**: the `fda/` folder's skill is named **`flogo-design-assistant`**, and the `tibcop/` folder's skill is named **`tibco-platform-cli`**.
+- **What they need.** A skill only runs its CLI steps once the tools and `config.md` are set up (see [Required Tools](#required-tools) and [Configurable Defaults](#configurable-defaults)). Without `config.md`, the agent will ask you to create it from the template first.
 
 ---
 
@@ -79,128 +208,134 @@ A typical prompt:
 2. Click **Get** to install the documentation.
 3. Click the **Run Flogo Skill Library Template** button to generate a new project pre-seeded with the skills.
 4. Open the generated GitHub repo in **VS Code with Claude Code** installed.
-5. Edit `CLAUDE.md` and replace the placeholders (`<YOUR_FLOGO_CONTEXT>`, `<YOUR_PROFILE>`, `<DATAPLANE_NAME>`) with the values for your environment.
+5. Copy `.claude/skills/config.example.md` to `.claude/skills/config.md` and fill in the values for your environment (build context, platform token, dataplane, database, LLM key). Agent conventions live in `AGENT.md`.
 6. Start asking the agent to design, build, run, or deploy Flogo apps.
 
 ### Option 2: Add skills to an existing project
 
-If you already have a project, copy the `.claude/skills/` folder from the seed repo into your project root, and add the conventions to your project's `CLAUDE.md`.
+If you already have a project, copy the `.claude/skills/` folder from the seed repo into your project root, and add the conventions to your project's `AGENT.md`.
 
 ---
 
 ## Required Tools
 
-The skills assume the following CLIs are installed and on your `PATH`:
+The skills drive the following tools. **`fda` ships inside the TIBCO Flogo VS Code extension** — it is not on your `PATH` by default, so set up the `fda` alias (see [Setting up the `fda` alias](#setting-up-the-fda-alias)) to run it from any terminal. **Designing apps needs only VS Code + the Flogo extension (2.26.7 or later).** **`flogobuild` (Flogo App Build CLI) is needed only when you build** — download it from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (it is not bundled in the VS Code extension), install the [Go runtime](https://go.dev/dl/) (building Flogo apps requires Go), and create a build context from the extension VSIX (`flogobuild create-context -n <name-without-dots> -v <path-to-vsix> --set-default`). **`tibcop` is needed only when you deploy** — install it, put it on your `PATH`, and add a profile (`tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com`).
+
+The full tiered prerequisites table (design / agentic use cases / build / deploy — versions, install sources, PostgreSQL, Python, Node.js, LLM model, SMTP) and the preflight checker live in [AGENT.md → Prerequisites and preflight](AGENT.md#prerequisites-and-preflight). Run the preflight first (no flags = design only; add the tiers you need):
+
+```bash
+python skills-library/.claude/skills/agentic-ai-use-case-builder/templates/preflight.py --need db,build
+```
 
 | Tool | Purpose | Documentation |
 |---|---|---|
-| **fda** (Flogo Design Assistant) | Design-time edits to `.flogo` files | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
-| **flogobuild** | Build executables and Platform deployment artifacts | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
-| **tibcop** (TIBCO Platform CLI) | Deploy and manage applications on the TIBCO Platform | [TIBCO Platform](https://www.tibco.com/platform) |
-| **VS Code + Flogo Extension** (optional) | Visual designer for `.flogo` files | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
+| **fda** (Flogo Design Assistant) | Design-time edits to `.flogo` files (ships inside the Flogo VS Code extension) | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
+| **flogobuild** (TIBCO Flogo App Build CLI) | Build executables and Platform deployment artifacts — **only when building**; download from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (not bundled in the VS Code extension); requires the [Go runtime](https://go.dev/dl/) | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
+| **tibcop** (TIBCO Platform CLI) | Deploy and manage applications on the TIBCO Platform — **only when deploying** | [TIBCO Platform CLI download](https://www.tibco.com/downloads/12464) |
+| **TIBCO Flogo VS Code extension** (2.26.7+) | Provides `fda` plus the visual designer for `.flogo` files; its `.vsix` is also the input for `flogobuild create-context` | [TIBCO downloads](https://www.tibco.com/downloads/11810) / [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tibco.flogo) |
 | **Claude Code** (or another coding agent) | Reads and applies the skills | [Claude Code](https://www.anthropic.com/claude-code) |
 
 ---
 
 ## Setting up the `fda` alias
 
-The Flogo Design Assistant CLI ships with the **TIBCO Flogo VS Code extension** at a long path like `<vscode-extensions-dir>/tibco.flogo-<version>/bin/flogodesign-cli`. Set up an `fda` alias so you (and the coding agent) can simply run `fda <task>` from any terminal.
+The Flogo Design Assistant CLI (`flogodesign-cli`) ships inside the [**TIBCO Flogo VS Code extension**](https://marketplace.visualstudio.com/items?itemName=tibco.flogo) at a long, versioned path like `<vscode-extensions-dir>/tibco.flogo-<VERSION>/bin/flogodesign-cli`. Because that path **changes with every extension update**, don't hardcode it — set up an `fda` alias that **discovers the latest installed version dynamically**, so you (and the coding agent) can simply run `fda <task>` from any terminal.
 
-![Alias setup examples for zsh, PowerShell and CMD](./images/fda-alias-setup.png)
+> **Never hardcode the extension folder name** (e.g. `tibco.flogo-2.26.6-2851`). The glob `tibco.flogo-*/bin/flogodesign-cli*` sorted by newest always resolves to the latest installed version. If the binary can't be found, install the TIBCO Flogo VS Code extension.
 
-### Find the path to `flogodesign-cli`
+Add the function below to your shell startup file so `fda` is available in every terminal session:
 
-The exact path depends on your OS, your username, and the installed Flogo extension version:
+| OS | Shell | Startup file |
+|---|---|---|
+| Windows | Git Bash | `~/.bashrc` |
+| Windows | PowerShell | `$PROFILE` |
+| macOS | zsh (default) | `~/.zshrc` |
+| Linux | bash | `~/.bashrc` |
 
-| OS | Typical path |
-|---|---|
-| macOS / Linux | `/Users/<USERNAME>/.vscode/extensions/tibco.flogo-<VERSION>/bin/flogodesign-cli` |
-| Windows | `C:\Users\<USERNAME>\.vscode\extensions\tibco.flogo-<VERSION>\bin\flogodesign-cli` |
+### macOS / Linux / Windows (Git Bash) — Bash or Zsh function
 
-> **Tip:** List installed extension versions with `ls ~/.vscode/extensions | grep tibco.flogo` (macOS/Linux) or `dir %USERPROFILE%\.vscode\extensions | findstr tibco.flogo` (Windows).
-
-### macOS / Linux (zsh or bash)
-
-Add the alias to your shell startup file — `~/.zshrc` for zsh (the macOS default) or `~/.bashrc` for bash:
+Add to `~/.bashrc` (bash / Git Bash) or `~/.zshrc` (macOS zsh):
 
 ```bash
-# ~/.zshrc  or  ~/.bashrc
-alias fda='/Users/<USERNAME>/.vscode/extensions/tibco.flogo-<VERSION>/bin/flogodesign-cli'
-
-# Optional shorter aliases
-alias fdev='fda'
-alias f='fda'
+fda() {
+  local cmd="" home_dir="${HOME:-$USERPROFILE}" ext_name="flogodesign-cli"
+  if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+    ext_name="flogodesign-cli.exe"
+  fi
+  for dir in "$home_dir/.vscode/extensions" \
+             "$home_dir/.vscode-insiders/extensions" \
+             "$home_dir/.vscode-server/extensions"; do
+    cmd=$(ls -td "$dir/tibco.flogo-"*/bin/"$ext_name" 2>/dev/null | head -1)
+    [ -n "$cmd" ] && break
+  done
+  if [ -z "$cmd" ]; then
+    echo "Error: flogodesign-cli not found. Install the TIBCO Flogo VS Code extension." >&2
+    return 1
+  fi
+  "$cmd" "$@"
+}
 ```
 
-Reload the shell so the alias takes effect:
+Reload the shell so the function takes effect:
 
 ```bash
 source ~/.zshrc   # or: source ~/.bashrc
 ```
 
-Verify:
+### Windows — PowerShell function
+
+PowerShell aliases cannot accept arguments, so define `fda` as a **function**. Add to your PowerShell profile (`$PROFILE`):
+
+```powershell
+function fda {
+  $cli = Get-ChildItem "$env:USERPROFILE\.vscode\extensions\tibco.flogo-*\bin\flogodesign-cli.exe" -ErrorAction SilentlyContinue |
+         Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  if (-not $cli) {
+    $cli = Get-ChildItem "$env:USERPROFILE\.vscode-insiders\extensions\tibco.flogo-*\bin\flogodesign-cli.exe" -ErrorAction SilentlyContinue |
+           Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  }
+  if (-not $cli) { Write-Error "flogodesign-cli not found. Install the TIBCO Flogo VS Code extension."; return }
+  & $cli.FullName @args
+}
+```
+
+If `$PROFILE` doesn't exist yet, create it first, then reload it:
+
+```powershell
+New-Item -Type File -Path $PROFILE -Force   # only if it doesn't exist yet
+. $PROFILE
+```
+
+### Verify
 
 ```bash
 fda version
 ```
 
-### Windows — PowerShell (recommended)
-
-PowerShell aliases cannot accept arguments, so define `fda` as a **function** and use `Set-Alias` for the shorter names. Add to your PowerShell profile (`$PROFILE`):
-
-```powershell
-function fda { & 'C:\Users\<USERNAME>\.vscode\extensions\tibco.flogo-<VERSION>\bin\flogodesign-cli' @args }
-Set-Alias -Name fdev -Value fda
-Set-Alias -Name f    -Value fda
-```
-
-Open or create your profile with:
-
-```powershell
-notepad $PROFILE
-```
-
-If `$PROFILE` doesn't exist yet, create it first:
-
-```powershell
-New-Item -Type File -Path $PROFILE -Force
-```
-
-Reload the profile:
-
-```powershell
-. $PROFILE
-```
-
-Verify:
-
-```powershell
-fda version
-```
-
-### Windows — Command Prompt (legacy)
-
-If you're using the classic `cmd.exe`, use `doskey`. Note that `doskey` macros only live in the current session — to make them permanent, save the commands in a `.cmd` file and register it via `HKCU\Software\Microsoft\Command Processor\AutoRun`.
-
-```cmd
-doskey fda=C:\Users\<USERNAME>\.vscode\extensions\tibco.flogo-<VERSION>\bin\flogodesign-cli $*
-doskey fdev=fda $*
-doskey f=fda $*
-```
-
-The trailing `$*` forwards all arguments to the underlying command.
-
 ---
 
 ## Configurable Defaults
 
-The skills reference a few placeholder values that you should set once in your project's `CLAUDE.md`:
+All environment-specific values live in a **single source of truth**: `config.md`, next to the skills. Copy the template and fill in your values (the file is git-ignored, so real credentials are never committed). The skills folder lives at `.claude/skills/` in a Marketplace-seeded project, or at `skills-library/.claude/skills/` in this hub repo — run the copy from your repo root accordingly:
 
-| Placeholder | What to set it to | How to find the value |
+```bash
+# Marketplace-seeded project (skills at the repo root):
+cp .claude/skills/config.example.md .claude/skills/config.md
+
+# this hub repo:
+cp skills-library/.claude/skills/config.example.md skills-library/.claude/skills/config.md
+```
+
+Key values the skills rely on:
+
+| Key (in `config.md`) | What to set it to | How to find the value |
 |---|---|---|
-| `<YOUR_FLOGO_CONTEXT>` | Build context name for `flogobuild` (e.g. `flogo-2.26.0-1789`) | `flogobuild list-context` |
-| `<YOUR_PROFILE>` | TIBCO Platform CLI profile name | `tibcop list-profiles` |
-| `<DATAPLANE_NAME>` | Default dataplane to deploy to | `tibcop tplatform:list-data-planes --profile <YOUR_PROFILE>` |
+| `FLOGOBUILD_CONTEXT_NAME` | Build context name for `flogobuild` (e.g. `flogo-vscode-2266` — letters, digits, `_`, `-`; 3–30 chars; no dots) | `flogobuild list-context` (create one with `flogobuild create-context -n <name> -v <path-to-vsix> --set-default`) |
+| `DATAPLANE_NAME` | Default dataplane to deploy to | `tibcop tplatform:list-data-planes` |
+| `CP_URL` / `TIBCOP_TOKEN` | TIBCO Platform control-plane URL and API token | TIBCO Platform console |
+| `TIBCOP_PROFILE` | `tibcop` profile name used by `flogo-deploy` | `tibcop list-profiles` (create with `tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com`) |
+| PostgreSQL / LLM / email | Connection settings for the database, LLM provider, and SMTP | your environment |
+| `AGENTIC_USE_CASES_DIR` | *(optional)* folder of reference Agentic AI use-case apps the `agentic-ai-use-case-builder` skill clones/studies | leave unset to default to `samples/Agentic_AI/`; set only if the skill is installed standalone away from that folder |
 
 ---
 
@@ -209,46 +344,34 @@ The skills reference a few placeholder values that you should set once in your p
 ```
 .
 ├── .claude/
-│   └── skills/                 # Skill definitions consumed by the AI coding agent
-│       ├── fda/                # Flogo Design Assistant CLI reference
-│       ├── flogobuild/         # Flogo build CLI reference
-│       ├── tibcop/             # TIBCO Platform CLI reference
-│       ├── flogo-deploy/       # End-to-end deployment recipe
-│       ├── mapping-from-excel/ # Build a Flogo flow from an Excel mapping spec
-│       └── rest-to-database-app/ # Scaffold a REST -> DB Flogo app
-├── CLAUDE.md                   # Project-level instructions for the agent
-└── Flogo_Apps/                 # Place your .flogo applications here
+│   └── skills/                       # Skill definitions consumed by the AI coding agent
+│       ├── fda/                      # Flogo Design Assistant CLI reference
+│       ├── fda-mapping/              # Flogo mapping reference for the fda CLI
+│       ├── flogobuild/               # Flogo build CLI reference
+│       ├── tibcop/                   # TIBCO Platform CLI reference
+│       ├── flogo-deploy/             # End-to-end deployment recipe
+│       ├── flogo-unit-testing/       # Create and run Flogo unit tests
+│       ├── mapping-from-excel/       # Build a Flogo flow from an Excel mapping spec
+│       ├── rest-to-database-app/     # Scaffold a REST -> DB Flogo app
+│       ├── agentic-ai-use-case-builder/  # Governed-by-default Agentic AI use case (MCP + A2A + orchestrator); decision-framework gate, rules in SQL, fda-CLI or clone method, 4-step test ladder
+│       ├── config.example.md         # Template for environment-specific values (copy to config.md)
+│       └── config.md                 # Your environment values (git-ignored; not committed)
+├── AGENT.md                          # Project-level instructions for the agent
+└── Flogo_Apps/                       # Place your .flogo applications here
 ```
-
-## Getting Started with Skills
-
-1. Open this project in VS Code with Claude Code installed.
-2. Edit `CLAUDE.md` and replace the placeholders (`<YOUR_FLOGO_CONTEXT>`, `<YOUR_PROFILE>`, `<DATAPLANE_NAME>`) with the values for your environment.
-3. Make sure the following CLIs are installed and on your `PATH`:
-    - `fda` — Flogo Design Assistant
-    - `flogobuild` — Flogo build CLI
-    - `tibcop` — TIBCO Platform CLI
-4. Ask the agent to design, build, run, or deploy a Flogo app — it will use the skills in `.claude/skills/` automatically.
 
 ## Example prompts
 
-- *"Create a Flogo app under `Flogo_Apps/` that exposes a REST endpoint `GET /customers/{id}` and queries a MySQL database. Call the app `customer-api`."*
-- *"Read `mapping.xlsx` and create a Flogo flow that performs the mapping defined in the spreadsheet."*
-- *"Build the `Flogo_Apps/customer-api.flogo` app and run it locally for 5 seconds, then show me the logs."*
-- *"Deploy the `Flogo_Apps/customer-api.flogo` app to dataplane `MyDataPlane`."*
+- *"Create a Flogo app under `Flogo_Apps/` that exposes a REST endpoint `GET /customers/{id}` and queries a MySQL database. Call the app `customer-api`."* (`rest-to-database-app`)
+- *"Read `mapping.xlsx` and create a Flogo flow that performs the mapping defined in the spreadsheet."* (`mapping-from-excel`)
+- *"Inspect and validate the mappings in `Flogo_Apps/customer-api.flogo` and fix any unresolved mapper fields."* (`fda-mapping`)
+- *"Build the `Flogo_Apps/customer-api.flogo` app and run it locally for 5 seconds, then show me the logs."* (`flogobuild`)
+- *"Create and run unit tests for `Flogo_Apps/customer-api.flogo` with assertions on the response."* (`flogo-unit-testing`)
+- *"List my TIBCO Platform dataplanes and show the status of the apps running on `MyDataPlane`."* (`tibcop`)
+- *"Deploy the `Flogo_Apps/customer-api.flogo` app to dataplane `MyDataPlane`."* (`flogo-deploy`)
+- *"Build a governed Agentic AI use case for a transit agency's rider-refund desk (MCP Server + A2A Agents + WebSocket orchestrator) backed by PostgreSQL — rules in SQL, refunds over the limit go to a person. Ask me whether to use the FDA CLI or the clone method first, then test it end to end."* (`/agentic-ai-use-case-builder`)
 
 > **Note:** For more sample prompts, see [skills-library/SamplePrompts/README.md](SamplePrompts/README.md).
-
-## Skills overview
-
-| Skill | Purpose |
-|---|---|
-| `fda` | Reference for the Flogo Design Assistant CLI — every task to create/modify a `.flogo` file. |
-| `flogobuild` | Reference for building executables and deployment artifacts from `.flogo` files. |
-| `tibcop` | Reference for the TIBCO Platform CLI — manage builds, deployments, scaling. |
-| `flogo-deploy` | End-to-end recipe to deploy a `.flogo` app to a TIBCO Platform dataplane. |
-| `mapping-from-excel` | Recipe to build a Flogo flow from an Excel mapping spec (input fields → output fields with rules). |
-| `rest-to-database-app` | Recipe to scaffold a REST API Flogo app that queries a database. |
 
 ---
 
@@ -261,6 +384,8 @@ The skills reference a few placeholder values that you should set once in your p
 
 ---
 
-<!-- SEO Keywords: TIBCO Flogo, AI Coding Agent, Claude Code, AI Skills, Flogo Design Assistant, FDA CLI, Flogobuild, TIBCO Platform CLI, Low-Code, No-Code, iPaaS, Integration Automation, Excel to Flogo, REST API Scaffolding, Flogo Deployment, AI-Powered Development, Visual Flow Designer, Enterprise Integration, GoLang, VS Code Extension -->
+<!-- SEO Keywords: TIBCO Flogo, AI Coding Agent, Claude Code, AI Skills, Flogo Design Assistant, FDA CLI, Flogobuild, TIBCO Platform CLI, Low-Code, No-Code, integration platform, Integration Automation, Excel to Flogo, REST API Scaffolding, Flogo Deployment, AI-Powered Development, Visual Flow Designer, Enterprise Integration, GoLang, VS Code Extension, Agentic AI Use Cases, MCP Use Cases, Build MCP Server, Zero-Code MCP Server, No-Code MCP Server, No-Code Agent Builder, Zero-Code Agent Builder, Best Integration Tool, Fastest Integration Tool, Most Performant Integration Tool, High-Performance Integration, Low-Code Integration, No-Code Integration -->
 
-**Topics:** `AI Coding Agent` · `Claude Code` · `Flogo Skills` · `Low-Code` · `iPaaS` · `Enterprise Integration`
+**Topics:** `AI Coding Agent` · `Claude Code` · `Flogo Skills` · `Low-Code` · `Enterprise Integration`
+
+**Hashtags:** #AgenticAI #AgenticAIUseCases #AIAgents #NoCodeAgentBuilder #MCP #MCPServer #ModelContextProtocol #ZeroCodeMCP #BuildMCPServer #LLMOrchestration #EnterpriseIntegration #TIBCOFlogo

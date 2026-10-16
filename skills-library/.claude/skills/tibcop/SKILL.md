@@ -4,6 +4,8 @@ description: A command line tool to manage the TIBCO Platform, including Flogo &
 user-invocable: true
 ---
 
+> **Preflight (only needed when deploying / managing TIBCO Platform):** run `tibcop --version && tibcop list-profiles` first (see AGENT.md → Prerequisites and preflight, or `preflight.py --need deploy`). Designing or building apps doesn't need `tibcop`. No profile yet? `tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com` (optional `--software-statement <software_statement>`; alias `tibcop ap`), then `tibcop list-profiles`.
+
 The following tasks are available:
 
 ```shell
@@ -113,6 +115,6 @@ To get help on a specific task, run
 tibcop <topic>:<task> --help
 ```
 
-> **Profile:** Always pass `--profile <YOUR_PROFILE>` to commands. Use the profile name configured for your TIBCO Platform environment (set up with `tibcop add-profile`). Set the default profile name in your project's `CLAUDE.md` so the agent uses it consistently.
+> **Profile:** Always pass `--profile <YOUR_PROFILE>` to commands. Use the profile name configured for your TIBCO Platform environment (set up with `tibcop add-profile --name "<profile>" --cpurl https://<SUBSCRIPTION>.<REGION>.my.tibco.com`). Set the default profile in `config.md` so the agent uses it consistently.
 
 If you get an authentication error, ask the user to run `tibcop login --profile <YOUR_PROFILE>` to re-authenticate.

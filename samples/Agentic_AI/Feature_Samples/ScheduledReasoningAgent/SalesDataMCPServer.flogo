@@ -1,0 +1,664 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-mcp/src/app/MCP/trigger/mcpserver",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string"
+  ],
+  "name": "SalesDataMCPServer",
+  "description": "MCP server exposing sales data tools for weekly sales summaries, team performance, product revenue, and regional breakdowns.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#mcpserver",
+      "name": "flogo-mcp-mcpsever",
+      "description": "MCP server exposing sales data retrieval tools for scheduled analysis",
+      "settings": {
+        "serverName": "SalesDataMCPServer",
+        "serverVersion": "1.0.0",
+        "serverType": "HTTP",
+        "serverPort": "=$property[\"FlogoMcpServer.PORT\"]",
+        "statelessServer": true,
+        "serverEndpointPath": "/mcp",
+        "enableTLS": false,
+        "serverCertificate": "",
+        "serverPrivateKey": "",
+        "authType": "None",
+        "authToken": "",
+        "oauthIssuer": "",
+        "oauthJWKSURL": "",
+        "oauthAudience": "",
+        "oauthAuthorizationServers": "",
+        "oauthRequiredScopes": "",
+        "oauthResourceURL": ""
+      },
+      "id": "SalesDataMCPServer",
+      "handlers": [
+        {
+          "description": "Return weekly sales performance summary",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_weekly_sales_summary",
+            "handlerDescription": "Get the weekly sales performance summary including total revenue, total orders, average order value, revenue change versus prior week, and a day-by-day revenue breakdown for the past 7 days",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_weekly_sales_summary"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "get_weekly_sales_summary"
+        },
+        {
+          "description": "Return individual sales team member performance",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_team_performance",
+            "handlerDescription": "Get individual sales team member performance for the current week including revenue generated, deals closed, pipeline value, quota attainment percentage, and week-over-week trend for each team member",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_team_performance"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "get_team_performance"
+        },
+        {
+          "description": "Return revenue breakdown by product category",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_product_revenue",
+            "handlerDescription": "Get revenue breakdown by product category for the current week including revenue per category, units sold, average deal size, percentage of total revenue, and week-over-week growth trend",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_product_revenue"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "get_product_revenue"
+        },
+        {
+          "description": "Return sales performance breakdown by geographic region",
+          "settings": {
+            "handlerType": "Tool",
+            "resourceUri": "",
+            "handlerName": "get_regional_breakdown",
+            "handlerDescription": "Get sales performance breakdown by geographic region for the current week including revenue per region, order count, average deal size, quarter-over-quarter trend, and quarterly target attainment",
+            "toolTitle": "",
+            "readOnlyToolHint": true,
+            "destructiveToolHint": false,
+            "idempotentToolHint": false,
+            "openWorldToolHint": false,
+            "scope": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:get_regional_breakdown"
+            },
+            "input": {
+              "arguments": "=$.arguments"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "reply": {
+            "outputSchema": ""
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}",
+                "fe_metadata": "{\r\n    \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n }\r\n}"
+              }
+            },
+            "output": {
+              "arguments": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}}",
+                "fe_metadata": "{}"
+              }
+            }
+          },
+          "name": "get_regional_breakdown"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:get_weekly_sales_summary",
+      "data": {
+        "name": "get_weekly_sales_summary",
+        "description": "Return weekly sales performance summary",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"reportPeriod\":\"2026-06-02 to 2026-06-08\",\"totalRevenue\":2847500,\"totalOrders\":1823,\"averageOrderValue\":1562,\"revenueChangeVsPriorWeekPct\":8.3,\"priorWeekRevenue\":2629000,\"dailyBreakdown\":[{\"date\":\"2026-06-02\",\"dayOfWeek\":\"Monday\",\"revenue\":425000,\"orders\":278},{\"date\":\"2026-06-03\",\"dayOfWeek\":\"Tuesday\",\"revenue\":398000,\"orders\":255},{\"date\":\"2026-06-04\",\"dayOfWeek\":\"Wednesday\",\"revenue\":467000,\"orders\":301},{\"date\":\"2026-06-05\",\"dayOfWeek\":\"Thursday\",\"revenue\":512000,\"orders\":332},{\"date\":\"2026-06-06\",\"dayOfWeek\":\"Friday\",\"revenue\":534500,\"orders\":348},{\"date\":\"2026-06-07\",\"dayOfWeek\":\"Saturday\",\"revenue\":298000,\"orders\":182},{\"date\":\"2026-06-08\",\"dayOfWeek\":\"Sunday\",\"revenue\":213000,\"orders\":127}],\"topDealOfWeek\":{\"client\":\"Acme Corp\",\"amount\":125000,\"product\":\"Enterprise Platform License\",\"closedBy\":\"Sarah Mitchell\"}}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SalesDataMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_team_performance",
+      "data": {
+        "name": "get_team_performance",
+        "description": "Return individual sales team member performance",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"reportPeriod\":\"2026-06-02 to 2026-06-08\",\"teamSize\":8,\"teamQuotaTotal\":3000000,\"teamAttainmentPct\":94.9,\"members\":[{\"name\":\"Sarah Mitchell\",\"role\":\"Senior Account Executive\",\"revenueThisWeek\":534200,\"dealsClosedThisWeek\":4,\"pipelineValue\":1200000,\"weeklyQuota\":450000,\"quotaAttainmentPct\":118.7,\"weekOverWeekChangePct\":15.2,\"trend\":\"UP\"},{\"name\":\"James Park\",\"role\":\"Account Executive\",\"revenueThisWeek\":456800,\"dealsClosedThisWeek\":6,\"pipelineValue\":890000,\"weeklyQuota\":400000,\"quotaAttainmentPct\":114.2,\"weekOverWeekChangePct\":5.8,\"trend\":\"UP\"},{\"name\":\"Maria Garcia\",\"role\":\"Senior Account Executive\",\"revenueThisWeek\":412000,\"dealsClosedThisWeek\":3,\"pipelineValue\":1450000,\"weeklyQuota\":450000,\"quotaAttainmentPct\":91.6,\"weekOverWeekChangePct\":-2.1,\"trend\":\"FLAT\"},{\"name\":\"David Kim\",\"role\":\"Account Executive\",\"revenueThisWeek\":389500,\"dealsClosedThisWeek\":5,\"pipelineValue\":720000,\"weeklyQuota\":400000,\"quotaAttainmentPct\":97.4,\"weekOverWeekChangePct\":12.0,\"trend\":\"UP\"},{\"name\":\"Emily Watson\",\"role\":\"Account Executive\",\"revenueThisWeek\":367000,\"dealsClosedThisWeek\":4,\"pipelineValue\":650000,\"weeklyQuota\":400000,\"quotaAttainmentPct\":91.8,\"weekOverWeekChangePct\":-8.3,\"trend\":\"DOWN\"},{\"name\":\"Alex Rivera\",\"role\":\"Account Executive\",\"revenueThisWeek\":298000,\"dealsClosedThisWeek\":3,\"pipelineValue\":580000,\"weeklyQuota\":350000,\"quotaAttainmentPct\":85.1,\"weekOverWeekChangePct\":3.4,\"trend\":\"UP\"},{\"name\":\"Lisa Chen\",\"role\":\"Junior Account Executive\",\"revenueThisWeek\":245000,\"dealsClosedThisWeek\":7,\"pipelineValue\":420000,\"weeklyQuota\":300000,\"quotaAttainmentPct\":81.7,\"weekOverWeekChangePct\":22.5,\"trend\":\"UP\"},{\"name\":\"Tom Bradley\",\"role\":\"Junior Account Executive\",\"revenueThisWeek\":145000,\"dealsClosedThisWeek\":2,\"pipelineValue\":310000,\"weeklyQuota\":250000,\"quotaAttainmentPct\":58.0,\"weekOverWeekChangePct\":-18.7,\"trend\":\"DOWN\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SalesDataMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_product_revenue",
+      "data": {
+        "name": "get_product_revenue",
+        "description": "Return revenue breakdown by product category",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"reportPeriod\":\"2026-06-02 to 2026-06-08\",\"totalProductRevenue\":2847500,\"categories\":[{\"category\":\"Enterprise Platform License\",\"revenue\":985000,\"pctOfTotal\":34.6,\"unitsSold\":12,\"avgDealSize\":82083,\"weekOverWeekChangePct\":18.5,\"trend\":\"STRONG_GROWTH\"},{\"category\":\"Professional Services\",\"revenue\":623000,\"pctOfTotal\":21.9,\"unitsSold\":28,\"avgDealSize\":22250,\"weekOverWeekChangePct\":4.2,\"trend\":\"STABLE\"},{\"category\":\"Cloud Infrastructure\",\"revenue\":534500,\"pctOfTotal\":18.8,\"unitsSold\":45,\"avgDealSize\":11878,\"weekOverWeekChangePct\":12.1,\"trend\":\"GROWTH\"},{\"category\":\"Support & Maintenance\",\"revenue\":412000,\"pctOfTotal\":14.5,\"unitsSold\":156,\"avgDealSize\":2641,\"weekOverWeekChangePct\":1.8,\"trend\":\"STABLE\"},{\"category\":\"Training & Certification\",\"revenue\":178000,\"pctOfTotal\":6.3,\"unitsSold\":89,\"avgDealSize\":2000,\"weekOverWeekChangePct\":-5.6,\"trend\":\"DECLINING\"},{\"category\":\"Add-on Modules\",\"revenue\":115000,\"pctOfTotal\":4.0,\"unitsSold\":34,\"avgDealSize\":3382,\"weekOverWeekChangePct\":-12.3,\"trend\":\"DECLINING\"}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SalesDataMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:get_regional_breakdown",
+      "data": {
+        "name": "get_regional_breakdown",
+        "description": "Return sales performance breakdown by geographic region",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogStart",
+            "type": "label",
+            "label": "StartActivity to LogStart"
+          },
+          {
+            "id": 2,
+            "from": "LogStart",
+            "to": "Return",
+            "type": "label",
+            "label": "LogStart to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogStart",
+            "name": "LogStart",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Start... \",$flowctx[\"FlowName\"], \" with arguments \", coerce.toString($flow.arguments))",
+                "logLevel": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"reportPeriod\":\"2026-06-02 to 2026-06-08\",\"regions\":[{\"region\":\"North America\",\"revenue\":1254000,\"pctOfTotal\":44.0,\"orderCount\":742,\"avgDealSize\":1690,\"quarterOverQuarterChangePct\":11.2,\"quarterTarget\":5000000,\"quarterActual\":3850000,\"quarterAttainmentPct\":77.0,\"topDeal\":{\"client\":\"Acme Corp\",\"amount\":125000}},{\"region\":\"Europe\",\"revenue\":812500,\"pctOfTotal\":28.5,\"orderCount\":498,\"avgDealSize\":1632,\"quarterOverQuarterChangePct\":6.8,\"quarterTarget\":3500000,\"quarterActual\":2640000,\"quarterAttainmentPct\":75.4,\"topDeal\":{\"client\":\"Siemens Digital\",\"amount\":89000}},{\"region\":\"Asia Pacific\",\"revenue\":498000,\"pctOfTotal\":17.5,\"orderCount\":389,\"avgDealSize\":1280,\"quarterOverQuarterChangePct\":15.3,\"quarterTarget\":2000000,\"quarterActual\":1620000,\"quarterAttainmentPct\":81.0,\"topDeal\":{\"client\":\"Samsung SDS\",\"amount\":67000}},{\"region\":\"Latin America\",\"revenue\":183000,\"pctOfTotal\":6.4,\"orderCount\":124,\"avgDealSize\":1476,\"quarterOverQuarterChangePct\":-3.2,\"quarterTarget\":800000,\"quarterActual\":545000,\"quarterAttainmentPct\":68.1,\"topDeal\":{\"client\":\"Banco Itau\",\"amount\":42000}},{\"region\":\"Middle East & Africa\",\"revenue\":100000,\"pctOfTotal\":3.5,\"orderCount\":70,\"avgDealSize\":1429,\"quarterOverQuarterChangePct\":22.1,\"quarterTarget\":500000,\"quarterActual\":385000,\"quarterAttainmentPct\":77.0,\"topDeal\":{\"client\":\"Emirates NBD\",\"amount\":35000}}]}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjEwMCwieSI6MTAwfSwiTG9nU3RhcnQiOnsieCI6MjE1LCJ5Ijo4OX0sIlJldHVybiI6eyJ4Ijo0MjcsInkiOjg5fX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "arguments",
+              "type": "object"
+            },
+            {
+              "name": "httpHeaders",
+              "type": "params"
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"SalesDataMCPServer\",\"properties\":{\"arguments\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{}},\"httpHeaders\":{\"type\":\"params\"}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}},\"required\":[\"response\"]}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "FlogoMcpServer.PORT",
+      "type": "string",
+      "value": "9620"
+    }
+  ],
+  "connections": {},
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1tY3Avc3JjL2FwcC9NQ1AiLCJpZCI6Ik1DUCIsInZlcnNpb24iOiIxLjAuNCIsInRhZyI6IjEuMC40LWIwMiIsIm5hbWUiOiJNb2RlbCBDb250ZXh0IFByb3RvY29sIChNQ1ApIiwiczNsb2NhdGlvbiI6IlRpYmNvL01DUCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTYiLCJ0YWciOiIxLjYuMTYtYjA1IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9620",
+        "title": "SalesDataMCPServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

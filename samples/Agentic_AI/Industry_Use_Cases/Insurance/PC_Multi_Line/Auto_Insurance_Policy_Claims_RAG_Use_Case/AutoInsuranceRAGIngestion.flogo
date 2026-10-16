@@ -1,0 +1,807 @@
+{
+  "imports": [
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/vectorStoreCreate",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/fileUpload",
+    "github.com/tibco/flogo-general/src/app/General/activity/sleep",
+    "github.com/TIBCOSoftware/flogo-enterprise-hub/extensions/openAI/activity/fileList",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/activity/insert",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/tibco/wi-postgres/src/app/PostgreSQL/connector/connection"
+  ],
+  "name": "AutoInsuranceRAGIngestion",
+  "description": "Copperleaf Auto Insurance RAG ingestion (run once): create the OpenAI vector store CopperleafAutoPolicyKB, upload the 4 policy-wording PDFs (OpenAI chunks and embeds them), confirm via the file list, and record the vector store id in PostgreSQL document_index through the guarded record_vector_store() function for the search_policy_wording MCP tool.",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Simple REST Trigger",
+      "settings": {
+        "port": "=$property[\"INGEST_PORT\"]",
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v3",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": ""
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "Create vector store, upload the 4 policy PDFs, wait for vectorization, list files to confirm, record the vector store id in document_index, and return a summary.",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/ingest",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:IngestPolicyDocs"
+            },
+            "input": {
+              "body": "=$.body",
+              "headers": "=$.headers"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": ""
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"vector_store_id\":{\"type\":\"string\"},\"files_ingested\":{\"type\":\"number\"},\"message\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\n    \"vector_store_id\": \"vs_abc123\",\n    \"files_ingested\": 4,\n    \"message\": \"Ingestion complete. Vector store recorded in document_index.\"\n}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Authorization\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"store_name\":{\"type\":\"string\"},\"reingest\":{\"type\":\"boolean\"}}}",
+                "fe_metadata": "{\n    \"store_name\": \"CopperleafAutoPolicyKB\",\n    \"reingest\": false\n}"
+              }
+            }
+          },
+          "name": "IngestPolicyDocs"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:IngestPolicyDocs",
+      "data": {
+        "name": "IngestPolicyDocs",
+        "description": "Create vector store, upload the 4 policy PDFs, wait for vectorization, list files to confirm, record the vector store id in document_index, and return a summary.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "CreateVectorStore",
+            "type": "label",
+            "label": "StartActivity to CreateVectorStore"
+          },
+          {
+            "id": 2,
+            "from": "CreateVectorStore",
+            "to": "LogMessage",
+            "type": "label",
+            "label": "CreateVectorStore to LogMessage"
+          },
+          {
+            "id": 3,
+            "from": "LogMessage",
+            "to": "Upload1",
+            "type": "label",
+            "label": "LogMessage to Upload1"
+          },
+          {
+            "id": 4,
+            "from": "Upload1",
+            "to": "Upload2",
+            "type": "label",
+            "label": "Upload1 to Upload2"
+          },
+          {
+            "id": 5,
+            "from": "Upload2",
+            "to": "Upload3",
+            "type": "label",
+            "label": "Upload2 to Upload3"
+          },
+          {
+            "id": 6,
+            "from": "Upload3",
+            "to": "Upload4",
+            "type": "label",
+            "label": "Upload3 to Upload4"
+          },
+          {
+            "id": 7,
+            "from": "Upload4",
+            "to": "LogMessage2",
+            "type": "label",
+            "label": "Upload4 to LogMessage2"
+          },
+          {
+            "id": 8,
+            "from": "LogMessage2",
+            "to": "Sleep",
+            "type": "label",
+            "label": "LogMessage2 to Sleep"
+          },
+          {
+            "id": 9,
+            "from": "Sleep",
+            "to": "FileList",
+            "type": "label",
+            "label": "Sleep to FileList"
+          },
+          {
+            "id": 10,
+            "from": "FileList",
+            "to": "LogMessage3",
+            "type": "label",
+            "label": "FileList to LogMessage3"
+          },
+          {
+            "id": 11,
+            "from": "LogMessage3",
+            "to": "RecordIndex",
+            "type": "label",
+            "label": "LogMessage3 to RecordIndex"
+          },
+          {
+            "id": 12,
+            "from": "RecordIndex",
+            "to": "Return",
+            "type": "label",
+            "label": "RecordIndex to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "CreateVectorStore",
+            "name": "CreateVectorStore",
+            "description": "This activity creates a new vector store in OpenAI",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectorStoreCreate",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]"
+              },
+              "input": {
+                "name": "CopperleafAutoPolicyKB",
+                "description": "Copperleaf Auto Insurance policy wording knowledge base",
+                "expiresAfterDays": 0,
+                "maxChunkSizeTokens": 800,
+                "chunkOverlapTokens": 400,
+                "timeoutSeconds": 120,
+                "fileIds": {
+                  "mapping": [
+                    ""
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": "LogMessage",
+            "name": "LogMessage",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"VectorStore Created: \",$activity[CreateVectorStore].id)",
+                "logLevel": "INFO"
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Upload1",
+            "name": "Upload1",
+            "description": "This activity uploads files to OpenAI file store",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#fileUpload",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]",
+                "operation": "Upload new file",
+                "purpose": "assistants",
+                "maxChunkSizeTokens": 800,
+                "chunkOverlapTokens": 400,
+                "timeoutSeconds": 300
+              },
+              "input": {
+                "filename": "=string.concat($property[\"POLICY_DOCS_DIR\"],\"/Full_Coverage_Auto_Policy_Wording.pdf\")",
+                "vectorStoreID": "=$activity[CreateVectorStore].id"
+              }
+            }
+          },
+          {
+            "id": "Upload2",
+            "name": "Upload2",
+            "description": "This activity uploads files to OpenAI file store",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#fileUpload",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]",
+                "operation": "Upload new file",
+                "purpose": "assistants",
+                "maxChunkSizeTokens": 800,
+                "chunkOverlapTokens": 400,
+                "timeoutSeconds": 300
+              },
+              "input": {
+                "filename": "=string.concat($property[\"POLICY_DOCS_DIR\"],\"/Liability_Comprehensive_Policy_Wording.pdf\")",
+                "vectorStoreID": "=$activity[CreateVectorStore].id"
+              }
+            }
+          },
+          {
+            "id": "Upload3",
+            "name": "Upload3",
+            "description": "This activity uploads files to OpenAI file store",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#fileUpload",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]",
+                "operation": "Upload new file",
+                "purpose": "assistants",
+                "maxChunkSizeTokens": 800,
+                "chunkOverlapTokens": 400,
+                "timeoutSeconds": 300
+              },
+              "input": {
+                "filename": "=string.concat($property[\"POLICY_DOCS_DIR\"],\"/Auto_Endorsements_and_AddOns.pdf\")",
+                "vectorStoreID": "=$activity[CreateVectorStore].id"
+              }
+            }
+          },
+          {
+            "id": "Upload4",
+            "name": "Upload4",
+            "description": "This activity uploads files to OpenAI file store",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#fileUpload",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]",
+                "operation": "Upload new file",
+                "purpose": "assistants",
+                "maxChunkSizeTokens": 800,
+                "chunkOverlapTokens": 400,
+                "timeoutSeconds": 300
+              },
+              "input": {
+                "filename": "=string.concat($property[\"POLICY_DOCS_DIR\"],\"/Claims_Procedure_Guide.pdf\")",
+                "vectorStoreID": "=$activity[CreateVectorStore].id"
+              }
+            }
+          },
+          {
+            "id": "LogMessage2",
+            "name": "LogMessage2",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"4 policy files uploaded to Vectorstore: \",$activity[CreateVectorStore].id, \" *** Sleeping to allow files to be chunked and vectorized ***\")",
+                "logLevel": "INFO"
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Sleep",
+            "name": "Sleep",
+            "description": "Wait for vectors to be created from file upload",
+            "activity": {
+              "ref": "#sleep",
+              "input": {
+                "IntervalTypeSetting": "Second",
+                "IntervalSetting": 30
+              }
+            }
+          },
+          {
+            "id": "FileList",
+            "name": "FileList",
+            "description": "This activity lists files in an OpenAI vector store with support for filtering and pagination",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#fileList",
+              "settings": {
+                "endPointURL": "=$property[\"OPENAI_API_ENDPOINT_URL\"]",
+                "apiKey": "=$property[\"OPENAI_API_KEY\"]"
+              },
+              "input": {
+                "limit": 10,
+                "order": "",
+                "after": ""
+              },
+              "schemas": {
+                "output": {
+                  "files": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"OpenAI Vector Store Files\", \"description\": \"Array of vector store file objects returned by the OpenAI list files API\", \"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"created_at\", \"last_error\", \"object\", \"status\", \"usage_bytes\", \"vector_store_id\", \"attributes\", \"chunking_strategy\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"description\": \"Unique identifier for the file\", \"pattern\": \"^file-[a-zA-Z0-9]+$\"}, \"created_at\": {\"type\": \"integer\", \"description\": \"Unix timestamp when the file was created\", \"minimum\": 0}, \"last_error\": {\"type\": \"object\", \"description\": \"Information about the last error encountered (empty strings when no error)\", \"required\": [\"code\", \"message\"], \"additionalProperties\": false, \"properties\": {\"code\": {\"type\": \"string\", \"description\": \"Error code, empty string when no error\"}, \"message\": {\"type\": \"string\", \"description\": \"Error message, empty string when no error\"}}}, \"object\": {\"type\": \"string\", \"description\": \"Object type identifier\", \"enum\": [\"vector_store.file\"]}, \"status\": {\"type\": \"string\", \"description\": \"Processing status of the file\", \"enum\": [\"in_progress\", \"completed\", \"failed\", \"cancelled\"]}, \"usage_bytes\": {\"type\": \"integer\", \"description\": \"Number of bytes used by the file\", \"minimum\": 0}, \"vector_store_id\": {\"type\": \"string\", \"description\": \"ID of the vector store containing this file\", \"pattern\": \"^vs_[a-zA-Z0-9]+$\"}, \"attributes\": {\"type\": \"object\", \"description\": \"Custom attributes associated with the file (free-form key/value pairs)\", \"additionalProperties\": {\"type\": [\"string\", \"number\", \"boolean\", \"null\"]}}, \"chunking_strategy\": {\"type\": \"object\", \"description\": \"Strategy used for chunking the file\", \"required\": [\"type\"], \"additionalProperties\": false, \"properties\": {\"type\": {\"type\": \"string\", \"description\": \"Type of chunking strategy\", \"enum\": [\"static\", \"auto\"]}, \"static\": {\"type\": \"object\", \"description\": \"Static chunking configuration (present when type is static)\", \"required\": [\"chunk_overlap_tokens\", \"max_chunk_size_tokens\"], \"additionalProperties\": false, \"properties\": {\"chunk_overlap_tokens\": {\"type\": \"integer\", \"description\": \"Number of tokens to overlap between chunks\", \"minimum\": 0}, \"max_chunk_size_tokens\": {\"type\": \"integer\", \"description\": \"Maximum size of each chunk in tokens\", \"minimum\": 0}}}}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"title\": \"OpenAI Vector Store Files\", \"description\": \"Array of vector store file objects returned by the OpenAI list files API\", \"type\": \"array\", \"items\": {\"type\": \"object\", \"required\": [\"id\", \"created_at\", \"last_error\", \"object\", \"status\", \"usage_bytes\", \"vector_store_id\", \"attributes\", \"chunking_strategy\"], \"additionalProperties\": false, \"properties\": {\"id\": {\"type\": \"string\", \"description\": \"Unique identifier for the file\", \"pattern\": \"^file-[a-zA-Z0-9]+$\"}, \"created_at\": {\"type\": \"integer\", \"description\": \"Unix timestamp when the file was created\", \"minimum\": 0}, \"last_error\": {\"type\": \"object\", \"description\": \"Information about the last error encountered (empty strings when no error)\", \"required\": [\"code\", \"message\"], \"additionalProperties\": false, \"properties\": {\"code\": {\"type\": \"string\", \"description\": \"Error code, empty string when no error\"}, \"message\": {\"type\": \"string\", \"description\": \"Error message, empty string when no error\"}}}, \"object\": {\"type\": \"string\", \"description\": \"Object type identifier\", \"enum\": [\"vector_store.file\"]}, \"status\": {\"type\": \"string\", \"description\": \"Processing status of the file\", \"enum\": [\"in_progress\", \"completed\", \"failed\", \"cancelled\"]}, \"usage_bytes\": {\"type\": \"integer\", \"description\": \"Number of bytes used by the file\", \"minimum\": 0}, \"vector_store_id\": {\"type\": \"string\", \"description\": \"ID of the vector store containing this file\", \"pattern\": \"^vs_[a-zA-Z0-9]+$\"}, \"attributes\": {\"type\": \"object\", \"description\": \"Custom attributes associated with the file (free-form key/value pairs)\", \"additionalProperties\": {\"type\": [\"string\", \"number\", \"boolean\", \"null\"]}}, \"chunking_strategy\": {\"type\": \"object\", \"description\": \"Strategy used for chunking the file\", \"required\": [\"type\"], \"additionalProperties\": false, \"properties\": {\"type\": {\"type\": \"string\", \"description\": \"Type of chunking strategy\", \"enum\": [\"static\", \"auto\"]}, \"static\": {\"type\": \"object\", \"description\": \"Static chunking configuration (present when type is static)\", \"required\": [\"chunk_overlap_tokens\", \"max_chunk_size_tokens\"], \"additionalProperties\": false, \"properties\": {\"chunk_overlap_tokens\": {\"type\": \"integer\", \"description\": \"Number of tokens to overlap between chunks\", \"minimum\": 0}, \"max_chunk_size_tokens\": {\"type\": \"integer\", \"description\": \"Maximum size of each chunk in tokens\", \"minimum\": 0}}}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogMessage3",
+            "name": "LogMessage3",
+            "description": "Simple Log Message Activity",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=string.concat(\"Files confirmed in vector store \",$activity[CreateVectorStore].id, \": \", coerce.toString($activity[FileList].files))",
+                "logLevel": "INFO"
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "RecordIndex",
+            "name": "RecordIndex",
+            "description": "This activity inserts records into a PostgreSQL database",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#insert",
+              "input": {
+                "Connection": "conn://1bdafcdb-682c-497c-93ad-cc21254b64cf",
+                "QueryName": "",
+                "Schema": "public",
+                "Query": "INSERT INTO document_index (vector_store_id, store_name, files_ingested) SELECT * FROM record_vector_store(CAST(?w_vs AS text), CAST(?w_name AS text), CAST(?w_files AS text));",
+                "manualmode": false,
+                "Fields": [
+                  {
+                    "FieldName": "w_vs",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_name",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  },
+                  {
+                    "FieldName": "w_files",
+                    "Type": "LONGVARCHAR",
+                    "Selected": false,
+                    "Parameter": true,
+                    "isEditable": false,
+                    "Value": false
+                  }
+                ],
+                "RuntimeQuery": "",
+                "State": "bffdee2a-0d82-444a-804f-e16e2e5bd588INSERT INTO document_index (vector_store_id, store_name, files_ingested) SELECT * FROM record_vector_store(CAST(?w_vs AS text), CAST(?w_name AS text), CAST(?w_files AS text));",
+                "input": {
+                  "mapping": {
+                    "parameters": {
+                      "w_vs": "=$activity[CreateVectorStore].id",
+                      "w_name": "=$activity[CreateVectorStore].name",
+                      "w_files": "4"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "input": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_vs\": {\"type\": \"string\"}, \"w_name\": {\"type\": \"string\"}, \"w_files\": {\"type\": \"string\"}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"values\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}, \"parameters\": {\"type\": \"object\", \"properties\": {\"w_vs\": {\"type\": \"string\"}, \"w_name\": {\"type\": \"string\"}, \"w_files\": {\"type\": \"string\"}}}}}"
+                  }
+                },
+                "output": {
+                  "Output": {
+                    "type": "json",
+                    "value": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}",
+                    "fe_metadata": "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\", \"definitions\": {}, \"properties\": {\"records\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Simple Return Activity",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "vector_store_id": "=$activity[CreateVectorStore].id",
+                      "files_ingested": 4,
+                      "message": "Ingestion complete. Vector store recorded in document_index."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5IjoyMDB9LCJDcmVhdGVWZWN0b3JTdG9yZSI6eyJ4IjoyMDAsInkiOjIwMH0sIkxvZ01lc3NhZ2UiOnsieCI6MzYwLCJ5Ijo4MH0sIlVwbG9hZDEiOnsieCI6NTIwLCJ5IjoyMDB9LCJVcGxvYWQyIjp7IngiOjY4MCwieSI6MjAwfSwiVXBsb2FkMyI6eyJ4Ijo4NDAsInkiOjIwMH0sIlVwbG9hZDQiOnsieCI6MTAwMCwieSI6MjAwfSwiTG9nTWVzc2FnZTIiOnsieCI6MTE2MCwieSI6ODB9LCJTbGVlcCI6eyJ4IjoxMzIwLCJ5IjoyMDB9LCJGaWxlTGlzdCI6eyJ4IjoxNDgwLCJ5IjoyMDB9LCJMb2dNZXNzYWdlMyI6eyJ4IjoxNjQwLCJ5Ijo4MH0sIlJlY29yZEluZGV4Ijp7IngiOjE4MDAsInkiOjIwMH0sIlJldHVybiI6eyJ4IjoxOTYwLCJ5IjoyMDB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"store_name\":{\"type\":\"string\"},\"reingest\":{\"type\":\"boolean\"}}"
+              }
+            },
+            {
+              "name": "requestURI",
+              "type": "string"
+            },
+            {
+              "name": "method",
+              "type": "string"
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"vector_store_id\":{\"type\":\"string\"},\"files_ingested\":{\"type\":\"number\"},\"message\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Authorization\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"store_name\":{\"type\":\"string\"},\"reingest\":{\"type\":\"boolean\"}}},\"requestURI\":{\"type\":\"string\",\"required\":false},\"method\":{\"type\":\"string\",\"required\":false}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"vector_store_id\":{\"type\":\"string\"},\"files_ingested\":{\"type\":\"number\"},\"message\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        },
+        "explicitReply": true
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "PostgreSQL.PostgresConn.Host",
+      "type": "string",
+      "value": "localhost"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Port",
+      "type": "float64",
+      "value": 5432
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Database_Name",
+      "type": "string",
+      "value": "auto_insurance_governed"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.User",
+      "type": "string",
+      "value": "postgres"
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Password",
+      "type": "string",
+      "value": "SECRET:0llnwBzNtMzA8d+RYoqdf9o6EuE="
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Open_Connections",
+      "type": "float64",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Idle_Connections",
+      "type": "float64",
+      "value": 2
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Lifetime",
+      "type": "string",
+      "value": 0
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts",
+      "type": "float64",
+      "value": 3
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Retry_Delay",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "PostgreSQL.PostgresConn.Connection_Timeout",
+      "type": "float64",
+      "value": 20
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "type": "string",
+      "value": "sk-REPLACE-WITH-YOUR-OPENAI-KEY"
+    },
+    {
+      "name": "OPENAI_API_ENDPOINT_URL",
+      "type": "string",
+      "value": "https://api.openai.com/v1"
+    },
+    {
+      "name": "POLICY_DOCS_DIR",
+      "type": "string",
+      "value": "./policy_docs"
+    },
+    {
+      "name": "INGEST_PORT",
+      "type": "float64",
+      "value": 9919
+    }
+  ],
+  "connections": {
+    "1bdafcdb-682c-497c-93ad-cc21254b64cf": {
+      "id": "1bdafcdb-682c-497c-93ad-cc21254b64cf",
+      "name": "PostgresConn",
+      "ref": "#connection",
+      "isGlobal": false,
+      "settings": {
+        "databaseType": "PostgreSQL",
+        "name": "PostgresConn",
+        "description": "",
+        "host": "=$property[\"PostgreSQL.PostgresConn.Host\"]",
+        "port": "=$property[\"PostgreSQL.PostgresConn.Port\"]",
+        "databaseName": "=$property[\"PostgreSQL.PostgresConn.Database_Name\"]",
+        "user": "=$property[\"PostgreSQL.PostgresConn.User\"]",
+        "password": "=$property[\"PostgreSQL.PostgresConn.Password\"]",
+        "maxopenconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Open_Connections\"]",
+        "maxidleconnection": "=$property[\"PostgreSQL.PostgresConn.Maximum_Idle_Connections\"]",
+        "connmaxlifetime": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Lifetime\"]",
+        "maxconnectattempts": "=$property[\"PostgreSQL.PostgresConn.Maximum_Connection_Retry_Attempts\"]",
+        "connectionretrydelay": "=$property[\"PostgreSQL.PostgresConn.Connection_Retry_Delay\"]",
+        "connectiontimeout": "=$property[\"PostgreSQL.PostgresConn.Connection_Timeout\"]",
+        "onprem": false,
+        "tlsconfig": false,
+        "tlsparam": "VerifyCA",
+        "cacert": "",
+        "clientcert": "",
+        "clientkey": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTYiLCJ0YWciOiIxLjYuMTYtYjA1IiwibmFtZSI6IkdlbmVyYWwiLCJzM2xvY2F0aW9uIjoiVGliY28vR2VuZXJhbCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS9USUJDT1NvZnR3YXJlL2Zsb2dvLWVudGVycHJpc2UtaHViL2V4dGVuc2lvbnMvb3BlbkFJIiwiaWQiOiJvcGVuQUkiLCJ2ZXJzaW9uIjoiMS4wLjEiLCJ0YWciOiIxLjAuMSIsIm5hbWUiOiJPcGVuQUkiLCJzM2xvY2F0aW9uIjoie1VTRVJJRH0vb3BlbkFJIiwiaXNVc2VyRXh0ZW5zaW9uIjp0cnVlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vd2ktcG9zdGdyZXMvc3JjL2FwcC9Qb3N0Z3JlU1FMIiwiaWQiOiJQb3N0Z3JlU1FMIiwidmVyc2lvbiI6IjIuNy4yIiwidGFnIjoiMi43LjItYjAxIiwibmFtZSI6IlBvc3RncmVTUUwiLCJzM2xvY2F0aW9uIjoiVGliY28vUG9zdGdyZVNRTCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9919",
+        "spec": {
+          "name": "AutoInsuranceRAGIngestion",
+          "version": "1.0.0"
+        },
+        "title": "ReceiveHTTPMessage",
+        "swagger": {
+          "openapi": "3.0.0",
+          "info": {
+            "title": "AutoInsuranceRAGIngestion",
+            "version": "1.0.0",
+            "description": "Simple REST Trigger"
+          },
+          "paths": {
+            "/ingest": {
+              "post": {
+                "summary": "IngestPolicyDocs",
+                "operationId": "post_ingest",
+                "parameters": [
+                  {
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "Request parameter",
+                    "required": false,
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/schema1"
+                        }
+                      }
+                    }
+                  }
+                },
+                "description": "Create vector store, upload the 4 policy PDFs, wait for vectorization, list files to confirm, record the vector store id in document_index, and return a summary.",
+                "requestBody": {
+                  "description": "",
+                  "required": false,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/schema2"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "schemas": {
+              "schema1": {
+                "type": "object",
+                "properties": {
+                  "vector_store_id": {
+                    "type": "string"
+                  },
+                  "files_ingested": {
+                    "type": "number"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              },
+              "schema2": {
+                "type": "object",
+                "properties": {
+                  "store_name": {
+                    "type": "string"
+                  },
+                  "reingest": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "flogoVersion": "2.26.7"
+  }
+}

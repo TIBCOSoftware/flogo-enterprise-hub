@@ -27,24 +27,8 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = config.port;
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Flogo Chatbot server running on http://localhost:${PORT}`);
   console.log(`WebSocket backend URL: ${config.wsUrl}`);
-  console.log(`Press Ctrl+C to stop the server`);
-});
-
-process.on('SIGINT', () => {
-  console.log('\nStopping Flogo Chatbot server...');
-  server.close(() => process.exit(0));
-});
-
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`\nError: Port ${PORT} is already in use.`);
-    console.error(`Fix: Run with a different port, e.g.  PORT=3001 npm start\n`);
-  } else {
-    console.error('Server error:', err);
-  }
-  process.exit(1);
 });
 
