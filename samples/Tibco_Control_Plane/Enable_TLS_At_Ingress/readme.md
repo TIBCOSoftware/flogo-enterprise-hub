@@ -17,7 +17,7 @@ This sample includes:
 
 After deploying the Flogo app with custom certificates on TIBCO Control Plane, the Swagger UI for the application endpoint fails to load the API definition:
 
-![Endpoints fail due to SSL termination at the load balancer](../images/Enable_TLS_At_Ingress%20/custom-cert-1.png)
+![Endpoints fail due to SSL termination at the load balancer](../images/Enable_TLS_At_Ingress/custom-cert-1.png)
 
 The error indicates a fetch failure because the ingress controller is making an HTTP request to a pod that expects HTTPS. The fix is to configure the ingress controller to use HTTPS when communicating with the backend pod.
 
@@ -83,7 +83,7 @@ traefik.ingress.kubernetes.io/service.serverstransport: flogodpautomation-ns-app
 
 After applying the above configuration, the Traefik ingress controller makes secure HTTPS requests to the backend pod, and the application endpoints start working correctly:
 
-![Endpoints working after configuring Traefik ingress controller](../images/Enable_TLS_At_Ingress%20/custom-cert-2.png)
+![Endpoints working after configuring Traefik ingress controller](../images/Enable_TLS_At_Ingress/custom-cert-2.png)
 
 ---
 
