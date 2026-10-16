@@ -11,6 +11,24 @@ sample**: the run prerequisites, how to build and start the three apps, and how 
 
 ---
 
+## Quick setup (optional helper)
+
+[`setup.py`](setup.py) (in this folder) does the one-time setup for a sample so you don't have to run the
+steps below by hand. It checks prerequisites, validates your PostgreSQL connection and LLM key/model, ensures
+a build context, creates and loads the database, and builds the apps' executables. Your credentials from
+`config.md` are injected only into the git-ignored `./bin` build copies — the committed `.flogo` files stay
+untouched.
+
+```bash
+python setup.py --list                           # list the samples
+python setup.py <Sample_Use_Case folder name>    # runs: check -> config -> validate -> context -> db -> build
+```
+
+It does **not** start the apps. When it finishes, start them yourself (next section) and connect the Chatbot.
+Prefer to do everything by hand? The rest of this guide is the full manual path.
+
+---
+
 ## Prerequisites to *run* (beyond designing)
 
 Opening and editing the apps needs only **VS Code + the TIBCO Flogo extension**. To actually **run** a
