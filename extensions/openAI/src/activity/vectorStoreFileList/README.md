@@ -10,7 +10,7 @@ This activity uses the OpenAI Vector Store Files API endpoint: `https://api.open
 
 - Valid OpenAI API key with vector store access permissions
 - An existing OpenAI vector store
-- Flogo Enterprise application
+- TIBCO Flogo® application
 
 ## Settings
 

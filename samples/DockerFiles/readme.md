@@ -54,7 +54,7 @@ docker build --build-arg RUNTIME_BASE=alpine -t flogo-app:alpine -f Dockerfile.a
 
 ### Running Flogo Applications with License
 
-Flogo Enterprise applications require a license file to run in production mode. You can supply the license file to Docker containers using volume mounts and environment variables.
+TIBCO Flogo® applications require a license file to run in production mode. You can supply the license file to Docker containers using volume mounts and environment variables.
 
 **Example:**
 
@@ -76,7 +76,7 @@ This approach allows you to manage license files externally without embedding th
 ## Requirements
 
 - Docker 20.10 or later
-- Flogo Enterprise build tools (flogobuild, .vsix extensions)
+- TIBCO Flogo® build tools (flogobuild, .vsix extensions)
 - For connector-specific builds: supplemental libraries (EMS, MQ, Oracle, SAP)
 
 ## Builder/Runtime Compatibility Matrix

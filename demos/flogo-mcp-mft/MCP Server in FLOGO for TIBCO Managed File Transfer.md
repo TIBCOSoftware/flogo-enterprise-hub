@@ -69,7 +69,7 @@ Output from Claude Desktop:
 
 #### Flogo MCP Server
 
-The MCP Server is build in [TIBCO Flogo Enterprise](https://docs.tibco.com/products/tibco-flogo-enterprise).  Download the "TIBCO Flogo Extension for Visual Studio Code Software" from the [eDelivery portal](https://www.tibco.com/downloads/11810/secure/download-11810).
+The MCP Server is build in [TIBCO Flogo®](https://docs.tibco.com/products/tibco-flogo).  Download the "TIBCO Flogo Extension for Visual Studio Code Software" from the [eDelivery portal](https://www.tibco.com/downloads/11810/secure/download-11810).
 
 In the Flogo MCP Server multiple flows are defined. For each MCP - Tool definition a separate flow is specified. In this example MCP Server, there are 3 MCP Tool definitions available:
 - Transfers Tool

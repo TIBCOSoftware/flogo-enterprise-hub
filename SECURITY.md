@@ -3,7 +3,7 @@
 Thank you for helping keep the **Hub for TIBCO Flogo®** and its community safe.
 
 This repository contains **illustrative samples, demos, and Claude Code skills** for
-TIBCO Flogo® Enterprise. The code here is provided **as-is**, for learning and
+TIBCO Flogo®. The code here is provided **as-is**, for learning and
 demonstration purposes. It is not a supported product, and the samples are not
 intended to be deployed to production without review and hardening.
 

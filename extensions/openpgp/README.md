@@ -35,7 +35,7 @@ The Output Settings tab has the following field:
 
 ## Loop
 
-Refer to the section on "Using the Loop Feature in an Activity" in the TIBCO Flogo® Enterprise User's Guide for information on the Loop tab.
+Refer to the section on "Using the Loop Feature in an Activity" in the TIBCO Flogo® User's Guide for information on the Loop tab.
 
 # Decrypt Activity
 
@@ -68,7 +68,7 @@ The Output Settings tab has the following field:
 
 ## Loop
 
-Refer to the section on "Using the Loop Feature in an Activity" in the TIBCO Flogo® Enterprise User's Guide for information on the Loop tab.
+Refer to the section on "Using the Loop Feature in an Activity" in the TIBCO Flogo® User's Guide for information on the Loop tab.
 
 # Generate KeyPair Activity
 
@@ -103,4 +103,4 @@ The Output Settings tab has the following field:
 
 ## Loop
 
-Refer to the section on "Using the Loop Feature in an Activity" in the TIBCO Flogo® Enterprise User's Guide for information on the Loop tab.
+Refer to the section on "Using the Loop Feature in an Activity" in the TIBCO Flogo® User's Guide for information on the Loop tab.

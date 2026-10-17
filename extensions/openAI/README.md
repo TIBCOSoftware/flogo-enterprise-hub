@@ -81,7 +81,7 @@ For image generation, the flow is a single step: map your text into **Image Crea
 
 ### Prerequisites
 
-- **TIBCO Flogo® Enterprise** with the **Flogo VS Code extension** installed.
+- **TIBCO Flogo®** with the **Flogo VS Code extension** installed.
 - An **OpenAI API key** with access to the Files, Vector Stores, and (for images) Image APIs.
 - **Go** toolchain (as required by your Flogo distribution) for building the app.
 

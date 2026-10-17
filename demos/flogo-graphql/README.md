@@ -10,7 +10,7 @@
 
 ## Pre-requisites
 
-Make file uses calls to flogobuild tool. The flogobuild tool can be downloaded from edelivery.tibco.com under either TIBCO Flogo Enterprise or TIBCO Integration for TIBCO Platform.
+Make file uses calls to flogobuild tool. The flogobuild tool can be downloaded from edelivery.tibco.com under either TIBCO Flogo® or TIBCO Integration for TIBCO Platform.
 
 | Make sure flogobuild is available on your environment path. 
 

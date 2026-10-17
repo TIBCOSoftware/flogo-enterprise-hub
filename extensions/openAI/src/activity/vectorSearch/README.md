@@ -10,7 +10,7 @@ This activity uses the OpenAI Vector Store Search API endpoint: `https://api.ope
 
 - Valid OpenAI API key with access to vector store operations
 - An existing OpenAI vector store populated with documents
-- Flogo Enterprise application
+- TIBCO Flogo® application
 
 ## Settings
 

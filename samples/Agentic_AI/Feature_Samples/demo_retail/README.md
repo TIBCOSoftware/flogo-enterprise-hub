@@ -1,4 +1,4 @@
-# BeautyCo — Flogo Enterprise Retail Demo
+# BeautyCo — TIBCO Flogo® Retail Demo
 
 An enterprise-ready demo showcasing TIBCO Flogo as the integration backbone for an AI-powered retail platform. Built for live customer demonstrations.
 

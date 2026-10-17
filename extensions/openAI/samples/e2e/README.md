@@ -33,7 +33,7 @@ Before you start, make sure the following are installed and available on your `P
 - **VS Code** (latest stable) — https://code.visualstudio.com/
 - **Go** (version required by your Flogo distribution — typically 1.21+) — https://go.dev/dl/
 - **Git** — https://git-scm.com/
-- **TIBCO Flogo® Enterprise** entitlement / license (for the Flogo VS Code extension)
+- **TIBCO Flogo®** entitlement / license (for the Flogo VS Code extension)
 - An **OpenAI API key** with access to the Files, Vector Stores, and Embeddings APIs
 
 Verify the basics from a terminal:
@@ -53,7 +53,7 @@ The Flogo VS Code extension is **not** available in the public VS Code Marketpla
 ### 2.1 Download the extension
 
 1. Sign in to the TIBCO download portal: https://edelivery.tibco.com/ (or your customer portal).
-2. Locate **TIBCO Flogo® Enterprise** → **VS Code Extension**.
+2. Locate **TIBCO Flogo®** → **VS Code Extension**.
 3. Download the latest `.vsix` file (e.g. `tibco-flogo-<version>.vsix`) to a local folder.
 
 ### 2.2 Install the `.vsix` in VS Code
