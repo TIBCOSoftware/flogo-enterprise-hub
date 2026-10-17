@@ -30,7 +30,7 @@ A validation error is raised in Flogo Studio when a required input is not mapped
 
 - Valid OpenAI API key with file upload permissions
 - Local file system access to files for upload
-- Flogo Enterprise application
+- TIBCO Flogo® application
 
 ## Settings
 

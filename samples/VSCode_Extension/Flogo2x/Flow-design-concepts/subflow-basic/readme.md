@@ -22,7 +22,7 @@ This sample application is based on the BookStore example. It uses a REST API at
 
 First you will need to upload Throw Error Extention from [github.com/TIBCOSoftware/flogo-contrib/activity/error](https://github.com/TIBCOSoftware/flogo-contrib/tree/master/activity/error)
 
-When you run this sample locally using TIBCO Flogo® Enterprise, the workflow behaves as follows:
+When you run this sample locally using TIBCO Flogo®, the workflow behaves as follows:
 
 1. To Get all Books - You will need to hit the url - http://localhost:9999/books
 2. To Get Book By ISBN - you will need to hit the url - http://localhost:9999/books/1451648537

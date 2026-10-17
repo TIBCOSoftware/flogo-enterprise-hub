@@ -1,6 +1,6 @@
-# Agentic AI — Industry Use-Case Demos (governed)
+# Agentic AI — Industry Use-Case Demos
 
-End-to-end, **industry-specific Agentic AI demos** built on **TIBCO Flogo® Enterprise** — each a complete, PostgreSQL-backed chat assistant that applies the same reusable, **governed three-app pattern** to a different industry. Identity, scope, prices and every state change are decided in SQL, not in prompts, and each demo was tested end to end (including prompt injection).
+End-to-end, **industry-specific Agentic AI demos** built on **TIBCO Flogo®** — each a complete, PostgreSQL-backed chat assistant that applies the same reusable, **governed three-app pattern** to a different industry. Identity, scope, prices and every state change are decided in SQL, not in prompts, and each demo was tested end to end (including prompt injection).
 
 > ### ▶ How to run these samples
 >
@@ -28,7 +28,7 @@ Every governed use case ships the same **trio** of Flogo apps plus a PostgreSQL 
 
 Click a use case to open its folder and full README, which lists its ports, database and demo logins.
 
-### Industry use cases (governed — start here)
+### Industry use cases (start here)
 
 Grouped by **Industry → Sub-category**, mirroring the [folders in this directory](./). Every one passes the decision framework (agent vs. deterministic vs. human-owned), enforces its rules in SQL, and was tested end to end, including prompt injection.
 

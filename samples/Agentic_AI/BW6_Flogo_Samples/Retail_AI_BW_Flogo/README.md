@@ -136,7 +136,7 @@ Before running the Flogo orchestrator, update the **app properties** in `RetailA
 | `MCP_Server_URL` | `http://localhost:18000/rest/mcp` | Update if the BW6 MCP Server runs on a different host/port |
 | `RetailAgent.SystemPrompt` | _(pre-configured)_ | No change needed — defines the AI assistant's behavior and tool usage rules |
 
-You can edit these properties in the Flogo Enterprise UI (VS Code extension or Web UI) or directly in the `.flogo` JSON file.
+You can edit these properties in the TIBCO Flogo® UI (VS Code extension or Web UI) or directly in the `.flogo` JSON file.
 
 ### 2. Configure the BW6 Apps
 
@@ -361,7 +361,7 @@ Start services in this order:
 
 ### Starting the Flogo Orchestrator
 
-Run the `RetailAIOrchestrator.flogo` app using the Flogo Enterprise CLI or VS Code Flogo extension:
+Run the `RetailAIOrchestrator.flogo` app using the TIBCO Flogo® CLI or VS Code Flogo extension:
 
 ```bash
 # Using the Flogo build CLI

@@ -24,7 +24,7 @@ Every flow ends with a Return activity to ensure correct termination and that a 
 
 **First, you need to upload the Throw Error Extension from:** (https://github.com/TIBCOSoftware/flogo-contrib/tree/master/activity/error)
 
-**If you run any of these samples locally using TIBCO Flogo® Enterprise:**
+**If you run any of these samples locally using TIBCO Flogo®:**
 
 **1. To get all books, hit the URL:** http://localhost:9999/books
 

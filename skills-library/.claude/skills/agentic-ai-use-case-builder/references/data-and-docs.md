@@ -86,7 +86,7 @@ Sections, in order:
 2. **Architecture** — the ASCII diagram (Chatbot UI → WebSocket → Orchestrator → MCP/A2A → PostgreSQL).
 3. **Flogo Apps** — three subsections (MCP tools table; A2A agents table with ports; orchestrator settings).
 4. **Database** — table summary (table → purpose → row count).
-5. **Prerequisites** — Flogo Enterprise version, PostgreSQL, OpenAI key (model default `gpt-5.5`;
+5. **Prerequisites** — TIBCO Flogo® version, PostgreSQL, OpenAI key (model default `gpt-5.5`;
    base URL empty for OpenAI), Gmail App Password (if email), chatbot UI location, and **install the
    connector prerequisites** for every connector detected per [connector-prereqs.md](connector-prereqs.md):
    VS Code **Flogo** sidebar → **Help And Feedback** → **Install Prerequisites for Flogo Connectors…**,

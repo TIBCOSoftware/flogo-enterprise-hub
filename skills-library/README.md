@@ -229,8 +229,8 @@ python skills-library/.claude/skills/agentic-ai-use-case-builder/templates/prefl
 
 | Tool | Purpose | Documentation |
 |---|---|---|
-| **fda** (Flogo Design Assistant) | Design-time edits to `.flogo` files (ships inside the Flogo VS Code extension) | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
-| **flogobuild** (TIBCO Flogo App Build CLI) | Build executables and Platform deployment artifacts — **only when building**; download from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (not bundled in the VS Code extension); requires the [Go runtime](https://go.dev/dl/) | [Flogo](https://docs.tibco.com/products/tibco-flogo-enterprise) |
+| **fda** (Flogo Design Assistant) | Design-time edits to `.flogo` files (ships inside the Flogo VS Code extension) | [Flogo](https://docs.tibco.com/products/tibco-flogo) |
+| **flogobuild** (TIBCO Flogo App Build CLI) | Build executables and Platform deployment artifacts — **only when building**; download from the [TIBCO downloads page](https://www.tibco.com/downloads/11810) (not bundled in the VS Code extension); requires the [Go runtime](https://go.dev/dl/) | [Flogo](https://docs.tibco.com/products/tibco-flogo) |
 | **tibcop** (TIBCO Platform CLI) | Deploy and manage applications on the TIBCO Platform — **only when deploying** | [TIBCO Platform CLI download](https://www.tibco.com/downloads/12464) |
 | **TIBCO Flogo VS Code extension** (2.26.7+) | Provides `fda` plus the visual designer for `.flogo` files; its `.vsix` is also the input for `flogobuild create-context` | [TIBCO downloads](https://www.tibco.com/downloads/11810) / [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tibco.flogo) |
 | **Claude Code** (or another coding agent) | Reads and applies the skills | [Claude Code](https://www.anthropic.com/claude-code) |
