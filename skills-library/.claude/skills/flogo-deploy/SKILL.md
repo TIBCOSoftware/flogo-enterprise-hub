@@ -36,18 +36,28 @@ Apps assembled via `fda` — especially ones scaffolded from a spec with `cas` �
    ```shell
    fda sa any metadata.endpoints --jsonFile <endpoints.json> -f <PATH_TO_FLOGO_FILE>
    ```
-   Each entry has the shape:
-   ```json
-   {
-     "protocol": "<http | ws | ...>",
-     "port": "<the trigger's actual listen port, read from its settings>",
-     "spec":  { "name": "<app name>", "version": "<app version>" },
-     "title": "<service name — this is what the CP UI 'Service Name' column shows>",
-     "swagger": <Swagger 2.0 document describing that endpoint>
-   }
-   ```
-   - Read `port` from the trigger's own settings — never assume a number.
-   - For the `swagger`, reuse the trigger's own `settings.swagger` when it has one (REST triggers built from a spec do); otherwise convert the app's embedded OpenAPI 3.0 spec (under `specs[]`) to Swagger 2.0. Write it to a file rather than inline — these documents are large.
+   **Match the entry shape to the trigger type** — mirror a designer-authored endpoint of the same kind rather than forcing one template. The `spec` and `swagger` fields are **only for API triggers** that expose an OpenAPI/Swagger contract; port-only listeners have neither.
+
+   - **Port-only listeners** — MCP, A2A, WebSocket, and any trigger that just binds a port with no OpenAPI/Swagger contract. Use the minimal shape, **no `spec`, no `swagger`**:
+     ```json
+     { "protocol": "<http | ws | ...>", "port": "<listen port>", "title": "<service name>", "type": "<public | private>" }
+     ```
+   - **API triggers** — REST / HTTP that publish an OpenAPI/Swagger contract. Add `spec` and `swagger` on top of the fields above:
+     ```json
+     {
+       "protocol": "http",
+       "port": "<listen port>",
+       "title": "<service name>",
+       "type": "<public | private>",
+       "spec": { "name": "<app name>", "version": "<app version>" },
+       "swagger": <Swagger 2.0 document>
+     }
+     ```
+   Field notes:
+   - `port` — read it from the trigger's own settings; never assume a number.
+   - `title` — the service name shown in the CP UI "Service Name" column.
+   - `type` — `public` or `private`; present on designer-authored endpoints, sets the CP visibility hint.
+   - `swagger` (API triggers only) — source it from the trigger's `settings.swagger`, but that value **may be a `spec://<id>` reference rather than an inline document** (copying it verbatim produces the wrong endpoint shape). If it is a reference, resolve `<id>` in the app's `specs` map, base64-decode its `content`, and parse it. The resolved document may **already be Swagger 2.0** (has `swagger` / `basePath` / `definitions`) — use it as-is; convert only if it is OpenAPI 3.0 (`openapi` / `components`). Write the result to a file rather than inline — these documents are large.
 3. Re-run `fda cm`, re-run the unit test suite, then build. After `generate-values-from-build` (Step 4), confirm the generated `values.yaml` has a **non-empty `service.ports`** before deploying.
 
 ### Step 2: List available Flogo versions on the dataplane
@@ -118,4 +128,4 @@ Provide the user with:
 - **EUA error on deploy-app**: Switch to `deploy-app-release` with the `--eula` flag. The `deploy-app` command does not support EUA acceptance in its JSON payload.
 - **Build failure**: Check the build status with `tibcop flogo:get-build-status --profile <YOUR_PROFILE> --dataplane-name <DATAPLANE_NAME> --build-id <BUILD_ID> --json`
 - **No flogo versions**: The dataplane may not have a Flogo version provisioned. Use `tibcop flogo:provision-flogo-version` to provision one first.
-- **Public calls return nginx 503 / `list-app-endpoints` says the k8s service "doesn't exist"**: The app's `metadata.endpoints` was empty, so `service.ports` is empty and no Service was created (see Step 1b). Fix the `.flogo` (backfill `metadata.endpoints`), rebuild to a new build, and **upgrade in place**: pull the app's current **live** values (`tibcop flogo:get-app-release-values --app-id <APP_ID> --output-dir <DIR>`), change only `appConfig.buildId` to the new build and copy the new `service.ports` (and `serviceDescription`) in, then `tibcop flogo:update-app-release <values.yaml> --app-id <APP_ID>`. Round-tripping the full live values preserves the app's endpoint visibility and secrets; a freshly generated `values.yaml` does not.
+- **Public calls return nginx 503 / `list-app-endpoints` says the k8s service "doesn't exist"**: The app's `metadata.endpoints` was empty, so `service.ports` is empty and no Service was created (see Step 1b). Fix the `.flogo` (backfill `metadata.endpoints`), rebuild to a new build, and **upgrade in place**: pull the app's current **live** values (`tibcop flogo:get-app-release-values --profile <YOUR_PROFILE> --dataplane-name <DATAPLANE_NAME> --app-id <APP_ID> --output-dir <DIR>`), change only `appConfig.buildId` to the new build and copy the new `service.ports` (and `serviceDescription`) in, then `tibcop flogo:update-app-release <values.yaml> --profile <YOUR_PROFILE> --dataplane-name <DATAPLANE_NAME> --app-id <APP_ID>`. Pass the same configured profile (and dataplane) that every other deploy command in this skill uses. Round-tripping the full live values preserves the app's endpoint visibility and secrets; a freshly generated `values.yaml` does not.
