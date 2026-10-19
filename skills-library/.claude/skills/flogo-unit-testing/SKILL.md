@@ -339,6 +339,21 @@ Print a summary table showing:
 
 ---
 
+## 5a. Designer red-X on assertions into nested object fields (design-time false-positive)
+
+**Symptom:** In the VS Code **Flogo Unit Test Editor**, assertions that navigate into a sub-field of a flow-output object — e.g. `$.<objectField>.<...>.<leaf>` — show a **red X** / red squiggle, while assertions on top-level typed leaves (e.g. `$.code`) stay green. The tests themselves are **correct**: they pass under `flogobuild test-app` and against the live endpoint.
+
+**Cause:** The test editor validates each assertion against the flow's **output schema** (`metadata.output`). When the field an assertion reaches into is declared as an **untyped / empty object** (`{"type":"object","properties":{}}`) or `any`, the editor cannot confirm the leaf exists and flags it. This is common whenever a flow output carries a generic payload — for example a REST response body scaffolded by `cas` exposes `responseBody.body` as an empty object, and any error/data-reply pattern that returns a free-form object does the same. **Neither `fda cm` nor `test-app` reports this** — it is a designer-only linter signal, so an all-green CLI run can still show red X's in the UI.
+
+**Fix (generic):** Declare the shape of that output field on the flow's output schema so its leaves resolve. For any flow whose assertions read `$.<field>.<leaf>`, make sure `<field>` is a typed object whose `properties` include every `<leaf>` the assertions reference. If the same field holds different shapes on different paths (e.g. a success body vs. an error body returned by the same flow), declare the **union** of all referenced leaves — this is a design-time annotation only, so a superset schema is fine.
+
+- The schema lives in two places the designer reads and both must agree: `metadata.output[<field>].schema.value` (a direct props-map) and `metadata.fe_metadata.output` (a full draft-04 JSON schema used to render the "Available Data" tree). Set the same `properties` in both.
+- **Close the file in the designer first.** Opening a `.flogo` in the designer auto-saves a round-trip; writing underneath it races/corrupts (see the main AGENT.md rule on not editing a designer-open file). Have the user Discard + close, patch, then reopen.
+- `fda` has no single "set flow-output sub-field schema" subcommand, so patch these schema strings surgically (the sanctioned "repair a field on a designer-edited file" case), then **deep-diff** parsed-before vs. parsed-after to prove only those schema strings changed, re-run `fda cm`, and re-run the suite.
+- **Design-time only:** typing the output field changes no runtime behaviour, no build output, and nothing in a deployed app's exposed API — it only makes the designer resolve the assertion leaves. The assertions were already passing.
+
+---
+
 ## 6. Complete Workflow Summary
 
 | Step | Tool | Action |
