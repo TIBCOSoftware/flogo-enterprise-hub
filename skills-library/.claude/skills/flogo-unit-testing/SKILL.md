@@ -101,20 +101,32 @@ flogodesign-cli.exe -f <AppName>.flogo create-test-case TestPostBook books_POST 
 - POST: Change `"flowInputs": {"body": {"body": {...}}}` to `"flowInputs": {"body": {...}}`
 - Subflow / non-REST: Change `"flowInputs": {"body": {<inputs>}}` to `"flowInputs": {<inputs>}`
 
-This script fixes all of them at once. It is safe to re-run: it unwraps only when the keys inside `body` are the flow's own input names, so an already-correct REST `{"body": {...}}` is left alone.
+This script removes the wrapper from the test cases you name: pass each test case's name (or its `<FlowId>:<TestCaseName>` key from the `.flogotest`). It looks up the flow's inputs by `flowId`, because `flowName` is a display name that can differ from the flow's ID (for example `Play Feature` vs `Play_Feature`). It unwraps a test only when the keys inside `body` are that flow's input names; otherwise it leaves the test unchanged and prints a warning.
+
+**Run it once, right after `create-test-case`, and list only the test cases you just created.** Never run it on test cases that are already correct. For a flow that has an input named `body`, a correct `{"body": {"body": {...}}}` (a request body that itself contains a `body` field) looks exactly like a fresh wrapper, and the script would remove a real level.
 
 ```bash
-python - <AppName>.flogo <AppName>.flogotest <<'EOF'
+python - <AppName>.flogo <AppName>.flogotest <TestCaseName> [<TestCaseName> ...] <<'EOF'
 import json, sys
-app, tf = sys.argv[1], sys.argv[2]
+app, tf, targets = sys.argv[1], sys.argv[2], set(sys.argv[3:])
 ins = {r['id'].split(':', 1)[1]: {i['name'] for i in r['data'].get('metadata', {}).get('input', [])}
        for r in json.load(open(app, encoding='utf-8'))['resources']}
 d = json.load(open(tf, encoding='utf-8'))
-for t in d['tests'].values():
-    fi, names = t.get('flowInputs', {}), ins.get(t['flowName'], set())
-    if list(fi) == ['body'] and isinstance(fi['body'], dict) and set(fi['body']) <= names \
-            and (fi['body'] or 'body' not in names):
+found = set()
+for key, t in d['tests'].items():
+    hit = {key, t.get('name')} & targets
+    if not hit:
+        continue
+    found |= hit
+    fi = t.get('flowInputs', {})
+    names = ins.get(t.get('flowId', '').split(':', 1)[-1], set())
+    if list(fi) == ['body'] and isinstance(fi['body'], dict) and set(fi['body']) <= names:
         t['flowInputs'] = fi['body']
+        print('unwrapped:', key)
+    else:
+        print('WARNING: left unchanged, not a fresh create-test-case wrapper:', key, file=sys.stderr)
+for n in sorted(targets - found):
+    print('WARNING: test case not found:', n, file=sys.stderr)
 json.dump(d, open(tf, 'w', encoding='utf-8'), indent=2)
 EOF
 ```
