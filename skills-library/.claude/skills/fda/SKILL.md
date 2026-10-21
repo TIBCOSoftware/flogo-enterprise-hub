@@ -315,7 +315,7 @@ The `<fieldName>` must match the input field name from `exp`. **Do NOT** set `in
 
 ## Subflows, loops and retries
 
-**Calling a subflow.** Create the child flow first and give it typed inputs/outputs with `fda sms <Child>.input --json-schema '…'` and `fda sms <Child>.output --json-schema '…'`. Then, in the parent:
+**Calling a subflow.** Create the child flow first and give it typed inputs/outputs with `fda sms <Child>.input --json-schema '…' -f "$FILE"` and `fda sms <Child>.output --json-schema '…' -f "$FILE"`. Then, in the parent:
 
 ```bash
 fda ca <Parent> CallChild subflow "Call the child flow" -f "$FILE"
@@ -328,12 +328,12 @@ fda mm "<Parent>.CallChild.input.<childInput>" '=$flow.someValue' -f "$FILE"
 
 - A subflow activity is not a mapper: `sms` needs `--field input` / `--field output`, and its inputs are mapped one child input at a time (`input.<childInput>`, no `.mapping.`).
 - Downstream activities read the child's outputs by name: `$activity[CallChild].<childOutput>` (this trips a known `cm` false positive, see above).
-- `fda cat <flow> <activity> subflow` keeps the activity's links but empties its fields. Recreate the settings with `sa … --force` (case 3 of the `--force` rule).
+- `fda cat <flow> <activity> subflow -f "$FILE"` keeps the activity's links but empties its fields. Recreate the settings with `sa … --force` (case 3 of the `--force` rule).
 - `settings.execTimeout` (ms, accepts `=$property["…"]`) cancels the child flow when it runs too long. The cancellation takes the subflow activity's `error` link.
 
 **Error branches.** On an `error`-type link, read the failure with `$error[<FailedTask>].message`. The generic `$error.message` is not always set: after a subflow `execTimeout` cancellation, for example, it fails at runtime with `failed to resolve error, not found in flow`, while `$error[<FailedTask>].message` returns the timeout message.
 
-**Repeat while true (`doWhile`) loop.** `fda` has no loop flag, so set the task type and loop settings with `sa any`. `<i>` is the flow's 0-based position in `fda dp -f "$FILE"`, and `<j>` is the task's 0-based position in `fda da flow '<Flow>.tasks' -f "$FILE"`. Confirm both with `fda da any "resources.<i>.data.tasks.<j>.id" -f "$FILE"` before writing. Pass the same `-f` to every lookup: without it `fda` reads (or creates) `flogo-project.flogo` in the current directory and the indices can come from a different app.
+**Repeat while true (`doWhile`) loop.** `fda` has no loop flag, so set the task type and loop settings with `sa any`. `<i>` is the flow's 0-based position in `fda dp -f "$FILE"`, and `<j>` is the task's 0-based position in `fda da flow '<Flow>.tasks' -f "$FILE"`. Confirm both with `fda da any "resources.<i>.data.tasks.<j>.id" -f "$FILE"` before writing: it must print the task's id, and if it prints anything else (for example `{}`), stop and don't write, because `--force` creates whatever path it is given. When counting `<j>`, each task starts at a line beginning with `- `, and its `id:` is not always that first line. Pass the same `-f` to every lookup: without it `fda` reads (or creates) `flogo-project.flogo` in the current directory and the indices can come from a different app.
 
 ```bash
 fda sa any "resources.<i>.data.tasks.<j>.type" doWhile --force -f "$FILE"
