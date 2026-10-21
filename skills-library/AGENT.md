@@ -174,7 +174,7 @@ To run and test an application locally:
 
 1. Add a timer trigger to a flow that executes the flow on startup.
 2. Use log activities to log output to the console.
-3. Build with `flogobuild build-exe -f <FLOGO_APPS_DIR>/<AppName>.flogo -c <FLOGOBUILD_CONTEXT_NAME> -o <FLOGO_APPS_DIR>/../bin` (use the `FLOGOBUILD_CONTEXT_NAME` value from `config.md`; the `bin/` folder sits beside the apps folder, i.e. `skills-library/bin/`).
+3. Build from inside the apps folder with `cd <FLOGO_APPS_DIR> && flogobuild build-exe -f <AppName>.flogo -c <FLOGOBUILD_CONTEXT_NAME> -o ../bin` (use the `FLOGOBUILD_CONTEXT_NAME` value from `config.md`; the `bin/` folder sits beside the apps folder, i.e. `skills-library/bin/`). Pass the bare file name: `build-exe` appends the directory part of a relative app path to `-o` (see the `flogobuild` skill).
 4. Run the executable for ~5 seconds and read the output logs:
    - **Git Bash (Windows) / Linux:** `timeout 5 <FLOGO_APPS_DIR>/../bin/<AppName> 2>&1 || true`
    - **macOS:** `timeout` is not built in — use `gtimeout 5 …` (from `brew install coreutils`), or start the exe, wait, and stop it with Ctrl+C / `kill <pid>`.

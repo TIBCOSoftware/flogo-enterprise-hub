@@ -65,8 +65,14 @@ flogodesign-cli.exe -f <AppName>.flogo create-test-case <TestCaseName> <FlowName
 - `<flowInputsJSON>` — JSON object with the flow's input values
 
 **IMPORTANT — Flow input structure:**
-The CLI wraps the JSON input in a `body` key automatically. To get the correct structure
-in the `.flogotest` file, you MUST edit the file after creation to fix the wrapping:
+The CLI wraps the JSON input in a `body` key automatically, for **every** flow type (REST, timer
+and subflows alike). To get the correct structure in the `.flogotest` file, you MUST edit the
+file after creation and remove exactly one `body` level from each test's `flowInputs`.
+Pass the flow's real inputs as the JSON, keyed by the flow's input names:
+
+- For **subflows and other non-REST flows**: pass the inputs directly, e.g. `{"orderId":"A1","attempt":1}`,
+  then unwrap so `flowInputs` is `{"orderId":"A1","attempt":1}`, not `{"body":{"orderId":…}}`.
+  The flow has no `body` input, so a wrapped test silently runs with empty inputs.
 
 - For **GET** flows with path params: pass `{"pathParams":{"param":"value"}}`,
   then edit the flogotest to remove the extra `body` wrapper so `flowInputs` contains
@@ -93,10 +99,31 @@ flogodesign-cli.exe -f <AppName>.flogo create-test-case TestPostBook books_POST 
 **After creating all test cases**, edit the `.flogotest` file to fix `flowInputs`:
 - GET: Change `"flowInputs": {"body": {"pathParams": {...}}}` to `"flowInputs": {"pathParams": {...}}`
 - POST: Change `"flowInputs": {"body": {"body": {...}}}` to `"flowInputs": {"body": {...}}`
+- Subflow / non-REST: Change `"flowInputs": {"body": {<inputs>}}` to `"flowInputs": {<inputs>}`
+
+This script fixes all of them at once. It is safe to re-run: it unwraps only when the keys inside `body` are the flow's own input names, so an already-correct REST `{"body": {...}}` is left alone.
+
+```bash
+python - <AppName>.flogo <AppName>.flogotest <<'EOF'
+import json, sys
+app, tf = sys.argv[1], sys.argv[2]
+ins = {r['id'].split(':', 1)[1]: {i['name'] for i in r['data'].get('metadata', {}).get('input', [])}
+       for r in json.load(open(app, encoding='utf-8'))['resources']}
+d = json.load(open(tf, encoding='utf-8'))
+for t in d['tests'].values():
+    fi, names = t.get('flowInputs', {}), ins.get(t['flowName'], set())
+    if list(fi) == ['body'] and isinstance(fi['body'], dict) and set(fi['body']) <= names \
+            and (fi['body'] or 'body' not in names):
+        t['flowInputs'] = fi['body']
+json.dump(d, open(tf, 'w', encoding='utf-8'), indent=2)
+EOF
+```
 
 ### Step 4 — Add assertions to test cases
 
 For each test case, add assertions that validate the flow output.
+
+Compute long or derived expected values (Base64 content, hashes, generated payloads) with a script from the real source data, and never type them by hand. A hand-typed value usually fails for the wrong reason.
 
 ```bash
 flogodesign-cli.exe -f <AppName>.flogo create-assertion <TestCaseName> flowOutputs ASSERT_ON_OP <AssertionName> '<expression>'
@@ -190,6 +217,11 @@ This prints the test suites, test cases, flow inputs, and assertions for verific
 - `-t` — Comma-separated list of test suites to run
 - `-d` — Output directory for test results (**must be an absolute path** on Windows, e.g. `<absolute-path-to>/test-results` — for example resolve `<FLOGO_APPS_DIR>/../test-results` to its absolute path)
 - `-o` — Output filename for the test result (flogobuild appends `.testresult` extension automatically)
+
+**Notes:**
+- `test-app -a <AppName>.flogo` builds a test harness from the app and **rewrites the source `.flogo` in place** (it normalises the file). If the `.flogo` must stay untouched, for example while it is open in the designer or after a byte-level review, build the executable first and test that instead: replace `-a <AppName>.flogo` with `-e <absolute-path-to-built-exe>`.
+- `test-app` exits `0` and prints "executed successfully" even when assertions fail. The pass/fail result is only in the `.testresult` file, so always do Step 9.
+- Activities that are not mocked run for real, so any external endpoint those flows call must be reachable during the run.
 
 Example:
 ```bash

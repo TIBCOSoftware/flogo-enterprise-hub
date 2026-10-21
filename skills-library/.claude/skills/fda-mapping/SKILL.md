@@ -380,6 +380,8 @@ A handful of activities have descriptor-level peculiarities that surface at runt
 | **`tr_rest`** (TIBCO REST trigger) | Needs `settings.swagger` — without it the trigger panics on the first request inside `handler.Schemas()`. | No auto-fix. Either use `cas` to scaffold from a spec, or pick `tr_http` (project-flogo HTTP, mode: Data). `cm` flags missing swagger as `TR_REST_NO_SWAGGER`. |
 | **`tr_http`** (project-flogo HTTP) | In `mode: Data`, the handler's `reply` block must be wired to the upstream `actreturn` output, otherwise the response is HTTP 0. | `fda wth <flow> <HTTP.handler>` populates the entire reply scaffold from the trigger's `defaultWiring` template. `cm` flags missed wiring as `HTTP_TRIGGER_REPLY_UNWIRED` / `TRIGGER_HANDLER_UNWIRED`. |
 | **DB `#query` / `#insert` / `#update`** (parameterized) | `?param` placeholders are bound via `input.input.mapping.parameters.<name>`, but the input schema (`schemas.input.input`) must declare those same params under `parameters.properties`. Auto-derivation — especially for inserts — often misplaces them under `values.items.properties` and leaves `parameters.properties` empty `{}`, so the mapping keys match no schema leaf and the designer renders the whole mapping as a raw blob on the ROOT input node with a red error. Runtime and `cm` still pass (designer-only symptom). | No auto-fix. Ensure `parameters.properties` lists every `?param` (matching types); keep `values.items.properties` empty `{}` for the placeholder-param pattern (`values` is only for the bulk-array insert shape). Compare `schemas.input.input` against a known-good designer-authored activity of the same kind. |
+| **HTTP Client** (`http_client`, `act_http_client`) | Set `settings.mode` to `Data` for method/headers/body control. `settings.host` takes a literal or one `=$property["…"]` reference: the designer drops other expressions in settings. Its `pathParams`, `queryParams` and `headers` inputs, and its `headers` output, are **params**-typed. It returns normally on a non-2xx response; only transport failures (connection refused, timeout) raise an error. In Flogo 2.26.7 and earlier the `timeout` setting is logged but not applied (fixed in 2.26.8). | For a dynamic path, put a `{name}` placeholder in the endpoint property, attach a schema with `sms <flow>.<act>.input --field pathParams …` and map `input.pathParams.mapping.name`. Set request headers the same way (`--field headers`, `input.headers.mapping.<Header>`). Branch on `$activity[X].statusCode` and add an `error` link for transport failures. Map the `headers` output to an object field with `coerce.toObject($activity[X].headers)` (a direct map is a designer type error). Base64 a binary body with `string.stringToBase64(coerce.toString($activity[X].responseBody))`. On 2.26.7 or earlier, enforce a timeout by calling the HTTP activity from a subflow with `settings.execTimeout` (see the `fda` skill, "Subflows, loops and retries"). |
+| **Subflow** (`subflow`, `act_default_subflow`) | Not a mapper: inputs are the child flow's inputs, mapped one by one at `input.<childInput>`. Outputs are read as `$activity[<task>].<childOutput>`. | Attach schemas with `sms … --field input` / `--field output`. The full recipe, including loops, is in the `fda` skill, "Subflows, loops and retries". |
 
 ## Auto-managed function imports + always-qualified rule
 
@@ -390,6 +392,19 @@ When `mm` sees a qualified function call (`pkg.fn(...)`) inside the value, it ad
 You **never** need `fda ai github.com/.../function/string` for functions — `mm` handles it.
 
 **Discoverability:** when in doubt about a function's package, `fda lf <name>` lists every match with its qualified form, and `fda exp function <name>` shows the full signature + example.
+
+## Expression rules
+
+These apply to every `=…` mapping value and link condition. `cm` checks none of them, so a mistake shows up only at engine startup, at runtime or in the designer.
+
+| Rule | Wrong | Right |
+|---|---|---|
+| A ternary cannot be a function argument (the engine fails at startup with `error parsing expression`). | `=coerce.toInt(a == 1 ? x : y)` | `=(a == 1) ? x : y` |
+| Ternaries are lazy (only the chosen branch is evaluated), so use them as guards. | `=array.get($flow.body.items, 0)` on a possibly empty array | `=array.count($flow.body.items) > 0 ? array.get($flow.body.items, 0) : ""` |
+| `json.get` raises an error on a missing key; it does not return null. A REST flow then answers with a plain-text error instead of your reply. | `=coerce.toString(json.get(obj, "Key"))` | `=json.exists(obj, "Key") ? coerce.toString(json.get(obj, "Key")) : ""` |
+| The designer rejects the unary `!` operator (it runs, but shows a red error). | `!string.contains(x, "y")` | `string.contains(x, "y") == false` |
+| In an `error`-link branch, scope `$error` to the failed task (the generic form is not always set, e.g. after a subflow timeout). | `=$error.message` | `=$error[<FailedTask>].message` |
+| Params-typed values (HTTP Client headers, path/query params) must be converted before they go into an object field. | `=$activity[Get].headers` → object | `=coerce.toObject($activity[Get].headers)` |
 
 ## Pitfalls to avoid
 
