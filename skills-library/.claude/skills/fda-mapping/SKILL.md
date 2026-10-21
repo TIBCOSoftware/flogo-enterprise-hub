@@ -399,7 +399,7 @@ These apply to every `=…` mapping value and link condition. `cm` checks none o
 
 | Rule | Wrong | Right |
 |---|---|---|
-| A ternary cannot be a function argument (the engine fails at startup with `error parsing expression`). | `=coerce.toInt(a == 1 ? x : y)` | `=(a == 1) ? x : y` |
+| A ternary cannot be a function argument (the engine fails at startup with `error parsing expression`). | `=coerce.toInt(a == 1 ? x : y)` | `=(a == 1) ? coerce.toInt(x) : coerce.toInt(y)` (keep the ternary at the top level and convert inside each branch) |
 | Ternaries are lazy (only the chosen branch is evaluated), so use them as guards. | `=array.get($flow.body.items, 0)` on a possibly empty array | `=array.count($flow.body.items) > 0 ? array.get($flow.body.items, 0) : ""` |
 | `json.get` raises an error on a missing key; it does not return null. A REST flow then answers with a plain-text error instead of your reply. | `=coerce.toString(json.get(obj, "Key"))` | `=json.exists(obj, "Key") ? coerce.toString(json.get(obj, "Key")) : ""` |
 | The designer rejects the unary `!` operator (it runs, but shows a red error). | `!string.contains(x, "y")` | `string.contains(x, "y") == false` |
