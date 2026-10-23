@@ -1,6 +1,6 @@
 """Compare two .flogo files structurally, ignoring the UUIDs fda generates (connection / spec ids).
 
-    python tools/compare_flogo.py 01_golden/FlightOpsEventGateway.flogo generated/FlightOpsEventGateway/FlightOpsEventGateway.flogo
+    python scripts/compare_flogo.py <golden>/<App>.flogo generated/<App>/<App>.flogo
 Exit code 0 = identical apart from generated ids.
 """
 import json

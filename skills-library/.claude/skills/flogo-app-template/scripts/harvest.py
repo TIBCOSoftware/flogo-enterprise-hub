@@ -1,8 +1,8 @@
 """Harvest the fda commands recorded in a Flogo app's design history into a reusable template.
 
-    python tools/harvest.py --flogo 01_golden/FlightOpsEventGateway.flogo \
-                            --params inputs/flight/flight.params.json \
-                            --out 03_template/rest-to-kafka.fdatemplate
+    python scripts/harvest.py --flogo <golden>/<App>.flogo \
+                              --params <golden-inputs>/<app>.params.json \
+                              --out templates/<pattern>.fdatemplate
 
 What it does (no AI involved - same history in, same template out):
   1. reads .flogodesign/history/<app>/history.json (written by fda when history is on)
@@ -12,6 +12,7 @@ What it does (no AI involved - same history in, same template out):
   5. replaces the golden app's concrete values (app name, topic, brokers, swagger, ...) with ${PARAMS}
 """
 import argparse
+import html
 import json
 import os
 import re
@@ -31,6 +32,12 @@ ARG_RULES = [
 # Order in which ${PARAMS} are matched inside the remaining arguments (longest literal first).
 LITERAL_PARAMS = ["APP_DESCRIPTION", "APP_NAME", "SPEC_NAME", "SPEC_FILE", "TRIGGER", "FLOW",
                   "EVENT_SCHEMA_NAME", "KEY_FIELD", "TOPIC", "BROKERS", "HTTP_PORT"]
+# The pattern's fixed names. A golden value that matches one of them (e.g. keyField "key", eventSchemaName
+# "Event") would be parameterized there too, so the harvest refuses it: rename it in the golden app.
+PATTERN_NAMES = ("StartActivity Log_API BuildEvent PublishEvent ConfigureHTTPResponse Return ReplyBody EventBus "
+                 "HTTP.Port Kafka.EventBus.Brokers Event.Topic con_kafka kafka_producer mapper logReply "
+                 "input output mapping body settings schemas trigger port brokers authMode key topic stringValue "
+                 "fe_metadata None coerce.toString")
 
 
 def block_of(argv):
@@ -76,6 +83,7 @@ def main():
     ap.add_argument("--params", required=True, help="params.json describing the golden app's concrete values")
     ap.add_argument("--out", required=True, help="template file to write")
     a = ap.parse_args()
+    fdalib.utf8_console()
 
     flogo = os.path.abspath(a.flogo)
     app = os.path.splitext(os.path.basename(flogo))[0]
@@ -85,10 +93,16 @@ def main():
         fdalib.die(f"no fda history at {hist_file} - build the golden app with FLOGO_DESIGN_ENABLE_HISTORY=true")
 
     values = fdalib.derive(a.params)["values"]
+    for k in LITERAL_PARAMS:
+        if k != "APP_DESCRIPTION" and values[k] and re.search(
+                r"(?<![A-Za-z0-9])" + re.escape(values[k]) + r"(?![A-Za-z0-9])", PATTERN_NAMES):
+            fdalib.die(f"golden {k} '{values[k]}' is also one of the pattern's fixed names, so it can't be "
+                       "parameterized safely - give it a more specific value in the golden app and harvest again")
     initial = json.load(open(os.path.join(hist_dir, f"0_{app}.initial.flogo"), encoding="utf-8"))
     # `cp` is not recorded, so it is written here. Its arguments are the app name and description: emit those
     # parameters explicitly, so an empty description still becomes ${APP_DESCRIPTION} (parameterize skips "").
-    name, desc = initial["name"], initial.get("description", "")
+    # fda stores the description HTML-escaped (R&D -> R&amp;D), so compare it unescaped.
+    name, desc = initial["name"], html.unescape(initial.get("description", ""))
     commands = [["cp", "${APP_NAME}" if name == values["APP_NAME"] else name,
                  "${APP_DESCRIPTION}" if desc == values["APP_DESCRIPTION"] else desc]]
     for c in json.load(open(hist_file, encoding="utf-8"))["commands"][1:]:
@@ -130,7 +144,7 @@ def main():
     print(f"Harvested {counts['steps']} fda steps from {app}")
     print(f"  {counts['rows']} mapping commands collapsed into {counts['blocks']} @foreach blocks")
     print(f"  {len(used)} parameters: {', '.join(sorted(used))}")
-    print(f"  template: {os.path.relpath(a.out)} ({len(lines)} lines)")
+    print(f"  template: {fdalib.rel(a.out)} ({len(lines)} lines)")
 
 
 if __name__ == "__main__":

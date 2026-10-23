@@ -13,7 +13,7 @@ Mapping-rule notation (translated deterministically by generate_app.py):
   UPPER() LOWER() TRIM() concat() newUUID() now() asString() asInt() asNumber()
   =<flogo expression>  raw Flogo expression (escape hatch)
 
-Usage:  python tools/make_mapping_xlsx.py [--out <inputs-dir>]   (writes <dir>/flight|baggage/*-mapping.xlsx)
+Usage:  python scripts/make_mapping_xlsx.py [--out <inputs-dir>]   (default ./inputs; writes <dir>/flight|baggage/*-mapping.xlsx)
 """
 import os
 import sys
@@ -22,8 +22,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-INPUTS = os.path.join(os.path.dirname(HERE), "inputs")
+INPUTS = os.path.join(os.getcwd(), "inputs")   # never inside the skill folder
 
 HEADER = ["Target Field", "Type", "Mapping Rule", "Description"]
 

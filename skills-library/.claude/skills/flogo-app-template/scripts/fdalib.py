@@ -92,21 +92,48 @@ def run_fda(fda, argv, flogo, cwd):
     out = ANSI.sub("", p.stdout + p.stderr)
     lines = [l for l in out.splitlines()
              if l.strip() and "DEP0169" not in l and "trace-deprecation" not in l and "History Enabled" not in l]
-    ok = p.returncode == 0 and "(ERROR)" not in out
+    # `fda cm` exits 0 and prints "(INFO) N error(s)" when mappings fail, so check its summary as well.
+    ok = p.returncode == 0 and "(ERROR)" not in out and not re.search(r"\b[1-9]\d* error\(s\)", out)
     return ok, (lines[-1] if lines else "").replace("[Flogo Design] ", "").strip()
 
 
 # --------------------------------------------------------------------------- OpenAPI
 
-def _resolve(node, spec):
+def _lookup(spec, ref):
+    """Follow a local JSON pointer such as #/components/schemas/Order."""
+    if not ref.startswith("#/"):
+        raise TemplateError(f"only local $refs are supported, not {ref}")
+    node = spec
+    for part in ref[2:].split("/"):
+        part = part.replace("~1", "/").replace("~0", "~")
+        if not isinstance(node, dict) or part not in node:
+            raise TemplateError(f"$ref {ref} does not resolve")
+        node = node[part]
+    return node
+
+
+def _resolve(node, spec, seen=(), is_properties=False):
+    """Inline every $ref. A recursive $ref stops as an empty (free-form) schema. Examples are dropped, but a field
+    that happens to be NAMED `example` (a key of a `properties` map) is kept."""
     if isinstance(node, dict):
         if "$ref" in node:
-            name = node["$ref"].split("/")[-1]
-            return _resolve(spec["components"]["schemas"][name], spec)
-        return {k: _resolve(v, spec) for k, v in node.items() if k != "example"}
+            ref = node["$ref"]
+            return {} if ref in seen else _resolve(_lookup(spec, ref), spec, seen + (ref,))
+        return {k: _resolve(v, spec, seen, (not is_properties) and k == "properties")
+                for k, v in node.items() if is_properties or k != "example"}
     if isinstance(node, list):
-        return [_resolve(v, spec) for v in node]
+        return [_resolve(v, spec, seen) for v in node]
     return node
+
+
+def _json_schema(holder, spec):
+    """The application/json schema of a request body or response object (either may be a $ref)."""
+    if isinstance(holder, dict) and "$ref" in holder:
+        holder = _lookup(spec, holder["$ref"])
+    for media, content in ((holder or {}).get("content") or {}).items():
+        if media.split(";")[0].strip().lower() == "application/json" and isinstance(content, dict):
+            return content.get("schema")
+    return None
 
 
 def read_spec(path, operation_id):
@@ -115,31 +142,31 @@ def read_spec(path, operation_id):
     for api_path, ops in spec.get("paths", {}).items():
         for method, op in ops.items():
             if isinstance(op, dict) and op.get("operationId") == operation_id:
-                body = op.get("requestBody", {}).get("content", {}).get("application/json", {}).get("schema")
+                body = _json_schema(op.get("requestBody"), spec)
                 if body is None:
                     raise TemplateError(f"operation {operation_id} has no application/json request body")
-                code, reply = None, None
-                for c, r in sorted(op.get("responses", {}).items()):
-                    s = r.get("content", {}).get("application/json", {}).get("schema")
-                    if c.startswith("2") and s:
-                        code, reply = c, s
-                        break
-                if reply is None:
+                replies = {c: s for c, s in ((c, _json_schema(r, spec)) for c, r in op.get("responses", {}).items())
+                           if str(c).startswith("2") and s}
+                if not replies:
                     raise TemplateError(f"operation {operation_id} has no 2xx application/json response")
+                code = "202" if "202" in replies else sorted(replies)[0]   # the pattern replies 202 Accepted
                 return {
                     "title": spec["info"]["title"],
                     "path": api_path,
                     "method": method.upper(),
                     "request": _resolve(body, spec),
                     "replyCode": code,
-                    "reply": _resolve(reply, spec),
+                    "reply": _resolve(replies[code], spec),
                 }
     raise TemplateError(f"operationId '{operation_id}' not found in {path}")
 
 
 def trigger_name(title):
-    """Name `fda cas` gives the tr_rest trigger: the spec title with non-alphanumerics as `_`."""
-    return re.sub(r"[^A-Za-z0-9]", "_", title)
+    """Name `fda cas` gives the tr_rest trigger: the spec title with spaces as `_` (fda 0.9.3 keeps every other
+    character). fda cannot address a trigger whose name contains a `.`, so such titles are rejected."""
+    if "." in title:
+        raise TemplateError(f"OpenAPI info.title '{title}' contains '.', which fda cannot use in a trigger name")
+    return title.replace(" ", "_")
 
 
 # --------------------------------------------------------------------------- mapping workbook
@@ -193,6 +220,8 @@ def check_path(schema, dotted, what, where):
 
 def translate(rule, typ, where, request_schema, event_fields):
     """Translate one friendly mapping rule into (value, extra_fda_args)."""
+    if not rule or rule == "=":
+        raise TemplateError(f"{where}: the Mapping Rule is empty")
     if rule.startswith("="):
         return rule, []
     m = re.fullmatch(r'"([^"]*)"', rule)
@@ -208,12 +237,16 @@ def translate(rule, typ, where, request_schema, event_fields):
         ch = rule[i]
         if ch == '"':
             j = i + 1
-            while j < len(rule) and (rule[j] != '"' or rule[j - 1] == "\\"):
-                j += 1
+            while j < len(rule) and rule[j] != '"':
+                j += 2 if rule[j] == "\\" else 1   # a backslash escapes the next character (\" and \\)
+            if j >= len(rule):
+                raise TemplateError(f"{where}: unterminated string literal in {rule!r}")
             out.append(rule[i:j + 1])
             i = j + 1
         elif ch == "[":
-            j = rule.index("]", i)
+            j = rule.find("]", i)
+            if j < 0:
+                raise TemplateError(f"{where}: '[' without a closing ']' in {rule!r}")
             prop = rule[i + 1:j]
             if prop not in PROPERTIES:
                 raise TemplateError(f"{where}: unknown app property [{prop}] (known: {', '.join(sorted(PROPERTIES))})")
@@ -254,11 +287,26 @@ def translate(rule, typ, where, request_schema, event_fields):
 def event_schema(rows):
     """Nested JSON schema built from the dotted Event-sheet targets, in sheet order."""
     root = {"$schema": "http://json-schema.org/draft-04/schema#", "type": "object", "properties": {}}
+    seen = {}   # dotted target -> row, for duplicate / leaf-vs-object conflicts
     for r in rows:
+        where = f"Event row {r['row']} ({r['target']})"
         if r["type"] not in JSON_TYPES:
-            raise TemplateError(f"Event row {r['row']}: type '{r['type']}' must be one of {sorted(JSON_TYPES)}")
-        node = root
+            raise TemplateError(f"{where}: type '{r['type']}' must be one of {sorted(JSON_TYPES)}")
         parts = r["target"].split(".")
+        if not all(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", p) for p in parts):
+            raise TemplateError(f"{where}: each part of a target must be a field name (letters, digits, _)")
+        if r["target"] in seen:
+            raise TemplateError(f"{where}: duplicate target (also on row {seen[r['target']]})")
+        for k in range(1, len(parts)):
+            if ".".join(parts[:k]) in seen:
+                raise TemplateError(f"{where}: '{'.'.join(parts[:k])}' is a field on row "
+                                    f"{seen['.'.join(parts[:k])]}, so it cannot also be an object")
+        clash = next((t for t in seen if t.startswith(r["target"] + ".")), None)
+        if clash:
+            raise TemplateError(f"{where}: '{r['target']}' is an object on row {seen[clash]} ({clash}), "
+                                "so it cannot also be a field")
+        seen[r["target"]] = r["row"]
+        node = root
         for p in parts[:-1]:
             node = node["properties"].setdefault(p, {"type": "object", "properties": {}})
         node["properties"][parts[-1]] = {"type": r["type"]}
@@ -277,6 +325,8 @@ def derive(params_path):
             raise TemplateError(f"{params_path}: missing '{k}'")
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", p["appName"]):
         raise TemplateError("appName must be letters/digits/underscore and start with a letter")
+    if not re.fullmatch(r"\d{1,5}", str(p["httpPort"])) or not 1 <= int(p["httpPort"]) <= 65535:
+        raise TemplateError(f"httpPort must be a whole number from 1 to 65535 (got {p['httpPort']!r})")
 
     spec_path = os.path.join(base, p["swagger"])
     spec = read_spec(spec_path, p["operationId"])
@@ -303,8 +353,8 @@ def derive(params_path):
         "SPEC_NAME": p["appName"] + "Api",
         "SPEC_FILE": os.path.basename(spec_path),
         "TRIGGER": trigger_name(spec["title"]),
-        "FLOW": f"{p['operationId']}_{spec['method']}",
-        "HTTP_PORT": str(p["httpPort"]),
+        "FLOW": f"{p['operationId'].replace(' ', '_')}_{spec['method']}",   # as `fda cas` names the flow
+        "HTTP_PORT": str(int(p["httpPort"])),
         "BROKERS": p["brokers"],
         "TOPIC": p["topic"],
         "EVENT_SCHEMA_NAME": p["eventSchemaName"],
@@ -379,6 +429,21 @@ def strip_file_flags(argv):
 
 def shell_line(argv):
     return " ".join(shlex.quote(a) for a in argv)
+
+
+def rel(path):
+    """Path relative to the cwd for display; absolute when that is impossible (another drive on Windows)."""
+    try:
+        return os.path.relpath(path)
+    except ValueError:
+        return os.path.abspath(path)
+
+
+def utf8_console():
+    """Print non-ASCII values (descriptions, literals) instead of crashing on a cp1252 pipe on Windows."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
 
 def die(msg):
