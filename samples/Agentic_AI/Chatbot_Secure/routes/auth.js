@@ -56,7 +56,29 @@ module.exports = function authRoutes({ store, config }) {
     res.json(statusBody(store.get(readCookie(req))));
   });
 
+  // Sign-in attempts per client address per minute (fixed window), so unauthenticated callers cannot fill the
+  // session store or hammer the endpoint. Behind a reverse proxy set TRUST_PROXY=true so req.ip is the client.
+  const attempts = new Map();
+  const tooManyAttempts = req => {
+    const now = Date.now();
+    if (attempts.size > 10000) {
+      for (const [ip, a] of attempts) if (now - a.start >= 60000) attempts.delete(ip);
+    }
+    let a = attempts.get(req.ip);
+    if (!a || now - a.start >= 60000) {
+      a = { start: now, count: 0 };
+      attempts.set(req.ip, a);
+    }
+    a.count += 1;
+    return a.count > config.signinPerMinute ? Math.ceil((a.start + 60000 - now) / 1000) : 0;
+  };
+
   router.post('/session', (req, res) => {
+    const retryAfter = tooManyAttempts(req);
+    if (retryAfter) {
+      res.set('Retry-After', String(retryAfter));
+      return res.status(429).json({ error: 'Too many sign-in attempts. Wait a minute and try again.' });
+    }
     if (rejectCrossOrigin(req, res)) return;
     if (!req.is('application/json')) {
       return res.status(415).json({ error: 'Send the token as JSON: {"token": "<jwt>"}' });
@@ -82,6 +104,10 @@ module.exports = function authRoutes({ store, config }) {
 
     const session = store.create(token, claims);
     token = null;
+    if (!session) {
+      res.set('Retry-After', '60');
+      return res.status(429).json({ error: 'Too many people are signed in right now. Try again later.' });
+    }
 
     res.cookie(COOKIE_NAME, session.id, {
       ...cookieOptions(req),

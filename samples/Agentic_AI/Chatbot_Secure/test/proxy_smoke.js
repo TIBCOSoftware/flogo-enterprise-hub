@@ -102,6 +102,16 @@ const nextClose = (ws, ms = 3000) =>
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+/** Resident memory of another process in MB (tasklist on Windows, ps elsewhere). */
+function rssMB(pid) {
+  const { execFileSync } = require('child_process');
+  if (process.platform === 'win32') {
+    const line = execFileSync('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], { encoding: 'utf8' });
+    return Math.round(Number((line.split('","').pop() || '').replace(/[^0-9]/g, '')) / 1024);
+  }
+  return Math.round(Number(execFileSync('ps', ['-o', 'rss=', '-p', String(pid)], { encoding: 'utf8' }).trim()) / 1024);
+}
+
 // ---------------------------------------------------------------- mock upstream
 
 function startMockUpstream(port) {
@@ -117,6 +127,7 @@ function startMockUpstream(port) {
       return;
     }
     wss.handleUpgrade(req, socket, head, ws => {
+      if (req.url === '/slow') socket.pause(); // a receiver that never reads (backpressure test)
       const conn = { ws, closed: null };
       connections.push(conn);
       ws.on('message', data => {
@@ -159,6 +170,7 @@ async function main() {
   const upstream = `ws://127.0.0.1:${mock.port}/retailbanking`;
   const rejecting = `ws://127.0.0.1:${mock.port}/reject`;
   const dead = `ws://127.0.0.1:${deadPort}/retailbanking`;
+  const slow = `ws://127.0.0.1:${mock.port}/slow`;
   const origin = `http://127.0.0.1:${appPort}`;
   const proxyUrl = target => `ws://127.0.0.1:${appPort}/proxy?target=${encodeURIComponent(target)}`;
 
@@ -172,7 +184,8 @@ async function main() {
       ...process.env,
       PORT: String(appPort),
       HOST: '127.0.0.1',
-      ALLOWED_UPSTREAMS: [upstream, rejecting, dead].join(','),
+      ALLOWED_UPSTREAMS: [upstream, rejecting, dead, slow].join(','),
+      SIGNIN_PER_MINUTE: '1000',
       ALLOWED_ORIGINS: '',
       WS_URL: '',
       DIRECT_MODE: 'false',
@@ -212,7 +225,7 @@ async function main() {
     await check('client-config lists the allow-list and direct mode is off', async () => {
       const r = await request(appPort, 'GET', '/client-config');
       assert.strictEqual(r.status, 200);
-      assert.deepStrictEqual(r.json.allowedUpstreams, [upstream, rejecting, dead]);
+      assert.deepStrictEqual(r.json.allowedUpstreams, [upstream, rejecting, dead, slow]);
       assert.strictEqual(r.json.directMode, false);
     });
 
@@ -453,19 +466,86 @@ async function main() {
       assert.strictEqual(r.status, 415, r.text);
     });
 
-    await check('the session store is bounded (oldest session ends first)', async () => {
+    await check('a full session store refuses new sign-ins and never ends a live session', async () => {
       const { SessionStore } = require('../lib/sessions');
       const store = new SessionStore({ ttlMs: 60000, maxSessions: 2 });
       const closed = [];
       const a = store.create('t1', {});
       a.connections.add(reason => closed.push(reason));
       const b = store.create('t2', {});
-      const c = store.create('t3', {});
-      assert.strictEqual(store.get(a.id), null);
-      assert.ok(store.get(b.id) && store.get(c.id));
-      assert.deepStrictEqual(closed, ['Too many sessions']);
-      for (const id of [b.id, c.id]) store.destroy(id);
+      assert.strictEqual(store.create('t3', {}), null);
+      assert.ok(store.get(a.id) && store.get(b.id));
+      assert.deepStrictEqual(closed, []);
+      for (const id of [a.id, b.id]) store.destroy(id);
       clearInterval(store.sweeper);
+    });
+
+    await check('sign-in capacity and rate limit -> 429, and made-up tokens cannot sign anyone else out', async () => {
+      const port = await freePort();
+      const p = spawn(process.execPath, ['server.js'], {
+        cwd: ROOT,
+        env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', ALLOWED_UPSTREAMS: upstream, MAX_SESSIONS: '2', SIGNIN_PER_MINUTE: '5' },
+        stdio: 'ignore'
+      });
+      try {
+        for (let i = 0; i < 100; i++) {
+          try {
+            if ((await request(port, 'GET', '/client-config')).status === 200) break;
+          } catch (e) {
+            /* not up yet */
+          }
+          await sleep(100);
+        }
+        const o = `http://127.0.0.1:${port}`;
+        const signIn = sub => request(port, 'POST', '/auth/session', {
+          headers: { 'Content-Type': 'application/json', Origin: o },
+          body: JSON.stringify({ token: makeJwt({ sub, exp: Math.floor(Date.now() / 1000) + 600 }) })
+        });
+        const cookies = [];
+        for (const sub of ['alice', 'bob']) {
+          const r = await signIn(sub);
+          assert.strictEqual(r.status, 200, r.text);
+          cookies.push(r.headers['set-cookie'][0].split(';')[0]);
+        }
+        const full = await signIn('mallory');
+        assert.strictEqual(full.status, 429, full.text);
+        assert.match(full.text, /Too many people are signed in/);
+        for (const c of cookies) {
+          const st = await request(port, 'GET', '/auth/session', { headers: { Cookie: c } });
+          assert.strictEqual(st.json.signedIn, true, 'a live session was ended by a new sign-in');
+        }
+        await signIn('mallory2');
+        await signIn('mallory3');                   // attempts 4 and 5 (still refused for capacity)
+        const limited = await signIn('mallory4');  // attempt 6 in the same minute
+        assert.strictEqual(limited.status, 429, limited.text);
+        assert.match(limited.text, /Too many sign-in attempts/);
+        assert.ok(Number(limited.headers['retry-after']) > 0, 'Retry-After header');
+      } finally {
+        p.kill();
+      }
+    });
+
+    await check('backpressure: a receiver that stops reading pauses the sender; proxy memory does not grow', async () => {
+      const si = await request(appPort, 'POST', '/auth/session', {
+        headers: { 'Content-Type': 'application/json', Origin: origin },
+        body: JSON.stringify({ token: makeJwt({ sub: 'CUST-2026-00109', exp: Math.floor(Date.now() / 1000) + 600 }) })
+      });
+      assert.strictEqual(si.status, 200, si.text);
+      const r = await wsConnect(proxyUrl(slow), { Origin: origin, Cookie: si.headers['set-cookie'][0].split(';')[0] });
+      assert.ok(r.ws, `expected open, got ${r.status}`);
+      // 512 x 256 KB = 128 MB (each frame within the 1 MB limit): far more than the OS socket buffers can absorb, so
+      // most of it must stay queued at the sender once the proxy stops reading.
+      const chunk = Buffer.alloc(256 * 1024, 120);
+      const rss0 = rssMB(child.pid);
+      for (let i = 0; i < 512; i++) r.ws.send(chunk, { binary: true });
+      await sleep(3000);
+      // Where the unsent bytes wait depends on the OS (Windows accepts very large writes into kernel buffers), so check
+      // the proxy itself: it paused the browser side and its memory did not grow by the 128 MB.
+      const grown = rssMB(child.pid) - rss0;
+      assert.ok(grown < 48, `proxy memory grew by ${grown} MB while 128 MB was sent to a stalled upstream`);
+      assert.ok(/slow receiver: pausing the browser/.test(logs), 'proxy did not pause the sender');
+      assert.strictEqual(r.ws.readyState, WebSocket.OPEN);
+      r.ws.terminate();
     });
 
     await check('invalid configuration stops the server at startup with a clear message', async () => {

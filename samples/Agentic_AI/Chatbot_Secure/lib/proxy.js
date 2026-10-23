@@ -149,7 +149,7 @@ function attachProxy(server, { store, config }) {
       socket.once('close', dropUpstream);
       wss.handleUpgrade(req, socket, head, client => {
         socket.removeListener('close', dropUpstream);
-        bridge(client, upstream, session, tag);
+        bridge(client, upstream, session, tag, config);
       });
     });
   });
@@ -157,7 +157,12 @@ function attachProxy(server, { store, config }) {
   return wss;
 }
 
-function bridge(client, upstream, session, tag) {
+// Backpressure: queue at most HIGH_WATER bytes for a slow receiver, then stop reading from the sender until the queue
+// drains to half. Frames already in flight when the sender is paused can still arrive, so the pair is closed if the
+// queue passes a hard limit anyway (memory stays bounded either way).
+const HIGH_WATER = 1024 * 1024;
+
+function bridge(client, upstream, session, tag, config) {
   console.log(`[proxy] open ${tag}`);
 
   const closeBoth = reason => {
@@ -172,14 +177,29 @@ function bridge(client, upstream, session, tag) {
     closeBoth('Session expired');
     return true;
   };
-  client.on('message', (data, isBinary) => {
-    if (expired()) return;
-    if (upstream.readyState === WebSocket.OPEN) upstream.send(data, { binary: isBinary });
-  });
-  upstream.on('message', (data, isBinary) => {
-    if (expired()) return;
-    if (client.readyState === WebSocket.OPEN) client.send(data, { binary: isBinary });
-  });
+  const hardLimit = Math.max(16 * 1024 * 1024, 2 * config.maxMessageBytes + HIGH_WATER);
+  const relay = (from, to, label) => {
+    let warned = false;
+    from.on('message', (data, isBinary) => {
+      if (expired() || to.readyState !== WebSocket.OPEN) return;
+      to.send(data, { binary: isBinary }, () => {
+        if (from.isPaused && from.readyState === WebSocket.OPEN && to.bufferedAmount <= HIGH_WATER / 2) from.resume();
+      });
+      if (to.bufferedAmount > hardLimit) {
+        console.warn(`[proxy] closing: ${to.bufferedAmount} bytes queued for a slow receiver ${tag}`);
+        return closeBoth('Too much data queued');
+      }
+      if (to.bufferedAmount >= HIGH_WATER && !from.isPaused) {
+        from.pause();
+        if (!warned) {
+          warned = true;
+          console.warn(`[proxy] slow receiver: pausing the ${label} until it catches up ${tag}`);
+        }
+      }
+    });
+  };
+  relay(client, upstream, 'browser');
+  relay(upstream, client, 'upstream');
 
   let logged = false;
   const done = (side, code) => {

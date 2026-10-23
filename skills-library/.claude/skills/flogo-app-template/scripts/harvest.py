@@ -93,6 +93,17 @@ def main():
         fdalib.die(f"no fda history at {hist_file} - build the golden app with FLOGO_DESIGN_ENABLE_HISTORY=true")
 
     values = fdalib.derive(a.params)["values"]
+    # Two parameters with the same golden value are ambiguous: every occurrence would become the first one (e.g. an app
+    # named like its OpenAPI title would make the trigger ${APP_NAME}), which breaks the next app where they differ.
+    same = {}
+    for k in LITERAL_PARAMS:
+        if values[k]:
+            same.setdefault(values[k], []).append(k)
+    clash = {v: ks for v, ks in same.items() if len(ks) > 1}
+    if clash:
+        fdalib.die("golden parameters share a value, so the harvest cannot tell them apart: "
+                   + "; ".join(f"{' and '.join(ks)} are both '{v}'" for v, ks in clash.items())
+                   + " - give them different values in the golden app and harvest again")
     for k in LITERAL_PARAMS:
         if k != "APP_DESCRIPTION" and values[k] and re.search(
                 r"(?<![A-Za-z0-9])" + re.escape(values[k]) + r"(?![A-Za-z0-9])", PATTERN_NAMES):

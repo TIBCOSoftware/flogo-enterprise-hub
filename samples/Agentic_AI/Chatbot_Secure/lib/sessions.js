@@ -18,9 +18,11 @@ class SessionStore {
     this.sweeper.unref();
   }
 
+  /** Create a session, or return null when the store is full. Never evicts a live session: sign-in only decodes
+   *  the JWT, so eviction would let anyone sign everyone else out with made-up tokens. */
   create(token, claims) {
-    // Bounded: drop the oldest session (Map keeps insertion order) rather than grow without limit.
-    while (this.sessions.size >= this.maxSessions) this.destroy(this.sessions.keys().next().value, 'Too many sessions');
+    if (this.sessions.size >= this.maxSessions) this.sweep();
+    if (this.sessions.size >= this.maxSessions) return null;
     const id = crypto.randomBytes(32).toString('base64url');
     const now = Date.now();
     let expiresAt = now + this.ttlMs;

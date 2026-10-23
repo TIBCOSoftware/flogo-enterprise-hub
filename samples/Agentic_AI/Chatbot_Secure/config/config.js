@@ -65,8 +65,11 @@ module.exports = {
   // Server-side session lifetime (capped by the JWT's own exp claim); at most 30 days
   sessionTtlMinutes: positiveInt('SESSION_TTL_MINUTES', 480, 30 * 24 * 60),
 
-  // Most signed-in sessions kept in memory; the oldest is dropped when a new one would exceed it
+  // Most signed-in sessions kept in memory; when full, new sign-ins are refused (HTTP 429), never evicting anyone
   maxSessions: positiveInt('MAX_SESSIONS', 1000),
+
+  // Sign-in attempts allowed per client address per minute (HTTP 429 above it)
+  signinPerMinute: positiveInt('SIGNIN_PER_MINUTE', 10),
 
   // Secure cookie flag: auto (= when the request arrived over HTTPS), true, or false
   cookieSecure: oneOf('COOKIE_SECURE', 'auto', ['auto', 'true', 'false']),

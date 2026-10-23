@@ -16,10 +16,19 @@ def normalize(path):
     literals) are configuration and are compared as-is."""
     text = open(path, encoding="utf-8").read()
     app = json.loads(text)
-    generated = {k for section in ("connections", "specs") for k in (app.get(section) or {}) if UUID.fullmatch(k)}
-    seen = {}
-    text = UUID.sub(lambda m: seen.setdefault(m.group(0), f"<id-{len(seen) + 1}>")
-                    if m.group(0) in generated else m.group(0), text)
+    # Each generated id becomes a stable name: <connection:EventBus>, <spec:FlightOpsApi>. Entries sharing a name are
+    # numbered by their content (id removed), so neither the file's key order nor the ids themselves matter.
+    stable = {}
+    for section in ("connections", "specs"):
+        groups = {}
+        for k, v in (app.get(section) or {}).items():
+            if UUID.fullmatch(k):
+                groups.setdefault(str((v or {}).get("name") or "?"), []).append(k)
+        for name, ids in groups.items():
+            body = lambda k: json.dumps({x: y for x, y in app[section][k].items() if x != "id"}, sort_keys=True)
+            for n, k in enumerate(sorted(ids, key=body), start=1):
+                stable[k] = f"<{section[:-1]}:{name}>" if len(ids) == 1 else f"<{section[:-1]}:{name}#{n}>"
+    text = UUID.sub(lambda m: stable.get(m.group(0), m.group(0)), text)
     return json.loads(text)
 
 

@@ -66,7 +66,8 @@ Copy `env.example` to `.env` to change the defaults:
 | `ALLOWED_UPSTREAMS` | `ws://localhost:9970/retailbanking` | Comma-separated upstream WebSocket URLs the proxy may open. **Exact match**; anything else is refused. The first one is pre-filled in the page |
 | `WS_URL` | first allowed upstream | URL pre-filled in the page (must be in `ALLOWED_UPSTREAMS`) |
 | `SESSION_TTL_MINUTES` | `480` | Server session lifetime (1 to 43200); never longer than the token's `exp`. A live connection is closed when its session ends |
-| `MAX_SESSIONS` | `1000` | Most sessions kept in memory; signing in beyond this ends the oldest session |
+| `MAX_SESSIONS` | `1000` | Most sessions kept in memory; when full, new sign-ins get HTTP 429 (a live session is never ended to make room) |
+| `SIGNIN_PER_MINUTE` | `10` | Sign-in attempts allowed per client address per minute (HTTP 429 above it; set `TRUST_PROXY=true` behind a reverse proxy so the client address is right) |
 | `COOKIE_SECURE` | `auto` | `auto` sets `Secure` when the request came over HTTPS; or `true` / `false` |
 | `TRUST_PROXY` | `false` | Set `true` behind a TLS-terminating reverse proxy that sets `X-Forwarded-Proto` |
 | `ALLOWED_ORIGINS` | this server's origin | Comma-separated browser origins allowed to sign in and connect (needed only behind a reverse proxy with a different host name) |
