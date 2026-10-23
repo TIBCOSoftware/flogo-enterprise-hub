@@ -371,6 +371,31 @@ async function main() {
       assert.strictEqual(r.status, 502);
     });
 
+    await check('malformed browser handshake (bad Sec-WebSocket-Key) -> 400 and the upstream is closed', async () => {
+      const before = mock.connections.length;
+      const u = new URL(proxyUrl(upstream));
+      const reply = await new Promise((resolve, reject) => {
+        const s = net.connect(appPort, '127.0.0.1', () =>
+          s.write(
+            `GET ${u.pathname}${u.search} HTTP/1.1\r\nHost: 127.0.0.1:${appPort}\r\nUpgrade: websocket\r\n` +
+              `Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: not-a-valid-key\r\n` +
+              `Origin: ${origin}\r\nCookie: ${cookie}\r\n\r\n`
+          )
+        );
+        let data = '';
+        s.on('data', d => (data += d));
+        s.on('close', () => resolve(data));
+        s.on('error', reject);
+        s.setTimeout(5000, () => s.destroy());
+      });
+      assert.match(reply, /^HTTP\/1\.1 400/);
+      for (let i = 0; i < 40 && mock.connections.length === before; i++) await sleep(50);
+      const conn = mock.connections[before];
+      assert.ok(conn, 'expected the proxy to have opened an upstream connection');
+      for (let i = 0; i < 40 && !conn.closed; i++) await sleep(50);
+      assert.ok(conn.closed, 'upstream connection left open after the browser handshake failed');
+    });
+
     await check('(e) DELETE /auth/session closes live connections and the next upgrade is rejected', async () => {
       const { ws } = await wsConnect(proxyUrl(upstream), { Origin: origin, Cookie: cookie });
       const conn = mock.connections[mock.connections.length - 1];

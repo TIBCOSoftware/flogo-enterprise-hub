@@ -52,16 +52,21 @@ def apply_arg_rules(argv):
 
 
 def parameterize(argv, values):
-    order = sorted(LITERAL_PARAMS, key=lambda k: -len(values[k]))
+    # Longest literal first. Empty literals (e.g. description "") are skipped: they would match everywhere.
+    order = [k for k in sorted(LITERAL_PARAMS, key=lambda k: -len(values[k])) if values[k]]
+    if not order:
+        return list(argv)
+    param_of = {}
+    for k in order:
+        param_of.setdefault(values[k], k)
+    # One pass over each argument, so an inserted ${PARAM} is never matched again by a later literal.
+    literal = re.compile(r"(?<![A-Za-z0-9])(" + "|".join(re.escape(values[k]) for k in order) + r")(?![A-Za-z0-9])")
     out = []
     for a in argv:
         if (a.startswith("${") and a.endswith("}")) or re.fullmatch(r"[A-Za-z0-9+/]{40,}={0,2}", a):
             out.append(a)  # already a parameter, or an opaque base64 blob (flow layout)
             continue
-        for k in order:
-            a = re.sub(r"(?<![A-Za-z0-9])" + re.escape(values[k]) + r"(?![A-Za-z0-9])",
-                       lambda _m, k=k: "${%s}" % k, a)
-        out.append(a)
+        out.append(literal.sub(lambda m: "${%s}" % param_of[m.group(1)], a))
     return out
 
 
@@ -81,7 +86,11 @@ def main():
 
     values = fdalib.derive(a.params)["values"]
     initial = json.load(open(os.path.join(hist_dir, f"0_{app}.initial.flogo"), encoding="utf-8"))
-    commands = [["cp", initial["name"], initial.get("description", "")]]
+    # `cp` is not recorded, so it is written here. Its arguments are the app name and description: emit those
+    # parameters explicitly, so an empty description still becomes ${APP_DESCRIPTION} (parameterize skips "").
+    name, desc = initial["name"], initial.get("description", "")
+    commands = [["cp", "${APP_NAME}" if name == values["APP_NAME"] else name,
+                 "${APP_DESCRIPTION}" if desc == values["APP_DESCRIPTION"] else desc]]
     for c in json.load(open(hist_file, encoding="utf-8"))["commands"][1:]:
         commands.append(fdalib.strip_file_flags(fdalib.parse_history_command(c["fdaCommand"])))
 

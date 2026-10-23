@@ -11,9 +11,15 @@ UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 
 
 def normalize(path):
+    """Renumber only the ids fda generates: the keys of the top-level `connections` / `specs` maps, which the
+    rest of the app references as conn://<id> / spec://<id>. Other UUID-shaped values (property or mapping
+    literals) are configuration and are compared as-is."""
     text = open(path, encoding="utf-8").read()
+    app = json.loads(text)
+    generated = {k for section in ("connections", "specs") for k in (app.get(section) or {}) if UUID.fullmatch(k)}
     seen = {}
-    text = UUID.sub(lambda m: seen.setdefault(m.group(0), f"<id-{len(seen) + 1}>"), text)
+    text = UUID.sub(lambda m: seen.setdefault(m.group(0), f"<id-{len(seen) + 1}>")
+                    if m.group(0) in generated else m.group(0), text)
     return json.loads(text)
 
 

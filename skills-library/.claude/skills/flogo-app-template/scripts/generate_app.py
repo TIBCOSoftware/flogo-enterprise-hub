@@ -124,9 +124,9 @@ def main():
     cmds = expand(a.template, derived)
     outdir = os.path.join(os.path.abspath(a.out), app)
     flogo = f"{app}.flogo"
-    if os.path.exists(os.path.join(outdir, flogo)):
+    if os.path.exists(os.path.join(outdir, flogo)) and not a.dry_run:   # a dry run never touches an existing app
         if not a.force:
-            fdalib.die(f"{outdir}\\{flogo} exists - pass --force to regenerate it")
+            fdalib.die(f"{os.path.join(outdir, flogo)} exists - pass --force to regenerate it")
         shutil.rmtree(outdir)
     os.makedirs(outdir, exist_ok=True)
     shutil.copyfile(derived["spec_path"], os.path.join(outdir, v["SPEC_FILE"]))

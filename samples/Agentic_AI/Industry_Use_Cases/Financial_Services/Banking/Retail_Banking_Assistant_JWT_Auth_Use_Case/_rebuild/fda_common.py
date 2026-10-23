@@ -74,6 +74,15 @@ LLM = dict(provider=os.environ.get("LLM_PROVIDER", CFG.get("LLM_Provider") or "O
 def pg_password(): return os.environ.get("PG_PWD") or os.environ.get("PG_PASSWORD") or setting("PG_PWD", "PG_PASSWORD")
 def llm_key():     return setting("LLM_API_KEY", "API_Key")
 
+# Values of secret-like properties set with `cap` (DB password, LLM key, JWT secret, A2A tokens) are masked in
+# everything this module prints, so a failed command can't leak them into build logs.
+SECRET_PROP = re.compile(r"(password|secret|token|api_?key)$", re.I)
+_SECRETS = set()
+
+def redact(text):
+    for s in sorted(_SECRETS, key=len, reverse=True): text = text.replace(s, "***")
+    return text
+
 class App:
     def __init__(self, filename, out_dir=None):
         self.file = os.path.join(out_dir or USE_CASE_DIR, filename)
@@ -82,11 +91,13 @@ class App:
                      "Never regenerate an app that was opened in the designer - patch it surgically.")
 
     def fda(self, *args, allow_fail=False):
+        if len(args) >= 4 and args[0] == "cap" and SECRET_PROP.search(str(args[1])) and len(str(args[3])) >= 4:
+            _SECRETS.add(str(args[3]))
         r = subprocess.run([FDA, *map(str, args), "-f", self.file], capture_output=True, text=True)
         out = (r.stdout or "") + (r.stderr or "")
         if "(ERROR)" in out and not allow_fail:
-            print("FAILED:", " ".join(map(str, args))[:300]); print(out[-1500:]); sys.exit(1)
-        print("  ok:", " ".join(str(a) for a in args[:3])[:110])
+            print("FAILED:", redact(" ".join(map(str, args)))[:300]); print(redact(out)[-1500:]); sys.exit(1)
+        print("  ok:", redact(" ".join(str(a) for a in args[:3]))[:110])
         return out
 
     def load(self): return json.load(open(self.file, encoding="utf-8"))

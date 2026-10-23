@@ -65,9 +65,11 @@ def resolve_fda():
         hits = glob.glob(os.path.join(home, root, "extensions", "tibco.flogo-*", "bin", exe))
         if hits:
             return max(hits, key=os.path.getmtime)
-    p = read_config().get("FLOGODESIGN_CLI_PATH")
-    if p and os.path.exists(os.path.join(p, exe)):
-        return os.path.join(p, exe)
+    p = (read_config().get("FLOGODESIGN_CLI_PATH") or "").strip('"')   # full exe path or its bin directory
+    if p:
+        for cand in (p, os.path.join(p, exe)):
+            if os.path.isfile(cand):
+                return cand
     raise TemplateError("flogodesign-cli (fda) not found - install the TIBCO Flogo VS Code extension")
 
 
@@ -156,7 +158,8 @@ JSON_TYPES = {"string", "integer", "number", "boolean"}
 def read_workbook(path):
     from openpyxl import load_workbook  # only needed when a workbook is read
 
-    wb = load_workbook(path, data_only=True)
+    # Formula text, not cached results: a "=<raw Flogo expression>" rule is stored by Excel as a formula.
+    wb = load_workbook(path, data_only=False)
     sheets = {}
     for name in ("Event", "Response"):
         if name not in wb.sheetnames:

@@ -137,7 +137,14 @@ function attachProxy(server, { store, config }) {
         return rejectUpgrade(socket, 401, 'Sign in first');
       }
 
-      wss.handleUpgrade(req, socket, head, client => bridge(client, upstream, session, tag));
+      // Keep the upstream tied to the browser socket until the browser handshake succeeds: handleUpgrade
+      // destroys the socket without calling back when it rejects the handshake (bad key / version).
+      const dropUpstream = () => upstream.terminate();
+      socket.once('close', dropUpstream);
+      wss.handleUpgrade(req, socket, head, client => {
+        socket.removeListener('close', dropUpstream);
+        bridge(client, upstream, session, tag);
+      });
     });
   });
 
