@@ -43,7 +43,6 @@ Secrets: the LLM key (env LLM_API_KEY / config.md API_Key) and the DB password (
 are read at build time and never printed."""
 import json, os, sys
 os.environ.setdefault("PG_DB", "banking_jwt_auth")
-os.environ.setdefault("LLM_MODEL", "gpt-5.5")
 from fda_common import App, jtmp, result_columns
 from tool_spec import AGENT_REF_TOOLS, ref_tools_filled
 

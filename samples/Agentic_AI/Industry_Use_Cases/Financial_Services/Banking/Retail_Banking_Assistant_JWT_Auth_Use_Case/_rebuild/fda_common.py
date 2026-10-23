@@ -68,7 +68,7 @@ PSQL = os.environ.get("PSQL") or CFG.get("PSQL_PATH") or shutil.which("psql") or
 PG = dict(host=setting("PG_HOST", "PG_HOST", "localhost"), port=setting("PG_PORT", "PG_PORT", "5432"),
           db=os.environ.get("PG_DB", "banking_jwt_auth"), user=setting("PG_USER", "PG_USER", "postgres"))
 LLM = dict(provider=os.environ.get("LLM_PROVIDER", CFG.get("LLM_Provider") or "OpenAI"),
-           model=setting("LLM_MODEL", "LLM_Model"),
+           model=setting("LLM_MODEL", "LLM_Model", "gpt-5.5"),
            base_url=os.environ.get("LLM_BASE_URL", CFG.get("LLM_Base_URL", "")).strip())
 
 def pg_password(): return os.environ.get("PG_PWD") or os.environ.get("PG_PASSWORD") or setting("PG_PWD", "PG_PASSWORD")
@@ -95,7 +95,7 @@ class App:
             _SECRETS.add(str(args[3]))
         r = subprocess.run([FDA, *map(str, args), "-f", self.file], capture_output=True, text=True)
         out = (r.stdout or "") + (r.stderr or "")
-        if "(ERROR)" in out and not allow_fail:
+        if (r.returncode != 0 or "(ERROR)" in out) and not allow_fail:
             print("FAILED:", redact(" ".join(map(str, args)))[:300]); print(redact(out)[-1500:]); sys.exit(1)
         print("  ok:", redact(" ".join(str(a) for a in args[:3]))[:110])
         return out

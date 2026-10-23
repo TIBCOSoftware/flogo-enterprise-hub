@@ -412,6 +412,27 @@ async function main() {
       assert.strictEqual(status.json.signedIn, false);
     });
 
+    await check('a live connection is closed when its session expires (not at the next sweep)', async () => {
+      const exp = Math.floor(Date.now() / 1000) + 3;
+      const shortToken = makeJwt({ iss: 'kestrel-bank-idp', sub: 'CUST-2026-00108', scp: ['profile:read'], iat: exp - 3, exp });
+      const r = await request(appPort, 'POST', '/auth/session', {
+        headers: { 'Content-Type': 'application/json', Origin: origin },
+        body: JSON.stringify({ token: shortToken })
+      });
+      assert.strictEqual(r.status, 200, r.text);
+      const shortCookie = ((r.headers['set-cookie'] || [])[0] || '').split(';')[0];
+      const { ws } = await wsConnect(proxyUrl(upstream), { Origin: origin, Cookie: shortCookie });
+      assert.ok(ws, 'expected the connection to open');
+      const conn = mock.connections[mock.connections.length - 1];
+      ws.send('still-signed-in');
+      assert.strictEqual(await nextMessage(ws), 'echo:still-signed-in');
+      const closed = await nextClose(ws, 6000);
+      assert.strictEqual(closed.code, 1008);
+      assert.ok(Date.now() >= exp * 1000, 'closed before the session expired');
+      for (let i = 0; i < 30 && !conn.closed; i++) await sleep(50);
+      assert.ok(conn.closed, 'upstream connection left open after the session expired');
+    });
+
     await check('server logs never contain the token or the full session id', async () => {
       await sleep(100);
       const sid = cookie.split('=')[1];

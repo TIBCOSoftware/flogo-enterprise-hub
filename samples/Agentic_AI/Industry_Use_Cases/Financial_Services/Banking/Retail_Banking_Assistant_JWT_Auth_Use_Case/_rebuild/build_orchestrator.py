@@ -33,7 +33,6 @@ real values at run time, e.g. FLOGO_APP_PROPS_ENV=auto LLMClient_API_Key=... A2A
 
 Re-run:  python _rebuild/build_orchestrator.py      (OUT_DIR=<empty dir> to replay; refuses to overwrite)"""
 import json, os, re, sys
-os.environ.setdefault("LLM_MODEL", "gpt-5.5")          # runtime model gpt-5.5 (env still wins)
 os.environ.setdefault("PG_DB", "banking_jwt_auth")     # unused here (no DB connection) - keeps fda_common happy
 from fda_common import App, LLM, jtmp
 

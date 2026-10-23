@@ -160,10 +160,18 @@ function bridge(client, upstream, session, tag) {
   };
   session.connections.add(closeBoth);
 
+  // Backstop for the session store's expiry timer: never relay a frame for an expired session.
+  const expired = () => {
+    if (Date.now() < session.expiresAt) return false;
+    closeBoth('Session expired');
+    return true;
+  };
   client.on('message', (data, isBinary) => {
+    if (expired()) return;
     if (upstream.readyState === WebSocket.OPEN) upstream.send(data, { binary: isBinary });
   });
   upstream.on('message', (data, isBinary) => {
+    if (expired()) return;
     if (client.readyState === WebSocket.OPEN) client.send(data, { binary: isBinary });
   });
 

@@ -175,11 +175,23 @@ def read_workbook(path):
     return sheets
 
 
-def _top_fields(schema):
-    return set((schema or {}).get("properties", {}).keys())
+def check_path(schema, dotted, what, where):
+    """Fail unless every segment of a dotted field path is declared in the (resolved) JSON schema.
+    Stops at a node that declares no properties (free-form object, array, allOf/oneOf): nothing to check against."""
+    node, walked = schema or {}, []
+    for seg in dotted.split("."):
+        props = node.get("properties") if isinstance(node, dict) else None
+        if props is None:
+            return
+        if seg not in props:
+            at = ".".join(walked) or "the top level"
+            raise TemplateError(f"{where}: '{dotted}' is not in the {what} ('{seg}' is not a field of {at}; "
+                                f"fields there: {', '.join(sorted(props))})")
+        node = props[seg]
+        walked.append(seg)
 
 
-def translate(rule, typ, where, request_fields, event_fields):
+def translate(rule, typ, where, request_schema, event_fields):
     """Translate one friendly mapping rule into (value, extra_fda_args)."""
     if rule.startswith("="):
         return rule, []
@@ -220,10 +232,7 @@ def translate(rule, typ, where, request_fields, event_fields):
                 else:
                     raise TemplateError(f"{where}: unknown function {ident}() (known: {', '.join(sorted(FUNCS))})")
             elif ident.startswith("request."):
-                field = ident.split(".")[1]
-                if field not in request_fields:
-                    raise TemplateError(f"{where}: request.{field} is not in the API request body "
-                                        f"(fields: {', '.join(sorted(request_fields))})")
+                check_path(request_schema, ident[len("request."):], "API request body", where)
                 out.append("$flow.body." + ident[len("request."):])
             elif ident.startswith("event."):
                 if event_fields is None:
@@ -272,12 +281,9 @@ def derive(params_path):
     spec_path = os.path.join(base, p["swagger"])
     spec = read_spec(spec_path, p["operationId"])
     sheets = read_workbook(os.path.join(base, p["mappingWorkbook"]))
-    req_fields = _top_fields(spec["request"])
-    reply_fields = _top_fields(spec["reply"])
-
     event_rows, event_targets = [], set()
     for r in sheets["Event"]:
-        v, extra = translate(r["rule"], r["type"], f"Event row {r['row']} ({r['target']})", req_fields, None)
+        v, extra = translate(r["rule"], r["type"], f"Event row {r['row']} ({r['target']})", spec["request"], None)
         event_rows.append({"target": r["target"], "value": v, "extra": extra})
         event_targets.add(r["target"])
     if p["keyField"] not in event_targets:
@@ -285,10 +291,8 @@ def derive(params_path):
 
     reply_rows = []
     for r in sheets["Response"]:
-        if r["target"].split(".")[0] not in reply_fields:
-            raise TemplateError(f"Response row {r['row']}: '{r['target']}' is not in the API 2xx response "
-                                f"(fields: {', '.join(sorted(reply_fields))})")
-        v, extra = translate(r["rule"], r["type"], f"Response row {r['row']} ({r['target']})", req_fields,
+        check_path(spec["reply"], r["target"], "API 2xx response", f"Response row {r['row']}")
+        v, extra = translate(r["rule"], r["type"], f"Response row {r['row']} ({r['target']})", spec["request"],
                              event_targets)
         reply_rows.append({"target": r["target"], "value": v, "extra": extra})
 

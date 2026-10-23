@@ -44,7 +44,7 @@ python scripts/compare_flogo.py <golden>.flogo generated/<App>/<App>.flogo     #
 
 The workbook has two sheets, **Event** and **Response**, with columns *Target Field | Type | Mapping Rule | Description*. Notation: `request.<field>`, `event.<field>` (Response sheet), `[Event.Topic]`, `"literal"`, `UPPER/LOWER/TRIM/concat/newUUID/now/asString/asInt/asNumber`, and `=<raw Flogo expression>`. `scripts/make_mapping_xlsx.py --out <dir>` writes two sample workbooks to copy from. If the user gives the mapping as **prose**, draft the workbook for them to review (this is the only AI step at generate time), then generate.
 
-Validation happens before any `fda` call. Unknown `request.*` fields (checked against the swagger request body), Response targets missing from the 2xx reply, unknown functions or properties, and a `keyField` missing from the Event sheet all fail with the row number.
+Validation happens before any `fda` call. Unknown `request.*` fields (checked against the swagger request body), Response targets missing from the 2xx reply, unknown functions or properties, and a `keyField` missing from the Event sheet all fail with the row number. Dotted paths such as `customer.id` are checked segment by segment.
 
 ## Verified gotchas (fda 0.9.3)
 - `fda cas <Spec> logReply` names the trigger after the spec **title** with non-alphanumerics replaced by `_`, and the flow `<operationId>_<METHOD>`. It builds `StartActivity → Log_API → ConfigureHTTPResponse → Return` and lays the flow out.
