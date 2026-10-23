@@ -12,7 +12,7 @@ const config = require('./config/config');
 const { SessionStore } = require('./lib/sessions');
 const { attachProxy } = require('./lib/proxy');
 
-const store = new SessionStore({ ttlMs: config.sessionTtlMinutes * 60 * 1000 });
+const store = new SessionStore({ ttlMs: config.sessionTtlMinutes * 60 * 1000, maxSessions: config.maxSessions });
 
 const app = express();
 app.disable('x-powered-by');
@@ -45,6 +45,10 @@ app.use((err, req, res, next) => {
   }
   if (err && err.type === 'entity.too.large') {
     return res.status(413).json({ error: 'Request body too large' });
+  }
+  // Other client errors from the body parser (unsupported charset / encoding, ...) keep their 4xx status.
+  if (err && Number.isInteger(err.status) && err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ error: err.expose && err.message ? err.message : 'Bad request' });
   }
   console.error('Error:', err && err.message ? err.message : 'unknown error');
   res.status(500).json({ error: 'Internal server error' });

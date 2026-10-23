@@ -433,6 +433,56 @@ async function main() {
       assert.ok(conn.closed, 'upstream connection left open after the session expired');
     });
 
+    await check('a sub claim with a newline cannot forge a log line', async () => {
+      const forged = makeJwt({ sub: 'mallory\n[auth] sign-out sub=victim sid=AAAAAA...', exp: Math.floor(Date.now() / 1000) + 600 });
+      const r = await request(appPort, 'POST', '/auth/session', {
+        headers: { 'Content-Type': 'application/json', Origin: origin },
+        body: JSON.stringify({ token: forged })
+      });
+      assert.strictEqual(r.status, 200, r.text);
+      await sleep(100);
+      assert.ok(!/^\[auth\] sign-out sub=victim/m.test(logs), 'forged log line found');
+      assert.match(logs, /sign-in sub=mallory\?\[auth\] sign-out sub=victim/);
+    });
+
+    await check('body-parser client errors keep their 4xx status (unsupported charset -> 415)', async () => {
+      const r = await request(appPort, 'POST', '/auth/session', {
+        headers: { 'Content-Type': 'application/json; charset=latin1', Origin: origin },
+        body: '{"token":"a.b.c"}'
+      });
+      assert.strictEqual(r.status, 415, r.text);
+    });
+
+    await check('the session store is bounded (oldest session ends first)', async () => {
+      const { SessionStore } = require('../lib/sessions');
+      const store = new SessionStore({ ttlMs: 60000, maxSessions: 2 });
+      const closed = [];
+      const a = store.create('t1', {});
+      a.connections.add(reason => closed.push(reason));
+      const b = store.create('t2', {});
+      const c = store.create('t3', {});
+      assert.strictEqual(store.get(a.id), null);
+      assert.ok(store.get(b.id) && store.get(c.id));
+      assert.deepStrictEqual(closed, ['Too many sessions']);
+      for (const id of [b.id, c.id]) store.destroy(id);
+      clearInterval(store.sweeper);
+    });
+
+    await check('invalid configuration stops the server at startup with a clear message', async () => {
+      for (const [name, value] of [['SESSION_TTL_MINUTES', 'abc'], ['UPSTREAM_TIMEOUT_MS', '-1'], ['COOKIE_SECURE', 'yes'],
+        ['ALLOWED_UPSTREAMS', 'localhost:9970/retailbanking']]) {
+        const out = await new Promise(resolve => {
+          const p = spawn(process.execPath, ['server.js'], { cwd: ROOT, env: { ...process.env, PORT: '1', [name]: value } });
+          let text = '';
+          p.stdout.on('data', d => (text += d));
+          p.stderr.on('data', d => (text += d));
+          p.on('exit', code => resolve({ code, text }));
+        });
+        assert.notStrictEqual(out.code, 0, `${name}=${value} should not start`);
+        assert.match(out.text, new RegExp(`Invalid configuration: .*${name}`), `${name}=${value}`);
+      }
+    });
+
     await check('server logs never contain the token or the full session id', async () => {
       await sleep(100);
       const sid = cookie.split('=')[1];

@@ -14,7 +14,7 @@
 
 const http = require('http');
 const WebSocket = require('ws');
-const { readCookie, originAllowed, displayClaims, sidTag } = require('./security');
+const { readCookie, originAllowed, logSub, sidTag } = require('./security');
 
 const PROXY_PATH = '/proxy';
 
@@ -91,16 +91,22 @@ function attachProxy(server, { store, config }) {
       return rejectUpgrade(socket, 403, 'Target not allowed');
     }
 
-    const sub = displayClaims(session.claims).sub || '-';
-    const tag = `sub=${sub} sid=${sidTag(sid)} target=${target}`;
+    const tag = `sub=${logSub(session.claims)} sid=${sidTag(sid)} target=${target}`;
 
-    const upstream = new WebSocket(target, {
-      headers: { Authorization: `Bearer ${session.token}` },
-      handshakeTimeout: config.upstreamTimeoutMs,
-      perMessageDeflate: false,
-      followRedirects: false,
-      maxPayload: config.maxMessageBytes
-    });
+    let upstream;
+    try {
+      upstream = new WebSocket(target, {
+        headers: { Authorization: `Bearer ${session.token}` },
+        handshakeTimeout: config.upstreamTimeoutMs,
+        perMessageDeflate: false,
+        followRedirects: false,
+        maxPayload: config.maxMessageBytes
+      });
+    } catch (err) {
+      // ws throws synchronously on an unusable URL/option; config validation should prevent it, but never crash.
+      console.warn(`[proxy] cannot open upstream (${err.message}) ${tag}`);
+      return rejectUpgrade(socket, 502, 'Upstream unavailable');
+    }
 
     let settled = false;
     const abortUpstream = () => {

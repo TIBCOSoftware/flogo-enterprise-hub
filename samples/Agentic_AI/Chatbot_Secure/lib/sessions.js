@@ -10,14 +10,17 @@
 const crypto = require('crypto');
 
 class SessionStore {
-  constructor({ ttlMs }) {
+  constructor({ ttlMs, maxSessions = 1000 }) {
     this.ttlMs = ttlMs;
+    this.maxSessions = maxSessions;
     this.sessions = new Map();
     this.sweeper = setInterval(() => this.sweep(), 60 * 1000);
     this.sweeper.unref();
   }
 
   create(token, claims) {
+    // Bounded: drop the oldest session (Map keeps insertion order) rather than grow without limit.
+    while (this.sessions.size >= this.maxSessions) this.destroy(this.sessions.keys().next().value, 'Too many sessions');
     const id = crypto.randomBytes(32).toString('base64url');
     const now = Date.now();
     let expiresAt = now + this.ttlMs;

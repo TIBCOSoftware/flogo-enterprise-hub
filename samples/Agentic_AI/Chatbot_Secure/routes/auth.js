@@ -16,6 +16,7 @@ const {
   originAllowed,
   decodeJwtClaims,
   displayClaims,
+  logSub,
   sidTag
 } = require('../lib/security');
 
@@ -86,7 +87,7 @@ module.exports = function authRoutes({ store, config }) {
       ...cookieOptions(req),
       maxAge: Math.max(0, session.expiresAt - Date.now())
     });
-    console.log(`[auth] sign-in sub=${displayClaims(claims).sub || '-'} sid=${sidTag(session.id)}`);
+    console.log(`[auth] sign-in sub=${logSub(claims)} sid=${sidTag(session.id)}`);
     res.json(statusBody(session));
   });
 
@@ -95,7 +96,7 @@ module.exports = function authRoutes({ store, config }) {
     const id = readCookie(req);
     const session = store.get(id);
     if (session) {
-      console.log(`[auth] sign-out sub=${displayClaims(session.claims).sub || '-'} sid=${sidTag(id)}`);
+      console.log(`[auth] sign-out sub=${logSub(session.claims)} sid=${sidTag(id)}`);
     }
     if (id) store.destroy(id, 'Signed out');
     res.clearCookie(COOKIE_NAME, cookieOptions(req));

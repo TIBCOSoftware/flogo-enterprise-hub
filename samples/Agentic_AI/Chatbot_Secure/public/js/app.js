@@ -14,7 +14,6 @@ class FlogoChatbot {
         this.ws = null;
         this.wsUrl = 'ws://localhost:9970/retailbanking';
         this.isConnected = false;
-        this.wasOpened = false;
 
         // Server-provided settings and sign-in state (no token is kept in the page)
         this.clientConfig = { allowedUpstreams: [], defaultUpstream: this.wsUrl, directMode: false };
@@ -170,6 +169,7 @@ class FlogoChatbot {
         }
         this.auth = { signedIn: false };
         this.clearChats();
+        localStorage.removeItem('flogoChatbotSecure_owner');
         this.renderAuth();
     }
 
@@ -186,6 +186,7 @@ class FlogoChatbot {
         this.elements.authSignedOut.hidden = signedIn;
         this.elements.authSignedIn.hidden = !signedIn;
         if (signedIn) {
+            this.claimChats(this.auth.sub);
             this.elements.authName.textContent = this.auth.name || '(no name claim)';
             this.elements.authSub.textContent = `sub: ${this.auth.sub || '-'}`;
             const exp = this.auth.exp ? new Date(this.auth.exp * 1000) : null;
@@ -199,6 +200,18 @@ class FlogoChatbot {
             });
         }
         this.updateConnectionStatus(this.isConnected);
+    }
+
+    /**
+     * Chats in localStorage belong to one signed-in user. When a different user signs in (also after an
+     * expired session, a server restart or a sign-in from another tab), start from an empty history.
+     */
+    claimChats(sub) {
+        const owner = sub || '-';
+        if (localStorage.getItem('flogoChatbotSecure_owner') === owner) return;
+        if (this.isConnected) return; // never clear the conversation that is on screen
+        this.clearChats();
+        localStorage.setItem('flogoChatbotSecure_owner', owner);
     }
 
     /**
@@ -277,8 +290,8 @@ class FlogoChatbot {
      * Connect to WebSocket server
      */
     connect() {
-        if (this.isConnected) {
-            console.log('Already connected');
+        if (this.isConnected || (this.ws && this.ws.readyState === WebSocket.CONNECTING)) {
+            console.log('Already connected or connecting');
             return;
         }
         
@@ -300,20 +313,24 @@ class FlogoChatbot {
 
         try {
             console.log(`Connecting to ${this.wsUrl}${direct ? ' (direct)' : ' via proxy'}...`);
-            this.wasOpened = false;
-            this.ws = new WebSocket(url);
+            const ws = new WebSocket(url);
+            this.ws = ws;
+            let opened = false;
+            this.updateConnectionStatus(false); // disables Connect while the handshake is in progress
 
             // Connection opened
-            this.ws.onopen = () => {
+            ws.onopen = () => {
+                if (this.ws !== ws) return;
                 console.log('WebSocket connected');
-                this.wasOpened = true;
+                opened = true;
                 this.isConnected = true;
                 this.updateConnectionStatus(true);
                 this.addSystemMessage('Connected to server');
             };
             
             // Message received
-            this.ws.onmessage = (event) => {
+            ws.onmessage = (event) => {
+                if (this.ws !== ws) return;
                 try {
                     const data = JSON.parse(event.data);
                     this.handleIncomingMessage(data);
@@ -324,11 +341,11 @@ class FlogoChatbot {
             };
             
             // Connection closed
-            this.ws.onclose = async (event) => {
+            ws.onclose = async (event) => {
+                if (this.ws !== ws && this.ws !== null) return; // a newer connection replaced this one
+                if (this.ws === ws) this.ws = null;
                 console.log('WebSocket disconnected');
-                const opened = this.wasOpened;
                 this.isConnected = false;
-                this.wasOpened = false;
                 this.updateConnectionStatus(false);
                 if (!direct) {
                     const auth = await this.refreshAuthStatus();
@@ -345,7 +362,8 @@ class FlogoChatbot {
             };
 
             // Error handling (details are reported by onclose)
-            this.ws.onerror = (error) => {
+            ws.onerror = (error) => {
+                if (this.ws !== ws) return;
                 console.error('WebSocket error:', error);
                 this.isConnected = false;
                 this.updateConnectionStatus(false);
@@ -388,7 +406,8 @@ class FlogoChatbot {
         } else {
             indicator.classList.remove('connected');
             statusText.textContent = 'Disconnected';
-            this.elements.connectBtn.disabled = !(this.isDirectMode() || (this.auth && this.auth.signedIn));
+            const connecting = !!(this.ws && this.ws.readyState === WebSocket.CONNECTING);
+            this.elements.connectBtn.disabled = connecting || !(this.isDirectMode() || (this.auth && this.auth.signedIn));
             this.elements.disconnectBtn.disabled = true;
             this.elements.messageInput.disabled = true;
             this.elements.sendBtn.disabled = true;
@@ -406,7 +425,8 @@ class FlogoChatbot {
         
         const message = {
             type: 'bot',
-            content: data.message || data.text || JSON.stringify(data),
+            content: [data.message, data.text].find(v => typeof v === 'string' && v) ||
+                JSON.stringify(data.message && typeof data.message === 'object' ? data.message : data),
             timestamp: new Date()
         };
         

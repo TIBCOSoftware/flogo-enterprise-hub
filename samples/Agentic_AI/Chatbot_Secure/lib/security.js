@@ -88,6 +88,15 @@ function displayClaims(claims) {
   };
 }
 
+/** The token's sub for log lines. It is unverified here, so control characters (forged log lines) are replaced
+ *  and the length is capped. */
+function logSub(claims) {
+  const sub = displayClaims(claims).sub;
+  if (!sub) return '-';
+  const clean = sub.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, '?');
+  return clean.length > 128 ? `${clean.slice(0, 128)}...` : clean;
+}
+
 /** Short, non-reversible session id prefix for logs. */
 function sidTag(id) {
   return id ? `${String(id).slice(0, 6)}...` : '-';
@@ -100,5 +109,6 @@ module.exports = {
   originAllowed,
   decodeJwtClaims,
   displayClaims,
+  logSub,
   sidTag
 };

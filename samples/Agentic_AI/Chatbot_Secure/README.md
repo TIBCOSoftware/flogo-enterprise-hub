@@ -18,7 +18,7 @@ Browser ──(HttpOnly session cookie)──> Chatbot_Secure :3001 ──(Autho
 
 1. You sign in once: the page sends the JWT to the server in a `POST /auth/session` request body and clears the field.
 2. The server keeps the token in a server-side session and gives the browser an **HttpOnly, SameSite=Strict** cookie
-   (plus `Secure` when served over HTTPS). Page scripts cannot read the cookie or the token.
+   (plus `Secure` when served over HTTPS through a TLS-terminating reverse proxy). Page scripts cannot read the cookie or the token.
 3. When you click **Connect**, the page opens a WebSocket to this server (`/proxy`). The server checks the cookie,
    the `Origin` and the target URL allow-list, then opens the upstream WebSocket **with the `Authorization` header**
    and relays messages both ways. Each browser connection gets its own upstream connection (its own conversation).
@@ -62,14 +62,18 @@ Copy `env.example` to `.env` to change the defaults:
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `3001` | HTTP port |
-| `HOST` | `127.0.0.1` | Interface to bind. Keep loopback unless you serve it over HTTPS |
+| `HOST` | `127.0.0.1` | Interface to bind. Keep loopback unless it sits behind an HTTPS reverse proxy |
 | `ALLOWED_UPSTREAMS` | `ws://localhost:9970/retailbanking` | Comma-separated upstream WebSocket URLs the proxy may open. **Exact match**; anything else is refused. The first one is pre-filled in the page |
 | `WS_URL` | first allowed upstream | URL pre-filled in the page (must be in `ALLOWED_UPSTREAMS`) |
-| `SESSION_TTL_MINUTES` | `480` | Server session lifetime; never longer than the token's `exp` |
+| `SESSION_TTL_MINUTES` | `480` | Server session lifetime (1 to 43200); never longer than the token's `exp`. A live connection is closed when its session ends |
+| `MAX_SESSIONS` | `1000` | Most sessions kept in memory; signing in beyond this ends the oldest session |
 | `COOKIE_SECURE` | `auto` | `auto` sets `Secure` when the request came over HTTPS; or `true` / `false` |
 | `TRUST_PROXY` | `false` | Set `true` behind a TLS-terminating reverse proxy that sets `X-Forwarded-Proto` |
 | `ALLOWED_ORIGINS` | this server's origin | Comma-separated browser origins allowed to sign in and connect (needed only behind a reverse proxy with a different host name) |
 | `DIRECT_MODE` | `false` | `true` shows a **Direct** checkbox that connects the browser straight to an upstream **without any token** (for unauthenticated samples only) |
+
+The server refuses to start, with a message naming the variable, when a value is invalid (for example a non-number,
+or an `ALLOWED_UPSTREAMS` entry that isn't a `ws://` or `wss://` URL).
 
 To use it with another JWT-secured orchestrator, add its URL to `ALLOWED_UPSTREAMS`, restart, and pick the URL in
 the URL box (click ↻ to apply it).
@@ -91,8 +95,8 @@ verify the signature: the Flogo MCP server does that on every tool call.
 
 - **Demo session store.** Sessions live in server memory: restarting the server signs everyone out, and it does
   not scale beyond one instance. Use a shared store (for example Redis) in production.
-- **Use HTTPS in production** (directly or behind a TLS-terminating proxy with `TRUST_PROXY=true`) so the cookie
-  is `Secure` and the token is encrypted between the browser and this server. Use `wss://` for upstreams that are
+- **Use HTTPS in production.** This server speaks plain HTTP only, so put it behind a TLS-terminating reverse proxy
+  and set `TRUST_PROXY=true`. The cookie is then `Secure` and the token is encrypted between the browser and this server. Use `wss://` for upstreams that are
   not on the same host.
 - **Use a real login.** Pasting a JWT is a demo stand-in. In production, replace the sign-in panel with an
   OIDC authorization-code login on this server; the rest of the flow stays the same.
