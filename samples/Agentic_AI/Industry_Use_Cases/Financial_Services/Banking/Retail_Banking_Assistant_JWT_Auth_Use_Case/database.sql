@@ -273,15 +273,19 @@ CREATE TABLE review_decisions (
   decided_at       TIMESTAMP NOT NULL DEFAULT clock_timestamp()
 );
 
--- Every decide call by an active reviewer (readback of the outcome and reason).
+-- Every decide call by an active reviewer (readback of the outcome and reason). A CONFIRM_REQUIRED row is a decision
+-- awaiting the reviewer's yes: the same decision and amount again within 15 minutes records it.
 CREATE TABLE decide_attempts (
-  attempt_id   SERIAL PRIMARY KEY,
-  reviewer_id  VARCHAR(10) NOT NULL REFERENCES reviewers,
-  case_ref     VARCHAR(40) NOT NULL,
-  outcome      VARCHAR(10) NOT NULL,             -- APPROVED / REJECTED / BLOCKED
-  reason_code  VARCHAR(24),
-  reason_text  TEXT,
-  created_at   TIMESTAMP NOT NULL DEFAULT clock_timestamp()
+  attempt_id       SERIAL PRIMARY KEY,
+  reviewer_id      VARCHAR(10) NOT NULL REFERENCES reviewers,
+  case_ref         VARCHAR(40) NOT NULL,
+  outcome          VARCHAR(16) NOT NULL,         -- CONFIRM_REQUIRED / APPROVED / REJECTED / BLOCKED
+  reason_code      VARCHAR(24),
+  reason_text      TEXT,
+  decision         VARCHAR(8),                   -- CONFIRM_REQUIRED: the pending decision, amount and customer message
+  approved_amount  NUMERIC(12,2),
+  customer_message TEXT,
+  created_at       TIMESTAMP NOT NULL DEFAULT clock_timestamp()
 );
 
 -- A reviewer-approved hardship deferral (event row; trg_loan_deferral moves the loan's next due date).
@@ -1014,9 +1018,13 @@ RETURNS TABLE (customer_id TEXT, request_type VARCHAR, customer_statement TEXT, 
     JOIN service_teams t ON t.request_type = norm_request_type(p_type) AND t.customer_openable
     CROSS JOIN LATERAL case_parking(sc.customer_id, p_type, p_reference) pk
    WHERE sc.customer_id IS NOT NULL AND pk.ok
+     -- the SAME request repeated within 10 minutes (an AI retry) is not opened twice; a different request of the same
+     -- type is a new case
      AND NOT EXISTS (SELECT 1 FROM service_cases c
                       WHERE c.customer_id = sc.customer_id AND c.request_type = t.request_type
-                        AND c.created_at > clock_timestamp() - INTERVAL '10 minutes')
+                        AND c.created_at > clock_timestamp() - INTERVAL '10 minutes'
+                        AND lower(regexp_replace(btrim(c.customer_statement), '\s+', ' ', 'g'))
+                            = lower(regexp_replace(btrim(left(coalesce(p_statement, ''), 4000)), '\s+', ' ', 'g')))
      AND NOT EXISTS (SELECT 1 FROM service_cases c
                       WHERE pk.parked_action IS NOT NULL AND c.parked_action = pk.parked_action AND c.status = 'OPEN');
 $$ LANGUAGE sql STABLE;
@@ -1235,6 +1243,14 @@ CREATE OR REPLACE FUNCTION find_my_payee(p_customer TEXT, p_payee TEXT) RETURNS 
 $$ LANGUAGE sql STABLE;
 
 -- Rule: may this customer pay this saved payee this amount from this account? (no risk logic here)
+-- The daily limit on payments to payees, and what a customer has already sent today (customer confirms and reviewer
+-- releases alike), so every path that sends money checks the same total.
+CREATE OR REPLACE FUNCTION payment_daily_limit() RETURNS NUMERIC AS $$ SELECT 10000::numeric $$ LANGUAGE sql IMMUTABLE;
+CREATE OR REPLACE FUNCTION sent_today(p_customer TEXT) RETURNS NUMERIC AS $$
+  SELECT coalesce(sum(ps.amount), 0) FROM payment_sends ps JOIN payment_requests pr ON pr.payment_id = ps.payment_id
+   WHERE pr.customer_id = p_customer AND ps.sent_at::date = current_date
+$$ LANGUAGE sql STABLE;
+
 CREATE OR REPLACE FUNCTION payment_eval(p_sub TEXT, p_account TEXT, p_payee TEXT, p_amount TEXT)
 RETURNS TABLE (ok BOOLEAN, reason_code TEXT, reason TEXT, customer_id TEXT, account_id TEXT, account_masked TEXT,
                account_type TEXT, payee_id TEXT, payee_name TEXT, payee_type TEXT, amount NUMERIC) AS $$
@@ -1277,12 +1293,11 @@ BEGIN
     reason := 'INSUFFICIENT_FUNDS: the amount is more than the available balance of that account (' || usd(a.available_balance) || ').';
     RETURN NEXT; RETURN;
   END IF;
-  SELECT coalesce(sum(ps.amount), 0) INTO v_today FROM payment_sends ps JOIN payment_requests pr ON pr.payment_id = ps.payment_id
-   WHERE pr.customer_id = v_cid AND ps.sent_at::date = current_date;
-  IF v_today + v_amt > 10000 THEN
+  v_today := sent_today(v_cid);
+  IF v_today + v_amt > payment_daily_limit() THEN
     reason_code := 'OVER_DAILY_LIMIT';
-    reason := 'OVER_DAILY_LIMIT: payments to payees are limited to $10,000.00 per day; ' || usd(greatest(0, 10000 - v_today))
-              || ' is left today.';
+    reason := 'OVER_DAILY_LIMIT: payments to payees are limited to ' || usd(payment_daily_limit()) || ' per day; '
+              || usd(greatest(0, payment_daily_limit() - v_today)) || ' is left today.';
     RETURN NEXT; RETURN;
   END IF;
   ok := TRUE; reason_code := 'ELIGIBLE'; reason := 'ELIGIBLE';
@@ -1291,7 +1306,9 @@ END $$ LANGUAGE plpgsql STABLE;
 
 -- Scam assessment: the agent's narrative (validated) + deterministic signals -> points -> band. The weights live here,
 -- not in any prompt. HIGH_RISK indicator 4, CAUTION indicator 1, narrative score 0-4 (score / 25), NEW_PAYEE 2,
--- FIRST_PAYEE_TYPE 1, AMOUNT_UNUSUAL 2, LARGE_SHARE_OF_BALANCE 1, PAYEE_ON_HOLD 7.  >= 7 HIGH, >= 4 MEDIUM, else LOW.
+-- FIRST_PAYEE_TYPE 1, AMOUNT_UNUSUAL 2, LARGE_SHARE_OF_BALANCE 1, PAYEE_ON_HOLD 7, HIGH_RISK_PROFILE 2 (new payee + first
+-- payee of its kind + unusual amount: HIGH from the bank's own data alone, whatever the agent's indicators say).
+-- >= 7 HIGH, >= 4 MEDIUM, else LOW.
 CREATE OR REPLACE FUNCTION scam_assessment(p_customer TEXT, p_account TEXT, p_payee TEXT, p_amount NUMERIC,
                                            p_indicators TEXT, p_score TEXT)
 RETURNS TABLE (narrative_indicators TEXT, ignored_indicators TEXT, narrative_score INTEGER, signals TEXT,
@@ -1324,12 +1341,16 @@ BEGIN
   IF EXISTS (SELECT 1 FROM payment_requests r WHERE r.payee_id = p_payee AND r.status = 'HELD') THEN
     v_sig := v_sig || 'PAYEE_ON_HOLD'::text;
   END IF;
+  IF 'NEW_PAYEE' = ANY (v_sig) AND 'FIRST_PAYEE_TYPE' = ANY (v_sig) AND 'AMOUNT_UNUSUAL' = ANY (v_sig) THEN
+    v_sig := v_sig || 'HIGH_RISK_PROFILE'::text;
+  END IF;
   v_pts := 4 * v_high + v_caution + v_score / 25
          + CASE WHEN 'NEW_PAYEE' = ANY (v_sig) THEN 2 ELSE 0 END
          + CASE WHEN 'FIRST_PAYEE_TYPE' = ANY (v_sig) THEN 1 ELSE 0 END
          + CASE WHEN 'AMOUNT_UNUSUAL' = ANY (v_sig) THEN 2 ELSE 0 END
          + CASE WHEN 'LARGE_SHARE_OF_BALANCE' = ANY (v_sig) THEN 1 ELSE 0 END
-         + CASE WHEN 'PAYEE_ON_HOLD' = ANY (v_sig) THEN 7 ELSE 0 END;
+         + CASE WHEN 'PAYEE_ON_HOLD' = ANY (v_sig) THEN 7 ELSE 0 END
+         + CASE WHEN 'HIGH_RISK_PROFILE' = ANY (v_sig) THEN 2 ELSE 0 END;
   narrative_indicators := v_valid; ignored_indicators := v_ignored; narrative_score := v_score;
   signals := nullif(array_to_string(v_sig, ', '), ''); risk_points := v_pts;
   risk_band := CASE WHEN v_pts >= 7 THEN 'HIGH' WHEN v_pts >= 4 THEN 'MEDIUM' ELSE 'LOW' END;
@@ -1632,13 +1653,15 @@ RETURNS TABLE (status TEXT, case_id VARCHAR, request VARCHAR, case_status VARCHA
     LEFT JOIN service_teams t ON t.request_type = s.request_type;
 $$ LANGUAGE sql STABLE;
 
--- Guarded write-row for a decision. 0 rows (and a reason in decide_attempts) when blocked.
+-- Guarded write-row for a decision. 0 rows (and a reason in decide_attempts) when blocked. Two steps, like the
+-- customer's propose / confirm: a valid decision is first only recorded as CONFIRM_REQUIRED; the same decision and
+-- amount again within 15 minutes (after the reviewer said yes) writes the decision row.
 CREATE OR REPLACE FUNCTION decide_case_row(p_sub TEXT, p_case TEXT, p_decision TEXT, p_amount TEXT, p_note TEXT, p_message TEXT)
 RETURNS TABLE (case_id VARCHAR, reviewer_id VARCHAR, decision VARCHAR, approved_amount NUMERIC, internal_note TEXT,
                customer_message TEXT) AS $$
 #variable_conflict use_column
 DECLARE rv RECORD; s service_cases; t service_teams; v_ref TEXT := norm_ref(p_case); v_dec TEXT; v_amt NUMERIC; v_max NUMERIC;
-        v_txt TEXT := norm_amount(p_amount); v_msg TEXT; v_pay NUMERIC; v_n INTEGER;
+        v_txt TEXT := norm_amount(p_amount); v_msg TEXT; v_pay NUMERIC; v_n INTEGER; v_problem TEXT; pa decide_attempts;
 BEGIN
   SELECT * INTO rv FROM caller_reviewer(p_sub) x;
   IF rv.reviewer_id IS NULL THEN RETURN; END IF;                         -- readback reports NOT_REVIEWER
@@ -1698,9 +1721,30 @@ BEGIN
       RETURN;
     END IF;
   END IF;
+  IF v_dec = 'APPROVE' THEN
+    v_problem := parked_action_problem(s.case_id, v_amt);
+    IF v_problem IS NOT NULL THEN
+      INSERT INTO decide_attempts (reviewer_id, case_ref, outcome, reason_code, reason_text)
+        VALUES (rv.reviewer_id, v_ref, 'BLOCKED', 'ACTION_NOT_EXECUTABLE', v_problem);
+      RETURN;
+    END IF;
+  END IF;
   v_msg := coalesce(nullif(trim(p_message), ''),
              CASE WHEN v_dec = 'APPROVE' THEN 'Your ' || t.label || ' has been approved' || coalesce(' for ' || usd(v_amt), '') || '.'
                   ELSE 'After review, your ' || t.label || ' was not approved. We will send you a letter that explains the decision.' END);
+  SELECT * INTO pa FROM decide_attempts x
+   WHERE x.reviewer_id = rv.reviewer_id AND x.case_ref = v_ref AND x.outcome = 'CONFIRM_REQUIRED'
+   ORDER BY x.attempt_id DESC LIMIT 1;
+  IF pa.attempt_id IS NULL OR pa.created_at < clock_timestamp() - INTERVAL '15 minutes'
+     OR pa.decision IS DISTINCT FROM v_dec OR pa.approved_amount IS DISTINCT FROM v_amt THEN
+    INSERT INTO decide_attempts (reviewer_id, case_ref, outcome, reason_code, reason_text, decision, approved_amount, customer_message)
+      VALUES (rv.reviewer_id, v_ref, 'CONFIRM_REQUIRED', 'CONFIRM_REQUIRED',
+              'Nothing is recorded yet. Read this decision back to the reviewer and ask them to confirm: ' || v_dec
+              || coalesce(' ' || usd(v_amt), '') || ' on ' || v_ref || '. Only after they confirm, call decide_review_case '
+              || 'again with the same decision and amount (within 15 minutes).',
+              v_dec, v_amt, left(v_msg, 2000));
+    RETURN;
+  END IF;
   INSERT INTO decide_attempts (reviewer_id, case_ref, outcome, reason_text)
     VALUES (rv.reviewer_id, v_ref, CASE WHEN v_dec = 'APPROVE' THEN 'APPROVED' ELSE 'REJECTED' END, 'Decision recorded.');
   RETURN QUERY SELECT s.case_id, rv.reviewer_id::varchar, v_dec::varchar, v_amt, left(trim(p_note), 2000), left(v_msg, 2000);
@@ -1710,11 +1754,13 @@ CREATE OR REPLACE FUNCTION decide_case_result(p_sub TEXT, p_case TEXT)
 RETURNS TABLE (outcome TEXT, case_id VARCHAR, decision VARCHAR, approved_amount NUMERIC, reason_code VARCHAR, reason_text TEXT,
                case_status VARCHAR, executed_action TEXT, customer_message TEXT) AS $$
   SELECT CASE WHEN sr.reviewer_id IS NULL THEN 'NOT_REVIEWER' ELSE coalesce(da.outcome, 'BLOCKED') END,
-         CASE WHEN da.outcome IN ('APPROVED','REJECTED')
-                   OR da.reason_code IN ('ALREADY_DECIDED','OVER_AUTHORITY','AMOUNT_INVALID','NOTE_REQUIRED','INVALID_DECISION')
+         CASE WHEN da.outcome IN ('APPROVED','REJECTED','CONFIRM_REQUIRED')
+                   OR da.reason_code IN ('ALREADY_DECIDED','OVER_AUTHORITY','AMOUNT_INVALID','NOTE_REQUIRED','INVALID_DECISION',
+                                         'ACTION_NOT_EXECUTABLE')
               THEN s.case_id END,
-         CASE WHEN da.outcome IN ('APPROVED','REJECTED') THEN rd.decision END,
-         CASE WHEN da.outcome IN ('APPROVED','REJECTED') THEN rd.approved_amount END,
+         CASE WHEN da.outcome IN ('APPROVED','REJECTED') THEN rd.decision WHEN da.outcome = 'CONFIRM_REQUIRED' THEN da.decision END,
+         CASE WHEN da.outcome IN ('APPROVED','REJECTED') THEN rd.approved_amount
+              WHEN da.outcome = 'CONFIRM_REQUIRED' THEN da.approved_amount END,
          CASE WHEN sr.reviewer_id IS NULL THEN 'NOT_REVIEWER' WHEN da.attempt_id IS NULL THEN 'NOT_FOUND' ELSE da.reason_code END,
          CASE WHEN sr.reviewer_id IS NULL THEN 'Only an active Kestrel staff reviewer can decide cases. Nothing was changed.'
               WHEN da.attempt_id IS NULL THEN 'There is no case with that number.'
@@ -1737,7 +1783,8 @@ RETURNS TABLE (outcome TEXT, case_id VARCHAR, decision VARCHAR, approved_amount 
               WHEN da.outcome = 'REJECTED' THEN
                 CASE WHEN s.parked_action LIKE 'RELEASE\_PAYMENT:%' THEN 'Case rejected; the held payment was cancelled and no money moved.'
                      ELSE 'Case rejected; nothing was executed.' END END,
-         CASE WHEN da.outcome IN ('APPROVED','REJECTED') THEN rd.customer_message END
+         CASE WHEN da.outcome IN ('APPROVED','REJECTED') THEN rd.customer_message
+              WHEN da.outcome = 'CONFIRM_REQUIRED' THEN da.customer_message END
     FROM (SELECT * FROM caller_reviewer(p_sub)) sr
     LEFT JOIN LATERAL (SELECT a.* FROM decide_attempts a WHERE a.reviewer_id = sr.reviewer_id AND a.case_ref = norm_ref(p_case)
                         ORDER BY a.attempt_id DESC LIMIT 1) da ON TRUE
@@ -1775,8 +1822,42 @@ RETURNS TABLE (payment_id TEXT, via TEXT, case_id TEXT, amount NUMERIC) AS $$
     FROM payment_requests r JOIN accounts a ON a.account_id = r.account_id
    WHERE r.payment_id = p_payment AND r.status = 'HELD' AND r.case_id = p_case AND p_amount = r.amount
      AND a.status = 'ACTIVE' AND a.available_balance >= r.amount
+     AND sent_today(r.customer_id) + r.amount <= payment_daily_limit()      -- a release counts toward the daily limit
      AND NOT EXISTS (SELECT 1 FROM payment_sends s WHERE s.payment_id = r.payment_id);
 $$ LANGUAGE sql STABLE;
+
+-- Why the parked action of an approval cannot run right now (NULL = it can). Checked before a decision is recorded, so
+-- a case is never marked APPROVED (and the customer never told so) while its action silently does nothing.
+CREATE OR REPLACE FUNCTION parked_action_problem(p_case TEXT, p_amount NUMERIC) RETURNS TEXT AS $$
+DECLARE s service_cases; v_kind TEXT; v_ref TEXT; r payment_requests; a accounts; v_today NUMERIC;
+BEGIN
+  SELECT * INTO s FROM service_cases x WHERE x.case_id = p_case;
+  v_kind := split_part(coalesce(s.parked_action, ''), ':', 1);
+  v_ref := split_part(coalesce(s.parked_action, ''), ':', 2);
+  IF v_kind = 'FEE_REFUND' AND NOT EXISTS (SELECT 1 FROM fee_refund_row(v_ref, p_amount, p_case)) THEN
+    RETURN 'Fee ' || v_ref || ' can no longer be refunded: it was already refunded or is no longer a posted fee.';
+  ELSIF v_kind = 'LOAN_DEFERRAL' AND NOT EXISTS (
+          SELECT 1 FROM loans l
+           WHERE l.loan_id = v_ref AND l.status = 'ACTIVE' AND floor(p_amount / l.monthly_payment + 0.000001) >= 1
+             AND NOT EXISTS (SELECT 1 FROM loan_deferrals d WHERE d.case_id = p_case)) THEN
+    RETURN 'Loan ' || v_ref || ' can no longer be deferred: it is not active, or this case already deferred it.';
+  ELSIF v_kind = 'RELEASE_PAYMENT' AND NOT EXISTS (SELECT 1 FROM payment_release_row(v_ref, p_amount, p_case)) THEN
+    SELECT * INTO r FROM payment_requests x WHERE x.payment_id = v_ref;
+    SELECT * INTO a FROM accounts x WHERE x.account_id = r.account_id;
+    v_today := sent_today(r.customer_id);
+    RETURN 'Payment ' || v_ref || ' cannot be released right now: '
+        || CASE WHEN r.status IS DISTINCT FROM 'HELD' THEN 'it is no longer held (' || coalesce(r.status, 'not found') || ')'
+                WHEN a.status IS DISTINCT FROM 'ACTIVE' THEN 'the account is not active'
+                WHEN a.available_balance < r.amount
+                  THEN 'the available balance (' || usd(a.available_balance) || ') no longer covers ' || usd(r.amount)
+                WHEN v_today + r.amount > payment_daily_limit()
+                  THEN 'it would take today''s payments over the ' || usd(payment_daily_limit()) || ' daily limit ('
+                       || usd(v_today) || ' already sent today)'
+                ELSE 'its checks did not pass' END
+        || '. The case stays open: reject it, or approve it again once that changes.';
+  END IF;
+  RETURN NULL;
+END $$ LANGUAGE plpgsql STABLE;
 
 -- The decision event: case status + customer message, then the parked action through the guarded rows, then audit.
 CREATE OR REPLACE FUNCTION apply_review_decision() RETURNS TRIGGER AS $$

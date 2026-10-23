@@ -49,8 +49,9 @@ LLMClient ==[error]==> LogLLMClientError --[MCP server rejected the sign-in]--> 
     **`authToken = string.trimPrefix(coerce.toString($flow.headers["Authorization"]), "Bearer ")`** → the caller's own JWT.
   - `a2aServerConfigs[0..2]`: `authType: "Static Token"`, `authToken = $property["A2A.<agent>.AuthToken"]`,
     `serverUrl = $property["A2A.<agent>.URL"]`.
-  - `conversationStoreType: Memory` (`memoryMaxSize` 60), `conversationId = $flow.headers["Sec-Websocket-Key"]`
-    (one conversation per WS connection).
+  - `conversationStoreType: Memory` (`memoryMaxSize` 60), `conversationId` = `Sec-Websocket-Key` + `:` + the last 16
+    characters of the caller's JWT (one conversation per WS connection and user; another user's token never joins it,
+    and the full token is not the key). The guard requires `Authorization: Bearer <token>` longer than 50 characters.
   - `systemPrompt = $property["LLMClient.SystemPrompt"]` (= `_rebuild/orchestrator_prompt.txt`).
 - The LLM never sees the JWT (a transport input, not prompt text) and no tool takes an identity argument.
 

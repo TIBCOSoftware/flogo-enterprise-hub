@@ -25,7 +25,8 @@ WebSocket trigger (9970 /retailbanking) -> guard on the handshake's Authorizatio
 The JWT is read ONLY from the WebSocket handshake's Authorization header (declared in the handler's header schema;
 the wsserver trigger looks headers up by canonical name, so "authorization:" also matches). Query parameters are
 never read. The token is a transport input of the LLM Client, never prompt text, so the model never sees it.
-Memory: conversationId = the connection's Sec-Websocket-Key (one conversation per WebSocket connection).
+Memory: conversationId = the connection's Sec-Websocket-Key + the last 16 characters of the caller's JWT signature
+(one conversation per connection AND user: another user's token can never join it, and the full token is not the key).
 System prompt: _rebuild/orchestrator_prompt.txt -> app property LLMClient.SystemPrompt.
 
 Secrets: the shipped app carries placeholders only (sk-REPLACE-WITH-YOUR-OPENAI-KEY, SET_YOUR_A2A_TOKEN). Supply
@@ -55,9 +56,15 @@ SYS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "orchestrato
 # runtime error ("Invalid path ... path not found") that fails the whole flow. json.exists() guards it; || and &&
 # short-circuit in the Flogo expression engine, so the indexed read only runs when the key exists.
 AUTH = 'coerce.toString($flow.headers["Authorization"])'
+# > 50: a real JWT is far longer ("Bearer " + header.payload.signature, the HS256 signature alone is 43 characters), and the
+# memory key below takes the token's last 16 characters.
 SIGNED_IN = (f'json.exists($flow.headers, "Authorization") && string.startsWith({AUTH}, "Bearer ") '
-             f'&& string.length({AUTH}) > 7')
-JWT = f'=string.trimPrefix({AUTH}, "Bearer ")'       # evaluated only on the signed-in branch (header present)
+             f'&& string.length({AUTH}) > 50')
+TOKEN = f'string.trimPrefix({AUTH}, "Bearer ")'
+JWT = f'={TOKEN}'                                    # evaluated only on the signed-in branch (header present)
+# string.substring's third argument is a LENGTH (-1 = to the end), so this is the token's last 16 characters.
+MEMORY_KEY = (f'=string.concat($flow.headers["Sec-Websocket-Key"], ":", '
+              f'string.substring({TOKEN}, string.length({TOKEN}) - 16, -1))')
 ERR = 'string.toLower(coerce.toString($error[LLMClient].message))'
 # MCP 401 on 2.26.7 surfaces as: failed to connect to dynamic MCP server '<name>' at <url>. reason=[... operation
 # 'Connect' failed (AUTHENTICATION_ERROR): calling "initialize": sending "initialize": Unauthorized]  (no "401").
@@ -141,7 +148,7 @@ P = lambda name: f'=$property["{name}"]'
 llm_inputs = {
     "systemPrompt": P("LLMClient.SystemPrompt"),
     "userPrompt": "=coerce.toString($flow.content)",
-    "conversationId": '=$flow.headers["Sec-Websocket-Key"]',
+    "conversationId": MEMORY_KEY,
     "llmConfiguration": {"mapping": {
         "provider": P("LLMClient.LLM_Provider"), "apiKey": P("LLMClient.API_Key"),
         "model": P("LLMClient.LLM_Model"), "providerBaseUrl": P("LLMClient.LLM_Base_URL"), "temperature": 0}},
@@ -242,7 +249,7 @@ need(h["settings"].get("path") == WS_PATH, "ws path")
 need("Authorization" in json.loads(h["schemas"]["output"]["headers"]["value"])["properties"], "Authorization header")
 need(llm["ref"].endswith("llmclientactivity"), "LLM Client ref")
 need(llm["settings"].get("conversationStoreType") == "Memory" and llm["settings"].get("memoryMaxSize") == 60, "memory")
-need(llm["input"].get("conversationId") == '=$flow.headers["Sec-Websocket-Key"]', "conversationId mapping")
+need(llm["input"].get("conversationId") == MEMORY_KEY, "conversationId mapping (connection + caller)")
 mcp = llm["input"]["mcpServerConfigs"]["mapping"]
 need(len(mcp) == 1 and mcp[0]["authType"] == "Token" and mcp[0]["authToken"] == JWT, "MCP config / caller JWT")
 a2a = llm["input"]["a2aServerConfigs"]["mapping"]

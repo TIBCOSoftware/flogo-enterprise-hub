@@ -419,18 +419,27 @@ try:
                   internal_note="Holiday delay confirmed.", customer_message="Your late fee has been refunded.")[0]
     check("decide_review_case full $29 > $25 limit -> BLOCKED OVER_AUTHORITY, case stays OPEN",
           r["outcome"] == "BLOCKED" and r["reason_code"] == "OVER_AUTHORITY" and r.get("case_status") == "OPEN", r)
-    r = maya.call("decide_review_case", case_id="CASE-00004", decision="APPROVE", amount="20",
-                  internal_note="Holiday delay confirmed; goodwill within my limit.", customer_message="We refunded $20.00 of the late fee.")[0]
-    check("decide_review_case approve $20 -> APPROVED, fee refunded", r["outcome"] == "APPROVED" and num(r.get("approved_amount")) == 20.0
+    approve20 = dict(case_id="CASE-00004", decision="APPROVE", amount="20",
+                     internal_note="Holiday delay confirmed; goodwill within my limit.", customer_message="We refunded $20.00 of the late fee.")
+    r = maya.call("decide_review_case", **approve20)[0]
+    check("decide_review_case approve $20, first call -> CONFIRM_REQUIRED (APPROVE $20 to read back), nothing recorded",
+          r["outcome"] == "CONFIRM_REQUIRED" and s(r.get("decision")) == "APPROVE" and num(r.get("approved_amount")) == 20.0
+          and n("SELECT count(*) FROM review_decisions WHERE case_id='CASE-00004'") == 0, r)
+    r = maya.call("decide_review_case", **approve20)[0]
+    check("decide_review_case approve $20, confirming call -> APPROVED, fee refunded", r["outcome"] == "APPROVED" and num(r.get("approved_amount")) == 20.0
           and "refunded" in s(r.get("executed_action")), r)
     check("DB: decision row + FEE REFUND credit + CASE_DECIDED audit by KST-7001 (the reviewer's JWT sub)",
           n("SELECT count(*) FROM review_decisions WHERE case_id='CASE-00004' AND reviewer_id='KST-7001' AND approved_amount=20") == 1
           and n("SELECT count(*) FROM transactions WHERE descriptor='FEE REFUND TXN-50024' AND amount=20 AND txn_type='CREDIT'") == 1
           and n("SELECT count(*) FROM agent_audit WHERE action='CASE_DECIDED' AND ref='CASE-00004' AND actor='KST-7001'") == 1)
     priya = Client(tok("priya")).open()
-    r = priya.call("decide_review_case", case_id=s(h.get("case_id")), decision="REJECT", amount="",
-                   internal_note="Caller told her to move the money; safe-account scam.",
-                   customer_message="We stopped this payment to protect you. No money left your account.")[0]
+    reject = dict(case_id=s(h.get("case_id")), decision="REJECT", amount="",
+                  internal_note="Caller told her to move the money; safe-account scam.",
+                  customer_message="We stopped this payment to protect you. No money left your account.")
+    r = priya.call("decide_review_case", **reject)[0]
+    check("Priya's reject, first call -> CONFIRM_REQUIRED, payment still HELD", r["outcome"] == "CONFIRM_REQUIRED"
+          and q(f"SELECT status FROM payment_requests WHERE payment_id='{s(h.get('payment_id'))}'")[0]["status"] == "HELD", r)
+    r = priya.call("decide_review_case", **reject)[0]
     check("Priya (Fraud Operations) rejects Patricia's held payment -> REJECTED, payment cancelled",
           r["outcome"] == "REJECTED" and "cancelled" in s(r.get("executed_action"))
           and q(f"SELECT status FROM payment_requests WHERE payment_id='{s(h.get('payment_id'))}'")[0]["status"] == "CANCELLED", r)

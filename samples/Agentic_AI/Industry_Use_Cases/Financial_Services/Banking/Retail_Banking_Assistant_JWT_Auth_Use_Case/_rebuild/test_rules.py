@@ -415,6 +415,17 @@ for ty, (team, days) in ROUTING.items():
           and k["reply_within_business_days"] == days, k)
 r = case(emma, "LOAN_APPROVAL")
 check("bad request type -> BAD_TYPE", r["outcome"] == "NOT_OPENED" and r["reason_code"] == "BAD_TYPE", r)
+# a DIFFERENT request of the same type within 10 minutes is a new case; only the same request repeated is not
+first_c = one("SELECT case_id FROM service_cases WHERE customer_id='CUST-2026-00106' AND request_type='COMPLAINT'")
+k2 = case(emma, "COMPLAINT", "The mobile app double-charged my transfer fee.")
+check("a second, different complaint within 10 minutes -> CASE_OPENED with its own new case id",
+      k2["outcome"] == "CASE_OPENED" and k2["case_id"] and k2["case_id"] != first_c
+      and one(f"SELECT customer_statement FROM service_cases WHERE case_id = {lit(k2['case_id'])}")
+          == "The mobile app double-charged my transfer fee.", (first_c, k2))
+k3 = case(emma, "COMPLAINT", "  the mobile app DOUBLE-charged   my transfer fee. ")
+check("the same complaint repeated (an AI retry; case and spacing ignored) -> the same case id, no third case",
+      k3["case_id"] == k2["case_id"]
+      and one("SELECT count(*) FROM service_cases WHERE customer_id='CUST-2026-00106' AND request_type='COMPLAINT'") == "2", k3)
 
 # ---- my cases (disputes + service cases) ----
 r = call("get_my_cases", sub=james)
@@ -475,8 +486,10 @@ check("no payment request written by any refused proposal", one("SELECT count(*)
 
 # deterministic floor + validation, straight from the SQL (no request written)
 fl = psql("SELECT * FROM scam_assessment('CUST-2026-00108', 'ACC-1014', 'PYE-0102', 9500, '', '0')")[0]
-check("floor: with NO agent indicators and score 0, the safe-account payment is still MEDIUM (new payee, first PERSON payee, unusual amount)",
-      fl["risk_band"] == "MEDIUM" and fl["signals"] == "NEW_PAYEE, FIRST_PAYEE_TYPE, AMOUNT_UNUSUAL", fl)
+check("floor: with NO agent indicators and score 0, the safe-account payment is HIGH from the bank's own data "
+      "(new payee + first PERSON payee + unusual amount = HIGH_RISK_PROFILE, 7 points)",
+      fl["risk_band"] == "HIGH" and fl["risk_points"] == "7"
+      and fl["signals"] == "NEW_PAYEE, FIRST_PAYEE_TYPE, AMOUNT_UNUSUAL, HIGH_RISK_PROFILE", fl)
 va = psql("SELECT * FROM scam_assessment('CUST-2026-00106', 'ACC-1009', 'PYE-0201', 100, 'TOTALLY_SAFE, safe_account; none', '250')")[0]
 check("indicator names are validated against the guide (unknown recorded + ignored) and the score is clamped to 100",
       va["narrative_indicators"] == "SAFE_ACCOUNT" and va["ignored_indicators"] == "TOTALLY_SAFE" and va["narrative_score"] == "100", va)
@@ -534,8 +547,8 @@ check("safe-account story -> HELD_FOR_REVIEW with case id, Fraud Operations and 
 check("the customer-facing hold message never mentions a score, band, points or indicators",
       not re.search(r"score|band|points|indicator", (h["reason"] or "").lower()) and "never ask you to move money" in h["reason"], h["reason"])
 hr = psql(f"SELECT status, risk_band, risk_points, signals, narrative_indicators, case_id FROM payment_requests WHERE payment_id = {lit(h['payment_id'])}")[0]
-check("DB: request HELD, HIGH (21 points), linked to the case", hr["status"] == "HELD" and hr["risk_band"] == "HIGH"
-      and hr["risk_points"] == "21" and hr["case_id"] == h["case_id"], hr)
+check("DB: request HELD, HIGH (23 points), linked to the case", hr["status"] == "HELD" and hr["risk_band"] == "HIGH"
+      and hr["risk_points"] == "23" and hr["case_id"] == h["case_id"], hr)
 hc = psql(f"SELECT request_type, assigned_team, requested_amount, parked_action, agent_brief, status FROM service_cases WHERE case_id = {lit(h['case_id'])}")[0]
 check("DB: PAYMENT_HOLD case -> Fraud Operations, parked RELEASE_PAYMENT, requested 9,500, brief carries indicators + signals + agent notes",
       hc["request_type"] == "PAYMENT_HOLD" and hc["assigned_team"] == "Fraud Operations" and hc["requested_amount"] == "9500.00"
@@ -618,8 +631,13 @@ check("Fraud reviewer sees the held payment's indicators, signals and band (the 
       and "in full" in rp["options"], rp)
 
 # ---- decide: every reason code, then the parked actions ----
-def decide(tok, case, dec="APPROVE", amt="", note="Checked the account history.", msg="Your request was reviewed."):
-    return call("decide_review_case", sub=tok, case_id=case, decision=dec, amount=amt, internal_note=note, customer_message=msg)[0]
+def decide(tok, case, dec="APPROVE", amt="", note="Checked the account history.", msg="Your request was reviewed.",
+           confirm=True):
+    """One decide call; with confirm=True a CONFIRM_REQUIRED answer is followed by the identical confirming call."""
+    r = call("decide_review_case", sub=tok, case_id=case, decision=dec, amount=amt, internal_note=note, customer_message=msg)[0]
+    if confirm and r["outcome"] == "CONFIRM_REQUIRED":
+        r = call("decide_review_case", sub=tok, case_id=case, decision=dec, amount=amt, internal_note=note, customer_message=msg)[0]
+    return r
 n_dec = one("SELECT count(*) FROM review_decisions")
 r = decide(michael, "CASE-00004")
 check("a customer subject cannot decide -> NOT_REVIEWER", r["outcome"] == "NOT_REVIEWER", r)
@@ -640,6 +658,24 @@ check("full $29 above Maya's $25 limit -> OVER_AUTHORITY, case stays OPEN", r["r
       and r["case_status"] == "OPEN" and "senior reviewer" in r["reason_text"], r)
 check("DB: no decision row and no refund after the blocked attempts", one("SELECT count(*) FROM review_decisions") == n_dec
       and one("SELECT count(*) FROM transactions WHERE descriptor = 'FEE REFUND TXN-50024'") == "0")
+# two steps, enforced in SQL: the first valid call records nothing; only the same decision + amount again records it
+r = decide(maya, "CASE-00004", amt="$20", msg="We have refunded $20.00 of the late fee as a goodwill gesture.", confirm=False)
+check("first decide call -> CONFIRM_REQUIRED with the decision to read back (APPROVE $20.00 + the customer message)",
+      r["outcome"] == "CONFIRM_REQUIRED" and r["case_id"] == "CASE-00004" and r["decision"] == "APPROVE"
+      and r["approved_amount"] == "20.00" and r["case_status"] == "OPEN" and "refunded $20.00" in (r["customer_message"] or "")
+      and not r["executed_action"], r)
+check("DB: nothing recorded or refunded after the first call", one("SELECT count(*) FROM review_decisions") == n_dec
+      and one("SELECT count(*) FROM transactions WHERE descriptor = 'FEE REFUND TXN-50024'") == "0")
+r = decide(maya, "CASE-00004", amt="15", confirm=False)
+check("a call with a DIFFERENT amount does not confirm the pending one -> CONFIRM_REQUIRED for $15, still nothing recorded",
+      r["outcome"] == "CONFIRM_REQUIRED" and r["approved_amount"] == "15.00" and one("SELECT count(*) FROM review_decisions") == n_dec, r)
+psql("UPDATE decide_attempts SET created_at = created_at - INTERVAL '16 minutes' WHERE case_ref = 'CASE-00004' AND outcome = 'CONFIRM_REQUIRED'")
+r = decide(maya, "CASE-00004", amt="15", confirm=False)
+check("a pending decision older than 15 minutes has expired -> CONFIRM_REQUIRED again, nothing recorded",
+      r["outcome"] == "CONFIRM_REQUIRED" and one("SELECT count(*) FROM review_decisions") == n_dec, r)
+check("a customer subject cannot confirm a reviewer's pending decision -> NOT_REVIEWER",
+      decide(michael, "CASE-00004", amt="15", confirm=False)["outcome"] == "NOT_REVIEWER"
+      and one("SELECT count(*) FROM review_decisions") == n_dec)
 m_bal = one("SELECT balance FROM accounts WHERE account_id = 'ACC-1012'")
 r = decide(maya, "CASE-00004", amt="$20", note="Holiday delay confirmed; goodwill refund within my limit.",
            msg="We have refunded $20.00 of the late fee as a goodwill gesture.")
@@ -686,6 +722,19 @@ check("reject Patricia's held payment -> REJECTED, payment CANCELLED, no money m
       and bal("ACC-1014") == "24000.00", r)
 check("Patricia's cancelled payment cannot be confirmed afterwards", cpay(patricia, h["payment_id"], "YES")["reason_code"] == "CANCELLED")
 w_bal = bal("ACC-1005")
+# an approval whose action cannot run right now is BLOCKED (not "approved" while the payment silently stays held)
+psql("UPDATE accounts SET available_balance = 1000 WHERE account_id = 'ACC-1005'")    # ordinary spending since the hold
+r = decide(priya, "CASE-00002", note="Customer met the payee in person and confirmed the investment independently.")
+check("approve a held payment the balance no longer covers -> BLOCKED ACTION_NOT_EXECUTABLE, case stays OPEN, reason given",
+      r["outcome"] == "BLOCKED" and r["reason_code"] == "ACTION_NOT_EXECUTABLE" and r["case_status"] == "OPEN"
+      and "available balance ($1,000.00) no longer covers $6,200.00" in (r["reason_text"] or "")
+      and not r["customer_message"] and not r["executed_action"], r)
+check("DB: no decision row, no CASE_DECIDED audit, payment still HELD, case still OPEN",
+      one("SELECT count(*) FROM review_decisions WHERE case_id = 'CASE-00002'") == "0"
+      and one("SELECT count(*) FROM agent_audit WHERE action = 'CASE_DECIDED' AND ref = 'CASE-00002'") == "0"
+      and one("SELECT status FROM payment_requests WHERE payment_id = 'PAY-00001'") == "HELD"
+      and one("SELECT status FROM service_cases WHERE case_id = 'CASE-00002'") == "OPEN")
+psql(f"UPDATE accounts SET available_balance = {w_bal} WHERE account_id = 'ACC-1005'")
 r = decide(priya, "CASE-00002", note="Customer met the payee in person and confirmed the investment independently.",
            msg="Your payment has been released.")
 check("approve William's held payment (full) -> APPROVED, payment RELEASED and sent",
@@ -884,6 +933,27 @@ for f in fns:
           {k: f[k] for k in ("lanname", "provolatile", "prosecdef")})
     if f["proname"] not in ("ref_match",):
         check(f"{f['proname']}: one optional, non-identity argument", f["args"] in ("p_term text", "p_descriptor text"), f["args"])
+
+# ---- the scam floor and the daily limit hold even when the model passes nothing and a reviewer releases ----
+# Patricia (her earlier held payment was rejected): $5,000 to the new 'secure holding' payee with NO agent indicators.
+x = pay(patricia, "ACC-1014", "PYE-0102", "5000", "Moving some savings.", "NONE", "0", "")
+check("no indicators passed, but a new PERSON payee + unusual amount -> HELD_FOR_REVIEW from the bank's own data",
+      x["outcome"] == "HELD_FOR_REVIEW" and re.fullmatch(r"CASE-\d{5}", x["case_id"] or ""), x)
+y = pay(patricia, "ACC-1014", "PYE-0101", "9000", "Paying my landlord for the next six months.", "NONE", "0", "")
+y = cpay(patricia, y["payment_id"], "YES" if y["outcome"] == "PROPOSED_WITH_WARNING" else "NO")
+check("the same day she sends $9,000 to her known landlord -> SENT", y["outcome"] == "SENT", y)
+r = decide(priya, x["case_id"], note="Customer confirmed the payee independently.", msg="Your payment has been released.")
+check("releasing the held $5,000 would take today's payments to $14,000 -> BLOCKED ACTION_NOT_EXECUTABLE (daily limit)",
+      r["outcome"] == "BLOCKED" and r["reason_code"] == "ACTION_NOT_EXECUTABLE" and "daily limit" in (r["reason_text"] or "")
+      and "$9,000.00 already sent today" in (r["reason_text"] or ""), r)
+check("DB: the held payment was not sent; today's total stays $9,000; the case stays OPEN",
+      one(f"SELECT status FROM payment_requests WHERE payment_id = {lit(x['payment_id'])}") == "HELD"
+      and one("SELECT sent_today('CUST-2026-00108')") == "9000.00"
+      and one(f"SELECT status FROM service_cases WHERE case_id = {lit(x['case_id'])}") == "OPEN")
+r = decide(priya, x["case_id"], dec="REJECT", note="Release blocked by the daily limit; customer will resend tomorrow if still wanted.",
+           msg="We stopped this payment. Your money is safe.")
+check("the reviewer can still reject it -> REJECTED, payment CANCELLED", r["outcome"] == "REJECTED"
+      and one(f"SELECT status FROM payment_requests WHERE payment_id = {lit(x['payment_id'])}") == "CANCELLED", r)
 
 subprocess.run(BASE + ["-f", os.path.join(DIR, "reset_data.sql")], check=True, env=ENV, capture_output=True)
 check("reset_data.sql reloads the agent reference tables, reviewers, payees and the seeded open cases",

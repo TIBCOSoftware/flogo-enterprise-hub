@@ -153,7 +153,7 @@ Run the steps in order; each one is cheaper than the next, so most problems show
   activity's **settings**, the AI Agent's shape. The LLM Client activity takes its prompt, temperature and
   `conversationId` as **inputs**, so those checks skip the orchestrator. Review them by hand: the prompt is
   `orchestrator_prompt.txt` (stored in `LLMClient.SystemPrompt`), temperature is `0`, and `conversationId` is
-  `$flow.headers["Sec-Websocket-Key"]` (declared in the handler's header schema).
+  `Sec-Websocket-Key` (declared in the handler's header schema) + `:` + the last 16 characters of the caller's JWT.
 
 Optional overrides:
 
