@@ -19,10 +19,12 @@ class FlogoChatbot {
         this.clientConfig = { allowedUpstreams: [], defaultUpstream: this.wsUrl, directMode: false };
         this.auth = { signedIn: false };
         
-        // Chat sessions management
+        // Chat sessions management. History belongs to one signed-in user (chatOwner = their sub); it is restored
+        // only once the server confirms that user's session, and never shown while signed out.
         this.chats = new Map();
         this.currentChatId = null;
         this.chatCounter = 0;
+        this.chatOwner = null;
         
         // DOM elements
         this.elements = {
@@ -61,11 +63,15 @@ class FlogoChatbot {
      * Initialize the application
      */
     async init() {
-        this.loadChatsFromStorage();
+        this.loadSettingsFromStorage();
         this.setupEventListeners();
-        this.updateUI();
+        this.updateUI(); // no history yet: it is restored only after the session check, for its owner
         await this.loadClientConfig();
         await this.refreshAuthStatus();
+        // Another tab signed in or out (the session cookie is shared): check the session again
+        window.addEventListener('storage', (e) => {
+            if (e.key === null || e.key === 'flogoChatbotSecure_owner') this.refreshAuthStatus();
+        });
     }
 
     /**
@@ -168,9 +174,7 @@ class FlogoChatbot {
             console.error('Sign-out request failed:', error);
         }
         this.auth = { signedIn: false };
-        this.clearChats();
-        localStorage.removeItem('flogoChatbotSecure_owner');
-        this.renderAuth();
+        this.renderAuth(); // signed out: drops the history (releaseChats)
     }
 
     showAuthError(text) {
@@ -198,31 +202,62 @@ class FlogoChatbot {
                 chip.textContent = scope;
                 this.elements.authScopes.appendChild(chip);
             });
+        } else {
+            this.releaseChats();
         }
         this.updateConnectionStatus(this.isConnected);
     }
 
     /**
-     * Chats in localStorage belong to one signed-in user. When a different user signs in (also after an
-     * expired session, a server restart or a sign-in from another tab), start from an empty history.
+     * Chats in localStorage belong to one signed-in user. Restore them only for that user; anyone else (a different
+     * user, also after a sign-in from another tab) starts from an empty history and the stored one is deleted.
      */
     claimChats(sub) {
         const owner = sub || '-';
-        if (localStorage.getItem('flogoChatbotSecure_owner') === owner) return;
-        if (this.isConnected) return; // never clear the conversation that is on screen
-        this.clearChats();
-        localStorage.setItem('flogoChatbotSecure_owner', owner);
+        if (this.chatOwner === owner) return;
+        if (this.isConnected) return; // never replace the conversation that is on screen
+        this.resetChats();
+        if (localStorage.getItem('flogoChatbotSecure_owner') === owner) {
+            this.loadChatsFromStorage();
+        } else {
+            this.forgetStoredChats();
+            localStorage.setItem('flogoChatbotSecure_owner', owner);
+        }
+        this.chatOwner = owner;
+        this.updateUI();
     }
 
     /**
-     * Remove all chats (used on sign-out so the next user does not see them)
+     * Signed out (sign-out, an expired session, a server restart, another tab): the history is neither shown nor kept,
+     * so the next person at this browser cannot read it.
      */
-    clearChats() {
+    releaseChats() {
+        if (this.isConnected) return; // a live direct-mode conversation (no sign-in) stays on screen
+        if (this.chatOwner !== null) {
+            this.resetChats();
+            this.chatOwner = null;
+            this.updateUI();
+        }
+        this.forgetStoredChats();
+        localStorage.removeItem('flogoChatbotSecure_owner');
+    }
+
+    /**
+     * Empty the chats in memory (the stored copy is handled by the caller)
+     */
+    resetChats() {
         this.chats.clear();
         this.currentChatId = null;
         this.chatCounter = 0;
-        this.saveChatsToStorage();
-        this.updateUI();
+    }
+
+    /**
+     * Delete the stored chat history (the upstream URL setting is kept)
+     */
+    forgetStoredChats() {
+        localStorage.removeItem('flogoChatbotSecure_chats');
+        localStorage.removeItem('flogoChatbotSecure_currentChatId');
+        localStorage.removeItem('flogoChatbotSecure_chatCounter');
     }
     
     /**
@@ -350,7 +385,7 @@ class FlogoChatbot {
                 if (!direct) {
                     const auth = await this.refreshAuthStatus();
                     if (!auth.signedIn) {
-                        this.addSystemMessage('Not signed in (or the session ended). Please sign in again.');
+                        this.showAuthError('Not signed in (or the session ended). Please sign in again.');
                         return;
                     }
                     if (!opened) {
@@ -750,10 +785,13 @@ class FlogoChatbot {
     }
     
     /**
-     * Save chats to localStorage
+     * Save chats to localStorage - only for the signed-in user who owns the stored history (direct-mode chats,
+     * without a sign-in, are not kept)
      */
     saveChatsToStorage() {
         try {
+            localStorage.setItem('flogoChatbotSecure_wsUrl', this.wsUrl);
+            if (!this.chatOwner || localStorage.getItem('flogoChatbotSecure_owner') !== this.chatOwner) return;
             const chatsData = Array.from(this.chats.entries()).map(([id, chat]) => ({
                 id: chat.id,
                 title: chat.title,
@@ -768,29 +806,33 @@ class FlogoChatbot {
             localStorage.setItem('flogoChatbotSecure_chats', JSON.stringify(chatsData));
             localStorage.setItem('flogoChatbotSecure_currentChatId', this.currentChatId);
             localStorage.setItem('flogoChatbotSecure_chatCounter', this.chatCounter.toString());
-            localStorage.setItem('flogoChatbotSecure_wsUrl', this.wsUrl);
         } catch (error) {
             console.error('Error saving chats to storage:', error);
         }
     }
     
     /**
-     * Load chats from localStorage
+     * Load non-secret settings (the upstream URL) from localStorage
+     */
+    loadSettingsFromStorage() {
+        const wsUrl = localStorage.getItem('flogoChatbotSecure_wsUrl');
+        if (wsUrl) {
+            this.wsUrl = wsUrl;
+            this.elements.wsUrlInput.value = wsUrl;
+        }
+    }
+
+    /**
+     * Load chats from localStorage (only called by claimChats, for the stored history's owner)
      */
     loadChatsFromStorage() {
         try {
             const chatsData = localStorage.getItem('flogoChatbotSecure_chats');
             const currentChatId = localStorage.getItem('flogoChatbotSecure_currentChatId');
             const chatCounter = localStorage.getItem('flogoChatbotSecure_chatCounter');
-            const wsUrl = localStorage.getItem('flogoChatbotSecure_wsUrl');
             
             if (chatCounter) {
                 this.chatCounter = parseInt(chatCounter, 10);
-            }
-            
-            if (wsUrl) {
-                this.wsUrl = wsUrl;
-                this.elements.wsUrlInput.value = wsUrl;
             }
             
             if (chatsData) {

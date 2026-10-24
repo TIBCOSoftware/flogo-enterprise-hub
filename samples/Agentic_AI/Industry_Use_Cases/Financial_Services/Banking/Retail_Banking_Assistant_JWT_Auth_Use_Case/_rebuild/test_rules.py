@@ -955,6 +955,137 @@ r = decide(priya, x["case_id"], dec="REJECT", note="Release blocked by the daily
 check("the reviewer can still reject it -> REJECTED, payment CANCELLED", r["outcome"] == "REJECTED"
       and one(f"SELECT status FROM payment_requests WHERE payment_id = {lit(x['payment_id'])}") == "CANCELLED", r)
 
+# ---- open_service_case reports the case THIS request opened or matched (never another one, never a refused one) ----
+def reset(): subprocess.run(BASE + ["-f", os.path.join(DIR, "reset_data.sql")], check=True, env=ENV, capture_output=True)
+reset()
+def ocase(tok, ty, stmt, ref=""):
+    return call("open_service_case", sub=tok, request_type=ty, customer_statement=stmt, brief="Customer request.", reference_id=ref)[0]
+a = ocase(olivia, "FEE_REFUND", "Please refund the overdraft fee.")
+check("Olivia's fee refund -> CASE_OPENED for TXN-50010", a["outcome"] == "CASE_OPENED" and a["case_id"], a)
+n_cases = one("SELECT count(*) FROM service_cases")
+r = ocase(olivia, "FEE_REFUND", "And refund this one too.", "TXN-50024")
+check("then another customer's fee within 10 minutes -> NOT_OPENED BAD_REFERENCE (not her earlier case)",
+      r["outcome"] == "NOT_OPENED" and r["reason_code"] == "BAD_REFERENCE" and not r["case_id"]
+      and one("SELECT count(*) FROM service_cases") == n_cases, r)
+r = ocase(olivia, "FEE_REFUND", "Refund my groceries.", "TXN-NOPE")
+check("an unknown reference within 10 minutes -> NOT_OPENED BAD_REFERENCE", r["reason_code"] == "BAD_REFERENCE" and not r["case_id"], r)
+acct = one("SELECT account_id FROM transactions WHERE transaction_id = 'TXN-50010'")
+fee2 = psql("INSERT INTO transactions (account_id, customer_id, card_id, txn_date, descriptor, amount, txn_type, category, status) "
+            f"VALUES ({lit(acct)}, {lit(olivia)}, NULL, current_date, 'LATE PAYMENT FEE', 15, 'DEBIT', 'FEES', 'POSTED') "
+            "RETURNING transaction_id")[0]["transaction_id"]
+b = ocase(olivia, "FEE_REFUND", "Please refund the late fee as well.", fee2)
+check("a second fee -> its own new case", b["outcome"] == "CASE_OPENED" and b["case_id"] not in ("", a["case_id"]), b)
+r = ocase(olivia, "FEE_REFUND", "Did you get my overdraft fee request?", "TXN-50010")
+check("asking about the first fee again -> the FIRST fee's case (not the newer one), no new case",
+      r["case_id"] == a["case_id"] and one("SELECT count(*) FROM service_cases") == str(int(n_cases) + 1), r)
+c1 = ocase(james, "COMPLAINT", "The branch was closed during opening hours.")
+c2 = ocase(james, "COMPLAINT", "The app logged me out three times today.")
+check("two different complaints -> two cases", c1["case_id"] and c2["case_id"] and c1["case_id"] != c2["case_id"], (c1, c2))
+r = ocase(james, "COMPLAINT", "the branch was closed during  opening hours.")
+check("a retry of the FIRST complaint -> the first complaint's case (not the newer one)",
+      r["outcome"] == "CASE_OPENED" and r["case_id"] == c1["case_id"], r)
+r = ocase(james, "BOGUS", "Hello.")
+check("a bad type right after -> NOT_OPENED BAD_TYPE, no case id", r["reason_code"] == "BAD_TYPE" and not r["case_id"], r)
+
+# ---- money moves one at a time per customer: concurrent sends cannot overdraw or beat the daily limit ----
+import time
+def race(first_sql, second_sql, hold=3):
+    """Run first_sql in a transaction that stays open `hold` seconds, and second_sql (its own transaction) while it is
+    open - two tool calls at the same moment. Returns how long second_sql took (it should wait for the first)."""
+    tag = f"race_{time.time_ns()}"
+    a = subprocess.Popen(BASE + ["-c", f"BEGIN; {first_sql} SELECT pg_sleep({hold}) AS {tag}; COMMIT;"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, env=ENV)
+    for _ in range(200):
+        if one("SELECT count(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND wait_event = 'PgSleep' "
+               f"AND query LIKE '%{tag}%'") == "1":
+            break
+        time.sleep(0.05)
+    else:
+        a.kill(); sys.exit("race: the first transaction never reached its hold: " + a.stderr.read())
+    t0 = time.time()
+    psql(second_sql)
+    waited = time.time() - t0
+    a.wait(timeout=60)
+    if a.returncode:
+        sys.exit("race: the first transaction failed: " + a.stderr.read())
+    return waited
+def confirm_sql(tok, pid):
+    return bind(*T["confirm_payment"]["write"], {SUB: tok, "payment_id": pid, "acknowledge_warning": "YES"})
+def decide_sql(tok, case, note="Customer confirmed the payee independently.", msg="Your payment has been released."):
+    return bind(*T["decide_review_case"]["write"], {SUB: tok, "case_id": case, "decision": "APPROVE", "amount": "",
+                                                    "internal_note": note, "customer_message": msg})
+def sends(*pids): return int(one("SELECT count(*) FROM payment_sends WHERE payment_id IN (" + ", ".join(map(lit, pids)) + ")"))
+
+reset()
+p1 = pay(emma, "ACC-1009", "PYE-0201", "3000", "Rent and deposit.", "NONE", "0")
+p2 = pay(emma, "ACC-1009", "PYE-0201", "3001", "Rent and deposit.", "NONE", "0")
+check("race setup: two separate proposals that each fit the $5,600 balance, but not together",
+      p1["payment_id"] and p2["payment_id"] and p1["payment_id"] != p2["payment_id"]
+      and p1["outcome"].startswith("PROPOSED") and p2["outcome"].startswith("PROPOSED"), (p1, p2))
+w = race(confirm_sql(emma, p1["payment_id"]), confirm_sql(emma, p2["payment_id"]))
+r = cpay(emma, p2["payment_id"], "YES")
+check(f"two confirms at once (balance): exactly one is sent, the balance never goes negative (second waited {w:.1f}s)",
+      sends(p1["payment_id"], p2["payment_id"]) == 1 and bal("ACC-1009") == "2600.00", (bal("ACC-1009"), r))
+check("...and the second reads NOT_SENT INSUFFICIENT_FUNDS", r["outcome"] == "NOT_SENT" and r["reason_code"] == "INSUFFICIENT_FUNDS", r)
+
+reset()
+p1 = pay(patricia, "ACC-1014", "PYE-0101", "6000", "Rent for the year.", "NONE", "0")
+p2 = pay(patricia, "ACC-1014", "PYE-0101", "6001", "Rent for the year.", "NONE", "0")
+check("race setup: two proposals of $6,000 / $6,001 (each under the $10,000 daily limit, not together)",
+      p1["outcome"].startswith("PROPOSED") and p2["outcome"].startswith("PROPOSED"), (p1, p2))
+w = race(confirm_sql(patricia, p1["payment_id"]), confirm_sql(patricia, p2["payment_id"]))
+r = cpay(patricia, p2["payment_id"], "YES")
+check(f"two confirms at once (daily limit): exactly one is sent, today's total stays $6,000 (second waited {w:.1f}s)",
+      sends(p1["payment_id"], p2["payment_id"]) == 1 and one(f"SELECT sent_today({lit(patricia)})") == "6000.00", r)
+check("...and the second reads NOT_SENT OVER_DAILY_LIMIT", r["reason_code"] == "OVER_DAILY_LIMIT", r)
+
+for first in ("customer", "reviewer"):
+    reset()
+    x = pay(patricia, "ACC-1014", "PYE-0102", "5000", "Moving some savings.", "NONE", "0", "")
+    y = pay(patricia, "ACC-1014", "PYE-0101", "6000", "Rent for the year.", "NONE", "0")
+    first_call = call("decide_review_case", sub=priya, case_id=x["case_id"], decision="APPROVE", amount="",
+                      internal_note="Customer confirmed the payee independently.", customer_message="Your payment has been released.")[0]
+    check(f"race setup ({first} first): a held $5,000 (reviewer's first step done) and a proposed $6,000",
+          x["outcome"] == "HELD_FOR_REVIEW" and y["outcome"].startswith("PROPOSED") and first_call["outcome"] == "CONFIRM_REQUIRED",
+          (x, y, first_call))
+    cs, ds = confirm_sql(patricia, y["payment_id"]), decide_sql(priya, x["case_id"])
+    w = race(cs, ds) if first == "customer" else race(ds, cs)
+    d = psql(bind(*T["decide_review_case"]["read"], {SUB: priya, "case_id": x["case_id"]}))[0]
+    c = cpay(patricia, y["payment_id"], "YES")
+    total = one(f"SELECT sent_today({lit(patricia)})")
+    if first == "customer":
+        check(f"customer confirm + reviewer release at once: the confirm is sent, the release is BLOCKED by the daily limit "
+              f"and the case stays OPEN (release waited {w:.1f}s)",
+              total == "6000.00" and sends(y["payment_id"]) == 1 and sends(x["payment_id"]) == 0 and d["outcome"] == "BLOCKED"
+              and d["reason_code"] == "ACTION_NOT_EXECUTABLE" and "daily limit" in (d["reason_text"] or "")
+              and one(f"SELECT status FROM service_cases WHERE case_id = {lit(x['case_id'])}") == "OPEN", (total, c, d))
+    else:
+        check(f"reviewer release + customer confirm at once: the release is sent, the confirm reads OVER_DAILY_LIMIT "
+              f"(confirm waited {w:.1f}s)",
+              total == "5000.00" and d["outcome"] == "APPROVED" and c["reason_code"] == "OVER_DAILY_LIMIT", (total, c, d))
+
+# the debit itself refuses to overdraw or pass the daily limit, whatever path inserted the send
+reset()
+p1 = pay(emma, "ACC-1009", "PYE-0201", "3000", "Rent and deposit.", "NONE", "0")
+psql(f"UPDATE accounts SET available_balance = 100 WHERE account_id = 'ACC-1009'")
+r = subprocess.run(BASE + ["-c", f"INSERT INTO payment_sends (payment_id, via, amount) VALUES ({lit(p1['payment_id'])}, 'CUSTOMER', 3000)"],
+                   capture_output=True, text=True, env=ENV)
+check("a send row written around the rules (balance $100) is refused by the debit trigger; nothing moves",
+      r.returncode != 0 and "INSUFFICIENT_FUNDS" in r.stderr and sends(p1["payment_id"]) == 0 and bal("ACC-1009") == "100.00",
+      r.stderr.strip())
+p2 = pay(patricia, "ACC-1014", "PYE-0101", "6000", "Rent for the year.", "NONE", "0")
+psql(f"INSERT INTO payment_sends (payment_id, via, amount) VALUES ({lit(p2['payment_id'])}, 'CUSTOMER', 6000)")
+p3 = pay(patricia, "ACC-1014", "PYE-0101", "5000", "Rent for the year.", "NONE", "0")
+check("race setup: the $5,000 proposal was refused at propose time (OVER_DAILY_LIMIT)", p3["reason_code"] == "OVER_DAILY_LIMIT", p3)
+psql("UPDATE payment_sends SET sent_at = sent_at - interval '1 day'")
+p3 = pay(patricia, "ACC-1014", "PYE-0101", "5000", "Rent for the year.", "NONE", "0")
+psql("UPDATE payment_sends SET sent_at = sent_at + interval '1 day'")
+r = subprocess.run(BASE + ["-c", f"INSERT INTO payment_sends (payment_id, via, amount) VALUES ({lit(p3['payment_id'])}, 'CUSTOMER', 5000)"],
+                   capture_output=True, text=True, env=ENV)
+check("a send row written around the rules over the daily limit is refused by the debit trigger",
+      r.returncode != 0 and "OVER_DAILY_LIMIT" in r.stderr and sends(p3["payment_id"]) == 0
+      and one(f"SELECT sent_today({lit(patricia)})") == "6000.00", r.stderr.strip())
+
 subprocess.run(BASE + ["-f", os.path.join(DIR, "reset_data.sql")], check=True, env=ENV, capture_output=True)
 check("reset_data.sql reloads the agent reference tables, reviewers, payees and the seeded open cases",
       all(int(one(f"SELECT count(*) FROM {t['table']}")) > 0 for t in AGENT_REF_TOOLS)

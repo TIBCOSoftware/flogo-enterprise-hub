@@ -257,7 +257,9 @@ CREATE TABLE service_cases (
   customer_message    TEXT,                     -- customer-safe outcome text, set by the reviewer's decision
   approved_amount     NUMERIC(12,2),
   decided_at          TIMESTAMP,
-  created_at          TIMESTAMP NOT NULL DEFAULT clock_timestamp()
+  created_at          TIMESTAMP NOT NULL DEFAULT clock_timestamp(),
+  last_requested_at   TIMESTAMP                 -- opened, or asked for again (a retry / the same parked action): the case
+                                                -- open_service_case's readback reports; set by trg_case_defaults on insert
 );
 ALTER SEQUENCE case_seq OWNED BY service_cases.case_id;
 
@@ -1005,30 +1007,44 @@ DECLARE t service_teams;
 BEGIN
   SELECT * INTO t FROM service_teams WHERE request_type = NEW.request_type;
   NEW.sla_due_at := coalesce(NEW.sla_due_at, add_business_days(NEW.created_at::date, t.reply_business_days) + NEW.created_at::time);
+  NEW.last_requested_at := coalesce(NEW.last_requested_at, NEW.created_at);
   RETURN NEW;
 END $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_case_defaults BEFORE INSERT ON service_cases FOR EACH ROW EXECUTE FUNCTION case_defaults();
 
+-- Guarded write-row for open_service_case. 0 rows when refused (unknown caller, bad type, bad reference) or when this
+-- request is already with the team: an OPEN case parking the same action (whenever it was opened), or the SAME statement
+-- of the same type within 10 minutes (an AI retry). That case is then marked as asked for again (last_requested_at), so
+-- the readback reports the case THIS request matched. A different request of the same type is a new case.
 CREATE OR REPLACE FUNCTION service_case_row(p_sub TEXT, p_type TEXT, p_statement TEXT, p_brief TEXT, p_reference TEXT)
 RETURNS TABLE (customer_id TEXT, request_type VARCHAR, customer_statement TEXT, agent_brief TEXT, assigned_team VARCHAR,
                requested_amount NUMERIC, parked_action TEXT) AS $$
-  SELECT sc.customer_id, t.request_type, left(coalesce(p_statement,''), 4000), left(coalesce(p_brief,''), 4000), t.team,
-         pk.requested_amount, pk.parked_action
-    FROM (SELECT * FROM caller_customer(p_sub)) sc
-    JOIN service_teams t ON t.request_type = norm_request_type(p_type) AND t.customer_openable
-    CROSS JOIN LATERAL case_parking(sc.customer_id, p_type, p_reference) pk
-   WHERE sc.customer_id IS NOT NULL AND pk.ok
-     -- the SAME request repeated within 10 minutes (an AI retry) is not opened twice; a different request of the same
-     -- type is a new case
-     AND NOT EXISTS (SELECT 1 FROM service_cases c
-                      WHERE c.customer_id = sc.customer_id AND c.request_type = t.request_type
-                        AND c.created_at > clock_timestamp() - INTERVAL '10 minutes'
-                        AND lower(regexp_replace(btrim(c.customer_statement), '\s+', ' ', 'g'))
-                            = lower(regexp_replace(btrim(left(coalesce(p_statement, ''), 4000)), '\s+', ' ', 'g')))
-     AND NOT EXISTS (SELECT 1 FROM service_cases c
-                      WHERE pk.parked_action IS NOT NULL AND c.parked_action = pk.parked_action AND c.status = 'OPEN');
-$$ LANGUAGE sql STABLE;
+#variable_conflict use_column
+DECLARE v_cid TEXT; t service_teams; pk RECORD; v_stmt TEXT := left(coalesce(p_statement, ''), 4000); v_match TEXT;
+BEGIN
+  SELECT sc.customer_id INTO v_cid FROM caller_customer(p_sub) sc;
+  SELECT * INTO t FROM service_teams x WHERE x.request_type = norm_request_type(p_type) AND x.customer_openable;
+  IF v_cid IS NULL OR t.request_type IS NULL THEN RETURN; END IF;
+  SELECT * INTO pk FROM case_parking(v_cid, p_type, p_reference);
+  IF NOT pk.ok THEN RETURN; END IF;
+  SELECT c.case_id INTO v_match FROM service_cases c
+   WHERE c.customer_id = v_cid AND c.request_type = t.request_type
+     AND ((pk.parked_action IS NOT NULL AND c.parked_action = pk.parked_action AND c.status = 'OPEN')
+          OR (c.created_at > clock_timestamp() - INTERVAL '10 minutes'
+              AND lower(regexp_replace(btrim(c.customer_statement), '\s+', ' ', 'g'))
+                  = lower(regexp_replace(btrim(v_stmt), '\s+', ' ', 'g'))))
+   ORDER BY (pk.parked_action IS NOT NULL AND c.parked_action = pk.parked_action AND c.status = 'OPEN') DESC, c.created_at DESC
+   LIMIT 1;
+  IF v_match IS NOT NULL THEN
+    UPDATE service_cases c SET last_requested_at = clock_timestamp() WHERE c.case_id = v_match;
+    RETURN;
+  END IF;
+  RETURN QUERY SELECT v_cid, t.request_type, v_stmt, left(coalesce(p_brief, ''), 4000), t.team, pk.requested_amount,
+                      pk.parked_action;
+END $$ LANGUAGE plpgsql VOLATILE;
 
+-- Readback for open_service_case: the refusal reason, or the case this request opened or matched (the one service_case_row
+-- just inserted or marked; never another case of the same type, never a case for a refused request).
 CREATE OR REPLACE FUNCTION service_case_result(p_sub TEXT, p_type TEXT, p_reference TEXT)
 RETURNS TABLE (outcome TEXT, reason_code TEXT, reason TEXT, case_id VARCHAR, request_type VARCHAR, assigned_team VARCHAR,
                reply_within_business_days INTEGER, reply_by DATE, status VARCHAR, requested_amount NUMERIC,
@@ -1061,10 +1077,10 @@ RETURNS TABLE (outcome TEXT, reason_code TEXT, reason TEXT, case_id VARCHAR, req
     LEFT JOIN LATERAL (SELECT * FROM case_parking(sc.customer_id, p_type, p_reference)) pk ON TRUE
     LEFT JOIN LATERAL (
       SELECT x.* FROM service_cases x
-       WHERE x.customer_id = sc.customer_id AND x.request_type = norm_request_type(p_type) AND t0.request_type IS NOT NULL
-         AND (x.created_at > clock_timestamp() - INTERVAL '10 minutes'
-              OR (x.status = 'OPEN' AND pk.parked_action IS NOT NULL AND x.parked_action = pk.parked_action))
-       ORDER BY x.created_at DESC LIMIT 1) c ON TRUE
+       WHERE x.customer_id = sc.customer_id AND x.request_type = t0.request_type AND pk.ok
+         AND x.last_requested_at > clock_timestamp() - INTERVAL '10 minutes'
+         AND (pk.parked_action IS NULL OR x.parked_action = pk.parked_action)
+       ORDER BY x.last_requested_at DESC, x.case_id DESC LIMIT 1) c ON TRUE
     LEFT JOIN service_teams t ON t.request_type = c.request_type;
 $$ LANGUAGE sql STABLE;
 
@@ -1251,6 +1267,14 @@ CREATE OR REPLACE FUNCTION sent_today(p_customer TEXT) RETURNS NUMERIC AS $$
    WHERE pr.customer_id = p_customer AND ps.sent_at::date = current_date
 $$ LANGUAGE sql STABLE;
 
+-- Money moves one at a time per customer. Every path that sends money (the customer's confirm, a reviewer's release)
+-- takes this lock BEFORE it re-checks the balance and the daily total, and keeps it until its transaction commits - so a
+-- second send for the same customer waits, then sees the first one. Without it, two sends at the same moment both pass
+-- the checks and both debit.
+CREATE OR REPLACE FUNCTION lock_customer_money(p_customer TEXT) RETURNS VOID AS $$
+  SELECT pg_advisory_xact_lock(hashtext('kestrel-money'), hashtext(coalesce(p_customer, '')));
+$$ LANGUAGE sql VOLATILE;
+
 CREATE OR REPLACE FUNCTION payment_eval(p_sub TEXT, p_account TEXT, p_payee TEXT, p_amount TEXT)
 RETURNS TABLE (ok BOOLEAN, reason_code TEXT, reason TEXT, customer_id TEXT, account_id TEXT, account_masked TEXT,
                account_type TEXT, payee_id TEXT, payee_name TEXT, payee_type TEXT, amount NUMERIC) AS $$
@@ -1429,7 +1453,8 @@ $$ LANGUAGE sql IMMUTABLE;
 
 -- Confirm row: VOLATILE because it counts confirm calls (so a repeat confirm reads ALREADY_SENT). Returns the
 -- payment_sends row ONLY for this customer's PROPOSED, unexpired request whose rules still pass (and, for a MEDIUM
--- request, only when the customer acknowledged the warning).
+-- request, only when the customer acknowledged the warning). The checks run under lock_customer_money, so they see
+-- every send of this customer that committed before this one.
 CREATE OR REPLACE FUNCTION payment_confirmation_row(p_sub TEXT, p_payment TEXT, p_ack TEXT)
 RETURNS TABLE (payment_id TEXT, via TEXT, case_id TEXT, amount NUMERIC) AS $$
 #variable_conflict use_column
@@ -1437,6 +1462,7 @@ DECLARE v_cid TEXT; r payment_requests; e RECORD;
 BEGIN
   SELECT sc.customer_id INTO v_cid FROM caller_customer(p_sub) sc;
   IF v_cid IS NULL THEN RETURN; END IF;
+  PERFORM lock_customer_money(v_cid);
   SELECT * INTO r FROM payment_requests x WHERE x.payment_id = norm_ref(p_payment) AND x.customer_id = v_cid;
   IF NOT FOUND THEN RETURN; END IF;
   UPDATE payment_requests x SET confirm_count = x.confirm_count + 1 WHERE x.payment_id = r.payment_id;
@@ -1528,16 +1554,27 @@ END $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_payment_request AFTER INSERT ON payment_requests FOR EACH ROW EXECUTE FUNCTION apply_payment_request();
 
 -- Side effects of a sent payment, atomically: the POSTED debit, the balance, the payee's last-paid date, the status.
+-- The debit itself never overdraws or passes the daily limit, whatever wrote the send row: under lock_customer_money
+-- (already held on the tool paths) it re-checks both and refuses the whole send if either fails.
 CREATE OR REPLACE FUNCTION apply_payment_send() RETURNS TRIGGER AS $$
 DECLARE r payment_requests; p payees;
 BEGIN
   SELECT * INTO r FROM payment_requests WHERE payment_id = NEW.payment_id;
+  PERFORM lock_customer_money(r.customer_id);
+  IF sent_today(r.customer_id) > payment_daily_limit() THEN                     -- today's total includes this send
+    RAISE EXCEPTION 'OVER_DAILY_LIMIT: payment % would take today''s payments over the % daily limit',
+      NEW.payment_id, usd(payment_daily_limit());
+  END IF;
+  UPDATE accounts SET balance = balance - NEW.amount, available_balance = available_balance - NEW.amount
+   WHERE account_id = r.account_id AND available_balance >= NEW.amount;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'INSUFFICIENT_FUNDS: payment % of % is more than the available balance of %',
+      NEW.payment_id, usd(NEW.amount), r.account_id;
+  END IF;
   SELECT * INTO p FROM payees WHERE payee_id = r.payee_id;
   INSERT INTO transactions (account_id, customer_id, card_id, txn_date, descriptor, amount, txn_type, category, status)
     VALUES (r.account_id, r.customer_id, NULL, NEW.sent_at::date, left('PAYMENT TO ' || upper(p.payee_name), 80), NEW.amount,
             'DEBIT', 'TRANSFER', 'POSTED');
-  UPDATE accounts SET balance = balance - NEW.amount, available_balance = available_balance - NEW.amount
-   WHERE account_id = r.account_id;
   UPDATE payees SET last_paid_at = NEW.sent_at WHERE payee_id = r.payee_id;
   UPDATE payment_requests SET status = CASE WHEN NEW.via = 'REVIEWER' THEN 'RELEASED' ELSE 'SENT' END,
          executed_confirm_no = CASE WHEN NEW.via = 'CUSTOMER' THEN confirm_count END
@@ -1671,6 +1708,10 @@ BEGIN
       VALUES (rv.reviewer_id, v_ref, 'BLOCKED', 'NOT_FOUND', 'There is no case with that number.');
     RETURN;
   END IF;
+  -- One at a time with this customer's payments and other decisions (lock_customer_money): re-read the case once the
+  -- lock is held, so the status, the parked action and the balance / daily-limit checks all see committed data.
+  PERFORM lock_customer_money(s.customer_id);
+  SELECT * INTO s FROM service_cases x WHERE x.case_id = v_ref;
   SELECT * INTO t FROM service_teams x WHERE x.request_type = s.request_type;
   IF t.team <> rv.team THEN
     INSERT INTO decide_attempts (reviewer_id, case_ref, outcome, reason_code, reason_text)

@@ -27,7 +27,8 @@ SQL-validated payload (email_confirmation_payload) and a conditional branch send
 send_status == "SEND":
     ReadOutcome --(send_status == "SEND")--> SendMail --> Return
     ReadOutcome --(otherwise)----------------------------> ReturnNotSent
-Both returns hand back the same readback row. The recipient is the To_Email app property (the configured ops inbox);
+Both returns hand back the same readback row. The recipient is the To_Email app property (the configured ops inbox)
+and the sender is Email_Username, the account that signs in to SMTP (servers reject other From addresses);
 the SQL decides the content and the reported outcome, so an unauthorised call sends nothing and carries no account data.
 
 Re-run:  python _rebuild/build_mcp.py      (needs the banking_jwt_auth DB; OUT_DIR=<empty dir> to replay; refuses to overwrite).
@@ -73,7 +74,7 @@ def sendmail_input(em):
             "Username": '=$property["Email_Username"]', "Password": '=$property["Email_App_Password"]',
             "authorizationConn": "", "Connection Security": "SSL", "serverCertificate": "",
             "message_content_type": "text/plain",
-            "sender": '=$property["To_Email"]', "recipients": '=$property["To_Email"]',
+            "sender": '=$property["Email_Username"]', "recipients": '=$property["To_Email"]',
             "cc_recipients": "", "bcc_recipients": "", "reply_to": '=$property["Email_Username"]',
             "subject": '=$activity[ReadOutcome].Output.records[0].subject',
             "message": '=$activity[ReadOutcome].Output.records[0].body'}

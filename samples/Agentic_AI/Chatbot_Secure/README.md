@@ -103,11 +103,14 @@ verify the signature: the Flogo MCP server does that on every tool call.
   OIDC authorization-code login on this server; the rest of the flow stays the same.
 - **The Node server holds the token, the browser does not.** Protect this server like any other component that
   holds user credentials.
-- Chat history is kept in this browser's `localStorage` until you sign out.
+- Chat history is kept in this browser's `localStorage` only for the signed-in user it belongs to. It is shown only
+  after the server confirms that user's session, and it is deleted when you sign out (in any tab), when your session
+  ends (expiry, server restart) or when someone else signs in on this browser.
 
 ## Test
 
 `npm test` runs a self-contained smoke test of the proxy against a mock upstream (no Flogo needed).
+`npm run test:ui` checks the chat history in headless Chrome or Edge (set `CHROME_PATH` if the browser is elsewhere).
 
 ---
 

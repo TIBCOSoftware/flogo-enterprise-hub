@@ -196,13 +196,17 @@ also covers decided cases (`CASE-`) and sent payments (`PAY-`) and logs every au
 **Payment reason codes:** `ACCOUNT_NOT_FOUND`, `PAYEE_NOT_FOUND`, `BAD_AMOUNT`, `INSUFFICIENT_FUNDS`, `OVER_DAILY_LIMIT`,
 `UNKNOWN_CALLER`; outcomes `PROPOSED`, `PROPOSED_WITH_WARNING`, `HELD_FOR_REVIEW`; confirm: `SENT`, `NO_SUCH_PAYMENT`,
 `HELD_FOR_REVIEW`, `CANCELLED`, `EXPIRED`, `WARNING_NOT_ACKNOWLEDGED`, `ALREADY_SENT`. The customer never sees the score,
-band or indicators; the Fraud Operations reviewer does (case facts + brief).
+band or indicators; the Fraud Operations reviewer does (case facts + brief). Sends run one at a time per customer
+(`lock_customer_money`, taken by `payment_confirmation_row` and `decide_case_row` before their checks and held to
+commit), and `trg_payment_send` refuses a debit that would overdraw the account or pass the daily limit.
 
 **Case parking (`case_parking`):** FEE_REFUND + a posted, unrefunded FEES debit (empty → the latest in 120 days) →
 `FEE_REFUND:<txn>` (requested = fee); LOAN_HARDSHIP + an ACTIVE loan (empty → the only one) → `LOAN_DEFERRAL:<loan>`
 (requested = 3 x monthly payment); a HIGH payment → `PAYMENT_HOLD` case `RELEASE_PAYMENT:<payment>` (requested = amount;
 not customer-openable). A foreign or non-fee reference → `BAD_REFERENCE`; an OPEN case with the same parked action →
-`ALREADY_OPEN`. Every case gets `sla_due_at` from `service_teams` (trigger).
+`ALREADY_OPEN`. The same statement of the same type within 10 minutes is a retry (no new case). The matched case's
+`last_requested_at` is updated, so the readback reports the case THIS request opened or matched (a refused request
+reports no case). Every case gets `sla_due_at` from `service_teams` (trigger).
 
 **Reviewer loop (HITL_CONTRACT shape):** `reviewers` (KST-7001 Maya Chen, Customer Care, limit $25; KST-7002 Daniel
 Ortiz, Financial Support, $5,000; KST-7003 Priya Nair, Fraud Operations, $20,000). The reviewer is the verified `sub`,
