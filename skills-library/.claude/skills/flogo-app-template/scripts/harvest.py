@@ -26,9 +26,37 @@ BLOCKS = [
 ]
 # Whole-argument parameters (values too long or too structured for literal matching).
 ARG_RULES = [
+    ("csp", "--specFile", "SPEC_FILE"),   # the whole path: generate_app copies the spec next to the generated app
     ("sms", "--json-schema", "EVENT_SCHEMA"),
     ("cs", 2, "REPLY_SCHEMA"),
 ]
+# File-backed fda flags -> their inline form carrying the golden file's content, so a template needs no side files.
+# None = the content becomes the command's positional argument (cs <schema-name> <json-schema>).
+INLINE_FOR_FILE = {"--jsonFile": "--jsonValue", "--jsonValueFile": "--jsonValue", "-jvf": "--jsonValue",
+                   "--json-schema-file": "--json-schema", "--json-value-to-schema-file": "--json-value-to-schema",
+                   "--jsonSchemaFile": None}
+
+
+def inline_files(argv, base):
+    out, i = [], 0
+    while i < len(argv):
+        flag = argv[i]
+        if flag in INLINE_FOR_FILE and i + 1 < len(argv):
+            path = argv[i + 1] if os.path.isabs(argv[i + 1]) else os.path.join(base, argv[i + 1])
+            if not os.path.isfile(path):
+                fdalib.die(f"harvest: `{argv[0]} ... {flag} {argv[i + 1]}` reads a file that is not there ({path}); "
+                           "restore it next to the golden app and harvest again")
+            content = open(path, encoding="utf-8").read().strip()
+            try:
+                content = json.dumps(json.loads(content), separators=(",", ":"))
+            except ValueError:
+                pass
+            out += [INLINE_FOR_FILE[flag], content] if INLINE_FOR_FILE[flag] else [content]
+            i += 2
+            continue
+        out.append(flag)
+        i += 1
+    return out
 # Order in which ${PARAMS} are matched inside the remaining arguments (longest literal first).
 LITERAL_PARAMS = ["APP_DESCRIPTION", "APP_NAME", "SPEC_NAME", "SPEC_FILE", "TRIGGER", "FLOW",
                   "EVENT_SCHEMA_NAME", "KEY_FIELD", "TOPIC", "BROKERS", "HTTP_PORT"]
@@ -117,7 +145,8 @@ def main():
     commands = [["cp", "${APP_NAME}" if name == values["APP_NAME"] else name,
                  "${APP_DESCRIPTION}" if desc == values["APP_DESCRIPTION"] else desc]]
     for c in json.load(open(hist_file, encoding="utf-8"))["commands"][1:]:
-        commands.append(fdalib.strip_file_flags(fdalib.parse_history_command(c["fdaCommand"])))
+        commands.append(inline_files(fdalib.strip_file_flags(fdalib.parse_history_command(c["fdaCommand"])),
+                                     os.path.dirname(flogo)))
 
     lines, counts, used = [], {"steps": len(commands), "blocks": 0, "rows": 0}, set()
     prev_block = None

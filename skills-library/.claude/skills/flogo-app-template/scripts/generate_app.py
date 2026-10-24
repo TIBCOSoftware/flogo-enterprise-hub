@@ -94,13 +94,19 @@ F={app}.flogo
 
 def build(flogo, outdir):
     cfg = fdalib.read_config()
-    fb, ctx = cfg.get("FLOGOBUILD_PATH"), cfg.get("FLOGOBUILD_CONTEXT_NAME")
-    if not fb or not ctx:
-        fdalib.die("FLOGOBUILD_PATH / FLOGOBUILD_CONTEXT_NAME not set in config.md")
+    unset = lambda v: not v or v.strip().startswith("<")          # missing, or config.example.md's <placeholder>
+    fb, ctx = (cfg.get("FLOGOBUILD_PATH") or "").strip('"'), (cfg.get("FLOGOBUILD_CONTEXT_NAME") or "").strip()
+    if unset(fb):
+        fb = shutil.which("flogobuild")                           # config.example.md: leave the placeholder if on PATH
+        if not fb:
+            fdalib.die("flogobuild not found: set FLOGOBUILD_PATH in config.md or put flogobuild on PATH")
+    elif not os.path.isfile(fb):
+        fdalib.die(f"FLOGOBUILD_PATH in config.md does not exist: {fb}")
     bindir = os.path.join(outdir, "bin")
     os.makedirs(bindir, exist_ok=True)
-    print(f"\nflogobuild: {fb} (context {ctx})")
-    p = subprocess.run([fb, "build-exe", "-f", os.path.basename(flogo), "-c", ctx, "-o", os.path.abspath(bindir)],
+    ctx_args = [] if unset(ctx) else ["-c", ctx]                  # no context set: flogobuild's default context
+    print(f"\nflogobuild: {fb} (context {ctx if ctx_args else 'default'})")
+    p = subprocess.run([fb, "build-exe", "-f", os.path.basename(flogo), *ctx_args, "-o", os.path.abspath(bindir)],
                        cwd=outdir, capture_output=True, text=True, encoding="utf-8", errors="replace")
     for l in (p.stdout + p.stderr).splitlines():
         if re.search(r"success|created at|rror", l):

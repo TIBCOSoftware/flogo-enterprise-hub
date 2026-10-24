@@ -372,11 +372,15 @@ def derive(params_path):
 ARITY = {"cp": 2, "csp": 2, "cas": 2, "cap": 3, "rap": 1, "cc": 2, "sa": 3, "ca": 4, "aa": 4, "cl": 3,
          "rl": 3, "sms": 2, "mm": 2, "rmm": 1, "cs": 2, "rs": 1, "cf": 2, "rf": 1, "ct": 3, "cth": 3,
          "wth": 2, "ai": 1, "ri": 1, "cat": 3, "us": 2, "ums": 2}
+# Flags and whether they take a value, from `fda help <task>` (fda 0.9.3). A flag missing here is glued to its value
+# when a history entry is re-split, so keep this complete when fda adds options.
 FLAGS = {"-f": 1, "--file": 1, "-H": 0, "--history": 0, "-j": 0, "--json": 0, "--force": 0, "--doNotLink": 0,
-         "--specFile": 1, "-C": 1, "--connection": 1, "--configType": 1, "--json-schema": 1,
-         "--jsonSchemaFile": 1, "--json-value-to-schema": 1, "--type": 1, "-ty": 1, "--jsonValue": 1, "-jv": 1,
-         "--jsonValueFile": 1, "-jvf": 1, "--foreach": 1, "-fe": 1, "--as": 1, "--input": 1, "--output": 1,
-         "--restResourcePath": 1, "--field": 1}
+         "--specFile": 1, "-C": 1, "--connection": 1, "--configType": 1, "--json-schema": 1, "--json-schema-file": 1,
+         "--jsonSchemaFile": 1, "--json-value-to-schema": 1, "--json-value-to-schema-file": 1, "--type": 1, "-ty": 1,
+         "--jsonValue": 1, "-jv": 1, "--jsonFile": 1, "--jsonValueFile": 1, "-jvf": 1, "--foreach": 1, "-fe": 1,
+         "--as": 1, "--input": 1, "--output": 1, "--inputs-only": 0, "--reply-only": 0, "--restResourcePath": 1,
+         "--restHandlerMethod": 1, "--mcpHandlerType": 1, "--mcpHandlerName": 1, "--mcpHandlerDescription": 1,
+         "--field": 1, "--alias": 1}
 
 
 def parse_history_command(cmd):
