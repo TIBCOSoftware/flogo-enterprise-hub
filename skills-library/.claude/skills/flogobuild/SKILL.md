@@ -63,4 +63,17 @@ Global Flags:
 --verbose   Enable verbose mode for additional output
 ```
 
+**Where the executable lands (differs from the help text).** `build-exe` appends the *directory part of a relative app path* to the output directory: the exe goes to `<-o, or the current directory>/<dir of the -f path>/`. So `-f ../apps/App.flogo` with no `-o` drops the exe next to the `.flogo` (as does an absolute `-f` with no `-o`), and `-f apps/App.flogo -o bin` fails with `open bin\apps\App.exe: The system cannot find the path specified`. Use one of these forms to put it exactly in the output folder:
+
+```bash
+# A (portable: flogobuild 1.0.6 and 1.1.x): run from the folder that holds the .flogo, pass just the file name.
+# The subshell ( ... ) keeps your current directory unchanged for the commands that follow.
+( cd <FLOGO_APPS_DIR> && flogobuild build-exe -f <AppName>.flogo -c <FLOGOBUILD_CONTEXT_NAME> -o ../bin )
+
+# B (flogobuild 1.1.x only, where -a exists): absolute app path with -a and absolute output directory (Windows paths on Windows)
+flogobuild build-exe -a "<abs-path>/<AppName>.flogo" -c <FLOGOBUILD_CONTEXT_NAME> -o "<abs-path>/bin"
+```
+
+Then check the `Executable file created at …` line in the output.
+
 > **Build context:** Use the build context configured for your Flogo version. List available contexts with `flogobuild list-context`. The context name typically follows the pattern `flogo-<version>-<build>` (e.g. `flogo-2.26.0-1789`). Set this as `FLOGOBUILD_CONTEXT_NAME` in `config.md` so the agent uses the right one.
