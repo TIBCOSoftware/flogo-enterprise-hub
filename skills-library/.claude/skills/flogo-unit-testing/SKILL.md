@@ -65,8 +65,14 @@ flogodesign-cli.exe -f <AppName>.flogo create-test-case <TestCaseName> <FlowName
 - `<flowInputsJSON>` — JSON object with the flow's input values
 
 **IMPORTANT — Flow input structure:**
-The CLI wraps the JSON input in a `body` key automatically. To get the correct structure
-in the `.flogotest` file, you MUST edit the file after creation to fix the wrapping:
+The CLI wraps the JSON input in a `body` key automatically, for **every** flow type (REST, timer
+and subflows alike). To get the correct structure in the `.flogotest` file, you MUST edit the
+file after creation and remove exactly one `body` level from each test's `flowInputs`.
+Pass the flow's real inputs as the JSON, keyed by the flow's input names:
+
+- For **subflows and other non-REST flows**: pass the inputs directly, e.g. `{"orderId":"A1","attempt":1}`,
+  then unwrap so `flowInputs` is `{"orderId":"A1","attempt":1}`, not `{"body":{"orderId":…}}`.
+  The flow has no `body` input, so a wrapped test silently runs with empty inputs.
 
 - For **GET** flows with path params: pass `{"pathParams":{"param":"value"}}`,
   then edit the flogotest to remove the extra `body` wrapper so `flowInputs` contains
@@ -93,10 +99,43 @@ flogodesign-cli.exe -f <AppName>.flogo create-test-case TestPostBook books_POST 
 **After creating all test cases**, edit the `.flogotest` file to fix `flowInputs`:
 - GET: Change `"flowInputs": {"body": {"pathParams": {...}}}` to `"flowInputs": {"pathParams": {...}}`
 - POST: Change `"flowInputs": {"body": {"body": {...}}}` to `"flowInputs": {"body": {...}}`
+- Subflow / non-REST: Change `"flowInputs": {"body": {<inputs>}}` to `"flowInputs": {<inputs>}`
+
+This script removes the wrapper from the test cases you name: pass each test case's name (or its `<FlowId>:<TestCaseName>` key from the `.flogotest`). It looks up the flow's inputs by `flowId`, because `flowName` is a display name that can differ from the flow's ID (for example `Play Feature` vs `Play_Feature`). It unwraps a test only when the keys inside `body` are that flow's input names; otherwise it leaves the test unchanged and prints a warning.
+
+**Run it once, right after `create-test-case`, and list only the test cases you just created.** Never run it on test cases that are already correct. For a flow that has an input named `body`, a correct `{"body": {"body": {...}}}` (a request body that itself contains a `body` field) looks exactly like a fresh wrapper, and the script would remove a real level.
+
+```bash
+python - <AppName>.flogo <AppName>.flogotest <TestCaseName> [<TestCaseName> ...] <<'EOF'
+import json, sys
+app, tf, targets = sys.argv[1], sys.argv[2], set(sys.argv[3:])
+ins = {r['id'].split(':', 1)[1]: {i['name'] for i in r['data'].get('metadata', {}).get('input', [])}
+       for r in json.load(open(app, encoding='utf-8'))['resources']}
+d = json.load(open(tf, encoding='utf-8'))
+found = set()
+for key, t in d['tests'].items():
+    hit = {key, t.get('name')} & targets
+    if not hit:
+        continue
+    found |= hit
+    fi = t.get('flowInputs', {})
+    names = ins.get(t.get('flowId', '').split(':', 1)[-1], set())
+    if list(fi) == ['body'] and isinstance(fi['body'], dict) and set(fi['body']) <= names:
+        t['flowInputs'] = fi['body']
+        print('unwrapped:', key)
+    else:
+        print('WARNING: left unchanged, not a fresh create-test-case wrapper:', key, file=sys.stderr)
+for n in sorted(targets - found):
+    print('WARNING: test case not found:', n, file=sys.stderr)
+json.dump(d, open(tf, 'w', encoding='utf-8'), indent=2)
+EOF
+```
 
 ### Step 4 — Add assertions to test cases
 
 For each test case, add assertions that validate the flow output.
+
+Compute long or derived expected values (Base64 content, hashes, generated payloads) with a script from the real source data, and never type them by hand. A hand-typed value usually fails for the wrong reason.
 
 ```bash
 flogodesign-cli.exe -f <AppName>.flogo create-assertion <TestCaseName> flowOutputs ASSERT_ON_OP <AssertionName> '<expression>'
@@ -190,6 +229,11 @@ This prints the test suites, test cases, flow inputs, and assertions for verific
 - `-t` — Comma-separated list of test suites to run
 - `-d` — Output directory for test results (**must be an absolute path** on Windows, e.g. `<absolute-path-to>/test-results` — for example resolve `<FLOGO_APPS_DIR>/../test-results` to its absolute path)
 - `-o` — Output filename for the test result (flogobuild appends `.testresult` extension automatically)
+
+**Notes:**
+- `test-app -a <AppName>.flogo` builds a test harness from the app and **rewrites the source `.flogo` in place** (it normalises the file). If the `.flogo` must stay untouched, for example while it is open in the designer or after a byte-level review, build the executable first and test that instead: replace `-a <AppName>.flogo` with `-e <absolute-path-to-built-exe>`.
+- `test-app` exits `0` and prints "executed successfully" even when assertions fail. The pass/fail result is only in the `.testresult` file, so always do Step 9.
+- Activities that are not mocked run for real, so any external endpoint those flows call must be reachable during the run.
 
 Example:
 ```bash
@@ -336,6 +380,21 @@ Print a summary table showing:
 - String values must be quoted with escaped quotes: `"value"` becomes `\"value\"` in JSON
 - Numeric values are unquoted: `$.code == 200`
 - Both `==` and `!=` are supported — but CLI escapes `!` to `\!` (fix manually after `create-assertion`)
+
+---
+
+## 5a. Designer red-X on assertions into nested object fields (design-time false-positive)
+
+**Symptom:** In the VS Code **Flogo Unit Test Editor**, assertions that navigate into a sub-field of a flow-output object — e.g. `$.<objectField>.<...>.<leaf>` — show a **red X** / red squiggle, while assertions on top-level typed leaves (e.g. `$.code`) stay green. The tests themselves are **correct**: they pass under `flogobuild test-app` and against the live endpoint.
+
+**Cause:** The test editor validates each assertion against the flow's **output schema** (`metadata.output`). When the field an assertion reaches into is declared as an **untyped / empty object** (`{"type":"object","properties":{}}`) or `any`, the editor cannot confirm the leaf exists and flags it. This is common whenever a flow output carries a generic payload — for example a REST response body scaffolded by `cas` exposes `responseBody.body` as an empty object, and any error/data-reply pattern that returns a free-form object does the same. **Neither `fda cm` nor `test-app` reports this** — it is a designer-only linter signal, so an all-green CLI run can still show red X's in the UI.
+
+**Fix (generic):** Declare the shape of that output field on the flow's output schema so its leaves resolve. For any flow whose assertions read `$.<field>.<leaf>`, make sure `<field>` is a typed object whose `properties` include every `<leaf>` the assertions reference. If the same field holds different shapes on different paths (e.g. a success body vs. an error body returned by the same flow), declare the **union** of all referenced leaves — this is a design-time annotation only, so a superset schema is fine.
+
+- The schema lives in two places the designer reads and both must agree: `metadata.output[<field>].schema.value` (a direct props-map) and `metadata.fe_metadata.output` (a full draft-04 JSON schema used to render the "Available Data" tree). Set the same `properties` in both.
+- **Close the file in the designer first.** Opening a `.flogo` in the designer auto-saves a round-trip; writing underneath it races/corrupts (see the main AGENT.md rule on not editing a designer-open file). Have the user Discard + close, patch, then reopen.
+- `fda` has no single "set flow-output sub-field schema" subcommand, so patch these schema strings surgically (the sanctioned "repair a field on a designer-edited file" case), then **deep-diff** parsed-before vs. parsed-after to prove only those schema strings changed, re-run `fda cm`, and re-run the suite.
+- **Design-time only:** typing the output field changes no runtime behaviour, no build output, and nothing in a deployed app's exposed API — it only makes the designer resolve the assertion leaves. The assertions were already passing.
 
 ---
 

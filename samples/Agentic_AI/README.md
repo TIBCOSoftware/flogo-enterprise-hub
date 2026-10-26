@@ -24,6 +24,7 @@ Both collections share the **[Prerequisites](#prerequisites)**, the **[Quick Sta
 | [`Industry_Use_Cases/`](./Industry_Use_Cases/) | Part 2 — governed, industry-specific demos: business rules, identity, prices and state changes enforced in PostgreSQL, built with the `agentic-ai-use-case-builder` skill. The canonical industry use cases, organized as `<Industry>/<Sub_Category>/<UseCase>_Use_Case/` (e.g. `Financial_Services/Banking/`). |
 | [`BW6_Flogo_Samples/`](./BW6_Flogo_Samples/) | TIBCO BusinessWorks 6 + Flogo "Better Together" samples — BW6 apps provide the domain APIs/MCP tools, Flogo does the AI orchestration. Needs a BW6 runtime / Business Studio. |
 | [`Chatbot/`](./Chatbot/) | Shared browser WebSocket chat client for every sample and use case that exposes a WebSocket endpoint. |
+| [`Chatbot_Secure/`](./Chatbot_Secure/) | Secure browser chat client for JWT-protected use cases (port 3001): a backend proxy keeps the user's JWT in an HttpOnly session cookie and opens the upstream WebSocket with `Authorization: Bearer`. Used by the Retail Banking JWT Auth use case. |
 | [`Flogo3x/`](./Flogo3x/) | Flogo 3.x folder-based project versions of nine feature samples. |
 
 ---
@@ -149,7 +150,7 @@ Focused, single-capability samples that each teach one building block of the Age
 
 # Part 2 — Industry Use-Case Demos
 
-End-to-end, PostgreSQL-backed **governed** chat assistants: the same three-app pattern — an **MCP Server** (scoped reads + guarded two-step writes), a read-only **A2A reasoning-agents** app, and a **WebSocket AI Orchestrator** — applied to a different industry each time (14 governed use cases, plus a BW6 "Better Together" sample).
+End-to-end, PostgreSQL-backed **governed** chat assistants: the same three-app pattern — an **MCP Server** (scoped reads + guarded two-step writes), a read-only **A2A reasoning-agents** app, and a **WebSocket AI Orchestrator** — applied to a different industry each time (15 governed use cases, plus a BW6 "Better Together" sample).
 
 **➡️ Full catalogue, the three-app pattern and per-use-case detail: [Industry Use-Case Demos README »](./Industry_Use_Cases/README.md)**
 

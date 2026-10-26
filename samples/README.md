@@ -43,6 +43,7 @@ End-to-end, PostgreSQL-backed chat assistants that apply the same governed **thr
 | Use Case | Industry → Sub-category |
 |---|---|
 | [Banking — Retail Banking Assistant](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) | Financial Services → Banking |
+| [Banking — Retail Banking Assistant (JWT Auth)](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_JWT_Auth_Use_Case/) | Financial Services → Banking |
 | [Banking — Corporate Payments Investigation Assistant](./Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Corporate_Payments_Investigation_Use_Case/) | Financial Services → Banking |
 | [Telecom — Mobile Billing & Spend Control Assistant](./Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) | Telecommunications → Mobile, Fixed & Cable Operators |
 | [Utilities — Electric Outage & Billing Assistant](./Agentic_AI/Industry_Use_Cases/Energy_Utilities/Electric_Gas_Utilities_Grid/Electric_Utility_Outage_Billing_Use_Case/) | Energy & Utilities → Electric, Gas & Utilities Grid |
