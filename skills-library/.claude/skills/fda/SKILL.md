@@ -327,6 +327,7 @@ The `<fieldName>` must match the input field name from `exp`. **Do NOT** set `in
     SECRET=$("$CLI" secret encrypt -p "$PLAIN_VALUE" | python -c "import json,sys;print(json.load(sys.stdin)['outputs'][0]['cipherText'])")
     fda cap MCP.ApiKey string "$SECRET" -f "$FILE"
     ```
+    Encrypt before the property's first `cap`. If it already exists as plaintext, `fda rap MCP.ApiKey -f "$FILE"` first: `cap` on an existing name does not overwrite — it silently adds `MCP.ApiKey_1` and the binding keeps the plaintext property.
     The ciphertext uses Flogo's default data-secret key, so it decrypts in any app built with that default (`flogo-vscode-cli secret decrypt -c "$SECRET"` shows the plain value). It applies to the MCP Server trigger **Secret** (`authToken`) and to connector fields such as `#sendmail` `Password`.
   - Run `agentic-ai-use-case-builder/references/validate_flogo_apps.py <app.flogo>`: it checks all three.
 - **Don't hand-edit the .flogo JSON.** The `flogoProject.contrib` blob is base64-encoded and re-derived on every save; ad-hoc edits to it vanish on the next `fda` write. Use the dedicated tasks.

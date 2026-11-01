@@ -33,7 +33,10 @@ Catches the two defect classes that recur when hand-authoring/cloning these apps
        - Password-typed trigger settings (the MCP Server trigger's Secret, `authToken`) need a SECRET:
          value, like the #sendmail Password field in check 2.
        - In a main-flow (error-branch) task, read errors as $error[<FailedTask>].<field>; plain
-         $error.<field> belongs to the flow's Error Handler and is flagged by the designer.
+         $error.<field> belongs to the flow's Error Handler and is flagged by the designer. Only
+         mapping expressions are searched, outside their quoted string literals.
+
+Activity checks cover both main-flow tasks and the flow's Error Handler tasks (data.errorHandler.tasks).
 
 Also verifies A2A flows that read $flow.toolParams declare a toolParams flow-input schema (part #2 of
 the 3-part designer contract).
@@ -177,16 +180,47 @@ def _rest_refs(app):
     return refs
 
 
+UNSCOPED_ERROR = re.compile(r"\$error\.(message|code|data|activity|activityType|category)\b")
+_STRING_LITERAL = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|`(?:\\.|[^`\\])*`')
+
+
+def _expressions(task):
+    """Mapping expressions of a task: every '='-prefixed string (and '@foreach(...)' key) under the
+    activity's input/settings and the task's own settings. Literal values, schemas and descriptions
+    are skipped, so text like "use $error.message" in a log message is not an expression."""
+    a = task.get("activity", {}) or {}
+    out, stack = [], [a.get("input"), a.get("settings"), task.get("settings")]
+    while stack:
+        v = stack.pop()
+        if isinstance(v, dict):
+            out.extend(k for k in v if isinstance(k, str) and k.startswith("@"))
+            stack.extend(v.values())
+        elif isinstance(v, list):
+            stack.extend(v)
+        elif isinstance(v, str) and v.startswith("="):
+            out.append(v)
+    return out
+
+
+def _strip_string_literals(expr):
+    """Drop quoted string literals so only the expression's code is searched."""
+    return _STRING_LITERAL.sub('""', expr)
+
+
 def check_app(path):
     problems = []
     with open(path, encoding="utf-8") as fh:
         app = json.load(fh)
 
+    # (resource, task, in_error_handler): Error Handler tasks get every activity check, but they are
+    # where plain $error.<field> belongs, so the unscoped-$error check skips them.
     tasks = []
     for res in app.get("resources", []) or []:
         data = res.get("data", {}) or {}
         for t in data.get("tasks", []) or []:
-            tasks.append((res, t))
+            tasks.append((res, t, False))
+        for t in (data.get("errorHandler", {}) or {}).get("tasks", []) or []:
+            tasks.append((res, t, True))
         # 3-part contract, part #2: flow reads $flow.toolParams but declares no toolParams input schema
         if "$flow.toolParams" in json.dumps(res):
             md_in = data.get("metadata", {}).get("input", []) or []
@@ -197,7 +231,7 @@ def check_app(path):
 
     pg_refs = _pg_refs(app)
     rest_refs = _rest_refs(app)
-    for res, t in tasks:
+    for res, t, in_error_handler in tasks:
         a = t.get("activity", {}) or {}
         ref = a.get("ref", "")
         inp = a.get("input", {}) or {}
@@ -310,7 +344,8 @@ def check_app(path):
                                 f"placeholder in the property value + input.pathParams for dynamic paths")
 
         # ---- designer-only: $error scope in error branches -------------------------------------
-        if re.search(r"\$error\.(message|code|data|activity|activityType|category)\b", json.dumps(t)):
+        if not in_error_handler and any(UNSCOPED_ERROR.search(_strip_string_literals(e))
+                                        for e in _expressions(t)):
             problems.append(f"{tid}: uses $error.<field> in the main flow (error branch); the designer wants "
                             f"$error[<FailedTask>].<field> - plain $error.<field> is for the Error Handler")
 
