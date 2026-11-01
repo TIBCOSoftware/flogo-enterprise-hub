@@ -285,6 +285,16 @@ Rules (generic — applies to any connector field the designer types as `passwor
   ciphertext fails to decrypt → *"An error occurred while attempting to decrypt secrets"* and the app
   won't render), and never scrub a password-typed field to a bare placeholder (that reintroduces
   `wrongTypeProp`). Verify a scrubbed dummy by loading the app in the designer.
+- **Generate a real `SECRET:` value without the designer.** The Flogo extension ships the encryptor the
+  designer uses: `<ext>/bin/flogo-vscode-cli secret encrypt -p <value>` prints
+  `{"outputs":[{"plainText":…,"cipherText":"SECRET:…"}]}`, and `secret decrypt -c <cipherText>` reverses
+  it. Pass the `cipherText` to `fda cap <Prop> string "<cipherText>"`; `cap` stores it as-is. This is
+  real ciphertext under the default key (not "fabricated"), so it decrypts at runtime and clears
+  `wrongTypeProp` with no manual App Properties step. Encrypt a dummy for published samples and the
+  real value only for a private build. See the `fda` skill, "Things to avoid".
+- **Trigger settings count too.** The MCP Server trigger's **Secret** (`settings.authToken`, used by the
+  API Key and JWT Token auth types) is a password field: bound to a plain-string property it shows *"Type
+  of field "Secret" (password) differs from the bound app property … (string)"*. Same fix.
 - **Distinction from ordinary secret scrubbing:** non-password-typed secrets (OpenAI key, DB password in
   a connection block) are scrubbed to *plain* placeholders per SECURITY.md; only genuinely
   *password-typed activity fields* need the `SECRET:`-dummy treatment.
@@ -318,8 +328,13 @@ baked in):
 4. **Schema names == mapping keys** in the populated container.
 5. **`toolParams` flow-input schema present** on any flow that reads `$flow.toolParams` (3-part
    contract #2 — otherwise click the trigger **Sync**).
-6. **Password-typed fields** (e.g. `#sendmail Password`) resolve to a `SECRET:` value, not a plain
-   string.
+6. **Password-typed fields** (e.g. `#sendmail Password`, and the MCP Server trigger **Secret**
+   `authToken`) resolve to a `SECRET:` value, not a plain string.
+7. **Designer-only rules** that pass every runtime test (see the `fda-mapping` skill, "Designer-only
+   rules"): an Invoke REST `Uri` that is empty or an expression (the designer blanks it → *"URL is
+   required"*); trigger/handler settings holding an expression instead of a literal or one whole
+   `$property`; and `$error.<field>` in a main-flow (error-branch) task instead of
+   `$error[<FailedTask>].<field>`.
 
 Exit code is non-zero when it finds anything, so it can gate a build. Note it catches design-time
 alignment and secret-type issues, not table/column existence — still run the real SQL against a loaded DB

@@ -24,6 +24,17 @@ Catches the two defect classes that recur when hand-authoring/cloning these apps
      designer-produced dummy is fine — it decrypts under Flogo's default data-secret key and leaks
      nothing), never a plain placeholder.
 
+  3. Designer-only rules - the engine runs these values, but the VS Code designer rejects them, so an
+     app can pass every build and API test and still open with red errors:
+       - Invoke REST `input.Uri` must be a literal URL or ONE whole `=$property["X"]` binding. An
+         expression (e.g. string.concat($property["Base"], "/path")) is blanked on load -> "URL is
+         required". Put a {name} placeholder in the property value and map input.pathParams instead.
+       - Trigger and handler settings follow the same literal-or-one-property rule.
+       - Password-typed trigger settings (the MCP Server trigger's Secret, `authToken`) need a SECRET:
+         value, like the #sendmail Password field in check 2.
+       - In a main-flow (error-branch) task, read errors as $error[<FailedTask>].<field>; plain
+         $error.<field> belongs to the flow's Error Handler and is flagged by the designer.
+
 Also verifies A2A flows that read $flow.toolParams declare a toolParams flow-input schema (part #2 of
 the 3-part designer contract).
 
@@ -149,6 +160,23 @@ def _resolve_property(app, expr):
     return name, None
 
 
+# =$property["X"] or =$property[X] (quotes optional, may be escaped) - one whole binding, nothing else
+PROP_BINDING = re.compile(r'^=\$property\[\\?"?([^"\\\]]+)\\?"?\]$')
+REST_IMPORT_SUFFIX = "/General/activity/rest"
+PASSWORD_TRIGGER_SETTINGS = ("authToken",)   # MCP Server trigger Secret (API Key / JWT Token auth)
+
+
+def _rest_refs(app):
+    """'#<alias>' refs of the TIBCO General Invoke REST activity, from the app's imports."""
+    refs = {"#rest"}
+    for imp in app.get("imports", []) or []:
+        parts = imp.split()
+        path = parts[-1]
+        if path.endswith(REST_IMPORT_SUFFIX):
+            refs.add("#" + (parts[0] if len(parts) == 2 else path.rsplit("/", 1)[-1]))
+    return refs
+
+
 def check_app(path):
     problems = []
     with open(path, encoding="utf-8") as fh:
@@ -168,6 +196,7 @@ def check_app(path):
                                 f"flow-input schema (click the trigger Sync)")
 
     pg_refs = _pg_refs(app)
+    rest_refs = _rest_refs(app)
     for res, t in tasks:
         a = t.get("activity", {}) or {}
         ref = a.get("ref", "")
@@ -270,6 +299,21 @@ def check_app(path):
                 problems.append(f"{tid}: schema names {sorted(declared)} != mapping keys "
                                 f"{sorted(mapped)}")
 
+        # ---- designer-only: Invoke REST URL ----------------------------------------------------
+        if ref in rest_refs:
+            uri = inp.get("Uri", "")
+            if not uri:
+                problems.append(f"{tid}: Invoke REST URL is empty -> designer 'URL is required'")
+            elif isinstance(uri, str) and uri.startswith("=") and not PROP_BINDING.match(uri):
+                problems.append(f"{tid}: Invoke REST URL {uri[:70]!r} is an expression; the designer blanks "
+                                f"it ('URL is required'). Use a literal or one whole $property, with a {{name}} "
+                                f"placeholder in the property value + input.pathParams for dynamic paths")
+
+        # ---- designer-only: $error scope in error branches -------------------------------------
+        if re.search(r"\$error\.(message|code|data|activity|activityType|category)\b", json.dumps(t)):
+            problems.append(f"{tid}: uses $error.<field> in the main flow (error branch); the designer wants "
+                            f"$error[<FailedTask>].<field> - plain $error.<field> is for the Error Handler")
+
         # ---- password-typed connector fields (e.g. #sendmail Password) -------------------------
         for key, v in inp.items():
             if key.lower() != "password" or not isinstance(v, str) or not v:
@@ -282,6 +326,26 @@ def check_app(path):
             elif not v.startswith("=") and not v.startswith("SECRET:"):
                 problems.append(f"{tid}.{key}: literal plain-string password; bind to a SECRET: app "
                                 f"property instead (a designer-produced dummy is fine)")
+
+    # ---- designer-only: trigger + handler settings ---------------------------------------------
+    for trg in app.get("triggers", []) or []:
+        blocks = [(f"trigger {trg.get('id')}", trg.get("settings", {}) or {})]
+        for h in trg.get("handlers", []) or []:
+            hs = h.get("settings", {}) or {}
+            blocks.append((f"handler {hs.get('handlerName') or h.get('name') or '?'}", hs))
+        for where, settings in blocks:
+            for key, v in settings.items():
+                if not isinstance(v, str) or not v.startswith("="):
+                    continue
+                if not PROP_BINDING.match(v):
+                    problems.append(f"{where}.{key} = {v[:60]!r}: settings take a literal or one whole "
+                                    f"$property binding, not an expression (the designer drops it)")
+                elif key in PASSWORD_TRIGGER_SETTINGS:
+                    pname, pval = _resolve_property(app, v)
+                    if pval is not None and not str(pval).startswith("SECRET:"):
+                        problems.append(f"{where}.{key}: password field bound to '{pname}', whose value is a "
+                                        f"plain string, not SECRET: -> designer wrongTypeProp ('Type of field "
+                                        f"Secret (password) differs from the bound app property (string)')")
 
     return problems
 

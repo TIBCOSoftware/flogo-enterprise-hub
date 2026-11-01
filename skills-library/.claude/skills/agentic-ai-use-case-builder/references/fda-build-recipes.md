@@ -319,9 +319,15 @@ $FDA sa flow <Agent>_flow.metadata.input --jsonFile <toolparams_flowinput.json>
 #   *** DO NOT set the property's type to `password` to "fix" this. *** That type is
 #   invalid; the designer DROPS the property on the next save, turning the warning into a
 #   HARD error:  "Password" is bound to app property "..." which does not exist.
-#   Correct fix (manual-config-gap): keep type=string; the user re-enters the value once in
-#   the designer's App Properties panel so it is stored as SECRET:… (clears the ✗). It
-#   builds and runs as a plaintext string either way.
+#   Correct fix: keep type=string and give it a SECRET: value. Scripted (no manual step):
+#     EXT_DIR="$(ls -d ~/.vscode/extensions/tibco.flogo-2* | tail -1)"
+#     CLI="${EXT_DIR%/}/bin/flogo-vscode-cli"; [ -f "$CLI.exe" ] && CLI="$CLI.exe"  # Windows: use the .exe
+#     PWD_SECRET=$("$CLI" secret encrypt -p "$EMAIL_PWD" \
+#       | python -c "import json,sys;print(json.load(sys.stdin)['outputs'][0]['cipherText'])")
+#     $FDA cap Email_App_Password string "$PWD_SECRET" -f "$FILE"     # cap stores it as-is
+#   Or (manual-config-gap) the user re-enters the value once in the designer's App
+#   Properties panel so it is stored as SECRET:…. The same applies to the MCP Server
+#   trigger's Secret (settings.authToken) when auth is API Key or JWT Token.
 ```
 
 ---
@@ -438,7 +444,7 @@ $FLB build-exe -f "<app>.flogo" -c <context>   # per app; <context> from `flogob
 $FDA cm -f "<app>.flogo"                        # check-mappings: refs, imports, scopes
 grep -l New_value <UseCaseDir>/*.flogo          # must print NOTHING (gotcha 4c)
 grep -o '"temperature": *"\?[0-9.]*"\?' <UseCaseDir>/*.flogo   # every hit 0 or "0" (FDA writes the string "0")
-python validate_flogo_apps.py <UseCaseDir>/*.flogo   # PG mapping + ?placeholder gate (co-located in this references/ folder)
+python validate_flogo_apps.py <UseCaseDir>/*.flogo   # PG mapping, ?placeholder, SECRET: and designer-only gate (co-located in this references/ folder)
 # Every PostgreSQL activity's input.Connection must resolve to the connection NAMED PostgresConn —
 #   not just to *some* id in the file (SKILL gotcha 10: a stray `sa` re-set points it at the first one):
 python -c "import json,sys
