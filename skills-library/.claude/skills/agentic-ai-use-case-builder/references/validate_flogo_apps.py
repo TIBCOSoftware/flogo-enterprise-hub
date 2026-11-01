@@ -170,13 +170,18 @@ PASSWORD_TRIGGER_SETTINGS = ("authToken",)   # MCP Server trigger Secret (API Ke
 
 
 def _rest_refs(app):
-    """'#<alias>' refs of the TIBCO General Invoke REST activity, from the app's imports."""
-    refs = {"#rest"}
-    for imp in app.get("imports", []) or []:
-        parts = imp.split()
-        path = parts[-1]
+    """'#<alias>' refs of the TIBCO General Invoke REST activity, from the app's imports ('path' or
+    'alias path'; default alias = last segment). '#rest' is only a fallback for an app with no imports:
+    when imports exist, '#rest' may be another activity's alias (e.g. log imported as 'rest')."""
+    imports = app.get("imports")
+    if not imports:
+        return {"#rest"}
+    refs = set()
+    for imp in imports:
+        parts = str(imp).split()
+        path = parts[-1].rstrip("/")
         if path.endswith(REST_IMPORT_SUFFIX):
-            refs.add("#" + (parts[0] if len(parts) == 2 else path.rsplit("/", 1)[-1]))
+            refs.add("#" + (parts[0] if len(parts) > 1 else path.rsplit("/", 1)[-1]))
     return refs
 
 

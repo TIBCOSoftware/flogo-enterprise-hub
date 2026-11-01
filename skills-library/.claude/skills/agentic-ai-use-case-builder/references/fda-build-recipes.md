@@ -322,11 +322,11 @@ $FDA sa flow <Agent>_flow.metadata.input --jsonFile <toolparams_flowinput.json>
 #   HARD error:  "Password" is bound to app property "..." which does not exist.
 #   Correct fix: keep type=string and give it a SECRET: value. Scripted (no manual step) —
 #   encrypt BEFORE the property's first `cap`:
-#     EXT_DIR="$(ls -d ~/.vscode/extensions/tibco.flogo-2* | tail -1)"
-#     CLI="${EXT_DIR%/}/bin/flogo-vscode-cli"; [ -f "$CLI.exe" ] && CLI="$CLI.exe"  # Windows: use the .exe
-#     PWD_SECRET=$("$CLI" secret encrypt -p "$EMAIL_PWD" \
-#       | python -c "import json,sys;print(json.load(sys.stdin)['outputs'][0]['cipherText'])")
-#     $FDA cap Email_App_Password string "$PWD_SECRET" -f "$FILE"     # cap stores it as-is
+#   (flogo_encrypt = the function in the `fda` skill, "Password fields need a SECRET: value":
+#    it searches ~/.vscode, ~/.vscode-insiders and ~/.vscode-server like the fda resolver,
+#    picks flogo-vscode-cli[.exe] by OS, and returns non-zero if the extension is missing.)
+#     PWD_SECRET=$(flogo_encrypt "$EMAIL_PWD") &&
+#       $FDA cap Email_App_Password string "$PWD_SECRET" -f "$FILE"   # cap stores it as-is
 #   If the property ALREADY exists (plaintext), remove it first — `cap` never overwrites: on an
 #   existing name it silently adds `Email_App_Password_1` and the activity stays bound to the
 #   plaintext one (fda 0.9.3). Same rap + cap update sequence as the `fda` skill:

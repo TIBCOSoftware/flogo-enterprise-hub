@@ -321,11 +321,20 @@ The `<fieldName>` must match the input field name from `exp`. **Do NOT** set `in
   - **Error branches read `$error[<FailedTask>].<field>`.** Plain `$error.message` is for the flow's Error Handler tab; in an error branch the designer flags it.
   - **Password fields need a `SECRET:` value.** `cap` has no password type (keep `string`; never write `type: password`, which stops the engine with `unknown type: password`). Encrypt the value with the CLI that ships in the Flogo extension and pass the result to `cap`; `cap` stores it as-is and the designer then treats the property as a password:
     ```bash
-    EXT_DIR="$(ls -d ~/.vscode/extensions/tibco.flogo-2* | tail -1)"
-    CLI="${EXT_DIR%/}/bin/flogo-vscode-cli"
-    [ -f "$CLI.exe" ] && CLI="$CLI.exe"   # Windows ships a Linux binary of the same name too; use the .exe
-    SECRET=$("$CLI" secret encrypt -p "$PLAIN_VALUE" | python -c "import json,sys;print(json.load(sys.stdin)['outputs'][0]['cipherText'])")
-    fda cap MCP.ApiKey string "$SECRET" -f "$FILE"
+    # Prints the SECRET:… cipherText for $1. Searches the same extension roots as the fda resolver
+    # (AGENT.md) and fails if the extension is not installed.
+    flogo_encrypt() {
+      local name=flogo-vscode-cli cli="" dir home="${HOME:-$USERPROFILE}"
+      # Windows: the extension ships a Linux binary of the same name too; use the .exe
+      [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* || "$OSTYPE" == win32 ]] && name=flogo-vscode-cli.exe
+      for dir in "$home/.vscode/extensions" "$home/.vscode-insiders/extensions" "$home/.vscode-server/extensions"; do
+        cli=$(ls -td "$dir"/tibco.flogo-*/bin/"$name" 2>/dev/null | head -1)
+        [ -n "$cli" ] && break
+      done
+      [ -n "$cli" ] || { echo "flogo-vscode-cli not found: install the TIBCO Flogo VS Code extension" >&2; return 1; }
+      "$cli" secret encrypt -p "$1" | python -c "import json,sys;print(json.load(sys.stdin)['outputs'][0]['cipherText'])"
+    }
+    SECRET=$(flogo_encrypt "$PLAIN_VALUE") && fda cap MCP.ApiKey string "$SECRET" -f "$FILE"
     ```
     Encrypt before the property's first `cap`. If it already exists as plaintext, `fda rap MCP.ApiKey -f "$FILE"` first: `cap` on an existing name does not overwrite — it silently adds `MCP.ApiKey_1` and the binding keeps the plaintext property.
     The ciphertext uses Flogo's default data-secret key, so it decrypts in any app built with that default (`flogo-vscode-cli secret decrypt -c "$SECRET"` shows the plain value). It applies to the MCP Server trigger **Secret** (`authToken`) and to connector fields such as `#sendmail` `Password`.
