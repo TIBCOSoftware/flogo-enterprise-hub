@@ -322,9 +322,9 @@ The `<fieldName>` must match the input field name from `exp`. **Do NOT** set `in
   - **Password fields need a `SECRET:` value.** `cap` has no password type (keep `string`; never write `type: password`, which stops the engine with `unknown type: password`). Encrypt the value with the CLI that ships in the Flogo extension and pass the result to `cap`; `cap` stores it as-is and the designer then treats the property as a password:
     ```bash
     # Prints the SECRET:… cipherText for $1. Searches the same extension roots as the fda resolver
-    # (AGENT.md) and fails if the extension is not installed.
+    # (AGENT.md) and fails if the extension is not installed or prints no cipherText.
     flogo_encrypt() {
-      local name=flogo-vscode-cli cli="" dir home="${HOME:-$USERPROFILE}"
+      local name=flogo-vscode-cli cli="" dir out home="${HOME:-$USERPROFILE}"
       # Windows: the extension ships a Linux binary of the same name too; use the .exe
       [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* || "$OSTYPE" == win32 ]] && name=flogo-vscode-cli.exe
       for dir in "$home/.vscode/extensions" "$home/.vscode-insiders/extensions" "$home/.vscode-server/extensions"; do
@@ -332,10 +332,14 @@ The `<fieldName>` must match the input field name from `exp`. **Do NOT** set `in
         [ -n "$cli" ] && break
       done
       [ -n "$cli" ] || { echo "flogo-vscode-cli not found: install the TIBCO Flogo VS Code extension" >&2; return 1; }
-      "$cli" secret encrypt -p "$1" | python -c "import json,sys;print(json.load(sys.stdin)['outputs'][0]['cipherText'])"
+      # output is JSON with "cipherText": "SECRET:<base64>" on its own line; sed avoids needing python
+      out=$("$cli" secret encrypt -p "$1" | sed -n 's/.*"cipherText": *"\(SECRET:[^"]*\)".*/\1/p')
+      [ -n "$out" ] || { echo "flogo-vscode-cli secret encrypt returned no cipherText" >&2; return 1; }
+      printf '%s\n' "$out"
     }
     SECRET=$(flogo_encrypt "$PLAIN_VALUE") && fda cap MCP.ApiKey string "$SECRET" -f "$FILE"
     ```
+    The CLI accepts the value only as an argument (`-p`), so it is visible in the process list while it runs: encrypt real secrets only on your own machine, and a dummy value for anything you publish.
     Encrypt before the property's first `cap`. If it already exists as plaintext, `fda rap MCP.ApiKey -f "$FILE"` first: `cap` on an existing name does not overwrite — it silently adds `MCP.ApiKey_1` and the binding keeps the plaintext property.
     The ciphertext uses Flogo's default data-secret key, so it decrypts in any app built with that default (`flogo-vscode-cli secret decrypt -c "$SECRET"` shows the plain value). It applies to the MCP Server trigger **Secret** (`authToken`) and to connector fields such as `#sendmail` `Password`.
   - Run `agentic-ai-use-case-builder/references/validate_flogo_apps.py <app.flogo>`: it checks all three.

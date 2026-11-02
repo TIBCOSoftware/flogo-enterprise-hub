@@ -273,7 +273,10 @@ prefix**. So a password-typed field whose backing value is a plain string makes 
 Rules (generic — applies to any connector field the designer types as `password`):
 - Bind the field to an **app property**, e.g. `#sendmail.Password = "=$property[<EmailPwdProp>]"` — don't
   inline a literal.
-- That property's **value must resolve to a `SECRET:`-prefixed string**, never a plain placeholder.
+- That property's **value must resolve to a `SECRET:`-prefixed string**, never another plain string. The
+  one exception is a published sample scrubbed per SECURITY.md: an empty value or a `SET_YOUR_…` /
+  `…REPLACE-WITH…` placeholder means "credential not supplied yet". The designer shows `wrongTypeProp`
+  until the user enters the value, and the validator reports it as a NOTE, not a failure.
 - Keep the property JSON `type` as **`string`** — do **not** set `type:"password"` (the designer drops
   it on save).
 - **How to get a working `SECRET:` value without shipping a real secret:** the value the designer stores
@@ -283,8 +286,9 @@ Rules (generic — applies to any connector field the designer types as `passwor
   leaks nothing. This is the same "carry `SECRET:` values verbatim from a cloned app" rule the SKILL
   states — reuse an existing dummy blob; **never fabricate a `SECRET:` string from scratch** (fake
   ciphertext fails to decrypt → *"An error occurred while attempting to decrypt secrets"* and the app
-  won't render), and never scrub a password-typed field to a bare placeholder (that reintroduces
-  `wrongTypeProp`). Verify a scrubbed dummy by loading the app in the designer.
+  won't render). A bare placeholder is allowed for published samples (above) but leaves the designer's
+  `wrongTypeProp` until the user supplies the value; an encrypted dummy opens clean. Verify a scrubbed
+  dummy by loading the app in the designer.
 - **Generate a real `SECRET:` value without the designer.** The Flogo extension ships the encryptor the
   designer uses: `<ext>/bin/flogo-vscode-cli secret encrypt -p <value>` prints
   `{"outputs":[{"plainText":…,"cipherText":"SECRET:…"}]}`, and `secret decrypt -c <cipherText>` reverses
@@ -297,15 +301,17 @@ Rules (generic — applies to any connector field the designer types as `passwor
   of field "Secret" (password) differs from the bound app property … (string)"*. Same fix.
 - **Distinction from ordinary secret scrubbing:** non-password-typed secrets (OpenAI key, DB password in
   a connection block) are scrubbed to *plain* placeholders per SECURITY.md; only genuinely
-  *password-typed activity fields* need the `SECRET:`-dummy treatment.
+  *password-typed fields* need the `SECRET:`-dummy treatment: activity fields such as `#sendmail`
+  `Password`, and trigger settings such as the MCP Server `authToken` in API Key / JWT Token mode.
 
 ---
 
 ## Validation gate — run before declaring any app done
 
 `references/validate_flogo_apps.py` is a generic, no-hardcoding checker for the two defect classes above
-plus the 3-part `toolParams` contract. Run it on every `.flogo` you author or edit; fix everything it
-prints before you tell the user the app is done.
+plus the 3-part `toolParams` contract. Run it on every `.flogo` you author or edit; fix every issue it
+prints before you tell the user the app is done. `NOTE` lines (a password field still holding a
+SECURITY.md placeholder) don't fail the gate. Pass them on to the user as credentials to supply.
 
 ```bash
 python references/validate_flogo_apps.py <path/to/App1.flogo> [App2.flogo ...]
