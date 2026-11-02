@@ -170,7 +170,8 @@ $FDA cap LLM_Model                         string <model>             # config.m
 # One PORT + URL property per agent, plus SMTP/recipient properties:
 $FDA cap <Agent>_PORT string <port>          # tr_agent "A2A Server Port" field is STRING — keep string (gotcha 8)
 $FDA cap <Agent>_URL  string http://localhost:<port>
-#   Email agent: $FDA cap Email_Username string <user> ; Email_App_Password string <pwd> ; To_Email string <addr>
+#   Email agent: $FDA cap Email_Username string <user> ; To_Email string <addr>
+#     Email_App_Password: create it ONCE, already encrypted (gotcha 6) — never cap a plaintext first
 #   Opt-in REST agents ONLY (if the user explicitly asked): $FDA cap <Backend>_URL string <url-with-{pathParams}>
 
 $FDA cc OpenAIConn con_llmprovider
@@ -319,9 +320,21 @@ $FDA sa flow <Agent>_flow.metadata.input --jsonFile <toolparams_flowinput.json>
 #   *** DO NOT set the property's type to `password` to "fix" this. *** That type is
 #   invalid; the designer DROPS the property on the next save, turning the warning into a
 #   HARD error:  "Password" is bound to app property "..." which does not exist.
-#   Correct fix (manual-config-gap): keep type=string; the user re-enters the value once in
-#   the designer's App Properties panel so it is stored as SECRET:… (clears the ✗). It
-#   builds and runs as a plaintext string either way.
+#   Correct fix: keep type=string and give it a SECRET: value. Scripted (no manual step) —
+#   encrypt BEFORE the property's first `cap`:
+#   (flogo_encrypt = the function in the `fda` skill, "Password fields need a SECRET: value":
+#    it searches ~/.vscode, ~/.vscode-insiders and ~/.vscode-server like the fda resolver,
+#    picks flogo-vscode-cli[.exe] by OS, and returns non-zero if the extension is missing.)
+#     PWD_SECRET=$(flogo_encrypt "$EMAIL_PWD") &&
+#       $FDA cap Email_App_Password string "$PWD_SECRET" -f "$FILE"   # cap stores it as-is
+#   If the property ALREADY exists (plaintext), remove it first — `cap` never overwrites: on an
+#   existing name it silently adds `Email_App_Password_1` and the activity stays bound to the
+#   plaintext one (fda 0.9.3). Same rap + cap update sequence as the `fda` skill:
+#     $FDA rap Email_App_Password -f "$FILE"
+#     $FDA cap Email_App_Password string "$PWD_SECRET" -f "$FILE"
+#   Or (manual-config-gap) the user re-enters the value once in the designer's App
+#   Properties panel so it is stored as SECRET:…. The same applies to the MCP Server
+#   trigger's Secret (settings.authToken) when auth is API Key or JWT Token.
 ```
 
 ---
@@ -438,7 +451,7 @@ $FLB build-exe -f "<app>.flogo" -c <context>   # per app; <context> from `flogob
 $FDA cm -f "<app>.flogo"                        # check-mappings: refs, imports, scopes
 grep -l New_value <UseCaseDir>/*.flogo          # must print NOTHING (gotcha 4c)
 grep -o '"temperature": *"\?[0-9.]*"\?' <UseCaseDir>/*.flogo   # every hit 0 or "0" (FDA writes the string "0")
-python validate_flogo_apps.py <UseCaseDir>/*.flogo   # PG mapping + ?placeholder gate (co-located in this references/ folder)
+python validate_flogo_apps.py <UseCaseDir>/*.flogo   # PG mapping, ?placeholder, SECRET: and designer-only gate (co-located in this references/ folder)
 # Every PostgreSQL activity's input.Connection must resolve to the connection NAMED PostgresConn —
 #   not just to *some* id in the file (SKILL gotcha 10: a stray `sa` re-set points it at the first one):
 python -c "import json,sys

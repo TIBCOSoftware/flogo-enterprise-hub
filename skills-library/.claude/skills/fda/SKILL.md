@@ -316,6 +316,33 @@ The `<fieldName>` must match the input field name from `exp`. **Do NOT** set `in
 - **Do NOT manually run `wth` after `cas` or `cms`.** Both are self-contained skeleton builders — they call `wth` internally and derive schemas from the spec automatically. Manual `wth` wiring is only needed when creating triggers and handlers individually (via `ct` + `cth`).
 - **After `cth`, always run `wth` to wire the trigger handler to the flow.** Without wiring, the flow cannot receive trigger data or send replies (`TRIGGER_HANDLER_UNWIRED`). For triggers with path parameters, create and associate the pathParams schema before running `wth` (see "Setting schemas on trigger handlers" section). The only exception is `tr_timer`, which carries no payloads.
 - **Never use `--force` unless the skill docs explicitly show it for that exact command.** `--force` bypasses validation guards — using it unnecessarily can silently create malformed attributes or overwrite correct state. The ONLY places `--force` is required are: (1) `fda sa handler "...schemas.output.<field>" <name> -C schema --force` for schema association on trigger handler output, and (2) `fda wth ... --force` to overwrite already-wired sides. Every other `fda` command must be run WITHOUT `--force`. If a command fails without it, investigate the root cause instead of forcing past it.
+- **A passing build or API test does not mean the designer accepts the app.** The engine runs values the VS Code designer rejects, so check generated apps against the designer-only rules (full table in the `fda-mapping` skill, "Designer-only rules"):
+  - **No expressions in settings.** Trigger and handler settings and the Invoke REST `Uri` take a literal or one whole `=$property["…"]`. `=string.concat($property["Base"], "/path")` is blanked on load (*"URL is required"*). Give each endpoint its own property, with any `{name}` placeholder inside the property value plus an `input.pathParams` mapping.
+  - **Error branches read `$error[<FailedTask>].<field>`.** Plain `$error.message` is for the flow's Error Handler tab; in an error branch the designer flags it.
+  - **Password fields need a `SECRET:` value.** `cap` has no password type (keep `string`; never write `type: password`, which stops the engine with `unknown type: password`). Encrypt the value with the CLI that ships in the Flogo extension and pass the result to `cap`; `cap` stores it as-is and the designer then treats the property as a password:
+    ```bash
+    # Prints the SECRET:… cipherText for $1. Searches the same extension roots as the fda resolver
+    # (AGENT.md) and fails if the extension is not installed or prints no cipherText.
+    flogo_encrypt() {
+      local name=flogo-vscode-cli cli="" dir out home="${HOME:-$USERPROFILE}"
+      # Windows: the extension ships a Linux binary of the same name too; use the .exe
+      [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* || "$OSTYPE" == win32 ]] && name=flogo-vscode-cli.exe
+      for dir in "$home/.vscode/extensions" "$home/.vscode-insiders/extensions" "$home/.vscode-server/extensions"; do
+        cli=$(ls -td "$dir"/tibco.flogo-*/bin/"$name" 2>/dev/null | head -1)
+        [ -n "$cli" ] && break
+      done
+      [ -n "$cli" ] || { echo "flogo-vscode-cli not found: install the TIBCO Flogo VS Code extension" >&2; return 1; }
+      # output is JSON with "cipherText": "SECRET:<base64>" on its own line; sed avoids needing python
+      out=$("$cli" secret encrypt -p "$1" | sed -n 's/.*"cipherText": *"\(SECRET:[^"]*\)".*/\1/p')
+      [ -n "$out" ] || { echo "flogo-vscode-cli secret encrypt returned no cipherText" >&2; return 1; }
+      printf '%s\n' "$out"
+    }
+    SECRET=$(flogo_encrypt "$PLAIN_VALUE") && fda cap MCP.ApiKey string "$SECRET" -f "$FILE"
+    ```
+    The CLI accepts the value only as an argument (`-p`), so it is visible in the process list while it runs: encrypt real secrets only on your own machine, and a dummy value for anything you publish.
+    Encrypt before the property's first `cap`. If it already exists as plaintext, `fda rap MCP.ApiKey -f "$FILE"` first: `cap` on an existing name does not overwrite — it silently adds `MCP.ApiKey_1` and the binding keeps the plaintext property.
+    The ciphertext uses Flogo's default data-secret key, so it decrypts in any app built with that default (`flogo-vscode-cli secret decrypt -c "$SECRET"` shows the plain value). It applies to the MCP Server trigger **Secret** (`authToken`) and to connector fields such as `#sendmail` `Password`.
+  - Run `agentic-ai-use-case-builder/references/validate_flogo_apps.py <app.flogo>`: it checks all three.
 - **Don't hand-edit the .flogo JSON.** The `flogoProject.contrib` blob is base64-encoded and re-derived on every save; ad-hoc edits to it vanish on the next `fda` write. Use the dedicated tasks.
 - **Don't use `set-attribute` (sa) for mapper input fields when `make-mapping` (mm) exists.** `mm` proactively adds function imports for any expression you write; `sa` doesn't, so you'd rely on the defensive sweep at save time. The sweep catches it eventually but `mm` is more explicit and surfaces errors immediately.
 - **Bind an activity's connection when you create it: `fda ca <flow> <task> <type> <label> -C <ConnName>`.** `ca -C` resolves the name to the connection's internal UUID (`conn://<uuid>`), picks the named connection even when it is not first in the file, and later `fda` writes leave the binding alone. Never use `fda mm` for connection fields — it writes the name as a literal string (`conn://SQLServerConn`), which the runtime won't resolve. `fda sa activity "Flow.QueryDB.input.Connection" "conn://SQLServerConn"` also resolves to a UUID, but in a multi-connection app it binds the FIRST connection (next bullet) — use it only on a single-connection app.

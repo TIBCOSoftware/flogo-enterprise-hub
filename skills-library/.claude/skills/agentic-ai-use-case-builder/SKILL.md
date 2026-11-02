@@ -4,8 +4,8 @@ description: "Build ANY Agentic AI use case, demo, or chatbot on TIBCO FlogoÂ® â
 user-invocable: true
 metadata:
   author: Flogo Skills Author <author@example.com>
-  version: "1.2.0"
-  last-updated-date: "2026-10-16"
+  version: "1.2.1"
+  last-updated-date: "2026-11-02"
 ---
 
 # Agentic AI Use Case Builder (governed by default)

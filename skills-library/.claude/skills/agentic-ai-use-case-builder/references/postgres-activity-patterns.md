@@ -273,7 +273,10 @@ prefix**. So a password-typed field whose backing value is a plain string makes 
 Rules (generic — applies to any connector field the designer types as `password`):
 - Bind the field to an **app property**, e.g. `#sendmail.Password = "=$property[<EmailPwdProp>]"` — don't
   inline a literal.
-- That property's **value must resolve to a `SECRET:`-prefixed string**, never a plain placeholder.
+- That property's **value must resolve to a `SECRET:`-prefixed string**, never another plain string. The
+  one exception is a published sample scrubbed per SECURITY.md: an empty value or a `SET_YOUR_…` /
+  `…REPLACE-WITH…` placeholder means "credential not supplied yet". The designer shows `wrongTypeProp`
+  until the user enters the value, and the validator reports it as a NOTE, not a failure.
 - Keep the property JSON `type` as **`string`** — do **not** set `type:"password"` (the designer drops
   it on save).
 - **How to get a working `SECRET:` value without shipping a real secret:** the value the designer stores
@@ -283,19 +286,32 @@ Rules (generic — applies to any connector field the designer types as `passwor
   leaks nothing. This is the same "carry `SECRET:` values verbatim from a cloned app" rule the SKILL
   states — reuse an existing dummy blob; **never fabricate a `SECRET:` string from scratch** (fake
   ciphertext fails to decrypt → *"An error occurred while attempting to decrypt secrets"* and the app
-  won't render), and never scrub a password-typed field to a bare placeholder (that reintroduces
-  `wrongTypeProp`). Verify a scrubbed dummy by loading the app in the designer.
+  won't render). A bare placeholder is allowed for published samples (above) but leaves the designer's
+  `wrongTypeProp` until the user supplies the value; an encrypted dummy opens clean. Verify a scrubbed
+  dummy by loading the app in the designer.
+- **Generate a real `SECRET:` value without the designer.** The Flogo extension ships the encryptor the
+  designer uses: `<ext>/bin/flogo-vscode-cli secret encrypt -p <value>` prints
+  `{"outputs":[{"plainText":…,"cipherText":"SECRET:…"}]}`, and `secret decrypt -c <cipherText>` reverses
+  it. Pass the `cipherText` to `fda cap <Prop> string "<cipherText>"`; `cap` stores it as-is. This is
+  real ciphertext under the default key (not "fabricated"), so it decrypts at runtime and clears
+  `wrongTypeProp` with no manual App Properties step. Encrypt a dummy for published samples and the
+  real value only for a private build. See the `fda` skill, "Things to avoid".
+- **Trigger settings count too.** The MCP Server trigger's **Secret** (`settings.authToken`, used by the
+  API Key and JWT Token auth types) is a password field: bound to a plain-string property it shows *"Type
+  of field "Secret" (password) differs from the bound app property … (string)"*. Same fix.
 - **Distinction from ordinary secret scrubbing:** non-password-typed secrets (OpenAI key, DB password in
   a connection block) are scrubbed to *plain* placeholders per SECURITY.md; only genuinely
-  *password-typed activity fields* need the `SECRET:`-dummy treatment.
+  *password-typed fields* need the `SECRET:`-dummy treatment: activity fields such as `#sendmail`
+  `Password`, and trigger settings such as the MCP Server `authToken` in API Key / JWT Token mode.
 
 ---
 
 ## Validation gate — run before declaring any app done
 
 `references/validate_flogo_apps.py` is a generic, no-hardcoding checker for the two defect classes above
-plus the 3-part `toolParams` contract. Run it on every `.flogo` you author or edit; fix everything it
-prints before you tell the user the app is done.
+plus the 3-part `toolParams` contract. Run it on every `.flogo` you author or edit; fix every issue it
+prints before you tell the user the app is done. `NOTE` lines (a password field still holding a
+SECURITY.md placeholder) don't fail the gate. Pass them on to the user as credentials to supply.
 
 ```bash
 python references/validate_flogo_apps.py <path/to/App1.flogo> [App2.flogo ...]
@@ -318,8 +334,13 @@ baked in):
 4. **Schema names == mapping keys** in the populated container.
 5. **`toolParams` flow-input schema present** on any flow that reads `$flow.toolParams` (3-part
    contract #2 — otherwise click the trigger **Sync**).
-6. **Password-typed fields** (e.g. `#sendmail Password`) resolve to a `SECRET:` value, not a plain
-   string.
+6. **Password-typed fields** (e.g. `#sendmail Password`, and the MCP Server trigger **Secret**
+   `authToken`) resolve to a `SECRET:` value, not a plain string.
+7. **Designer-only rules** that pass every runtime test (see the `fda-mapping` skill, "Designer-only
+   rules"): an Invoke REST `Uri` that is empty or an expression (the designer blanks it → *"URL is
+   required"*); trigger/handler settings holding an expression instead of a literal or one whole
+   `$property`; and `$error.<field>` in a main-flow (error-branch) task instead of
+   `$error[<FailedTask>].<field>`.
 
 Exit code is non-zero when it finds anything, so it can gate a build. Note it catches design-time
 alignment and secret-type issues, not table/column existence — still run the real SQL against a loaded DB
