@@ -143,7 +143,7 @@ A fourth pattern in this folder — **Flogo as an MCP Tool Server** — turns a 
 
 Focused, single-capability samples that each teach one building block of the Agentic AI Connector — AI Agent guardrails, multi-agent handoff, Flogo-as-MCP-server, Agent-to-Agent (A2A), the LLM Client Activity, memory, dynamic MCP/A2A config, semantic tool selection at scale, scheduled reasoning, and agent governance.
 
-**➡️ Full catalogue, suggested learning order and per-sample details: [Feature Samples README »](./Feature_Samples/README.md)** (15 samples).
+**➡️ Full catalogue, suggested learning order and per-sample details: [Feature Samples README »](./Feature_Samples/README.md)** (16 samples).
 
 ---
 
