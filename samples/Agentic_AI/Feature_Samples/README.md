@@ -38,6 +38,7 @@ Samples grouped by **industry vertical**. The **Flogo Features Used** column lis
 | # | Sample | Use Case | Flogo Features Used | Interface |
 |---|---|---|---|---|
 | 5 | [Mobile Customer Care Multi-Agent Hub](./Mobile-Customer-Care-Multi-Agent/) | Triage dispatcher routing to Billing / Technical / Upgrade specialists | **AI Agent Activity** (dispatcher) · 3 **AI Agent Triggers** · `agentHandoffs` list · Invoke AI Agent Trigger (`callagent`) · 6 Custom Tools · PII guardrails · WebSocket trigger | WebSocket |
+| 16 | [Telecom Policy Knowledge Hub (RAG)](./Telecom-Policy-RAG-Vector-Store/) | Customer-care policy assistant over a vector store: bulk-load, publish, search, answer with citations, retire superseded policies | **ChunkAndEmbedDocuments** (File Paths + Text/Markdown) · **ActiveSpaces Vector Upsert / Vector Search / Vector Delete** (Key + Filter) · **AI Agent Trigger** with a RAG search tool · Invoke AI Agent Trigger (`callagent`) · Memory Conversation Store · REST + WebSocket triggers | REST + WebSocket |
 
 ### Travel & Hospitality
 
@@ -105,6 +106,7 @@ New to the Agentic AI Connector? This path moves from the simplest building bloc
 13. **[Apartment Finder Agent](./Apartment-Finder-Agent/)** — put both halves together: an AI Agent Activity chats over your own MCP tool server, and one of those tools sends real email.
 14. **[Drug Safety Intake Advisor](./LLMClient-Dynamic-Auth/)** — revisit the LLM Client with **bearer-token authentication** on both hops, and matching auth on the MCP and A2A servers it calls.
 15. **[Agent Privilege IDs](./Agent-Privilege-IDs/)** — govern the agents themselves: give each AI Agent Activity its **own JWT privilege ID**, enforced by per-tool scopes on a Flogo MCP Server, a PostgreSQL agent registry (kill switch) and human-only approval.
+16. **[Telecom Policy Knowledge Hub (RAG)](./Telecom-Policy-RAG-Vector-Store/)** — ground an agent in your own documents: **ChunkAndEmbedDocuments** feeds an ActiveSpaces vector store through **Vector Upsert**, an AI Agent answers from **Vector Search**, and **Vector Delete** retires superseded content.
 
 Ready to see the full pattern applied end-to-end? Continue to **[Part 2 — Industry Use-Case Demos](../README.md#part-2--industry-use-case-demos)**.
 
@@ -155,6 +157,8 @@ The authenticated counterpart to the IT Help Desk Advisor: the orchestrator conf
 ### 15. [Agent Privilege IDs](./Agent-Privilege-IDs/) — *Agent Governance (cross-industry)*
 Answers the question banks ask about AI agents: *"How do you manage privilege IDs for agents?"* Back-office agents for a fictional bank each carry **their own identity** — a JWT whose `sub` is the agent's privilege ID and whose `scp` lists its granted scopes — in the MCP connection of their **AI Agent Activity**. The **MCP Server trigger** validates the token with `JWT Token` auth and a per-tool `scope`, so a tool the agent isn't entitled to is never even listed. Every tool flow reads the verified `tokenInfo.sub` and lets a **PostgreSQL agent registry** decide on each call (owner, status, expiry, entitlements): suspend an agent and its next call is refused even though its token is still valid. Agents can only *request* a privileged change — a named human approves it — and every call, allowed or refused, is audited under the agent ID from the token, never from the model. An **orchestrated** variant adds agent-to-agent delegation through JWT-protected MCP tools, and a **no-MCP** variant does the same with OAuth 2.0 client identities and an API gateway.
 
+### 16. [Telecom Policy Knowledge Hub (RAG)](./Telecom-Policy-RAG-Vector-Store/) — *Telecommunications & Customer Service*
+A complete Retrieval-Augmented Generation (RAG) lifecycle in one app, for the customer-care policies of a fictional mobile operator. **ChunkAndEmbedDocuments** reads the policy PDFs (*File Paths*, Recursive chunking) or a Markdown policy update (*Text*, Markdown chunking per `##` section) and embeds every chunk with OpenAI. **Vector Upsert** stores the chunks in a TIBCO ActiveSpaces 5.2 vector table (`Replace` mode, so re-ingestion is idempotent). **Vector Search** finds the closest chunks by cosine similarity, both from a REST endpoint and from the **AI Agent Trigger**'s `SearchTelecomPolicies` tool, so the agent answers over WebSocket with a policy citation for every figure. **Vector Delete** retires a superseded policy *by filter* (with the document id validated before it reaches the filter) or removes single chunks *by key*. A smoke test runs the whole story: load → search → publish → ask → retire → ask again.
 
 ---
 

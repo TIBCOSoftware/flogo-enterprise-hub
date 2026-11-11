@@ -22,6 +22,7 @@ Build, orchestrate, and govern AI agents inside Flogo integration flows using th
 | [Healthcare Patient Support Agent](./Agentic_AI/Feature_Samples/Healthcare-Compliance-Agent/) | Healthcare | AI Agent Trigger with a custom PHI guardrail + custom conversation store (HIPAA-aware) |
 | [BeautyCo Retail Intelligence](./Agentic_AI/Feature_Samples/demo_retail/) | Retail & Consumer | Flogo as an MCP server exposing enterprise data for personalized consultations |
 | [Mobile Customer Care Multi-Agent Hub](./Agentic_AI/Feature_Samples/Mobile-Customer-Care-Multi-Agent/) | Telecommunications & Customer Service | AI Agent dispatcher with multi-agent handoff + deterministic `callagent` routing |
+| [Telecom Policy Knowledge Hub (RAG)](./Agentic_AI/Feature_Samples/Telecom-Policy-RAG-Vector-Store/) | Telecommunications & Customer Service | ChunkAndEmbedDocuments + ActiveSpaces Vector Upsert / Search / Delete behind an AI Agent that answers policy questions with citations |
 | [Travel Itinerary Planner with A2A Server](./Agentic_AI/Feature_Samples/Travel-Itinerary-Planner/) | Travel & Hospitality | Agent-to-Agent (A2A) protocol between two collaborating apps |
 | [Smart Supply Chain Assistant](./Agentic_AI/Feature_Samples/Smart-Supply-Chain-Assistant/) | Manufacturing & Supply Chain | Agent Trigger using multiple MCP servers + a custom write tool |
 | [AI-Powered Incident Triage Agent](./Agentic_AI/Feature_Samples/Ai-Triage-Agent/) | IT Operations & Service Management | AI Agent + MCP with semantic duplicate detection to cut ticket noise |

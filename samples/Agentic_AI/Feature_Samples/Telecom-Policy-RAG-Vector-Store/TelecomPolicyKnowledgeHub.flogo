@@ -1,0 +1,2080 @@
+{
+  "imports": [
+    "git.tibco.com/git/product/ipaas/wi-contrib.git/function/boolean",
+    "github.com/project-flogo/contrib/activity/actreturn",
+    "github.com/project-flogo/contrib/activity/noop",
+    "github.com/project-flogo/contrib/function/array",
+    "github.com/project-flogo/contrib/function/coerce",
+    "github.com/project-flogo/contrib/function/string",
+    "github.com/project-flogo/flow",
+    "github.com/project-flogo/websocket/activity/wswritedata",
+    "github.com/project-flogo/websocket/trigger/wsserver",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/activity/vectordelete",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/activity/vectorsearch",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/activity/vectorupsert",
+    "github.com/tibco/flogo-activespaces/src/app/ActiveSpaces/connector/as",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/callagent",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/activity/chunkandembeddocuments",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/connector/llmprovider",
+    "github.com/tibco/flogo-ai-agent/src/app/AgenticAI/trigger/agent",
+    "github.com/tibco/flogo-general/src/app/General/activity/log",
+    "github.com/tibco/flogo-general/src/app/General/activity/mapper",
+    "github.com/tibco/flogo-general/src/app/General/trigger/rest"
+  ],
+  "name": "TelecomPolicyKnowledgeHub",
+  "description": "TeleCore policy knowledge hub - ChunkAndEmbedDocuments + ActiveSpaces Vector Upsert / Search / Delete, with an AI Agent that answers policy questions over WebSocket (RAG).",
+  "version": "1.0.0",
+  "type": "flogo:app",
+  "appModel": "1.1.1",
+  "tags": [],
+  "triggers": [
+    {
+      "ref": "#rest",
+      "name": "tibco-wi-rest",
+      "description": "Policy knowledge-base admin API: ingest, search and retire policy documents",
+      "settings": {
+        "port": 9740,
+        "APISpecUpdate": false,
+        "swagger": "",
+        "swaggerVersion": "v2",
+        "authenticationType": "None",
+        "username": "",
+        "password": "",
+        "apiVersion": "1.0.0",
+        "secureConnection": false,
+        "serverKey": "",
+        "caCertificate": "",
+        "readHeaderTimeout": 0,
+        "readTimeout": 0,
+        "maxRequestBodySize": 15
+      },
+      "id": "ReceiveHTTPMessage",
+      "handlers": [
+        {
+          "description": "Bulk-load policy files: ChunkAndEmbed (File Paths) -> VectorUpsert. Body: {\"filePaths\": [\"/abs/path/TC-POL-001_....pdf\", ...]}",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/policy/ingest/files",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:IngestPolicyFiles"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"chunksEmbedded\":{\"type\":\"integer\"},\"embeddingModel\":{\"type\":\"string\"},\"totalTokens\":{\"type\":\"integer\"},\"skippedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"chunksEmbedded\":{\"type\":\"integer\"},\"embeddingModel\":{\"type\":\"string\"},\"totalTokens\":{\"type\":\"integer\"},\"skippedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"filePaths\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"filePaths\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"
+              }
+            }
+          },
+          "name": "IngestPolicyFiles"
+        },
+        {
+          "description": "Publish one policy document as Markdown text: ChunkAndEmbed (Text, Markdown strategy) -> VectorUpsert. Body: {\"documentId\": \"TC-POL-006\", \"text\": \"# ...\"}",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/policy/ingest/text",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:IngestPolicyText"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"chunksEmbedded\":{\"type\":\"integer\"},\"embeddingModel\":{\"type\":\"string\"},\"totalTokens\":{\"type\":\"integer\"},\"skippedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"chunksEmbedded\":{\"type\":\"integer\"},\"embeddingModel\":{\"type\":\"string\"},\"totalTokens\":{\"type\":\"integer\"},\"skippedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"documentId\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"documentId\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"}}}"
+              }
+            }
+          },
+          "name": "IngestPolicyText"
+        },
+        {
+          "description": "Semantic search: ChunkAndEmbed (embed the question) -> VectorSearch. Query: ?q=<question>",
+          "settings": {
+            "Method": "GET",
+            "reqType": "application/json",
+            "Path": "/policy/search",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:SearchPolicies"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "queryParams": "=$.queryParams"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"},\"matchCount\":{\"type\":\"integer\"},\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"score\":{\"type\":\"number\"}}}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"},\"matchCount\":{\"type\":\"integer\"},\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"score\":{\"type\":\"number\"}}}}}}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "queryParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"q\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\"}]"
+              }
+            }
+          },
+          "name": "SearchPolicies"
+        },
+        {
+          "description": "Retire a superseded policy: VectorDelete (Filter) removes every chunk whose metadata names the document. documentId must match ^[A-Za-z0-9-]{3,40}$ - it is validated before it is put into the filter.",
+          "settings": {
+            "Method": "DELETE",
+            "reqType": "application/json",
+            "Path": "/policy/documents/{documentId}",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:RetirePolicyDocument"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "pathParams": "=$.pathParams"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"documentId\":{\"type\":\"string\"},\"rowsDeleted\":{\"type\":\"integer\"},\"message\":{\"type\":\"string\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"documentId\":{\"type\":\"string\"},\"rowsDeleted\":{\"type\":\"integer\"},\"message\":{\"type\":\"string\"}}}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "pathParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"documentId\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"documentId\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\"}]"
+              }
+            }
+          },
+          "name": "RetirePolicyDocument"
+        },
+        {
+          "description": "Remove individual chunks by primary key: VectorDelete (Key). Body: {\"keys\": [\"<key from /policy/search>\", ...]}",
+          "settings": {
+            "Method": "POST",
+            "reqType": "application/json",
+            "Path": "/policy/chunks/delete",
+            "OutputValidation": false
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:DeleteChunksByKey"
+            },
+            "input": {
+              "headers": "=$.headers",
+              "body": "=$.body"
+            },
+            "output": {
+              "code": "=$.code",
+              "data": "=$.data"
+            }
+          },
+          "reply": {
+            "code": 200,
+            "configureResponseCodes": false,
+            "message": {}
+          },
+          "schemas": {
+            "reply": {
+              "data": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"keysSubmitted\":{\"type\":\"integer\"}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"keysSubmitted\":{\"type\":\"integer\"}}}"
+              },
+              "responseBody": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"body\":{\"type\":\"any\"},\"headers\":{\"type\":\"object\"}}}"
+              }
+            },
+            "output": {
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              },
+              "body": {
+                "type": "json",
+                "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+                "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"
+              }
+            }
+          },
+          "name": "DeleteChunksByKey"
+        }
+      ]
+    },
+    {
+      "ref": "#agent",
+      "name": "flogo-agenticai-agent",
+      "description": "TeleCore policy assistant - answers customer-care policy questions with retrieval-augmented generation over the ActiveSpaces vector store.",
+      "settings": {
+        "llmProviderConnection": "conn://7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e02",
+        "agentName": "=$property[\"Trigger_Settings.AgentName\"]",
+        "agentDescription": "=$property[\"Trigger_Settings.AgentDescription\"]",
+        "agentType": "Local",
+        "agentPort": 8081,
+        "agentUrl": "http://localhost:9898",
+        "agentAuthMode": "None",
+        "agentToken": "",
+        "model": "=$property[\"Trigger_Settings.LLM_Model\"]",
+        "reasoning": "",
+        "temperature": 0,
+        "enableGuardrails": false,
+        "rateLimit": "=$property[\"Trigger_Settings.Rate_Limit\"]",
+        "tokenLimit": "=$property[\"Trigger_Settings.Token_Limit\"]",
+        "redactSensitiveData": false,
+        "remoteAgents": [],
+        "mcpServers": [],
+        "conversationStoreType": "Memory",
+        "memoryMaxSize": 20,
+        "systemPrompt": "You are the TeleCore Communications customer-care policy assistant. You help customers and care agents understand TeleCore's published policies: international roaming, fair use and network management, SIM swap and account security, device upgrades and contract terms, service outages and compensation, and any newly published policy.\n\nHow to answer:\n1. For every question about a policy, price, fee, threshold, eligibility rule or compensation, call the SearchTelecomPolicies tool first. Rephrase the question as a short, self-contained search query.\n2. Answer ONLY from the passages the tool returns. Quote exact figures (rates, limits, days, amounts) as written.\n3. Cite the policy you used after each fact, e.g. (TC-POL-001). The policy ID is in the \"source\" field of each match.\n4. If the tool returns NO_MATCHING_POLICY, or the passages do not answer the question, say that no published TeleCore policy covers it and suggest contacting a care agent. Never guess or use general knowledge about other carriers.\n5. If you need customer-specific facts (their plan, usage or account), explain the rule and say which detail you would need; you cannot look up accounts.\n6. Keep answers short and plain. If asked, say you are an AI assistant."
+      },
+      "id": "TelecomPolicyAssistant",
+      "handlers": [
+        {
+          "description": "Tool: semantic search over the TeleCore policy library (ChunkAndEmbed -> VectorSearch).",
+          "settings": {
+            "handlerType": "Tool",
+            "agentToolName": "SearchTelecomPolicies",
+            "agentToolDescription": "Searches the TeleCore Communications customer-care policy library (roaming, fair use, SIM swap and account security, device upgrades, outage compensation, and any newly published policy) and returns the most relevant policy passages with their source document and a similarity score. Call it for every policy, price, fee, eligibility or compensation question before answering.",
+            "agentSkillTags": "",
+            "agentSkillExamples": "",
+            "customGuardrailType": "BOTH",
+            "customConversationStoreOperation": "STORE"
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:SearchTelecomPolicies"
+            },
+            "input": {
+              "toolParams": "=$.toolParams"
+            },
+            "output": {
+              "response": "=$.response"
+            }
+          },
+          "schemas": {
+            "reply": {
+              "response": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  }\r\n}"
+              },
+              "customConversationStoreOpOutput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"success\": {\r\n      \"type\": \"boolean\"\r\n    },\r\n    \"error\": {\r\n      \"type\": \"string\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"success\"\r\n  ]\r\n}"
+              }
+            },
+            "output": {
+              "toolParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"question\":{\"type\":\"string\",\"description\":\"The customer's question rephrased as a self-contained policy search query, e.g. 'roaming data rate per GB in Japan'\"}},\"required\":[\"question\"]}",
+                "fe_metadata": "{\"type\":\"object\",\"properties\":{\"question\":{\"type\":\"string\",\"description\":\"The customer's question rephrased as a self-contained policy search query, e.g. 'roaming data rate per GB in Japan'\"}},\"required\":[\"question\"]}"
+              },
+              "customGuardrailInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"data\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"isRequest\": {\r\n      \"type\": \"boolean\"\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"data\",\"isRequest\"\r\n ]\r\n}"
+              },
+              "customConversationStoreOpInput": {
+                "type": "json",
+                "value": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}",
+                "fe_metadata": "{\r\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\r\n  \"type\": \"object\",\r\n  \"properties\": {\r\n    \"conversationId\": {\r\n      \"type\": \"string\"\r\n    },\r\n    \"message\": {\r\n      \"type\": \"object\",\r\n      \"properties\": {\r\n        \"role\": {\r\n          \"type\": \"string\",\r\n          \"enum\":[\"user\", \"assistant\", \"system\", \"tool\"]\r\n        },\r\n        \"content\": {\r\n          \"type\": \"string\"\r\n        },\r\n        \"metadata\": {\r\n          \"type\": \"object\"\r\n        }\r\n      },\r\n      \"required\": [\r\n        \"role\",\r\n        \"content\",\r\n        \"metadata\"\r\n      ]\r\n    }\r\n  },\r\n  \"required\": [\r\n    \"conversationId\",\r\n    \"message\"\r\n  ]\r\n}"
+              }
+            }
+          },
+          "name": "check_appointments_flow"
+        }
+      ]
+    },
+    {
+      "ref": "#wsserver",
+      "name": "wsserver",
+      "description": "WebSocket chat endpoint - connect the shared Flogo Chatbot to ws://localhost:9741/policy-assistant",
+      "settings": {
+        "port": 9741,
+        "enableTLS": false,
+        "serverCert": "",
+        "serverKey": "",
+        "enableClientAuth": false,
+        "trustStore": ""
+      },
+      "id": "WebsocketServer",
+      "handlers": [
+        {
+          "description": "Receives a chat message and asks the TelecomPolicyAssistant agent",
+          "settings": {
+            "method": "GET",
+            "path": "/policy-assistant",
+            "mode": "Data",
+            "format": "String",
+            "jsonSchema": ""
+          },
+          "action": {
+            "ref": "github.com/project-flogo/flow",
+            "settings": {
+              "flowURI": "res://flow:ChatWithPolicyAssistant"
+            },
+            "input": {
+              "pathParams": "=$.pathParams",
+              "queryParams": "=$.queryParams",
+              "headers": "=$.headers",
+              "content": "=$.content",
+              "wsconnection": "=$.wsconnection"
+            }
+          },
+          "schemas": {
+            "output": {
+              "queryParams": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"sessionId\":{\"type\":\"string\"}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"sessionId\",\"type\":\"string\",\"repeating\":\"\",\"required\":\"\"}]"
+              },
+              "headers": {
+                "type": "json",
+                "value": "{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]}",
+                "fe_metadata": "[{\"parameterName\":\"Accept\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Charset\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Accept-Encoding\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Type\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Content-Length\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Connection\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Cookie\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Pragma\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Key\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Sec-Websocket-Version\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false},{\"parameterName\":\"Upgrade\",\"type\":\"string\",\"repeating\":\"false\",\"required\":\"false\",\"visible\":false}]"
+              }
+            }
+          },
+          "name": "ChatWithPolicyAssistant"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "flow:IngestPolicyFiles",
+      "data": {
+        "name": "IngestPolicyFiles",
+        "description": "Bulk-load policy files: ChunkAndEmbed (File Paths) -> VectorUpsert. Body: {\"filePaths\": [\"/abs/path/TC-POL-001_....pdf\", ...]}",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ChunkAndEmbedFiles",
+            "type": "label",
+            "label": "StartActivity to ChunkAndEmbedFiles"
+          },
+          {
+            "id": 2,
+            "from": "ChunkAndEmbedFiles",
+            "to": "UpsertChunks",
+            "type": "label",
+            "label": "ChunkAndEmbedFiles to UpsertChunks"
+          },
+          {
+            "id": 3,
+            "from": "UpsertChunks",
+            "to": "LogIngest",
+            "type": "label",
+            "label": "UpsertChunks to LogIngest"
+          },
+          {
+            "id": 4,
+            "from": "LogIngest",
+            "to": "Return",
+            "type": "label",
+            "label": "LogIngest to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ChunkAndEmbedFiles",
+            "name": "ChunkAndEmbedFiles",
+            "description": "Extract text from each policy file (PDF/DOCX/MD/TXT), split it with the Recursive strategy (1500 chars, 250 overlap) and embed every chunk with OpenAI.",
+            "activity": {
+              "ref": "#chunkandembeddocuments",
+              "settings": {
+                "contentSource": "File Paths",
+                "fileEncoding": "UTF-8",
+                "maxFileSizeMB": 25,
+                "onFileError": "Skip",
+                "chunkingStrategy": "Recursive",
+                "chunkSize": 1500,
+                "chunkOverlap": 250,
+                "delimiterIsRegex": false,
+                "separators": "",
+                "delimiter": "",
+                "markdownHeadingLevel": 2,
+                "minChunkSize": 200,
+                "embeddingProvider": "OpenAI",
+                "embeddingModel": "text-embedding-3-small",
+                "dimensions": 0,
+                "requestTimeoutSeconds": 180
+              },
+              "input": {
+                "text": "",
+                "documentId": "",
+                "apiKey": "=$property[\"AgenticAI.OpenAI_LLMProvider.API_Key\"]",
+                "baseUrl": "=$property[\"AgenticAI.OpenAI_LLMProvider.Embedding_Base_URL\"]",
+                "filePaths": "=$flow.body.filePaths"
+              },
+              "schemas": {
+                "input": {
+                  "filePaths": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+                  }
+                },
+                "output": {
+                  "embeddings": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"index\":{\"type\":\"number\"},\"text\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"startOffset\":{\"type\":\"number\"},\"endOffset\":{\"type\":\"number\"},\"charCount\":{\"type\":\"number\"},\"headings\":{\"type\":\"array\",\"items\":{}},\"metadata\":{\"type\":\"object\",\"properties\":{}},\"embedding\":{\"type\":\"array\",\"items\":{}},\"dimensions\":{\"type\":\"number\"}}}}",
+                    "fe_metadata": "[{\"id\": \"\", \"index\": 0, \"text\": \"\", \"source\": \"\", \"startOffset\": 0, \"endOffset\": 0, \"charCount\": 0, \"headings\": [], \"metadata\": {}, \"embedding\": [], \"dimensions\": 0}]"
+                  },
+                  "skippedFiles": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}",
+                    "fe_metadata": "[{\"path\": \"\", \"reason\": \"\"}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "UpsertChunks",
+            "name": "UpsertChunks",
+            "description": "Iterate the embedded chunks and upsert one row per chunk into telecore_policy_kb (key, content, metadata, embedding). Replace mode makes re-ingestion idempotent.",
+            "type": "iterator",
+            "settings": {
+              "iterate": "=$activity[ChunkAndEmbedFiles].embeddings",
+              "accumulate": false,
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectorupsert",
+              "settings": {
+                "asConnection": "conn://7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e01",
+                "writeMode": "Replace",
+                "tableName": "telecore_policy_kb"
+              },
+              "input": {
+                "data": {
+                  "mapping": {
+                    "key": "=string.replaceRegEx(\".*/\", $iteration[value].id, \"\")",
+                    "content": "=$iteration[value].text",
+                    "metadata": "=\"source=\" + string.replaceRegEx(\".*/\", $iteration[value].source, \"\") + \" | chunk=\" + coerce.toString($iteration[value].index)",
+                    "embedding": {
+                      "@foreach($iteration[value].embedding,embedding)": {
+                        "=": "$loop"
+                      }
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "data": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"string\"},\"embedding\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}}}}",
+                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"string\"},\"embedding\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogIngest",
+            "name": "LogIngest",
+            "description": "Log what was ingested",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=\"[ingest/files] embedded \" + coerce.toString($activity[ChunkAndEmbedFiles].count) + \" chunks with \" + $activity[ChunkAndEmbedFiles].model + \", skipped \" + coerce.toString(array.count($activity[ChunkAndEmbedFiles].skippedFiles)) + \" file(s)\"",
+                "logLevel": "",
+                "loggerName": "",
+                "fieldPrefix": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return the ingestion summary",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "status": "INGESTED",
+                      "chunksEmbedded": "=$activity[ChunkAndEmbedFiles].count",
+                      "embeddingModel": "=$activity[ChunkAndEmbedFiles].model",
+                      "totalTokens": "=$activity[ChunkAndEmbedFiles].totalTokens",
+                      "skippedFiles": "=$activity[ChunkAndEmbedFiles].skippedFiles"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjYwLCJ5Ijo4MH0sIkNodW5rQW5kRW1iZWRGaWxlcyI6eyJ4IjoyNTAsInkiOjgwfSwiVXBzZXJ0Q2h1bmtzIjp7IngiOjQ0MCwieSI6ODB9LCJMb2dJbmdlc3QiOnsieCI6NjMwLCJ5Ijo4MH0sIlJldHVybiI6eyJ4Ijo4MjAsInkiOjgwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"filePaths\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"status\":{\"type\":\"string\"},\"chunksEmbedded\":{\"type\":\"integer\"},\"embeddingModel\":{\"type\":\"string\"},\"totalTokens\":{\"type\":\"integer\"},\"skippedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"filePaths\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"chunksEmbedded\":{\"type\":\"integer\"},\"embeddingModel\":{\"type\":\"string\"},\"totalTokens\":{\"type\":\"integer\"},\"skippedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:IngestPolicyText",
+      "data": {
+        "name": "IngestPolicyText",
+        "description": "Publish one policy document as Markdown text: ChunkAndEmbed (Text, Markdown strategy) -> VectorUpsert. Body: {\"documentId\": \"TC-POL-006\", \"text\": \"# ...\"}",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "ChunkAndEmbedText",
+            "type": "label",
+            "label": "StartActivity to ChunkAndEmbedText"
+          },
+          {
+            "id": 2,
+            "from": "ChunkAndEmbedText",
+            "to": "UpsertChunks",
+            "type": "label",
+            "label": "ChunkAndEmbedText to UpsertChunks"
+          },
+          {
+            "id": 3,
+            "from": "UpsertChunks",
+            "to": "LogIngest",
+            "type": "label",
+            "label": "UpsertChunks to LogIngest"
+          },
+          {
+            "id": 4,
+            "from": "LogIngest",
+            "to": "Return",
+            "type": "label",
+            "label": "LogIngest to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "ChunkAndEmbedText",
+            "name": "ChunkAndEmbedText",
+            "description": "Split the Markdown policy on its ## sections and embed each chunk with OpenAI.",
+            "activity": {
+              "ref": "#chunkandembeddocuments",
+              "settings": {
+                "contentSource": "Text",
+                "fileEncoding": "UTF-8",
+                "maxFileSizeMB": 25,
+                "onFileError": "Skip",
+                "chunkingStrategy": "Markdown",
+                "chunkSize": 1500,
+                "chunkOverlap": 150,
+                "delimiterIsRegex": false,
+                "separators": "",
+                "delimiter": "",
+                "markdownHeadingLevel": 2,
+                "minChunkSize": 100,
+                "embeddingProvider": "OpenAI",
+                "embeddingModel": "text-embedding-3-small",
+                "dimensions": 0,
+                "requestTimeoutSeconds": 120
+              },
+              "input": {
+                "text": "=$flow.body.text",
+                "documentId": "=$flow.body.documentId",
+                "apiKey": "=$property[\"AgenticAI.OpenAI_LLMProvider.API_Key\"]",
+                "baseUrl": "=$property[\"AgenticAI.OpenAI_LLMProvider.Embedding_Base_URL\"]",
+                "filePaths": {
+                  "mapping": []
+                }
+              },
+              "schemas": {
+                "input": {
+                  "filePaths": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+                  }
+                },
+                "output": {
+                  "embeddings": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"index\":{\"type\":\"number\"},\"text\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"startOffset\":{\"type\":\"number\"},\"endOffset\":{\"type\":\"number\"},\"charCount\":{\"type\":\"number\"},\"headings\":{\"type\":\"array\",\"items\":{}},\"metadata\":{\"type\":\"object\",\"properties\":{}},\"embedding\":{\"type\":\"array\",\"items\":{}},\"dimensions\":{\"type\":\"number\"}}}}",
+                    "fe_metadata": "[{\"id\": \"\", \"index\": 0, \"text\": \"\", \"source\": \"\", \"startOffset\": 0, \"endOffset\": 0, \"charCount\": 0, \"headings\": [], \"metadata\": {}, \"embedding\": [], \"dimensions\": 0}]"
+                  },
+                  "skippedFiles": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}",
+                    "fe_metadata": "[{\"path\": \"\", \"reason\": \"\"}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "UpsertChunks",
+            "name": "UpsertChunks",
+            "description": "Iterate the embedded chunks and upsert one row per chunk into telecore_policy_kb (key, content, metadata, embedding). Replace mode makes re-ingestion idempotent.",
+            "type": "iterator",
+            "settings": {
+              "iterate": "=$activity[ChunkAndEmbedText].embeddings",
+              "accumulate": false,
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectorupsert",
+              "settings": {
+                "asConnection": "conn://7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e01",
+                "writeMode": "Replace",
+                "tableName": "telecore_policy_kb"
+              },
+              "input": {
+                "data": {
+                  "mapping": {
+                    "key": "=$iteration[value].id",
+                    "content": "=$iteration[value].text",
+                    "metadata": "=\"source=\" + $flow.body.documentId + \" | section=\" + coerce.toString($iteration[value].headings) + \" | chunk=\" + coerce.toString($iteration[value].index)",
+                    "embedding": {
+                      "@foreach($iteration[value].embedding,embedding)": {
+                        "=": "$loop"
+                      }
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "data": {
+                    "type": "json",
+                    "value": "{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"string\"},\"embedding\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}}}}",
+                    "fe_metadata": "{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"string\"},\"embedding\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogIngest",
+            "name": "LogIngest",
+            "description": "Log what was ingested",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=\"[ingest/text] \" + $flow.body.documentId + \": embedded \" + coerce.toString($activity[ChunkAndEmbedText].count) + \" chunks\"",
+                "logLevel": "",
+                "loggerName": "",
+                "fieldPrefix": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return the ingestion summary",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "status": "INGESTED",
+                      "chunksEmbedded": "=$activity[ChunkAndEmbedText].count",
+                      "embeddingModel": "=$activity[ChunkAndEmbedText].model",
+                      "totalTokens": "=$activity[ChunkAndEmbedText].totalTokens",
+                      "skippedFiles": "=$activity[ChunkAndEmbedText].skippedFiles"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjYwLCJ5Ijo4MH0sIkNodW5rQW5kRW1iZWRUZXh0Ijp7IngiOjI1MCwieSI6ODB9LCJVcHNlcnRDaHVua3MiOnsieCI6NDQwLCJ5Ijo4MH0sIkxvZ0luZ2VzdCI6eyJ4Ijo2MzAsInkiOjgwfSwiUmV0dXJuIjp7IngiOjgyMCwieSI6ODB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"documentId\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"status\":{\"type\":\"string\"},\"chunksEmbedded\":{\"type\":\"integer\"},\"embeddingModel\":{\"type\":\"string\"},\"totalTokens\":{\"type\":\"integer\"},\"skippedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"documentId\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"chunksEmbedded\":{\"type\":\"integer\"},\"embeddingModel\":{\"type\":\"string\"},\"totalTokens\":{\"type\":\"integer\"},\"skippedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:SearchPolicies",
+      "data": {
+        "name": "SearchPolicies",
+        "description": "Semantic search: ChunkAndEmbed (embed the question) -> VectorSearch. Query: ?q=<question>",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "EmbedQuestion",
+            "type": "label",
+            "label": "StartActivity to EmbedQuestion"
+          },
+          {
+            "id": 2,
+            "from": "EmbedQuestion",
+            "to": "VectorSearch",
+            "type": "label",
+            "label": "EmbedQuestion to VectorSearch"
+          },
+          {
+            "id": 3,
+            "from": "VectorSearch",
+            "to": "ProjectMatches",
+            "type": "label",
+            "label": "VectorSearch to ProjectMatches"
+          },
+          {
+            "id": 4,
+            "from": "ProjectMatches",
+            "to": "LogSearch",
+            "type": "label",
+            "label": "ProjectMatches to LogSearch"
+          },
+          {
+            "id": 5,
+            "from": "LogSearch",
+            "to": "Return",
+            "type": "label",
+            "label": "LogSearch to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "EmbedQuestion",
+            "name": "EmbedQuestion",
+            "description": "Embed the question with the same model used at ingestion (one chunk, one vector).",
+            "activity": {
+              "ref": "#chunkandembeddocuments",
+              "settings": {
+                "contentSource": "Text",
+                "fileEncoding": "UTF-8",
+                "maxFileSizeMB": 25,
+                "onFileError": "Skip",
+                "chunkingStrategy": "Recursive",
+                "chunkSize": 1500,
+                "chunkOverlap": 0,
+                "delimiterIsRegex": false,
+                "separators": "",
+                "delimiter": "",
+                "markdownHeadingLevel": 2,
+                "minChunkSize": 0,
+                "embeddingProvider": "OpenAI",
+                "embeddingModel": "text-embedding-3-small",
+                "dimensions": 0,
+                "requestTimeoutSeconds": 30
+              },
+              "input": {
+                "text": "=$flow.queryParams.q",
+                "documentId": "query",
+                "apiKey": "=$property[\"AgenticAI.OpenAI_LLMProvider.API_Key\"]",
+                "baseUrl": "=$property[\"AgenticAI.OpenAI_LLMProvider.Embedding_Base_URL\"]",
+                "filePaths": {
+                  "mapping": []
+                }
+              },
+              "schemas": {
+                "input": {
+                  "filePaths": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+                  }
+                },
+                "output": {
+                  "embeddings": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"index\":{\"type\":\"number\"},\"text\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"startOffset\":{\"type\":\"number\"},\"endOffset\":{\"type\":\"number\"},\"charCount\":{\"type\":\"number\"},\"headings\":{\"type\":\"array\",\"items\":{}},\"metadata\":{\"type\":\"object\",\"properties\":{}},\"embedding\":{\"type\":\"array\",\"items\":{}},\"dimensions\":{\"type\":\"number\"}}}}",
+                    "fe_metadata": "[{\"id\": \"\", \"index\": 0, \"text\": \"\", \"source\": \"\", \"startOffset\": 0, \"endOffset\": 0, \"charCount\": 0, \"headings\": [], \"metadata\": {}, \"embedding\": [], \"dimensions\": 0}]"
+                  },
+                  "skippedFiles": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}",
+                    "fe_metadata": "[{\"path\": \"\", \"reason\": \"\"}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "VectorSearch",
+            "name": "VectorSearch",
+            "description": "Cosine-similarity search over telecore_policy_kb.embedding using the query embedding.",
+            "type": "iterator",
+            "settings": {
+              "iterate": "=$activity[EmbedQuestion].embeddings",
+              "accumulate": false,
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectorsearch",
+              "settings": {
+                "asConnection": "conn://7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e01",
+                "tableName": "telecore_policy_kb",
+                "vectorColumn": "embedding",
+                "similarityFunction": "Cosine"
+              },
+              "input": {
+                "filter": "",
+                "maxResults": "=$property[\"Search.Max_Results\"]",
+                "minScore": "=$property[\"Search.Min_Score\"]",
+                "queryTimeoutInSeconds": 0,
+                "queryVector": "=coerce.toArray($iteration[value].embedding)"
+              },
+              "schemas": {
+                "input": {
+                  "queryVector": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"number\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"number\"\r\n  }\r\n}\r\n"
+                  }
+                },
+                "output": {
+                  "rows": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"string\"},\"embedding\":{\"type\":\"array\",\"items\":{}},\"score\":{\"type\":\"number\"}}}}",
+                    "fe_metadata": "[{\"key\": \"\", \"content\": \"\", \"metadata\": \"\", \"embedding\": [], \"score\": 0}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ProjectMatches",
+            "name": "ProjectMatches",
+            "description": "Project the matching rows to {key, content, source, score} - drop the raw vectors.",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": {
+                  "mapping": {
+                    "matches": {
+                      "@foreach($activity[VectorSearch].rows,row)": {
+                        "key": "=$loop.key",
+                        "content": "=$loop.content",
+                        "source": "=$loop.metadata",
+                        "score": "=$loop.score"
+                      }
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"score\":{\"type\":\"number\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"score\":{\"type\":\"number\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogSearch",
+            "name": "LogSearch",
+            "description": "Log the match count",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=\"[search] \\\"\" + $flow.queryParams.q + \"\\\" -> \" + coerce.toString($activity[VectorSearch].rowCount) + \" match(es)\"",
+                "logLevel": "",
+                "loggerName": "",
+                "fieldPrefix": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return the ranked matches",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "query": "=$flow.queryParams.q",
+                      "matchCount": "=$activity[VectorSearch].rowCount",
+                      "matches": "=$activity[ProjectMatches].output.matches"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjYwLCJ5Ijo4MH0sIkVtYmVkUXVlc3Rpb24iOnsieCI6MjUwLCJ5Ijo4MH0sIlZlY3RvclNlYXJjaCI6eyJ4Ijo0NDAsInkiOjgwfSwiUHJvamVjdE1hdGNoZXMiOnsieCI6NjMwLCJ5Ijo4MH0sIkxvZ1NlYXJjaCI6eyJ4Ijo4MjAsInkiOjgwfSwiUmV0dXJuIjp7IngiOjEwMTAsInkiOjgwfX0=",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "queryParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"q\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"query\":{\"type\":\"string\"},\"matchCount\":{\"type\":\"integer\"},\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"score\":{\"type\":\"number\"}}}}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"queryParams\":{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}},\"required\":[]}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"},\"matchCount\":{\"type\":\"integer\"},\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"score\":{\"type\":\"number\"}}}}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:RetirePolicyDocument",
+      "data": {
+        "name": "RetirePolicyDocument",
+        "description": "Retire a superseded policy: VectorDelete (Filter) removes every chunk whose metadata names the document. documentId must match ^[A-Za-z0-9-]{3,40}$ - it is validated before it is put into the filter.",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "DeleteDocumentChunks",
+            "type": "expression",
+            "label": "StartActivity to DeleteDocumentChunks",
+            "value": "string.matchRegEx(\"^[A-Za-z0-9-]{3,40}$\", $flow.pathParams.documentId)"
+          },
+          {
+            "id": 2,
+            "from": "DeleteDocumentChunks",
+            "to": "LogDelete",
+            "type": "label",
+            "label": "DeleteDocumentChunks to LogDelete"
+          },
+          {
+            "id": 3,
+            "from": "LogDelete",
+            "to": "Return",
+            "type": "label",
+            "label": "LogDelete to Return"
+          },
+          {
+            "id": 4,
+            "from": "StartActivity",
+            "to": "Rejected",
+            "type": "expression",
+            "label": "StartActivity to Rejected",
+            "value": "!string.matchRegEx(\"^[A-Za-z0-9-]{3,40}$\", $flow.pathParams.documentId)"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "DeleteDocumentChunks",
+            "name": "DeleteDocumentChunks",
+            "description": "Delete by filter: metadata LIKE '%<documentId>%' (documentId already validated).",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectordelete",
+              "settings": {
+                "asConnection": "conn://7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e01",
+                "deleteBy": "Filter",
+                "tableName": "telecore_policy_kb"
+              },
+              "input": {
+                "filter": "=\"metadata LIKE '%\" + $flow.pathParams.documentId + \"%'\""
+              },
+              "schemas": {
+                "input": {
+                  "keys": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogDelete",
+            "name": "LogDelete",
+            "description": "Log the delete count",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=\"[retire] \" + $flow.pathParams.documentId + \": \" + coerce.toString($activity[DeleteDocumentChunks].rowCount) + \" chunk(s) deleted\"",
+                "logLevel": "",
+                "loggerName": "",
+                "fieldPrefix": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return the delete count",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "status": "RETIRED",
+                      "documentId": "=$flow.pathParams.documentId",
+                      "rowsDeleted": "=$activity[DeleteDocumentChunks].rowCount",
+                      "message": "All chunks for this document were removed from the vector store."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "Rejected",
+            "name": "Rejected",
+            "description": "Reject an unsafe documentId before it can reach the filter",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 400,
+                  "data": {
+                    "mapping": {
+                      "status": "REJECTED",
+                      "documentId": "=$flow.pathParams.documentId",
+                      "rowsDeleted": 0,
+                      "message": "documentId must be 3-40 characters of letters, digits and '-'."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjYwLCJ5Ijo4MH0sIkRlbGV0ZURvY3VtZW50Q2h1bmtzIjp7IngiOjI1MCwieSI6ODB9LCJMb2dEZWxldGUiOnsieCI6NDQwLCJ5Ijo4MH0sIlJldHVybiI6eyJ4Ijo2MzAsInkiOjgwfSwiUmVqZWN0ZWQiOnsieCI6ODIwLCJ5Ijo4MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "pathParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"documentId\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"status\":{\"type\":\"string\"},\"documentId\":{\"type\":\"string\"},\"rowsDeleted\":{\"type\":\"integer\"},\"message\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"pathParams\":{\"type\":\"object\",\"properties\":{\"documentId\":{\"type\":\"string\"}},\"required\":[]}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"documentId\":{\"type\":\"string\"},\"rowsDeleted\":{\"type\":\"integer\"},\"message\":{\"type\":\"string\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:DeleteChunksByKey",
+      "data": {
+        "name": "DeleteChunksByKey",
+        "description": "Remove individual chunks by primary key: VectorDelete (Key). Body: {\"keys\": [\"<key from /policy/search>\", ...]}",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "DeleteByKeys",
+            "type": "label",
+            "label": "StartActivity to DeleteByKeys"
+          },
+          {
+            "id": 2,
+            "from": "DeleteByKeys",
+            "to": "LogDelete",
+            "type": "label",
+            "label": "DeleteByKeys to LogDelete"
+          },
+          {
+            "id": 3,
+            "from": "LogDelete",
+            "to": "Return",
+            "type": "label",
+            "label": "LogDelete to Return"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "DeleteByKeys",
+            "name": "DeleteByKeys",
+            "description": "Delete the listed primary keys.",
+            "settings": {
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectordelete",
+              "settings": {
+                "asConnection": "conn://7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e01",
+                "deleteBy": "Key",
+                "tableName": "telecore_policy_kb"
+              },
+              "input": {
+                "filter": "",
+                "keys": {
+                  "mapping": {
+                    "@foreach($flow.body.keys,k)": {
+                      "=": "$loop"
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "input": {
+                  "keys": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "LogDelete",
+            "name": "LogDelete",
+            "description": "Log the keys submitted",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=\"[chunks/delete] submitted \" + coerce.toString(array.count($flow.body.keys)) + \" key(s)\"",
+                "logLevel": "",
+                "loggerName": "",
+                "fieldPrefix": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "Return",
+            "name": "Return",
+            "description": "Return the number of keys submitted",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "code": 200,
+                  "data": {
+                    "mapping": {
+                      "status": "DELETED",
+                      "keysSubmitted": "=$activity[DeleteByKeys].rowCount"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjYwLCJ5Ijo4MH0sIkRlbGV0ZUJ5S2V5cyI6eyJ4IjoyNTAsInkiOjgwfSwiTG9nRGVsZXRlIjp7IngiOjQ0MCwieSI6ODB9LCJSZXR1cm4iOnsieCI6NjMwLCJ5Ijo4MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "body",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"keys\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "code",
+              "type": "integer"
+            },
+            {
+              "name": "data",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"status\":{\"type\":\"string\"},\"keysSubmitted\":{\"type\":\"integer\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"ReceiveHTTPMessage\",\"properties\":{\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"body\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}}}",
+            "output": "{\"type\":\"object\",\"title\":\"Inputs\",\"properties\":{\"code\":{\"type\":\"integer\"},\"data\":{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\"},\"keysSubmitted\":{\"type\":\"integer\"}}}},\"required\":[]}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:SearchTelecomPolicies",
+      "data": {
+        "name": "SearchTelecomPolicies",
+        "description": "Tool: semantic search over the TeleCore policy library (ChunkAndEmbed -> VectorSearch).",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "LogQuestion",
+            "type": "label",
+            "label": "StartActivity to LogQuestion"
+          },
+          {
+            "id": 2,
+            "from": "LogQuestion",
+            "to": "EmbedQuestion",
+            "type": "label",
+            "label": "LogQuestion to EmbedQuestion"
+          },
+          {
+            "id": 3,
+            "from": "EmbedQuestion",
+            "to": "VectorSearch",
+            "type": "label",
+            "label": "EmbedQuestion to VectorSearch"
+          },
+          {
+            "id": 4,
+            "from": "VectorSearch",
+            "to": "ProjectMatches",
+            "type": "expression",
+            "label": "VectorSearch to ProjectMatches",
+            "value": "$activity[VectorSearch].rowCount > 0"
+          },
+          {
+            "id": 5,
+            "from": "ProjectMatches",
+            "to": "ReturnMatches",
+            "type": "label",
+            "label": "ProjectMatches to ReturnMatches"
+          },
+          {
+            "id": 6,
+            "from": "VectorSearch",
+            "to": "ReturnNoMatch",
+            "type": "expression",
+            "label": "VectorSearch to ReturnNoMatch",
+            "value": "$activity[VectorSearch].rowCount == 0"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "LogQuestion",
+            "name": "LogQuestion",
+            "description": "Log the tool call",
+            "activity": {
+              "ref": "#log",
+              "input": {
+                "Log Level": "INFO",
+                "flowInfo": false,
+                "message": "=\"[agent tool] SearchTelecomPolicies: \" + $flow.toolParams.question",
+                "logLevel": "",
+                "loggerName": "",
+                "fieldPrefix": ""
+              },
+              "schemas": {
+                "input": {
+                  "dynamicLogFields": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"fields\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}}}}"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "EmbedQuestion",
+            "name": "EmbedQuestion",
+            "description": "Embed the agent's search query.",
+            "activity": {
+              "ref": "#chunkandembeddocuments",
+              "settings": {
+                "contentSource": "Text",
+                "fileEncoding": "UTF-8",
+                "maxFileSizeMB": 25,
+                "onFileError": "Skip",
+                "chunkingStrategy": "Recursive",
+                "chunkSize": 1500,
+                "chunkOverlap": 0,
+                "delimiterIsRegex": false,
+                "separators": "",
+                "delimiter": "",
+                "markdownHeadingLevel": 2,
+                "minChunkSize": 0,
+                "embeddingProvider": "OpenAI",
+                "embeddingModel": "text-embedding-3-small",
+                "dimensions": 0,
+                "requestTimeoutSeconds": 30
+              },
+              "input": {
+                "text": "=$flow.toolParams.question",
+                "documentId": "agent-query",
+                "apiKey": "=$property[\"AgenticAI.OpenAI_LLMProvider.API_Key\"]",
+                "baseUrl": "=$property[\"AgenticAI.OpenAI_LLMProvider.Embedding_Base_URL\"]",
+                "filePaths": {
+                  "mapping": []
+                }
+              },
+              "schemas": {
+                "input": {
+                  "filePaths": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"string\"\r\n  }\r\n}\r\n"
+                  }
+                },
+                "output": {
+                  "embeddings": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"index\":{\"type\":\"number\"},\"text\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"startOffset\":{\"type\":\"number\"},\"endOffset\":{\"type\":\"number\"},\"charCount\":{\"type\":\"number\"},\"headings\":{\"type\":\"array\",\"items\":{}},\"metadata\":{\"type\":\"object\",\"properties\":{}},\"embedding\":{\"type\":\"array\",\"items\":{}},\"dimensions\":{\"type\":\"number\"}}}}",
+                    "fe_metadata": "[{\"id\": \"\", \"index\": 0, \"text\": \"\", \"source\": \"\", \"startOffset\": 0, \"endOffset\": 0, \"charCount\": 0, \"headings\": [], \"metadata\": {}, \"embedding\": [], \"dimensions\": 0}]"
+                  },
+                  "skippedFiles": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"reason\":{\"type\":\"string\"}}}}",
+                    "fe_metadata": "[{\"path\": \"\", \"reason\": \"\"}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "VectorSearch",
+            "name": "VectorSearch",
+            "description": "Cosine-similarity search over telecore_policy_kb.embedding using the query embedding.",
+            "type": "iterator",
+            "settings": {
+              "iterate": "=$activity[EmbedQuestion].embeddings",
+              "accumulate": false,
+              "retryOnError": {
+                "count": 0,
+                "interval": 0
+              }
+            },
+            "activity": {
+              "ref": "#vectorsearch",
+              "settings": {
+                "asConnection": "conn://7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e01",
+                "tableName": "telecore_policy_kb",
+                "vectorColumn": "embedding",
+                "similarityFunction": "Cosine"
+              },
+              "input": {
+                "filter": "",
+                "maxResults": "=$property[\"Search.Max_Results\"]",
+                "minScore": "=$property[\"Search.Min_Score\"]",
+                "queryTimeoutInSeconds": 0,
+                "queryVector": "=coerce.toArray($iteration[value].embedding)"
+              },
+              "schemas": {
+                "input": {
+                  "queryVector": {
+                    "type": "json",
+                    "value": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"number\"\r\n  }\r\n}\r\n",
+                    "fe_metadata": "{\r\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\r\n  \"type\": \"array\",\r\n  \"items\": {\r\n    \"type\": \"number\"\r\n  }\r\n}\r\n"
+                  }
+                },
+                "output": {
+                  "rows": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"metadata\":{\"type\":\"string\"},\"embedding\":{\"type\":\"array\",\"items\":{}},\"score\":{\"type\":\"number\"}}}}",
+                    "fe_metadata": "[{\"key\": \"\", \"content\": \"\", \"metadata\": \"\", \"embedding\": [], \"score\": 0}]"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ProjectMatches",
+            "name": "ProjectMatches",
+            "description": "Project the matching rows to {key, content, source, score} - drop the raw vectors.",
+            "activity": {
+              "ref": "#mapper",
+              "input": {
+                "input": {
+                  "mapping": {
+                    "matches": {
+                      "@foreach($activity[VectorSearch].rows,row)": {
+                        "key": "=$loop.key",
+                        "content": "=$loop.content",
+                        "source": "=$loop.metadata",
+                        "score": "=$loop.score"
+                      }
+                    }
+                  }
+                }
+              },
+              "schemas": {
+                "output": {
+                  "output": {
+                    "type": "json",
+                    "value": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"score\":{\"type\":\"number\"}}}}}}",
+                    "fe_metadata": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"},\"source\":{\"type\":\"string\"},\"score\":{\"type\":\"number\"}}}}}}"
+                  }
+                }
+              },
+              "feSchemaMap": {}
+            }
+          },
+          {
+            "id": "ReturnMatches",
+            "name": "ReturnMatches",
+            "description": "Return the passages to the agent as JSON text",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "=coerce.toString($activity[ProjectMatches].output)",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "ReturnNoMatch",
+            "name": "ReturnNoMatch",
+            "description": "Tell the agent nothing relevant was found",
+            "activity": {
+              "ref": "#actreturn",
+              "settings": {
+                "mappings": {
+                  "response": {
+                    "mapping": {
+                      "data": "{\"matches\":[],\"note\":\"NO_MATCHING_POLICY - no published policy passage is relevant to this question.\"}",
+                      "error": ""
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjYwLCJ5Ijo4MH0sIkxvZ1F1ZXN0aW9uIjp7IngiOjI1MCwieSI6ODB9LCJFbWJlZFF1ZXN0aW9uIjp7IngiOjQ0MCwieSI6ODB9LCJWZWN0b3JTZWFyY2giOnsieCI6NjMwLCJ5Ijo4MH0sIlByb2plY3RNYXRjaGVzIjp7IngiOjgyMCwieSI6ODB9LCJSZXR1cm5NYXRjaGVzIjp7IngiOjEwMTAsInkiOjgwfSwiUmV0dXJuTm9NYXRjaCI6eyJ4IjoxMjAwLCJ5Ijo4MH19",
+        "metadata": {
+          "input": [
+            {
+              "name": "toolParams",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"question\":{\"type\":\"string\",\"description\":\"The customer's question rephrased as a self-contained policy search query, e.g. 'roaming data rate per GB in Japan'\"}}"
+              }
+            }
+          ],
+          "output": [
+            {
+              "name": "response",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}"
+              }
+            }
+          ],
+          "fe_metadata": {
+            "input": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"toolParams\":{\"type\":\"object\",\"properties\":{\"question\":{\"type\":\"string\",\"description\":\"The customer's question rephrased as a self-contained policy search query, e.g. 'roaming data rate per GB in Japan'\"}},\"required\":[\"question\"]}}}",
+            "output": "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\",\"properties\":{\"response\":{\"type\":\"object\",\"properties\":{\"data\":{\"type\":\"string\"},\"error\":{\"type\":\"string\"}}}}}"
+          }
+        }
+      }
+    },
+    {
+      "id": "flow:ChatWithPolicyAssistant",
+      "data": {
+        "name": "ChatWithPolicyAssistant",
+        "description": "WebSocket message -> Invoke AI Agent (TelecomPolicyAssistant) -> write the answer back to the socket",
+        "links": [
+          {
+            "id": 1,
+            "from": "StartActivity",
+            "to": "AskPolicyAssistant",
+            "type": "label",
+            "label": "StartActivity to AskPolicyAssistant"
+          },
+          {
+            "id": 2,
+            "from": "AskPolicyAssistant",
+            "to": "WebsocketWriteData",
+            "type": "label",
+            "label": "AskPolicyAssistant to WebsocketWriteData"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "StartActivity",
+            "name": "StartActivity",
+            "description": "NoOp Activity",
+            "activity": {
+              "ref": "#noop"
+            }
+          },
+          {
+            "id": "AskPolicyAssistant",
+            "name": "AskPolicyAssistant",
+            "description": "Invoke the TelecomPolicyAssistant agent. conversationId = the WebSocket connection key, so each chat window keeps its own memory.",
+            "activity": {
+              "ref": "#callagent",
+              "input": {
+                "agentName": "TelecomPolicyAssistant",
+                "prompt": "=coerce.toString($flow.content)",
+                "structuredOutput": false,
+                "conversationId": "=$flow.headers[\"Sec-Websocket-Key\"]"
+              }
+            }
+          },
+          {
+            "id": "WebsocketWriteData",
+            "name": "WebsocketWriteData",
+            "description": "Send the agent's answer back to the chat client",
+            "activity": {
+              "ref": "#wswritedata",
+              "settings": {
+                "format": "String",
+                "jsonSchema": ""
+              },
+              "input": {
+                "message": "=$activity[AskPolicyAssistant].response",
+                "wsconnection": "=$flow.wsconnection"
+              }
+            }
+          }
+        ],
+        "fe_metadata": "eyJTdGFydEFjdGl2aXR5Ijp7IngiOjYwLCJ5Ijo4MH0sIkFza1BvbGljeUFzc2lzdGFudCI6eyJ4IjoyNTAsInkiOjgwfSwiV2Vic29ja2V0V3JpdGVEYXRhIjp7IngiOjQ0MCwieSI6ODB9fQ==",
+        "metadata": {
+          "input": [
+            {
+              "name": "pathParams",
+              "type": "params"
+            },
+            {
+              "name": "queryParams",
+              "type": "params"
+            },
+            {
+              "name": "headers",
+              "type": "object",
+              "schema": {
+                "type": "json",
+                "value": "{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}}"
+              }
+            },
+            {
+              "name": "content",
+              "type": "any"
+            },
+            {
+              "name": "wsconnection",
+              "type": "any"
+            }
+          ],
+          "output": [],
+          "fe_metadata": {
+            "input": "{\"type\":\"object\",\"title\":\"WebsocketServer\",\"properties\":{\"pathParams\":{\"type\":\"params\"},\"queryParams\":{\"type\":\"params\"},\"headers\":{\"type\":\"object\",\"properties\":{\"Accept\":{\"type\":\"string\",\"visible\":false},\"Accept-Charset\":{\"type\":\"string\",\"visible\":false},\"Accept-Encoding\":{\"type\":\"string\",\"visible\":false},\"Content-Type\":{\"type\":\"string\",\"visible\":false},\"Content-Length\":{\"type\":\"string\",\"visible\":false},\"Connection\":{\"type\":\"string\",\"visible\":false},\"Cookie\":{\"type\":\"string\",\"visible\":false},\"Pragma\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Key\":{\"type\":\"string\",\"visible\":false},\"Sec-Websocket-Version\":{\"type\":\"string\",\"visible\":false},\"Upgrade\":{\"type\":\"string\",\"visible\":false}},\"required\":[]},\"content\":{\"type\":\"any\",\"required\":false},\"wsconnection\":{\"type\":\"any\",\"required\":false}}}"
+          }
+        }
+      }
+    }
+  ],
+  "properties": [
+    {
+      "name": "ActiveSpaces.PolicyVectorStore.Grid_URL",
+      "type": "string",
+      "value": "http://localhost:52080"
+    },
+    {
+      "name": "ActiveSpaces.PolicyVectorStore.Grid_Name",
+      "type": "string",
+      "value": "_default"
+    },
+    {
+      "name": "ActiveSpaces.PolicyVectorStore.Username",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "ActiveSpaces.PolicyVectorStore.Password",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "AgenticAI.OpenAI_LLMProvider.LLM_Provider",
+      "type": "string",
+      "value": "OpenAI"
+    },
+    {
+      "name": "AgenticAI.OpenAI_LLMProvider.API_Key",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "AgenticAI.OpenAI_LLMProvider.LLM_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "AgenticAI.OpenAI_LLMProvider.Embedding_Base_URL",
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "Search.Max_Results",
+      "type": "float64",
+      "value": 5
+    },
+    {
+      "name": "Search.Min_Score",
+      "type": "float64",
+      "value": 0.25
+    },
+    {
+      "name": "Trigger_Settings.AgentName",
+      "type": "string",
+      "value": "TelecomPolicyAssistant"
+    },
+    {
+      "name": "Trigger_Settings.AgentDescription",
+      "type": "string",
+      "value": "Answers TeleCore customer-care policy questions from the policy library, with citations."
+    },
+    {
+      "name": "Trigger_Settings.LLM_Model",
+      "type": "string",
+      "value": "gpt-5.5"
+    },
+    {
+      "name": "Trigger_Settings.Token_Limit",
+      "type": "float64",
+      "value": 8192
+    },
+    {
+      "name": "Trigger_Settings.Rate_Limit",
+      "type": "float64",
+      "value": 20
+    }
+  ],
+  "connections": {
+    "7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e01": {
+      "id": "7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e01",
+      "name": "PolicyVectorStore",
+      "ref": "#as",
+      "isGlobal": false,
+      "settings": {
+        "name": "PolicyVectorStore",
+        "description": "ActiveSpaces 5.2 grid holding the telecore_policy_kb vector table",
+        "gridUrl": "=$property[\"ActiveSpaces.PolicyVectorStore.Grid_URL\"]",
+        "useTrustFile": false,
+        "trustFile": "",
+        "gridName": "=$property[\"ActiveSpaces.PolicyVectorStore.Grid_Name\"]",
+        "username": "=$property[\"ActiveSpaces.PolicyVectorStore.Username\"]",
+        "password": "=$property[\"ActiveSpaces.PolicyVectorStore.Password\"]"
+      }
+    },
+    "7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e02": {
+      "id": "7c1e5a90-3b2d-4f6a-9e41-2a9d0c7b5e02",
+      "name": "OpenAI_LLMProvider",
+      "ref": "#llmprovider",
+      "isGlobal": false,
+      "settings": {
+        "name": "OpenAI_LLMProvider",
+        "description": "OpenAI - used for the agent's chat model; the same key embeds chunks and queries.",
+        "llmProvider": "=$property[\"AgenticAI.OpenAI_LLMProvider.LLM_Provider\"]",
+        "anthropicProvider": "Default",
+        "apiKey": "=$property[\"AgenticAI.OpenAI_LLMProvider.API_Key\"]",
+        "llmProviderUrl": "=$property[\"AgenticAI.OpenAI_LLMProvider.LLM_Base_URL\"]",
+        "azureDeployment": "",
+        "azureRegion": "",
+        "azureResourceName": "",
+        "azureApiVersion": ""
+      }
+    }
+  },
+  "contrib": "W3sicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1nZW5lcmFsL3NyYy9hcHAvR2VuZXJhbCIsImlkIjoiR2VuZXJhbCIsInZlcnNpb24iOiIxLjYuMTgiLCJ0YWciOiIxLjYuMTgtYjU5MSIsIm5hbWUiOiJHZW5lcmFsIiwiczNsb2NhdGlvbiI6IlRpYmNvL0dlbmVyYWwiLCJpc1VzZXJFeHRlbnNpb24iOmZhbHNlfSx7InJlZiI6ImdpdGh1Yi5jb20vdGliY28vZmxvZ28tYWktYWdlbnQvc3JjL2FwcC9BZ2VudGljQUkiLCJpZCI6IkFnZW50aWNBSSIsInZlcnNpb24iOiIwLjkuNSIsInRhZyI6IjAuOS41LWIxNSIsIm5hbWUiOiJBZ2VudGljIEFJIChUZWNoIFByZXZpZXcpIiwiczNsb2NhdGlvbiI6IlRpYmNvL0FnZW50aWNBSSIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9LHsicmVmIjoiZ2l0aHViLmNvbS90aWJjby9mbG9nby1hY3RpdmVzcGFjZXMvc3JjL2FwcC9BY3RpdmVTcGFjZXMiLCJpZCI6IkFjdGl2ZVNwYWNlcyIsInZlcnNpb24iOiIxLjEuMCIsInRhZyI6IjEuMS4wLWIxMiIsIm5hbWUiOiJUSUJDTyBBY3RpdmVTcGFjZXMiLCJzM2xvY2F0aW9uIjoiVGliY28vQWN0aXZlU3BhY2VzIiwiaXNVc2VyRXh0ZW5zaW9uIjpmYWxzZX0seyJyZWYiOiJnaXRodWIuY29tL3Byb2plY3QtZmxvZ28vd2Vic29ja2V0IiwiaWQiOiJ3ZWJzb2NrZXQiLCJ2ZXJzaW9uIjoiMS4wLjIiLCJ0YWciOiIxLjAuMi1iMDMiLCJuYW1lIjoiV2Vic29ja2V0IiwiczNsb2NhdGlvbiI6IlRpYmNvL3dlYnNvY2tldCIsImlzVXNlckV4dGVuc2lvbiI6ZmFsc2V9XQ==",
+  "metadata": {
+    "endpoints": [
+      {
+        "protocol": "http",
+        "port": "9740",
+        "title": "ReceiveHTTPMessage",
+        "type": "public"
+      },
+      {
+        "protocol": "http",
+        "port": "9741",
+        "title": "WebsocketServer",
+        "type": "public"
+      }
+    ],
+    "flogoVersion": "2.26.9"
+  }
+}
