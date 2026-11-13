@@ -50,7 +50,7 @@ Each skill below lists **what it does**, **how to invoke it**, a **template prom
 
 These are the command references the agent leans on. You'll usually trigger them indirectly (a recipe skill defers to them), but you can also ask for a single CLI action directly.
 
-#### `fda` — Flogo Design Assistant CLI &nbsp;<sub>(skill identifier: `flogo-design-assistant`)</sub>
+#### `fda` — Flogo Design Assistant CLI
 
 - **What it does:** The full command reference for creating and modifying `.flogo` files — projects, flows, triggers, activities, connections, schemas, app properties, and mappings. Almost every other skill defers to this one for the underlying `fda` commands.
 - **How to invoke it:** Describe a `.flogo` structural change in natural language and the agent pulls this reference in automatically. You rarely call it on its own.
@@ -163,7 +163,7 @@ Step-by-step workflows that chain several CLI steps into one outcome.
 
 - **Auto-discovery.** The agent always keeps each skill's `name` and `description` in context. When your request matches a skill's description, the agent opens and follows that skill automatically — you don't have to name it. (Ask *"deploy this app to my dataplane"* and it reaches for `flogo-deploy`.)
 - **When they apply.** The skills live under `.claude/skills/` and apply whenever that folder is on the path from your open workspace. In a Marketplace-seeded project the skills sit at the repo root, so they apply everywhere. In **this hub repo** they live under `skills-library/.claude/skills/`, so they apply when you're working on files under `skills-library/` — open `skills-library/` as your workspace to have them apply repo-wide. The project conventions in `AGENT.md` / `CLAUDE.md` load the same way.
-- **Explicit invocation.** Because they're all user-invocable, you can also trigger one deliberately: type `/` in Claude Code to see the list and select a skill, or just name it in your prompt (*"use the fda-mapping skill to …"*). The identifier shown is the skill's `name` from its frontmatter — which matches the folder name for every skill **except two**: the `fda/` folder's skill is named **`flogo-design-assistant`**, and the `tibcop/` folder's skill is named **`tibco-platform-cli`**.
+- **Explicit invocation.** Because they're all user-invocable, you can also trigger one deliberately: type `/` in Claude Code to see the list and select a skill, or just name it in your prompt (*"use the fda-mapping skill to …"*). The identifier shown is the skill's `name` from its frontmatter — which matches the folder name for every skill **except one**: the `tibcop/` folder's skill is named **`tibco-platform-cli`**.
 - **What they need.** A skill only runs its CLI steps once the tools and `config.md` are set up (see [Required Tools](#required-tools) and [Configurable Defaults](#configurable-defaults)). Without `config.md`, the agent will ask you to create it from the template first.
 
 ---

@@ -1,10 +1,10 @@
 ---
 name: fda
-description: A command line tool to create and modify TIBCO Flogo Integration Applications (both Flogo 2.x and Flogo 3.x)
+description: fda (Flogo Design Assistant, the flogodesign-cli bundled in the TIBCO Flogo VS Code extension) — a command line tool to create and modify TIBCO Flogo Integration Applications (both Flogo 2.x and Flogo 3.x)
 user-invocable: true
 ---
 
-# Flogo Design CLI (fda) — Flogo 2.x and 3.x app development
+# fda (Flogo Design Assistant) — Flogo 2.x and 3.x app development
 
 Everything in this skill applies to **both Flogo 2.x and Flogo 3.x** apps unless a line explicitly
 says otherwise.
@@ -20,6 +20,11 @@ report CLI version) before using this skill.
 
 `AGENT.md` owns locating the binary and reporting its version. By the time this skill runs, `$FDA`
 holds the full path to `flogodesign-cli.exe`. If it does not, go do that first — do not guess a path.
+
+**Invoking the CLI:** in this skill and every other skill, `fda …` in examples is shorthand for
+`"$FDA" …` — the quoted, resolved path. Always run `"$FDA" …`. Never run a bare `fda`, and never rely
+on the persistent `fda` shell function from AGENT.md: it always picks the newest **2.x** install and
+ignores the Flogo version and CLI you chose.
 
 ## 2. Global options (apply to every task)
 
@@ -50,6 +55,10 @@ structure, and read it directly.
   for cross-type creation: `-T 2x`/`-T 2` from a 3.x CLI, `-T 3x`/`-T 3` from a 2.x CLI.
 - **Never pass `-f` on `create-project`.** The path's shape overrides the version (`app.fgmd` → 3.x,
   `.flogo` → 2.x, plain name → 2.x).
+- **Run `create-project` from inside the apps folder (`FLOGO_APPS_DIR`).** Without `-f`, `cp` creates the
+  project in the *current directory*. Run it from the repo root and the app lands outside the apps folder, so
+  every later `-f <FLOGO_APPS_DIR>/…` command points at a file that doesn't exist. `cd` into the folder first
+  (create it if missing): `mkdir -p "<FLOGO_APPS_DIR>" && cd "<FLOGO_APPS_DIR>" && "$FDA" cp <name> "<description>"`.
 - **Always pass `-f` on every later command.** Without it, read-only tasks fail, and tasks that write
   silently auto-create the default project.
 
@@ -69,6 +78,8 @@ structure, and read it directly.
 - **Format after adding activities.** `create-activity` and `cms` place items at a default position that overlaps
   existing activities in the designer. Run `format-flow <flow-name> auto` after adding activities (`--all` after
   `cms`) to fix the layout.
+  Afterwards, confirm `fda dp -f <app>` still lists every activity (older CLIs could drop some, e.g.
+  `actreturn`); if any are missing, restore the file and skip `format-flow`.
 - **Validate after mutating.** `check-mappings`, `check`, `analyze-project` — after the change, not
   only at the very end.
 - **Report with `describe-project`.**
@@ -514,7 +525,10 @@ The field name is `data` — **not** `responseBody` or `message`.
 `wth` can't add a schema to these fields, so add it in three steps:
 
 1. `fda sa handler "<trigger>.<handler>.schemas.output.<field>" --jsonFile <schema.json> --force -f <app>`
-2. `fda wth "<flow>" "<trigger>.<handler>" --force -f <app>` (add `--input <field>:array` if the field is a list), and note every input field and type it prints
+2. `fda wth "<flow>" "<trigger>.<handler>" --force -f <app>` and note every input field and type it prints.
+   If `<field>` is a list, re-run with `--input` listing **every** field from that output, changing only
+   `<field>` to `array` (e.g. `--input <fieldA>:<typeA>,<field>:array,<fieldB>:<typeB>`). `--input` replaces
+   the whole input list — passing `<field>:array` alone drops the trigger's other inputs.
 3. `fda sms "<flow>.input" --json-schema '<schema>' -f <app>`, where the schema lists **every** field from step 2 with its type and gives the full schema only to `<field>`. Fields left out are removed from the flow.
 
 - **Check the field's real type before step 2:** FDA's default type can be wrong (e.g. SQS `Message` is a list, not an object). Confirm it from the trigger's output in the designer, and if it's a list, map the whole field (`$flow.<field>`), not `$flow.<field>.<child>`.
@@ -682,12 +696,15 @@ every build. The rules below cover the failures most likely to bite:
   Flogo expression engine parses `[N]` as a resolver reference, not array indexing. Always use
   `array.get(arr, N)` instead. Example:
   `=array.get(json.jq($activity[Source].output.catalog, ".[] | select(.code == \"P001\")"), 0)`
-- **Prefer simple direct mappings.** Add a function only when a type conversion is needed (`coerce.toXxx()`), never to reshape data on your own (e.g. `array.get`).
+- **Prefer simple direct mappings.** Use a function when the user asks for a transformation (e.g. `json.jq`, `string.*`, `utils.uuid()`) or a type mismatch needs `coerce.toXxx()` — never add one on your own to reshape data (e.g. wrapping a field in `array.get` when a direct mapping works).
 - **`flow.metadata.input` and `flow.metadata.output` must be arrays of `{"name","type","value"}`
   descriptors** — not nested objects. The UI calls `.reduce()` on them; a non-array causes
   `e.reduce is not a function`. Correct:
   `fda sa flow "Flow1.metadata" --jsonValue '{"output":[{"name":"result","type":"object","value":null}]}'`
-- **Schema-typed or object fields on non-mapper activities (including Return/actreturn outputs) need `.mapping.` in the child path.** When a
+- **Schema-typed or object fields on non-mapper activities need `.mapping.` in the child path.** When a
   non-mapper activity has a schema bound via `sms --field <fieldName>`, map children as
   `<flow>.<activity>.input.<field>.mapping.<child>` — not `input.<field>.<child>`. Without
   `.mapping.`, children collapse into a JSON blob on the parent.
+  **Return (`actreturn`) is different:** its outputs live under `mappings`, so map an object output's children as
+  `<flow>.<Return>.input.mappings.<output>.mapping.<child>`. The generic `input.<output>.mapping.<child>`
+  path reports success and passes `cm`, but writes outside the returned values.

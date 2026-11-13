@@ -111,6 +111,12 @@ Grouped by **Industry → Sub-category**, mirroring the [folders in this directo
 |---|---|
 | [Real Estate — Lead Engagement Assistant](./Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case/) | Verified buyer and seller leads of fictional brokerage Brightpath Realty search listings (filters applied in SQL) and check showings, their agent and market statistics: an agent ranks listings against the buyer's own words; showings are booked in two confirmed steps (slot and double-booking rules enforced in SQL) and move the lead to Active; an agent reads a lead's plans and SQL sets how soon their agent calls; another catches Fair-Housing-sensitive questions so they are answered neutrally. Offers, list-price changes, contract updates and legal or mortgage questions go to sales-agent and compliance reviewers, who decide them in the same chatbot. |
 
+#### Education & Non-Profit → Education & Charities
+
+| Use Case | What it does |
+|---|---|
+| [Higher Education — Student Services Assistant](./Education_Non_Profit/Education_Charities/Student_Services_Use_Case/) | Verified students of fictional Northfield State University check holds, courses, grades and their account, find a section (a course-advisor agent ranks the sections SQL already marked eligible against the student's own words), and add or drop courses, set up a payment plan or pay a late fee - every change two-step, with prerequisites, seats, credit limits, refunds and fees decided in SQL. Late-drop refund appeals, fee waivers, hardship grants and grade disputes are briefed by an appeal-triage agent and decided by staff reviewers in the same chat, within approval limits enforced in SQL. Flogo 3.x. |
+
 ### BW6 + Flogo samples
 
 TIBCO BusinessWorks 6 + Flogo "Better Together" samples are kept under [`BW6_Flogo_Samples/`](../BW6_Flogo_Samples/) — BW6 apps provide the domain APIs / MCP tools and Flogo does the AI orchestration.

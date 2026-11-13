@@ -10,7 +10,7 @@ user-invocable: true
 
 The `mapping` task category in `fda` mirrors the Flogo VSCode mapping UI. Every field you can map in the UI's "Activity inputs" panel is reachable from the CLI; every source you can drag from the "Available data" panel has a dedicated discovery task.
 
-This skill is the practical "how do I map X" reference. For the broader CLI surface see the `flogo-design-assistant` skill.
+This skill is the practical "how do I map X" reference. For the broader CLI surface see the `fda` skill.
 
 ## What you can map
 

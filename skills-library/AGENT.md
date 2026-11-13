@@ -136,7 +136,7 @@ Once `$FDA` is resolved, use the **`fda`** skill ([.claude/skills/fda/SKILL.md](
 
 Add the function below to your shell startup file so `fda` is available in every terminal session.
 
-> These aliases are a **convenience for interactive use**: they always run the newest **Flogo 2.x** install (`tibco.flogo-*` does not match `tibco.flogo3-*`). For Flogo 3.x, or to target a specific install, use the discovery steps above.
+> These aliases are a **convenience for interactive use**: they always run the newest **Flogo 2.x** install (`tibco.flogo-*` does not match `tibco.flogo3-*`). For Flogo 3.x, or to target a specific install, use the discovery steps above. **Agents must not use this function** — always invoke the resolved binary as `"$FDA" …`; a bare `fda` in a skill example is shorthand for `"$FDA"`.
 
 | OS | Shell | File |
 |---|---|---|
@@ -186,6 +186,7 @@ function fda {
 
 - Always work with Flogo applications inside the apps folder named by `FLOGO_APPS_DIR` in `config.md` — resolved **relative to `config.md`** (default `../../Flogo_Apps` → `skills-library/Flogo_Apps/`, the one physical folder that is identical whether the repo root or `skills-library/` is the open workspace). Do not create apps at the `skills-library/` root or the repo root.
 - Always pass `-f` on every `fda` command except `create-project`: `-f <FLOGO_APPS_DIR>/<AppName>.flogo` for Flogo 2.x, `-f <FLOGO_APPS_DIR>/<AppName>` (the project folder) for Flogo 3.x.
+- Run `create-project` from **inside** the `FLOGO_APPS_DIR` folder: it takes no `-f` and creates the project in the current directory, so running it from the repo root puts the app outside the apps folder. `mkdir -p "<FLOGO_APPS_DIR>" && cd "<FLOGO_APPS_DIR>" && "$FDA" cp <AppName> "<description>"`.
 - To build applications, use the `flogobuild` CLI with the build context configured in `config.md` (`FLOGOBUILD_CONTEXT_NAME`).
 - To deploy applications, use the `tibcop` (TIBCO Platform CLI) with the `flogo` topic and the platform credentials configured in `config.md` (`CP_URL`, `TIBCOP_TOKEN`, `DATAPLANE_NAME`).
 
