@@ -1,6 +1,6 @@
 ---
 name: agentic-ai-use-case-builder
-description: "Build ANY Agentic AI use case, demo, or chatbot on TIBCO Flogo® — a real-time WebSocket chatbot backed by three apps: an MCP Server (read tools), an A2A Agents app (reasoning/action agents), and a WebSocket AI Orchestrator, all PostgreSQL-backed. This is THE canonical builder for any vertical (telecom, airline, hospital, banking, retail, insurance, logistics, utilities, scholarly publishing, …). Governed by default: it first asks the user discovery questions (business goal, audience/region, persona, identity, reads, actions and their rules, the fuzzy step, human-owned requests, demo storyline, runtime model) for anything not already provided, then runs the Agentic AI decision framework (human-owned vs. agent vs. deterministic), then enforces identity, scoping, prices and state changes in PostgreSQL — not in prompts — with scoped reads (FROM rule_fn(token)), guarded writes (INSERT … SELECT rule_fn → 0 rows when blocked), two-step propose/confirm for state changes, routed human-review cases that a staff reviewer decides in the same chatbot (team scope and approval limit enforced in SQL), session-token identity, per-connection conversation memory, minimised read-only A2A agents, and a four-step test ladder (SQL rules → static validator → MCP smoke → chat e2e with prompt injection). TWO build methods, and the skill ASKS which: the Flogo Design CLI (`fda`) built from scratch (the RECOMMENDED DEFAULT), or cloning a governed reference `.flogo` and swapping fields. Use when the user asks to build/create/scaffold an agentic AI use case, demo, chatbot, chat assistant, customer-service assistant/agent/bot, service assistant, or \"MCP + A2A + orchestrator\" solution for any domain (even in plain, non-technical wording such as \"build a retail banking chat assistant\" or \"a mobile customer-service bot\"), or when an agent must act on a user's own records, money or state."
+description: "Build ANY Agentic AI use case, demo, or chatbot on TIBCO Flogo® (Flogo 2.x `.flogo` apps or Flogo 3.x `app.fgmd` projects — same drivers, validators and tests) — a real-time WebSocket chatbot backed by three apps: an MCP Server (read tools), an A2A Agents app (reasoning/action agents), and a WebSocket AI Orchestrator, all PostgreSQL-backed. This is THE canonical builder for any vertical (telecom, airline, hospital, banking, retail, insurance, logistics, utilities, scholarly publishing, …). Governed by default: it first asks the user discovery questions (business goal, audience/region, persona, identity, reads, actions and their rules, the fuzzy step, human-owned requests, demo storyline, runtime model) for anything not already provided, then runs the Agentic AI decision framework (human-owned vs. agent vs. deterministic), then enforces identity, scoping, prices and state changes in PostgreSQL — not in prompts — with scoped reads (FROM rule_fn(token)), guarded writes (INSERT … SELECT rule_fn → 0 rows when blocked), two-step propose/confirm for state changes, routed human-review cases that a staff reviewer decides in the same chatbot (team scope and approval limit enforced in SQL), session-token identity, per-connection conversation memory, minimised read-only A2A agents, and a four-step test ladder (SQL rules → static validator → MCP smoke → chat e2e with prompt injection). TWO build methods, and the skill ASKS which: the Flogo Design CLI (`fda`) built from scratch (the RECOMMENDED DEFAULT), or cloning a governed reference `.flogo` and swapping fields. Use when the user asks to build/create/scaffold an agentic AI use case, demo, chatbot, chat assistant, customer-service assistant/agent/bot, service assistant, or \"MCP + A2A + orchestrator\" solution for any domain (even in plain, non-technical wording such as \"build a retail banking chat assistant\" or \"a mobile customer-service bot\"), or when an agent must act on a user's own records, money or state."
 user-invocable: true
 metadata:
   author: Flogo Skills Author <author@example.com>
@@ -157,13 +157,39 @@ Both methods build the same governed 3-app pattern, and **the user chooses which
   activities — `vectorStoreCreate`/`fileUpload`/`fileList`/`vectorSearch` have no `fda` recipe, so cloning a
   proven sample is the reliable path).
 
-Present the choice, recommend FDA-CLI (default), and note the clone exception. **Either way the governance
+Present the choice, recommend FDA-CLI (default), and note the clone exception. **Flogo 3.x is FDA-CLI only** —
+the reference samples are all 2.x `.flogo` files, so for a 3.x build don't offer clone-and-adapt; say why. **Either way the governance
 layer is non-negotiable** — the governance SQL, the static validator, and the full 4-step test ladder apply
 to a cloned build exactly as to an FDA build. Then follow **Phase 4A** (FDA) or **Phase 4B** (clone)
 accordingly. (Do not silently pick a method — a build cloned without asking once shipped a hand-built
 trigger with designer-only errors.)
 
 ### Phase 0: environment
+**Resolve `fda`, decide the Flogo version, then export both.** Follow `skills-library/AGENT.md` →
+"Resolving the `fda` CLI": the user names the version, or a modified app's files decide it (`.flogo` = 2.x,
+`app.fgmd` folder = 3.x), or — new app, version not stated, both extensions installed — **ask "Flogo 2.x or
+Flogo 3.x?"** (only one family installed → use it). This skill builds **both**: the same drivers, validators and
+test ladder serve 2.x and 3.x. Then, in the same shell, **before** `preflight.py` or any `_rebuild/*.py` driver:
+
+```bash
+export FDA="<chosen flogodesign-cli path>"   # drivers use $FDA first; their own discovery is only a fallback
+export FLOGO_TYPE=2x                          # or 3x - the app format; unset = the CLI's own version
+```
+
+| | Flogo 2.x (`FLOGO_TYPE=2x`) | Flogo 3.x (`FLOGO_TYPE=3x`) |
+|---|---|---|
+| Each app on disk | `<App>.flogo` (one JSON file) | `<App>/` project folder: `app.fgmd`, `app.fgprops`, `flows/`, `connections/`, `triggers/`, `schemas/` |
+| Connection binding written | `conn://<uuid>` | `conn://<Name>.fgconn` |
+| Live secrets (Phase 6 scrub) | `properties[].value` in the `.flogo` | `profiles.<name>` in `app.fgprops` |
+| Validators / `fda cm -f` take | the `.flogo` file | the project folder |
+| Build method | FDA-CLI **or** clone-and-adapt | **FDA-CLI only** — every reference sample is 2.x, so there is nothing to clone |
+
+Either CLI can create either format: `fda_common.App` passes `-T <FLOGO_TYPE>` and, for 3.x, creates the
+project with `-f <dir>/<App>/app.fgmd` — the `-f` path's shape decides the format, and a bare `-f <dir>/<App>`
+silently creates a single-file app even with `-T 3x` (`App` fails the build if `app.fgmd` is missing).
+`App.load()` reads 2.x from the file and 3.x through `fda da any --json` (fda's merged project view, the same
+shape and `#alias` refs as a `.flogo`), so driver self-checks and the validators run unchanged on both.
+
 **Preflight first.** Run `python templates/preflight.py --need db` (from this skill's folder) BEFORE
 Phase 1 discovery — it checks what design + the SQL rule tests need (`fda`, config.md, Python 3.9+,
 `psql` + a PostgreSQL connection). If it fails, stop and tell the user exactly what to install (see
@@ -286,7 +312,8 @@ human routing and session identity come from the SQL in `database.sql` / `tool_s
 load, and Phase 5 runs the same 4-step ladder regardless.
 
 ### Phase 5: verify (the testing ladder, all four steps)
-Step 1 `test_rules.py` → step 2 `validate_governed_apps.py --local` + `fda cm -f` for each app →
+Step 1 `test_rules.py` → step 2 `validate_governed_apps.py --local` + `fda cm -f` for each app (pass the
+`.flogo` files for 2.x, the project folders for 3.x) →
 build the exes in a scratch folder outside the repo → step 3 `mcp_smoke.py` → step 3b `a2a_smoke.py`
 (Agents app started with `FLOGO_LOG_LEVEL=DEBUG`) → reset the DB → step 4 `chat_e2e.py` with `A2A_LOG` set. The user asking for an end-to-end test counts as the explicit
 request to build binaries. Otherwise, stop at step 2 and say so.
@@ -294,6 +321,9 @@ request to build binaries. Otherwise, stop at step 2 and say so.
 **Only when the user asked for the full ladder:** right before building the exes / running the chat e2e,
 run `python templates/preflight.py --need build,chat` (`flogobuild` + build context + the Go runtime,
 Node.js + `websocket-client`). If it fails, stop after step 2 and tell the user what to install.
+**Flogo 3.x:** building a 3.x project folder into an exe has not been verified with `flogobuild` yet. Try it
+(`flogobuild build-exe -f <App>/` with a context built from the 3.x extension `.vsix`); if it can't build the
+folder, stop after step 2 and report that steps 3–4 were skipped for that reason — never report them green.
 
 **Run the cheap steps first and fix everything there, then run the expensive e2e once.** Steps 1–2 use
 no LLM and no binaries — make them fully green (and confirm the runtime model from Phase 0) before you
@@ -306,7 +336,8 @@ runtime model, a wrong assertion, or a non-ASCII console crash each force a full
 2. **Leave the live secrets in place** so the user can keep running the apps. Scrub them **only when the
    user asks to commit**: surgical text replacement (never round-trip through `json.dump`, which reorders
    keys and rewrites unicode). API key → `sk-REPLACE-WITH-YOUR-OPENAI-KEY`, DB password →
-   `SET_YOUR_DB_PASSWORD`, plus email passwords and personal email addresses.
+   `SET_YOUR_DB_PASSWORD`, plus email passwords and personal email addresses. For a 3.x app, the values
+   live in `<App>/app.fgprops` (`profiles.*`), not in `app.fgmd` — scrub every profile there.
 3. Delete the scratch exes and `.flogo` copies.
 4. Check the path rules in [industry-taxonomy.md](references/industry-taxonomy.md) (longest path, forbidden
    characters). At commit time only: run `validate_governed_apps.py` **without** `--local` (G9 becomes an

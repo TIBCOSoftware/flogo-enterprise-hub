@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ---------------------------------------------------------------------------
-# HOW THIS BUILDS THE APP: this script generates the .flogo application with the
+# HOW THIS BUILDS THE APP: this script generates the Flogo application (2.x .flogo or 3.x project) with the
 # TIBCO Flogo Design CLI (fda / flogodesign-cli), driven programmatically through
 # the App wrapper in fda_common.py. It issues fda subcommands (create the app,
 # triggers, flows and activities; set schemas, connections, app properties and
@@ -28,7 +28,7 @@
 #
 # No secrets here: credentials are read at RUN time from config.md / env (see fda_common.py).
 # =============================================================================
-"""Build PassengerServicesAIOrchestrator.flogo with fda only.
+"""Build the PassengerServicesAIOrchestrator app (Flogo 2.x or 3.x, per FLOGO_TYPE) with fda only.
 WebSocket trigger -> AI Agent (MCP tools + rebooking_options_agent over A2A) -> WebSocket write.
 Per-connection memory: conversationId = the connection's Sec-Websocket-Key, so travellers never share a conversation.
 One chatbot, two personas: travellers verify with verify_traveller, staff reviewers with verify_reviewer (the role comes
@@ -37,7 +37,7 @@ Re-run:  python _rebuild/build_orchestrator.py      (OUT_DIR=<empty dir> to repl
 import json, os, re, sys
 from fda_common import App, jtmp
 
-app = App("PassengerServicesAIOrchestrator.flogo", os.environ.get("OUT_DIR"))
+app = App("PassengerServicesAIOrchestrator", os.environ.get("OUT_DIR"))   # 2.x .flogo / 3.x folder (FLOGO_TYPE)
 f = app.fda
 WS_PORT, WS_PATH = "9850", "/passengerservices"
 MCP_URL = "http://localhost:9852/passenger-services-gov-mcp"

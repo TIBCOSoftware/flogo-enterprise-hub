@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ---------------------------------------------------------------------------
-# HOW THIS BUILDS THE APP: this script generates the .flogo application with the
+# HOW THIS BUILDS THE APP: this script generates the Flogo application (2.x .flogo or 3.x project) with the
 # TIBCO Flogo Design CLI (fda / flogodesign-cli), driven programmatically through
 # the App wrapper in fda_common.py. It issues fda subcommands (create the app,
 # triggers, flows and activities; set schemas, connections, app properties and
@@ -28,7 +28,7 @@
 #
 # No secrets here: credentials are read at RUN time from config.md / env (see fda_common.py).
 # =============================================================================
-"""Build PassengerServicesMCPServer.flogo with fda only (governed: scoped reads + guarded writes).
+"""Build the PassengerServicesMCPServer app (Flogo 2.x or 3.x, per FLOGO_TYPE) with fda only (governed: scoped reads + guarded writes).
 The email tool is special: it reads a SQL-validated payload, then sends to the configured ops inbox
 (recipient = To_Email app property, exactly like the original airline sample); the SQL decides the content
 and the reported outcome, so an unauthorised call carries no booking details.
@@ -39,7 +39,7 @@ from tool_spec import TOOLS, reviewer_tools_filled
 if not reviewer_tools_filled():
     sys.exit("fill in tool_spec.REVIEWER_TOOL_SPECS / HIDDEN_COLUMNS (the reviewer loop placeholders) first")
 
-app = App("PassengerServicesMCPServer.flogo", os.environ.get("OUT_DIR"))
+app = App("PassengerServicesMCPServer", os.environ.get("OUT_DIR"))   # 2.x .flogo / 3.x folder (FLOGO_TYPE)
 f = app.fda
 TRIG, PORT, ENDPOINT = "PassengerServicesMCPServer", "9852", "/passenger-services-gov-mcp"
 

@@ -57,6 +57,7 @@ End-to-end, PostgreSQL-backed chat assistants that apply the same governed **thr
 | [Publishing — Author Services Assistant](./Agentic_AI/Industry_Use_Cases/Media_Travel/Media_Publishing/Scholarly_Publishing_Author_Services_Use_Case/) | Media & Travel → Media & Publishing |
 | [Aerospace & Defense — MRO AOG Operations Assistant](./Agentic_AI/Industry_Use_Cases/Aerospace_Defense/Defense_Space/Aerospace_MRO_AOG_Operations_Use_Case/) | Aerospace & Defense → Defense & Space |
 | [Real Estate — Lead Engagement Assistant](./Agentic_AI/Industry_Use_Cases/Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case/) | Real Estate → Residential Brokerage |
+| [Higher Education — Student Services Assistant](./Agentic_AI/Industry_Use_Cases/Education_Non_Profit/Education_Charities/Student_Services_Use_Case/) | Education & Non-Profit → Education & Charities |
 
 #### BW6 + Flogo samples
 

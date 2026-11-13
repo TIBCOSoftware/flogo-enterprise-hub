@@ -40,10 +40,11 @@ git grep -nE '\b9[89][0-9]{2}\b' -- 'samples/*.flogo' 'samples/*.md' | grep -iE 
 | 9940 | 9940 | 9942 | 9943–9945 | `Energy_Utilities/Electric_Gas_Utilities_Grid/Electric_Utility_Outage_Billing_Use_Case` (3 agents) | `power_distribution_governed` |
 | 9950 | 9950 | 9952 | 9953–9955 | `Energy_Utilities/Oil_Gas/Oilfield_Asset_Health_Monitoring_Use_Case` (3 agents) | `predictive_maintenance_governed` |
 | 9960 | 9960 | 9962 | 9963–9965 | `Real_Estate/Residential_Brokerage/Real_Estate_Lead_Engagement_Use_Case` (3 agents) | `realestate_governed` |
+| 9970 | 9970 | 9972 | 9973–9974 | `Education_Non_Profit/Education_Charities/Student_Services_Use_Case` (2 agents) | `student_services_governed` |
 
 ## Next free blocks
 
-`9800`, `9830`, `9970`. **Avoid** `9880` (Feature_Samples `Agent-Privilege-IDs`) and `9990`
+`9800`, `9830`. **Avoid** `9880` (Feature_Samples `Agent-Privilege-IDs`) and `9990`
 (Feature_Samples `9998`) while those apps exist.
 
 ## Known overlaps (documented, re-port later)

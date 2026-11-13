@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ---------------------------------------------------------------------------
-# HOW THIS BUILDS THE APP: this script generates the .flogo application with the
+# HOW THIS BUILDS THE APP: this script generates the Flogo application (2.x .flogo or 3.x project) with the
 # TIBCO Flogo Design CLI (fda / flogodesign-cli), driven programmatically through
 # the App wrapper in fda_common.py. It issues fda subcommands (create the app,
 # triggers, flows and activities; set schemas, connections, app properties and
@@ -28,7 +28,7 @@
 #
 # No secrets here: credentials are read at RUN time from config.md / env (see fda_common.py).
 # =============================================================================
-"""Build <Prefix>Agents.flogo with fda only: up to THREE read-only A2A reasoning agents in one app.
+"""Build the <Prefix>Agents app (Flogo 2.x .flogo or 3.x project folder, per FLOGO_TYPE) with fda only: up to THREE read-only A2A reasoning agents in one app.
 
 Each agent is an agent because its step is semantic (free text vs. rows). The orchestrator passes it minimised
 data only - never a name, account/person id, email, phone, case id or session token - and none of them can write.
@@ -56,11 +56,11 @@ from tool_spec import AGENT_REF_TOOLS, ref_tools_filled
 if not ref_tools_filled():
     sys.exit("fill in tool_spec.AGENT_REF_TOOLS (and AGENTS below) first - they still hold <placeholders>")
 
-APP_FILE = "<Prefix>Agents.flogo"
+APP_NAME = "<Prefix>Agents"                     # Flogo 2.x -> <Prefix>Agents.flogo, 3.x -> <Prefix>Agents/ (FLOGO_TYPE)
 APP_DESC = "<Org> governed A2A agents - <agent_a>, <agent_b>, <agent_c> (read-only, no identity)"
 ORG = "<Org>"                                   # fictional organisation name, e.g. "Bellmont Regional Medical Center"
 
-app = App(APP_FILE, os.environ.get("OUT_DIR"))
+app = App(APP_NAME, os.environ.get("OUT_DIR"))
 f = app.fda
 REF = {t["agent"]: t for t in AGENT_REF_TOOLS}
 
@@ -110,7 +110,7 @@ Reply in exactly this shape and nothing else:
 ]
 
 print("== project + connections ==")
-f("cp", APP_FILE.rsplit(".", 1)[0], APP_DESC)
+f("cp", app.name, APP_DESC)
 app.llm_connection()                     # OpenAIConn + LLM_Model; key from env/config.md, empty base URL = ""
 app.postgres_connection()                # PostgresConn (same server/DB/user as the MCP server) - reference tables only
 for a in AGENTS:
@@ -200,12 +200,13 @@ for a in AGENTS:
     if not task: problems.append(f"{a['name']} ReadReference missing"); continue
     inp = task["activity"].get("input", {})
     if inp.get("Query") != T["read"][0]: problems.append(f"{a['name']} query")
-    if inp.get("Connection") != app.conn_ref("PostgresConn"): problems.append(f"{a['name']} connection")
+    if not app.is_conn(inp.get("Connection"), "PostgresConn"): problems.append(f"{a['name']} connection")
     if (inp.get("input", {}).get("mapping", {}).get("parameters") or {}) != {"lookup": "=$flow.toolParams.term"}:
         problems.append(f"{a['name']} parameter mapping")
 if "New_value" in json.dumps(d): problems.append("New_value present")
-if sorted(c.get("ref") for c in (d.get("connections") or {}).values()) != ["#con_llmprovider", "#con_postgresql"]:
-    problems.append("connections: " + str(sorted(c.get("ref") for c in (d.get("connections") or {}).values())))
+conns = sorted(c.get("name") for c in (d.get("connections") or {}).values())    # by name: same in 2.x and 3.x
+if conns != ["OpenAIConn", "PostgresConn"]:
+    problems.append("connections: " + str(conns))
 if problems:
     sys.exit("SELF-CHECK FAILED: " + "; ".join(problems))
 print("  self-check ok")
