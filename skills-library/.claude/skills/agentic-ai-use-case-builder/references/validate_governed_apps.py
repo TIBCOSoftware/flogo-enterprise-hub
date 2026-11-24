@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Pre-ship validator for GOVERNED Agentic AI .flogo apps (agentic-ai-use-case-builder skill).
+"""Pre-ship validator for GOVERNED Agentic AI Flogo apps (agentic-ai-use-case-builder skill) - Flogo 2.x
+.flogo files or 3.x project folders (read via the base validator's load_app: `fda da any --json`).
 
 Runs the base validator from the co-located ./validate_flogo_apps.py (PostgreSQL mapping
 integrity, password fields, A2A toolParams) and then the governance checks this skill adds:
@@ -12,7 +13,8 @@ integrity, password fields, A2A toolParams) and then the governance checks this 
   G3 PROMPTS         no prompt tells the model to filter/compute/decide what SQL owns, or to hide being an AI.
   G4 TEMPERATURE     0 (= parameter omitted, provider default). A non-zero value is sent to the provider and is
                      rejected by gpt-5.x / Claude 4.7+; determinism belongs in SQL, not in sampling.
-  G5 CONN REFS       every conn://<id> anywhere in the app resolves to a connection in the same app.
+  G5 CONN REFS       every conn://<id> (2.x) / conn://<Name>.fgconn (3.x) anywhere in the app resolves to a
+                     connection in the same app.
   G6 NO New_value    the literal fda placeholder text never survives into an app.
   G7 WEBSOCKET       tr_wsserver handler headers schema is INLINE {"type":"json","value":...}; a schema:// ref
                      yields no headers at runtime. Its fe_metadata is the designer's [{"parameterName":...}] list
@@ -45,10 +47,13 @@ integrity, password fields, A2A toolParams) and then the governance checks this 
                      decide_review_case but never asks for an explicit "confirm".
 
 Usage:  python validate_governed_apps.py [--local] A.flogo [B.flogo ...]      exit 1 on any error
+        python validate_governed_apps.py [--local] AppDirA [AppDirB ...]       (Flogo 3.x project folders)
 """
 import json, os, re, subprocess, sys
 
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validate_flogo_apps.py")
+sys.path.insert(0, os.path.dirname(BASE))
+from validate_flogo_apps import load_app, is_3x              # 2.x .flogo JSON or 3.x merged project view
 PASSWORD_PLACEHOLDERS = {"", "SET_YOUR_DB_PASSWORD"}
 BAD_PROMPT = [
     (r"filter (the )?(results|rows|records) (yourself|by)", "tells the model to filter rows - scope them in SQL"),
@@ -81,7 +86,7 @@ def walk(o):
 
 def check(path, local):
     errs, warns = [], []
-    d = json.load(open(path, encoding="utf-8"))
+    d = load_app(path)
     kinds = pg_alias_refs(d)
     writing_flows = set()
 
@@ -139,8 +144,9 @@ def check(path, local):
                                 errs.append(f"G7 {f2}.{t['id']}: conversationId reads header {key!r} but the handler headers "
                                             f"schema does not declare it - the designer flags it and the runtime never passes it")
 
-    conn_ids = {c.get("id") for c in (d.get("connections", {}).values() if isinstance(d.get("connections"), dict)
-                                      else d.get("connections", []))}
+    conns = list(d.get("connections", {}).values() if isinstance(d.get("connections"), dict) else d.get("connections", []))
+    # 2.x binds conn://<uuid> only; 3.x binds conn://<Name>.fgconn (regex below stops at the dot) or conn://<uuid>
+    conn_ids = {c.get("id") for c in conns} | ({c.get("name") for c in conns} if is_3x(path) else set())
     for sval in walk({k: v for k, v in d.items() if k != "connections"}):
         for cid in re.findall(r"conn://([\w-]+)", sval):
             if cid not in conn_ids: errs.append(f"G5 conn://{cid} does not resolve to a connection in this app")
@@ -171,12 +177,19 @@ def check(path, local):
     check_reviewer_loop(d, kinds, errs, warns)
 
     sec = warns if local else errs
-    for p in d.get("properties", []):
-        v = str(p.get("value", ""))
+    values = [(p["name"], p.get("value", ""), "property") for p in d.get("properties", [])]
+    if is_3x(path):   # 3.x keeps values per profile in app.fgprops; the merged view shows only one - scan them all
+        fgprops = os.path.join(path if os.path.isdir(path) else os.path.dirname(os.path.abspath(path)), "app.fgprops")
+        if os.path.isfile(fgprops):
+            with open(fgprops, encoding="utf-8") as fh:
+                profiles = json.load(fh).get("data", {}).get("profiles", {})
+            values += [(n, v, f"profile '{prof}' property") for prof, vals in profiles.items() for n, v in vals.items()]
+    for name, v, where in values:
+        v = str(v)
         if re.search(r"sk-(?!REPLACE)[A-Za-z0-9_-]{20,}", v):
-            sec.append(f"G9 property {p['name']}: real-looking API key - scrub to sk-REPLACE-WITH-YOUR-OPENAI-KEY")
-        if p["name"].lower().endswith("password") and v not in PASSWORD_PLACEHOLDERS and not v.startswith("SECRET:"):
-            sec.append(f"G9 property {p['name']}: non-placeholder password - scrub to SET_YOUR_DB_PASSWORD")
+            sec.append(f"G9 {where} {name}: real-looking API key - scrub to sk-REPLACE-WITH-YOUR-OPENAI-KEY")
+        if name.lower().endswith("password") and v not in PASSWORD_PLACEHOLDERS and not v.startswith("SECRET:"):
+            sec.append(f"G9 {where} {name}: non-placeholder password - scrub to SET_YOUR_DB_PASSWORD")
     return errs, warns
 
 # Names that mark a read as identity/customer-scoped - an A2A agent never gets those (minimised input, no identity).

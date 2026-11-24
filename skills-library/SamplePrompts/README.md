@@ -15,11 +15,6 @@ Use these as templates for rapid app creation, noting any manual post-prompt ste
 > - Table name should be BookStore.
 > - Don't update file manually, use fda only.
 
-**Manual steps needed to run the app end to end:**
-
-- Trigger handlers created via FDA CLI have an unnecessary `body:object` on GET/DELETE and a missing `schemas` block (causes nil pointer panic) -- click **Sync** on trigger handler in VS Code to fix both.
-- SQL query activities with prepared parameters (e.g. `?BookId`) get collapsed into a JSON literal on `input.input` by `fda mm` (make-mapping) -- manually set the leaf-level parameter mapping in app.
-
 ---
 
 ## Sample Prompt 2 — REST + SQL Server with @foreach Mapper
@@ -32,10 +27,6 @@ Use these as templates for rapid app creation, noting any manual post-prompt ste
 > - Use a Mapper with `@foreach` to transform SQL result records into a response array.
 > - Don't update file manually, use fda only.
 
-**Manual steps needed to run the app end to end:**
-
-- Trigger handlers created via FDA CLI have an unnecessary `body:object` on GET/DELETE and a missing `schemas` block (causes nil pointer panic) -- click **Sync** on trigger handler in VS Code to fix both.
-
 ---
 
 ## Sample Prompt 3 — App Properties + Trigger Port Binding
@@ -44,10 +35,6 @@ Use these as templates for rapid app creation, noting any manual post-prompt ste
 
 > - Create a simple Flogo application with multiple app properties of different data types (e.g., string, integer, boolean), each initialized with sample values. Then demonstrate using those properties within the app's flow.
 > - Add `Port` as app property and pass value as `8765` and bind it in REST Trigger.
-
-**Manual steps needed to run the app end to end:**
-
-- Trigger handlers created via FDA CLI have an unnecessary `body:object` on GET/DELETE and a missing `schemas` block (causes nil pointer panic) -- click **Sync** on trigger handler in VS Code to fix both.
 
 ---
 
@@ -69,10 +56,6 @@ Use these as templates for rapid app creation, noting any manual post-prompt ste
 > - In Queue URL dropdown, bind the app property available for it and also add message attributes that we added previously in activity.
 > - Add Log message activity in flow and in message field map Message field from trigger flow output.
 > - No direct file update.
-
-**Manual steps needed to run the app end to end:**
-
-- Trigger handlers created via FDA CLI have an unnecessary `body:object` on GET/DELETE and a missing `schemas` block (causes nil pointer panic) -- click **Sync** on trigger handler in VS Code to fix both.
 
 ---
 
@@ -115,10 +98,6 @@ Use these as templates for rapid app creation, noting any manual post-prompt ste
 > - Create a Flogo app "DemoRestApp" with a flow "GetPostFlow" and add a REST trigger (GET, path `/api/getpost`).
 > - Add an Invoke REST Service activity that calls `https://jsonplaceholder.typicode.com/posts/1` using GET method with a response schema having fields: `userId` (integer), `id` (integer), `title` (string), `body` (string).
 > - Add a Log Message activity to log the title from the response. Map the invoke response to the trigger reply.
-
-**Manual steps needed to run the app end to end:**
-
-- Trigger handlers created via FDA CLI have an unnecessary `body:object` on GET/DELETE and a missing `schemas` block (causes nil pointer panic) -- click **Sync** on trigger handler in VS Code to fix both.
 
 ---
 
@@ -201,3 +180,18 @@ Use these as templates for rapid app creation, noting any manual post-prompt ste
 ### Prompt 13b — Insert Mapper Activity
 
 > Add a Mapper activity between the Log and Return activities to transform the order data before returning it.
+
+---
+
+## Sample Prompt 14 — REST POST API with path and query parameters and mapping an array
+
+**Prompt:**
+
+> - Create a Flogo app called "OrderIntakeApp".
+> - Expose a REST API that accepts POST requests on /orders/{customerId}, where customerId identifies the customer placing the order. The API also accepts an optional query parameter "channel" (for example "web" or "mobile").
+> - The request body contains: orderId (string), orderDate (string), and items (array of objects), where each item has sku (string), quantity (number) and price (number).
+> - Use a Mapper to build the response with: customerId, channel, orderId, and a list of items with renamed fields — productCode (from sku), units (from quantity) and unitPrice (from price).
+> - Return the mapped response with HTTP status 200.
+> - Don't update files manually, use fda only.
+
+

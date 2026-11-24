@@ -116,10 +116,12 @@ another project. If the folder can't be found, the skills will ask you to point 
 |---|---|---|
 | FLOGODESIGN_CLI_PATH | `<path-to-flogodesign-cli>` | fallback only — fda is discovered dynamically |
 | FLOGODESIGN_CLI_VERSION | `<output of fda version>` | reference only |
+| FLOGO_TYPE | `<2x or 3x>` | optional standing default for the agentic builder's drivers (env `FLOGO_TYPE` wins; unset = the resolved CLI's own version) |
 
 > The extension folder name is **version-specific** — do not hardcode it. The scripts and the `fda`
 > alias in [../../README.md](../../README.md) discover the newest
-> `~/.vscode*/extensions/tibco.flogo-*/bin/flogodesign-cli[.exe]` automatically; set this row only if
+> `~/.vscode*/extensions/tibco.flogo-*/bin/flogodesign-cli[.exe]` (the scripts also fall back to
+> `tibco.flogo3-*`) automatically; an exported `FDA` overrides both. Set this row only if
 > discovery fails (e.g. a non-standard VS Code install).
 
 ---

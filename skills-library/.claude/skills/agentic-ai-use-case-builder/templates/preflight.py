@@ -117,28 +117,48 @@ def check_platform():
         add("WARN", "Git Bash", "bash not found on PATH (the skills' shell snippets are bash)",
             "install Git for Windows (https://git-scm.com/download/win) and run the skills from Git Bash")
 
-def find_fda():
-    """Same lookup as _rebuild/fda_common.py / AGENT.md: env FDA > `fda` on PATH > newest tibco.flogo-* extension."""
-    if os.environ.get("FDA"): return os.environ["FDA"], ""
-    p = shutil.which("fda")
-    if p: return p, ""
+def fda_candidates():
+    """Every installed flogodesign-cli, as (path, family '2x'|'3x', version). Same globs as AGENT.md Step 1."""
     exe = "flogodesign-cli.exe" if os.name == "nt" else "flogodesign-cli"
     home = os.path.expanduser("~")
+    out = []
     for ext_dir in (".vscode", ".vscode-insiders", ".vscode-server"):
-        hits = glob.glob(os.path.join(home, ext_dir, "extensions", "tibco.flogo-*", "bin", exe))
+        for family, pat in (("2x", "tibco.flogo-2.*"), ("3x", "tibco.flogo3-*")):
+            for p in glob.glob(os.path.join(home, ext_dir, "extensions", pat, "bin", exe)):
+                m = re.search(r"tibco\.flogo3?-(\d+\.\d+\.\d+)", p)
+                out.append((p, family, m.group(1) if m else ""))
+    return out
+
+def find_fda():
+    """Same lookup as _rebuild/fda_common.py: env FDA (the CLI resolved per AGENT.md - the skill exports it) >
+    installed extensions (2.x preferred: this builder produces 2.x .flogo apps; a 3.x CLI creates them
+    cross-type) > `fda` on PATH > config.md FLOGODESIGN_CLI_PATH.  Returns (path, family, version, all candidates)."""
+    cands = fda_candidates()
+    env = os.environ.get("FDA")
+    if env:
+        for p, fam, ver in cands:
+            if os.path.normcase(os.path.abspath(p)) == os.path.normcase(os.path.abspath(env)): return env, fam, ver, cands
+        return env, "", "", cands
+    for family in ("2x", "3x"):
+        hits = [c for c in cands if c[1] == family]
         if hits:
-            best = max(hits, key=os.path.getmtime)
-            m = re.search(r"tibco\.flogo-(\d+\.\d+\.\d+)", best)
-            return best, (m.group(1) if m else "")
+            p, fam, ver = max(hits, key=lambda c: os.path.getmtime(c[0]))
+            return p, fam, ver, cands
+    p = shutil.which("fda")
+    if p: return p, "", "", cands
     p = cfg("FLOGODESIGN_CLI_PATH")
-    if p and os.path.exists(p): return p, ""
-    return "", ""
+    if p and os.path.exists(p): return p, "", "", cands
+    return "", "", "", cands
 
 def check_fda():
     hint = ("install VS Code + the TIBCO Flogo VS Code extension 2.26.7+ (" + TIBCO_DL + " or "
             "https://marketplace.visualstudio.com/items?itemName=tibco.flogo) - fda (flogodesign-cli) ships inside "
             "the extension; nothing separate to install")
-    path, ext_ver = find_fda()
+    path, family, ext_ver, cands = find_fda()
+    if not os.environ.get("FDA") and len(cands) > 1:
+        add("WARN", "fda selection", f"{len(cands)} Flogo extensions installed; FDA is not set, so the newest "
+            f"{'2.x' if family == '2x' else '3.x'} one was picked",
+            'resolve the CLI per AGENT.md ("Resolving the fda CLI") and run: export FDA="<chosen flogodesign-cli path>"')
     found = bool(path) and (os.path.exists(path) or bool(shutil.which(path)))
     if not check(found, True, "fda (flogodesign-cli)", (path + " (does not exist)") if path and not found else (path or "not found"), hint):
         return
@@ -146,7 +166,10 @@ def check_fda():
     ok = rc == 0 and "version" in out.lower()
     detail = f"{first_line(out)} | {path}"
     check(ok, True, "fda version", detail, hint)
-    if ok and ext_ver:
+    if ok and family == "3x":
+        add("OK", "Flogo VS Code extension", f"3.x {ext_ver} - the agentic builder produces Flogo 2.x .flogo apps; "
+            "the 3.x CLI creates them cross-type")
+    elif ok and ext_ver:
         vt = version_tuple(ext_ver)
         if vt and vt < (2, 26, 7):
             add("WARN", "Flogo VS Code extension", f"{ext_ver} is older than 2.26.7 (the tested floor)", "update the TIBCO Flogo VS Code extension")

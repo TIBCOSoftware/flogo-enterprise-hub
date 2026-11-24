@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Pre-ship validator for Agentic AI .flogo apps — nothing app-specific is hardcoded.
+"""Pre-ship validator for Agentic AI Flogo apps (2.x .flogo files and 3.x project folders) — nothing
+app-specific is hardcoded.
 
 Catches the two defect classes that recur when hand-authoring/cloning these apps:
 
@@ -45,10 +46,52 @@ the 3-part designer contract).
 
 Usage:
     python validate_flogo_apps.py <app1.flogo> [app2.flogo ...]   # explicit files
-    python validate_flogo_apps.py                                 # scan **/*.flogo under cwd
+    python validate_flogo_apps.py <AppDir> [<AppDir>/app.fgmd ...]  # Flogo 3.x project folders
+    python validate_flogo_apps.py                                 # scan **/*.flogo and **/app.fgmd under cwd
+Flogo 3.x projects are read through `fda da any --json` (the merged project view, same shape as a .flogo);
+the fda binary is env FDA, else the newest installed Flogo VS Code extension.
 Exit code 0 = clean, 1 = one or more problems (printed). No hardcoded app/column/property/blob names.
 """
-import json, re, sys, glob, os
+import json, re, sys, glob, os, subprocess
+
+
+def _fda():
+    """env FDA > newest installed Flogo extension's flogodesign-cli (3.x preferred: it reads 3.x projects)."""
+    if os.environ.get("FDA"): return os.environ["FDA"]
+    exe = "flogodesign-cli.exe" if os.name == "nt" else "flogodesign-cli"
+    for pat in ("tibco.flogo3-*", "tibco.flogo-2.*"):
+        hits = [h for d in (".vscode", ".vscode-insiders", ".vscode-server")
+                for h in glob.glob(os.path.join(os.path.expanduser("~"), d, "extensions", pat, "bin", exe))]
+        if hits: return max(hits, key=os.path.getmtime)
+    raise RuntimeError("flogodesign-cli not found (needed to read a Flogo 3.x project): set FDA=<path>")
+
+
+def is_3x(path):
+    return os.path.isdir(path) or os.path.basename(path) == "app.fgmd"
+
+
+def load_app(path):
+    """The app model: a 2.x .flogo's JSON, or a 3.x project's merged view via `fda da any --json`
+    (path = the project folder or its app.fgmd). Both have the same top-level shape."""
+    if not is_3x(path):
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    proj = path if os.path.isdir(path) else os.path.dirname(os.path.abspath(path))
+    if not os.path.isfile(os.path.join(proj, "app.fgmd")):
+        raise RuntimeError(f"{path}: not a Flogo 3.x project (no app.fgmd)")
+    r = subprocess.run([_fda(), "da", "any", "--json", "-f", proj], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    try:
+        return json.loads(re.sub(r"\x1b\[[0-9;]*m", "", r.stdout))["flogoAttributes"]
+    except (ValueError, KeyError):
+        raise RuntimeError(f"fda da any --json failed on {proj}: {(r.stdout + r.stderr)[-500:]}")
+
+
+def app_files(args):
+    """Explicit args, else every **/*.flogo and every 3.x project folder (**/app.fgmd) under cwd."""
+    if args: return args
+    return (glob.glob("**/*.flogo", recursive=True)
+            + [os.path.dirname(p) or "." for p in glob.glob("**/app.fgmd", recursive=True)])
 
 PG_REFS = ("#query", "#insert", "#update")   # fallback only, for an app with no `imports` list
 PG_IMPORT = "wi-postgres/src/app/PostgreSQL/activity/"
@@ -239,8 +282,7 @@ def check_app(path, notes=None):
     fail the gate (password fields still holding a SECURITY.md placeholder) are appended to it."""
     problems = []
     notes = [] if notes is None else notes
-    with open(path, encoding="utf-8") as fh:
-        app = json.load(fh)
+    app = load_app(path)
 
     def password_value(where, value, bound_to=None):
         """Report a password field whose (resolved) value is not SECRET:...; placeholders become notes."""
@@ -437,7 +479,7 @@ def check_app(path, notes=None):
 
 
 def main():
-    files = sys.argv[1:] or glob.glob("**/*.flogo", recursive=True)
+    files = app_files(sys.argv[1:])
     total = n_notes = 0
     for f in files:
         notes = []
