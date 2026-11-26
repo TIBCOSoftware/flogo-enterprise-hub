@@ -1,0 +1,38 @@
+# Flogo app template: REST (OpenAPI) -> canonical event mapper -> Kafka, HTTP 202 reply
+# Harvested from the fda design history of FlightOpsEventGateway (45 recorded steps).
+# One fda command per line (-f <app>.flogo is added by generate_app.py).
+# Parameters: APP_DESCRIPTION APP_NAME BROKERS EVENT_SCHEMA EVENT_SCHEMA_NAME FLOW HTTP_PORT KEY_FIELD REPLY_SCHEMA SPEC_FILE SPEC_NAME TOPIC TRIGGER
+# @foreach EVENT_MAPPING = Event sheet rows, @foreach REPLY_MAPPING = Response sheet rows
+
+cp '${APP_NAME}' '${APP_DESCRIPTION}'
+csp '${SPEC_NAME}' --specFile '${SPEC_FILE}'
+cas '${SPEC_NAME}' logReply
+cap HTTP.Port number '${HTTP_PORT}'
+sa trigger '${TRIGGER}.settings.port' '=$property["HTTP.Port"]'
+cap Kafka.EventBus.Brokers string '${BROKERS}'
+cap Event.Topic string '${TOPIC}'
+cc EventBus con_kafka
+sa connection EventBus.settings.brokers '=$property["Kafka.EventBus.Brokers"]'
+sa connection EventBus.settings.authMode None
+rl '${FLOW}' Log_API ConfigureHTTPResponse
+ca '${FLOW}' BuildEvent mapper 'Map the API request to the canonical event' --doNotLink
+cl '${FLOW}' Log_API BuildEvent
+ca '${FLOW}' PublishEvent kafka_producer 'Publish the event to Kafka' -C EventBus --doNotLink
+cl '${FLOW}' BuildEvent PublishEvent
+cl '${FLOW}' PublishEvent ConfigureHTTPResponse
+sa flow '${FLOW}.fe_metadata' eyJTdGFydEFjdGl2aXR5Ijp7IngiOjUwLCJ5Ijo0NX0sIkxvZ19BUEkiOnsieCI6MjUwLCJ5Ijo0NX0sIkJ1aWxkRXZlbnQiOnsieCI6NDUwLCJ5Ijo0NX0sIlB1Ymxpc2hFdmVudCI6eyJ4Ijo2NTAsInkiOjQ1fSwiQ29uZmlndXJlSFRUUFJlc3BvbnNlIjp7IngiOjg1MCwieSI6NDV9LCJSZXR1cm4iOnsieCI6MTA1MCwieSI6NDV9fQ==
+sms '${FLOW}.BuildEvent' '${EVENT_SCHEMA_NAME}' --json-schema '${EVENT_SCHEMA}'
+@foreach EVENT_MAPPING
+mm '${FLOW}.BuildEvent.input.input.mapping.${target}' '${value}'
+@end
+mm '${FLOW}.PublishEvent.input.topic' '=$property["Event.Topic"]'
+mm '${FLOW}.PublishEvent.input.key' '=$activity[BuildEvent].output.${KEY_FIELD}'
+mm '${FLOW}.PublishEvent.input.stringValue' '=coerce.toString($activity[BuildEvent].output)'
+cs ReplyBody '${REPLY_SCHEMA}'
+sa activity '${FLOW}.ConfigureHTTPResponse.schemas.input.input' ReplyBody -C schema --force
+sa activity '${FLOW}.ConfigureHTTPResponse.input.trigger' '${TRIGGER}'
+@foreach REPLY_MAPPING
+mm '${FLOW}.ConfigureHTTPResponse.input.input.mapping.body.${target}' '${value}'
+@end
+rl '${FLOW}' ConfigureHTTPResponse Return
+cl '${FLOW}' ConfigureHTTPResponse Return

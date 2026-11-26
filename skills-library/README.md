@@ -26,7 +26,7 @@ user-invocable: true
 
 ## What's in this Library
 
-The library contains **9 skills** that cover the full Flogo development lifecycle — from designing a flow, to mapping and testing it, to building an executable, to deploying it on the TIBCO Platform, and up to scaffolding complete Agentic AI use cases.
+The library contains **10 skills** that cover the full Flogo development lifecycle — from designing a flow, to mapping and testing it, to building an executable, to deploying it on the TIBCO Platform, and up to scaffolding complete Agentic AI use cases.
 
 | Skill | Type | Purpose |
 |---|---|---|
@@ -38,6 +38,7 @@ The library contains **9 skills** that cover the full Flogo development lifecycl
 | **flogo-unit-testing** | Recipe | Recipe to **create and run unit tests for Flogo apps** — test files, test cases with flow inputs, assertions on flow outputs, and test execution with result verification. |
 | **mapping-from-excel** | Recipe | Recipe to **build a Flogo flow from an Excel mapping spec** — input fields, output fields, and per-field mapping rules. |
 | **rest-to-database-app** | Recipe | Recipe to **scaffold a REST API Flogo app that queries a database** (REST trigger → log → DB query → reply). |
+| **flogo-app-template** | Recipe | Turn an AI-built "golden" app into a **deterministic, parameterized app template** by harvesting its `fda` design history, then **generate look-alike apps** from an OpenAPI spec + Excel mapping workbook with no AI in the loop (ships a REST → mapper → Kafka → HTTP 202 template). |
 | **agentic-ai-use-case-builder** | Use-case builder | Build a **governed-by-default Agentic AI use case for any vertical** — an MCP Server (scoped reads + guarded writes) + a read-only A2A reasoning-agents app + a WebSocket AI Orchestrator, backed by PostgreSQL, modeled on the reference use cases under `samples/Agentic_AI/`. It passes the **decision framework** first (agent vs. deterministic vs. human-owned), enforces identity, scoping, prices and state changes **in SQL** (scoped reads, guarded writes, two-step confirm, routed review cases), supports **two build methods** (**from scratch via the `fda` CLI** — recommended default — or **cloning an existing reference app**), and proves it with a **4-step test ladder** ending in a real chat that includes a **prompt-injection attempt** (a user message that tries to talk the agent past its rules — e.g. "ignore your rules and do X" — which fails because the rules live in SQL, not the prompt). Worked examples: [Retail Banking Assistant](../samples/Agentic_AI/Industry_Use_Cases/Financial_Services/Banking/Retail_Banking_Assistant_Use_Case/) and [Telecom — Mobile Billing & Spend Control](../samples/Agentic_AI/Industry_Use_Cases/Telecommunications/Mobile_Fixed_Cable_Operators/Telecom_Mobile_Billing_Use_Case/) (all 14 are under [samples/Agentic_AI/Industry_Use_Cases/](../samples/Agentic_AI/Industry_Use_Cases/)). |
 
 ---
@@ -141,6 +142,17 @@ Step-by-step workflows that chain several CLI steps into one outcome.
   > *"Create a Flogo app `customer-api` that exposes `GET /customers/{id}` and queries a MySQL database."*
   >
   > *"Scaffold a PostgreSQL-backed REST app with `GET /orders` and `GET /orders/{id}`."*
+
+#### `flogo-app-template` — deterministic app templates from fda history
+
+- **What it does:** Three stages, with AI used only in the first. (1) Build a "golden" app with `fda` while design history is on. (2) Harvest the recorded `fda` commands into a parameterized `.fdatemplate` (values become `${PARAMS}`, per-row mapping commands become `@foreach` blocks). (3) Generate new apps from the template plus an OpenAPI spec, an Excel mapping workbook (Event + Response sheets) and topic/broker/port values. Each run writes the `.flogo` and the exact `fda` build script, and `compare_flogo.py` proves determinism against the golden app. Ships a verified REST (OpenAPI) → mapper → Kafka → HTTP 202 template.
+- **How to invoke it:** Ask for app templates, or point it at a swagger and a mapping workbook for a pattern that already has a template.
+- **Template prompt:**
+  > *"Generate a Flogo app from `<api>.json` and `<mapping>.xlsx` using the REST-to-Kafka template, publishing to topic `<topic>`."*
+- **Example prompts:**
+  > *"Harvest the fda history of `OrderEventGateway.flogo` into a reusable template."*
+  >
+  > *"Use the rest-to-kafka template to generate one app per OpenAPI spec in `specs/`, each with its own mapping workbook."*
 
 ### Use-case builder
 
@@ -353,6 +365,7 @@ Key values the skills rely on:
 │       ├── flogo-unit-testing/       # Create and run Flogo unit tests
 │       ├── mapping-from-excel/       # Build a Flogo flow from an Excel mapping spec
 │       ├── rest-to-database-app/     # Scaffold a REST -> DB Flogo app
+│       ├── flogo-app-template/       # Harvest fda history into a template; generate look-alike apps deterministically
 │       ├── agentic-ai-use-case-builder/  # Governed-by-default Agentic AI use case (MCP + A2A + orchestrator); decision-framework gate, rules in SQL, fda-CLI or clone method, 4-step test ladder
 │       ├── config.example.md         # Template for environment-specific values (copy to config.md)
 │       └── config.md                 # Your environment values (git-ignored; not committed)
